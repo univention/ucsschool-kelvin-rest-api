@@ -8,7 +8,7 @@ When it is, there will be ``<Link>`` entries in the response headers.
 The format of the JSON response in the body will not change.
 
 Requests to resource endpoints must carry a valid token.
-Section :ref:`Installation and configuration` describes how to obtain one.
+Section :ref:`install-and-config` describes how to obtain one.
 Sending no or an invalid token leads to the server responding with HTTP status ``401``.
 
 The token must be in the ``Authorization`` header with a value ``Bearer <token>``. E.g.::

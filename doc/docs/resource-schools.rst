@@ -66,7 +66,7 @@ Schools udm_properties
 ----------------------
 
 The attribute ``udm_properties`` is an object that can contain arbitrary UDM properties.
-It must be configured in the file ``/etc/ucsschool/kelvin/mapped_udm_properties.json``, see :ref:`UDM Properties`.
+It must be configured in the file ``/etc/ucsschool/kelvin/mapped_udm_properties.json``, see :ref:`configuration-udm-properties`.
 
 **Attention**: Due to the technical way schools are created, udm_properties are set after the initial creation
 of the school. This can lead to a school being created with an error following the subsequent alteration.

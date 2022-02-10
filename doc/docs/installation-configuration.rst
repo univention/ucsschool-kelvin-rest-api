@@ -1,3 +1,5 @@
+.. _install-and-config:
+
 Installation and configuration
 ==============================
 
@@ -39,6 +41,8 @@ The number of CPU cores used by the *UCS\@school Kelvin REST API* app can be con
 The default is ``2``. Values below ``1`` start one process for each available CPU.
 The value can be changed through the *app settings* of the *UCS\@school Kelvin REST API* app in the *Univention App Center* UMC module.
 
+.. _configuration-token-validity:
+
 Token validity
 ^^^^^^^^^^^^^^
 
@@ -66,6 +70,8 @@ The directory ``/var/lib/ucs-school-import/configs`` is mounted as a *volume* in
 
 The directory contains the file ``kelvin.json``, which is the top level configuration file for the UCS\@school import code, executed when ``user`` objects are managed.
 Documentation for the UCS\@school import configuration is available only in german in the `Handbuch zur CLI-Import-Schnittstelle`_.
+
+.. _configuration-udm-properties:
 
 UDM Properties
 ^^^^^^^^^^^^^^

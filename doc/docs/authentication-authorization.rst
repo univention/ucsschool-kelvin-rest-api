@@ -6,7 +6,7 @@ Authentication
 
 To use the API, a `JSON Web Token (JWT)`_ must be retrieved from ``https://<fqdn>/ucsschool/kelvin/token``.
 The token will be valid for a configurable amount of time (default 60 minutes), after which it must be renewed.
-To change the value see chapter :ref:`Token validity`.
+To change the value see chapter :ref:`configuration-token-validity`.
 
 The time a token is valid is stored inside the JWT token in the ``exp`` attribute.
 
