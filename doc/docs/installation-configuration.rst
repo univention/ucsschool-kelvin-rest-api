@@ -7,23 +7,29 @@ Installation
 ------------
 
 The app *UCS\@school Kelvin REST API* must be installed on the DC master or DC backup.
-This can be done either through the UMC module *Univention App Center* or on the command line::
+This can be done either through the UMC module *Univention App Center* or on the command line:
+
+.. code-block:: console
 
     $ univention-app install ucsschool-kelvin-rest-api
 
-The join script ``50ucsschool-kelvin-rest-api.inst`` should run automatically.
-To verify if it succeeded, open the *Domain join* UMC module or run::
+The join script :file:`50ucsschool-kelvin-rest-api.inst` should run automatically.
+To verify if it succeeded, open the *Domain join* UMC module or run:
+
+.. code-block:: console
 
     $ univention-check-join-status
 
-If it hasn't run, start it in the UMC module or execute::
+If it hasn't run, start it in the UMC module or execute:
+
+.. code-block:: console
 
     $ univention-run-join-scripts
 
 If problems occur during installation or join script execution, relevant log files are:
 
-#. ``/var/log/univention/appcenter.log``
-#. ``/var/log/univention/join.log``
+#. :file:`/var/log/univention/appcenter.log`
+#. :file:`/var/log/univention/join.log`
 
 Configuration
 -------------
@@ -56,7 +62,7 @@ By default, the *UCS\@school Kelvin REST API* only connects to an LDAP server wh
 Log level
 ^^^^^^^^^
 
-The minimum severity for log messages written to ``/var/log/univention/ucsschool-kelvin-rest-api/http.log`` can be configured. The default is ``INFO``. The value can be changed through the *app settings* of the *UCS\@school Kelvin REST API* app in the *Univention App Center* UMC module.
+The minimum severity for log messages written to :file:`/var/log/univention/ucsschool-kelvin-rest-api/http.log` can be configured. The default is ``INFO``. The value can be changed through the *app settings* of the *UCS\@school Kelvin REST API* app in the *Univention App Center* UMC module.
 
 Backup count of validation logging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -66,10 +72,10 @@ To change it for the *UCS\@school Kelvin REST API*, it has to be modified inside
 Configuration of user object management (import configuration)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The directory ``/var/lib/ucs-school-import/configs`` is mounted as a *volume* into the Docker container where the *UCS\@school Kelvin REST API* runs. This makes it accessible from the host as well as from inside the container.
+The directory :file:`/var/lib/ucs-school-import/configs` is mounted as a *volume* into the Docker container where the *UCS\@school Kelvin REST API* runs. This makes it accessible from the host as well as from inside the container.
 
 The directory contains the file ``kelvin.json``, which is the top level configuration file for the UCS\@school import code, executed when ``user`` objects are managed.
-Documentation for the UCS\@school import configuration is available only in german in the `Handbuch zur CLI-Import-Schnittstelle`_.
+Documentation for the UCS\@school import configuration is available only in German in the `Handbuch zur CLI-Import-Schnittstelle`_.
 
 .. _configuration-udm-properties:
 
@@ -79,7 +85,7 @@ UDM Properties
 There was already an ``udm_properties`` functionality available for user resources within Kelvin.
 With the release of Kelvin 1.5.0 the ``udm_properties`` functionality was added to all other resources (except roles)
 as well. The list of ``mapped_udm_properties`` can be configured in
-``/etc/ucsschool/kelvin/mapped_udm_properties.json``.
+:file:`/etc/ucsschool/kelvin/mapped_udm_properties.json`.
 
 The format of the ``mapped_udm_properties.json`` is::
 
@@ -88,7 +94,9 @@ The format of the ``mapped_udm_properties.json`` is::
         ...
     }
 
-For example::
+For example:
+
+.. code-block:: json
 
     {
         "user": ["unixhome", "title"],
@@ -113,7 +121,7 @@ Python hooks for user object management (import hooks)
 
 *Read next chapter about hooks for non-user objects like school classes.*
 
-The directory ``/var/lib/ucs-school-import/kelvin-hooks`` is mounted as a *volume* into the Docker container, so it can be accessed from the host. The directory content is scanned when the Kelvin API server starts.
+The directory :file:`/var/lib/ucs-school-import/kelvin-hooks` is mounted as a *volume* into the Docker container, so it can be accessed from the host. The directory content is scanned when the Kelvin API server starts.
 If it contains classes that inherit from ``ucsschool.importer.utils.import_pyhook.ImportPyHook``, they are executed when users are managed through the Kelvin API.
 The hooks are very similar to the Python hooks for the UCS\@school import (see `Handbuch zur CLI-Import-Schnittstelle`_).
 The differences are:
@@ -129,7 +137,9 @@ It can be used to comfortably query the UDM REST API running on the DC master.
 When using the UCS\@school lib or import, it must be used in most places that ``self.lo`` was used before.
 
 **Important**: When calling methods of ucsschool objects (e.g. ``ImportUser``, ``SchoolClass`` etc.) ``self.udm`` must be used instead of ``self.lo`` and those methods may have to be used with ``await``. Thus hooks methods will be ``async``.
-For example::
+For example:
+
+.. code-block:: python
 
     async def post_create(self, user: ImportUser) -> None:
         user.firstname = "Sam"
@@ -171,7 +181,9 @@ If the value is ``None`` the method will not run.
 The methods ``pre_create()``, ``post_modify()`` and so on receive the object being modified and return ``None``.
 The type of ``obj`` is the one in ``model`` (or a subclass).
 
-To add custom initialization code, ``__init__()`` can be implemented the following way::
+To add custom initialization code, ``__init__()`` can be implemented the following way:
+
+.. code-block:: python
 
     from ucsschool.lib.models.hook import Hook
     # from udm_rest_client import UDM
@@ -183,9 +195,11 @@ To add custom initialization code, ``__init__()`` can be implemented the followi
             # From here on self.lo, self.logger and self.ucr are available.
             # You code here.
 
-To activate a hook, or or a change to a hook, restart the *UCS\@school Kelvin REST API* Docker container::
+To activate a hook, or or a change to a hook, restart the *UCS\@school Kelvin REST API* Docker container:
 
-    /etc/init.d/docker-app-ucsschool-kelvin-rest-api restart
+.. code-block:: console
+
+    $ /etc/init.d/docker-app-ucsschool-kelvin-rest-api restart
 
 
 Further reading about the UCS\@school hooks is available for German readers in `Handbuch zur CLI-Import-Schnittstelle`_ chapter "12. Pre- und Post-Hook-Skripte für den Import".
@@ -198,21 +212,21 @@ File locations
 Logfiles
 ^^^^^^^^
 
-``/var/log/univention/ucsschool-kelvin-rest-api`` is a volume mounted into the docker container, so it can be accessed from the host.
+:file:`/var/log/univention/ucsschool-kelvin-rest-api` is a volume mounted into the docker container, so it can be accessed from the host.
 The directory contains the file ``http.log``, which is the log of the HTTP-API (both ASGI server and API application)
 and the file ``ucs-school-validation.log``, which is used to write sensitive information during the UCS\@school validation.
 
 User object (import) configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``/var/lib/ucs-school-import/configs`` is a volume mounted into the docker container, so it can be accessed from the host.
+:file:`/var/lib/ucs-school-import/configs` is a volume mounted into the docker container, so it can be accessed from the host.
 The directory contains the file ``kelvin.json``, which is the top level configuration file for the UCS\@school import code that is executed as part of the *UCS\@school Kelvin REST API* that runs inside the Docker container when user objects are managed.
 
 
 Python hooks
 ^^^^^^^^^^^^
 
-``/var/lib/ucs-school-import/kelvin-hooks`` and ``/var/lib/ucs-school-lib/kelvin-hooks`` are volumes mounted into the docker container, so they can be accessed from the host.
+:file:`/var/lib/ucs-school-import/kelvin-hooks` and :file:`/var/lib/ucs-school-lib/kelvin-hooks` are volumes mounted into the docker container, so they can be accessed from the host.
 Their purpose is explained above in chapters `Python hooks for user object management (import hooks)`_ and `Python hooks for pre- and post-object-modification actions`_.
 
 

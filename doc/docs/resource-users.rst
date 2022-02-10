@@ -100,7 +100,9 @@ The ``kelvin_password_hashes`` attribute is an object where all of the following
 * ``krb5_key_version_number``: : integer containing the LDAPs ``krb5KeyVersionNumber`` attribute
 * ``samba_pwd_last_set``: integer containing the LDAPs ``sambaPwdLastSet`` attribute
 
-Run the following command on a UCS system to see how those values should look like::
+Run the following command on a UCS system to see how those values should look like:
+
+.. code-block:: console
 
     $ univention-ldapsearch -LLL uid=Administrator userPassword sambaNTPassword krb5Key krb5KeyVersionNumber sambaPwdLastSet
 
@@ -126,7 +128,7 @@ All school names in ``school_classes`` must exist (as URLs) in ``schools``.
 udm_properties
 ^^^^^^^^^^^^^^
 The attribute ``udm_properties`` is an object that can contain arbitrary UDM properties.
-It must be configured in the file ``/var/lib/ucs-school-import/configs/kelvin.json``, or ``/etc/ucsschool/kelvin/mapped_udm_properties.json``;
+It must be configured in the file :file:`/var/lib/ucs-school-import/configs/kelvin.json`, or :file:`/etc/ucsschool/kelvin/mapped_udm_properties.json`;
 see :ref:`Configuration of user object management (import configuration)` and :ref:`configuration-udm-properties`.
 It must not contain UDM properties that are already available as regular attributes (like ``username`` → ``name``, ``mailPrimaryAddress`` → ``email``, ...).
 
@@ -181,7 +183,7 @@ To search for users with usernames that contain ``Brian``, append ``?name=*Brian
 resource. The search is case-insensitive. The URL would be: ``https://<fqdn>/ucsschool/kelvin/v1/users/?name=%2ABrian%2A``
 
 The Users resource supports searching for all attributes and to combine those.
-To search for users that are both ``staff`` and ``teacher`` with usernames that start with ``demo``, birthday on the 3rd of february, have a lastname that ends with ``sam`` and are enrolled in school ``demoschool``, the URL is: ``https://<fqdn>/ucsschool/kelvin/v1/users/?school=demoschool&name=demo%2A&birthday=2001-02-03&lastname=%2Asam&roles=staff&roles=teacher``
+To search for users that are both ``staff`` and ``teacher`` with usernames that start with ``demo``, birthday on the 3rd of February, have a lastname that ends with ``sam`` and are enrolled in school ``demoschool``, the URL is: ``https://<fqdn>/ucsschool/kelvin/v1/users/?school=demoschool&name=demo%2A&birthday=2001-02-03&lastname=%2Asam&roles=staff&roles=teacher``
 
 The user in the example response is working in two schools as both staff and teacher:
 
@@ -268,7 +270,7 @@ When creating a user, a number of attributes must be set, unless formatted from 
 * ``school`` or ``schools`` (or both)
 * ``source_uid``
 
-As an example, with the following being the content of ``/tmp/create_user.json``:
+As an example, with the following being the content of :file:`/tmp/create_user.json`:
 
 .. code-block:: json
 
@@ -357,7 +359,7 @@ PUT example
 ^^^^^^^^^^^
 All required attributes must be sent with a ``PUT`` request.
 
-As an example, with the following being the content of ``/tmp/mod_user.json``:
+As an example, with the following being the content of :file:`/tmp/mod_user.json`:
 
 .. code-block:: json
 

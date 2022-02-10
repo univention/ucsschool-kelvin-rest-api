@@ -18,7 +18,9 @@ This will prevent the changes to be incorporated into the UDM REST client of the
 
 **It is thus necessary to rebuild the OpenAPI client manually.**
 
-This can be done with the following commands::
+This can be done with the following commands:
+
+.. code-block:: console
 
     $ systemctl restart univention-directory-manager-rest.service
     $ univention-app shell ucsschool-kelvin-rest-api /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/data/update_openapi_client

@@ -10,7 +10,9 @@ To change the value see chapter :ref:`configuration-token-validity`.
 
 The time a token is valid is stored inside the JWT token in the ``exp`` attribute.
 
-Example ``curl`` command to retrieve a token::
+Example ``curl`` command to retrieve a token:
+
+.. code-block:: console
 
     $ curl -i -k -X POST https://<fqdn>/ucsschool/kelvin/token \
         -H "Content-Type:application/x-www-form-urlencoded" \
@@ -26,14 +28,18 @@ The response headers will be::
     content-type: application/json
     Via: 1.1 <fqdn>
 
-The response body will be::
+The response body will be:
+
+.. code-block:: json
 
     {
         "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUz...",
         "token_type": "bearer"
     }
 
-*Hint:* to get a JSON response pretty printed omit the ``-i`` in the ``curl`` command and pipe the response through a JSON formatter::
+*Hint:* to get a JSON response pretty printed omit the ``-i`` in the ``curl`` command and pipe the response through a JSON formatter:
+
+.. code-block:: console
 
     $ curl -k -X POST https://<fqdn>/ucsschool/kelvin/token \
         -H "Content-Type:application/x-www-form-urlencoded" \

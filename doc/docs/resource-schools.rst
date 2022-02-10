@@ -3,14 +3,18 @@ Resource Schools
 
 The ``Schools`` resource is represented in the LDAP tree as an ``OU``.
 
-To list those LDAP objects run::
+To list those LDAP objects run:
+
+.. code-block:: console
 
     $ univention-ldapsearch -LLL "objectClass=ucsschoolOrganizationalUnit"
 
 UCS\@school uses the `UDM REST API`_ which in turn uses UDM to access LDAP.
 UDM properties have different names than their associated LDAP attributes.
 Their values may also differ.
-To list the same UDM objects run::
+To list the same UDM objects run:
+
+.. code-block:: console
 
     $ udm container/ou list --filter "objectClass=ucsschoolOrganizationalUnit"
 
@@ -27,7 +31,9 @@ It does not yet support modifying or deleting OUs.
 Schools resource representation
 -------------------------------
 
-The following JSON is an example Schools resource in the *UCS\@school Kelvin REST API*::
+The following JSON is an example Schools resource in the *UCS\@school Kelvin REST API*:
+
+.. code-block:: json
 
     {
         "dn": "ou=test,dc=uni,dc=ven",
@@ -66,7 +72,7 @@ Schools udm_properties
 ----------------------
 
 The attribute ``udm_properties`` is an object that can contain arbitrary UDM properties.
-It must be configured in the file ``/etc/ucsschool/kelvin/mapped_udm_properties.json``, see :ref:`configuration-udm-properties`.
+It must be configured in the file :file:`/etc/ucsschool/kelvin/mapped_udm_properties.json`, see :ref:`configuration-udm-properties`.
 
 **Attention**: Due to the technical way schools are created, udm_properties are set after the initial creation
 of the school. This can lead to a school being created with an error following the subsequent alteration.
@@ -75,7 +81,9 @@ In this case the Kelvin API returns a 500 status code, but the school was create
 Schools list and search
 -----------------------
 
-Example ``curl`` command to retrieve the list of all schools (OUs)::
+Example ``curl`` command to retrieve the list of all schools (OUs):
+
+.. code-block:: console
 
     $ curl -i -k -X GET "https://<fqdn>/ucsschool/kelvin/v1/schools/" \
         -H "accept: application/json" \
@@ -90,7 +98,9 @@ The response headers will be::
     content-type: application/json
     Via: 1.1 <fqdn>
 
-The response body will be::
+The response body will be:
+
+.. code-block:: json
 
     [
         {
@@ -103,8 +113,7 @@ The response body will be::
             "class_share_file_server": "dc-demoschool",
             "home_share_file_server": "dc-demoschool",
             "udm_properties": {}
-        },
-        ...
+        }
     ]
 
 To search for schools with a name that starts with ``abc``, append ``?name=abc*`` to the school
@@ -116,7 +125,9 @@ resource. The search is case-insensitive. The URL would be: ``https://<fqdn>/ucs
 Schools retrieve
 ----------------
 
-Example ``curl`` command to retrieve a single school (OU)::
+Example ``curl`` command to retrieve a single school (OU):
+
+.. code-block:: console
 
     $ curl -X GET "https://<fqdn>/ucsschool/kelvin/v1/schools/demoschool" \
         -H "accept: application/json" \
@@ -136,7 +147,9 @@ When creating a school, two attributes must be set:
 * ``display_name``
 
 
-As an example, with the following being the content of ``/tmp/create_ou.json``::
+As an example, with the following being the content of :file:`/tmp/create_ou.json`:
+
+.. code-block:: json
 
     {
         "name": "example",
@@ -144,7 +157,9 @@ As an example, with the following being the content of ``/tmp/create_ou.json``::
     }
 
 
-This ``curl`` command will create a school from the above data::
+This ``curl`` command will create a school from the above data:
+
+.. code-block:: console
 
     $ curl -i -k -X POST "https://<fqdn>/ucsschool/kelvin/v1/schools/" \
         -H "accept: application/json" \
@@ -161,7 +176,9 @@ Response headers::
     content-type: application/json
     Via: 1.1 <fqdn>
 
-Response body::
+Response body:
+
+.. code-block:: json
 
     {
         "dn": "ou=Example,dc=uni,dc=ven",

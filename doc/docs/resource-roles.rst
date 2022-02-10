@@ -15,7 +15,9 @@ It does not support creating, modifying or deleting roles.
 Roles resource representation
 -----------------------------
 
-The following JSON is an example Roles resource in the *UCS\@school Kelvin REST API*::
+The following JSON is an example Roles resource in the *UCS\@school Kelvin REST API*:
+
+.. code-block:: json
 
     {
         "display_name": "staff",
@@ -37,7 +39,9 @@ The following JSON is an example Roles resource in the *UCS\@school Kelvin REST 
 Roles list and search
 ---------------------
 
-Example ``curl`` command to retrieve the list of all roles::
+Example ``curl`` command to retrieve the list of all roles:
+
+.. code-block:: console
 
     $ curl -i -k -X GET "https://<fqdn>/ucsschool/kelvin/v1/roles/" \
         -H "accept: application/json"
@@ -52,7 +56,9 @@ The response headers will be::
     content-type: application/json
     Via: 1.1 <fqdn>
 
-The response body will be::
+The response body will be:
+
+.. code-block:: json
 
     [
         {
@@ -78,7 +84,9 @@ Searching for roles (with ``?name=abc*`` or similar) is *not* supported.
 Roles retrieve
 --------------
 
-Example ``curl`` command to retrieve a single role::
+Example ``curl`` command to retrieve a single role:
+
+.. code-block:: console
 
     $ curl -X GET "https://<fqdn>/ucsschool/kelvin/v1/roles/student"\
         -H "accept: application/json" \
