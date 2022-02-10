@@ -1,1 +1,10 @@
-sphinx-autobuild==0.7.1
+Sphinx==4.4.0
+sphinx-autobuild==2021.3.14
+sphinx-copybutton==0.4.0
+sphinx-last-updated-by-git==0.3.0
+sphinx-sitemap==2.2.0
+univention-sphinx-book-theme
+univention-sphinx-extension
+
+--extra-index-url https://git.knut.univention.de/api/v4/projects/529/packages/pypi/simple
+--extra-index-url https://git.knut.univention.de/api/v4/projects/537/packages/pypi/simple
