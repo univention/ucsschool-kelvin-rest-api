@@ -3,7 +3,9 @@ Resource Users
 
 The ``Users`` resource is represented in the LDAP tree as user objects.
 
-To list those LDAP objects run::
+To list those LDAP objects run:
+
+.. code-block:: console
 
     $ FILTER='(|(objectClass=ucsschoolStaff)(objectClass=ucsschoolStudent)(objectClass=ucsschoolTeacher))'
     $ univention-ldapsearch -LLL "$FILTER"
@@ -11,7 +13,9 @@ To list those LDAP objects run::
 UCS\@school uses the `UDM REST API`_ which in turn uses UDM to access LDAP.
 UDM properties have different names than their associated LDAP attributes.
 Their values may also differ.
-To list the same UDM objects run::
+To list the same UDM objects run:
+
+.. code-block:: console
 
     $ FILTER='(|(objectClass=ucsschoolStaff)(objectClass=ucsschoolStudent)(objectClass=ucsschoolTeacher))'
     $ udm users/user list --filter "$FILTER"
@@ -21,7 +25,9 @@ To list the same UDM objects run::
 Users resource representation
 -----------------------------
 
-The following JSON is an example User resource in the *UCS\@school Kelvin REST API*::
+The following JSON is an example User resource in the *UCS\@school Kelvin REST API*:
+
+.. code-block:: json
 
     {
         "dn": "uid=demo_student,cn=schueler,cn=users,ou=DEMOSCHOOL,dc=uni,dc=ven",
@@ -128,7 +134,9 @@ It must not contain UDM properties that are already available as regular attribu
 Users list and search
 ---------------------
 
-Example ``curl`` command to retrieve the list of all users::
+Example ``curl`` command to retrieve the list of all users:
+
+.. code-block:: console
 
     $ curl -i -k -X GET "https://<fqdn>/ucsschool/kelvin/v1/users/" \
         -H "accept: application/json"
@@ -143,7 +151,9 @@ The response headers will be::
     content-type: application/json
     Via: 1.1 <fqdn>
 
-The response body will be::
+The response body will be:
+
+.. code-block:: json
 
     [
         {
@@ -164,8 +174,7 @@ The response body will be::
             "school_classes": {},
             "source_uid": null,
             "udm_properties": {}
-        },
-        ...
+        }
     ]
 
 To search for users with usernames that contain ``Brian``, append ``?name=*Brian*`` to the school
@@ -174,7 +183,9 @@ resource. The search is case-insensitive. The URL would be: ``https://<fqdn>/ucs
 The Users resource supports searching for all attributes and to combine those.
 To search for users that are both ``staff`` and ``teacher`` with usernames that start with ``demo``, birthday on the 3rd of february, have a lastname that ends with ``sam`` and are enrolled in school ``demoschool``, the URL is: ``https://<fqdn>/ucsschool/kelvin/v1/users/?school=demoschool&name=demo%2A&birthday=2001-02-03&lastname=%2Asam&roles=staff&roles=teacher``
 
-The user in the example response is working in two schools as both staff and teacher::
+The user in the example response is working in two schools as both staff and teacher:
+
+.. code-block:: json
 
     [
         {
@@ -217,29 +228,31 @@ The user in the example response is working in two schools as both staff and tea
                 "title": "Mr.",
                 "uidNumber": 12503
             }
-        },
-        ...
+        }
     ]
 
 
 Users retrieve
 --------------
 
-Example ``curl`` command to retrieve a single user object::
+Example ``curl`` command to retrieve a single user object:
+
+.. code-block:: console
 
     $ curl -k -X GET "https://<fqdn>/ucsschool/kelvin/v1/users/demo_staff" \
         -H "accept: application/json" \
         -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJh...." | python -m json.tool
 
 With the search being case-insensitive, the URL could also have ended in ``DeMo_StAfF``.
-The response body will be similar to the following (shortened)::
+The response body will be similar to the following (shortened):
+
+.. code-block:: json
 
     {
         "dn": "uid=demo_staff,cn=mitarbeiter,cn=users,ou=DEMOSCHOOL,dc=uni,dc=ven",
         "url": "https://<fqdn>/ucsschool/kelvin/v1/users/demo_staff",
         "ucsschool_roles": ["staff:school:DEMOSCHOOL"],
-        "name": "demo_staff",
-        ...
+        "name": "demo_staff"
     }
 
 Users create
@@ -255,7 +268,9 @@ When creating a user, a number of attributes must be set, unless formatted from 
 * ``school`` or ``schools`` (or both)
 * ``source_uid``
 
-As an example, with the following being the content of ``/tmp/create_user.json``::
+As an example, with the following being the content of ``/tmp/create_user.json``:
+
+.. code-block:: json
 
     {
         "name": "bob",
@@ -276,7 +291,9 @@ As an example, with the following being the content of ``/tmp/create_user.json``
         }
     }
 
-This ``curl`` command will create a user from the above data::
+This ``curl`` command will create a user from the above data:
+
+.. code-block:: console
 
     $ curl -i -k -X POST "https://<fqdn>/ucsschool/kelvin/v1/users/" \
         -H "accept: application/json" \
@@ -293,7 +310,9 @@ Response headers::
     content-type: application/json
     Via: 1.1 <fqdn>
 
-Response body::
+Response body:
+
+.. code-block:: json
 
     {
         "dn": "uid=bob,cn=lehrer,cn=users,ou=DEMOSCHOOL,dc=uni,dc=ven",
@@ -338,7 +357,9 @@ PUT example
 ^^^^^^^^^^^
 All required attributes must be sent with a ``PUT`` request.
 
-As an example, with the following being the content of ``/tmp/mod_user.json``::
+As an example, with the following being the content of ``/tmp/mod_user.json``:
+
+.. code-block:: json
 
     {
         "name": "bob",
@@ -352,7 +373,9 @@ As an example, with the following being the content of ``/tmp/mod_user.json``::
         "udm_properties": {"title": "Mr.2"}
     }
 
-This ``curl`` command will modify the user with the above data::
+This ``curl`` command will modify the user with the above data:
+
+.. code-block:: console
 
     $ curl -i -k -X PUT "https://<fqdn>/ucsschool/kelvin/v1/users/bob" \
         -H "accept: application/json" \
@@ -369,7 +392,9 @@ Response headers::
     content-type: application/json
     Via: 1.1 <fqdn>
 
-Response body::
+Response body:
+
+.. code-block:: json
 
     {
         "birthday": null,
@@ -402,7 +427,9 @@ Response body::
 PATCH example
 ^^^^^^^^^^^^^
 Only the attributes that should be changed are sent with a ``PATCH`` request.
-The following ``curl`` command will modify the users given name only::
+The following ``curl`` command will modify the users given name only:
+
+.. code-block:: console
 
     $ curl -i -k -X PATCH "https://<fqdn>/ucsschool/kelvin/v1/users/bob" \
         -H "accept: application/json" \
@@ -419,7 +446,9 @@ Response headers::
     content-type: application/json
     Via: 1.1 <fqdn>
 
-Response body::
+Response body, abbreviated: the rest is the same:
+
+.. code-block:: json
 
     {
         "birthday": null,
@@ -427,8 +456,7 @@ Response body::
         "dn": "uid=bob,cn=lehrer,cn=users,ou=DEMOSCHOOL,dc=uni,dc=ven",
         "email": null,
         "expiration_date": null,
-        "firstname": "Robert Nesta",
-        ... # abbreviated: the rest is the same
+        "firstname": "Robert Nesta"
     }
 
 Move
@@ -475,7 +503,9 @@ A few examples of possible problems:
 Users delete
 ------------
 
-The ``DELETE`` method is used to delete a user object::
+The ``DELETE`` method is used to delete a user object:
+
+.. code-block:: console
 
     $ curl -i -k -X DELETE "https://<fqdn>/ucsschool/kelvin/v1/users/bob" \
         -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJh...."
