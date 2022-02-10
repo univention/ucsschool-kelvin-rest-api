@@ -22,9 +22,11 @@ So ``User`` objects have an additional ``schools`` attribute, that is a list of 
 Currently the ``Schools`` resource does only support listing and creating objects.
 It does not yet support modifying or deleting OUs.
 
+.. _schools-resource-repr:
 
-Resource representation
------------------------
+Schools resource representation
+-------------------------------
+
 The following JSON is an example Schools resource in the *UCS\@school Kelvin REST API*::
 
     {
@@ -60,8 +62,9 @@ The following JSON is an example Schools resource in the *UCS\@school Kelvin RES
 (*) **API CHANGE**: before version ``1.4.0`` this was a DN or list of DNs
 
 
-udm_properties
---------------
+Schools udm_properties
+----------------------
+
 The attribute ``udm_properties`` is an object that can contain arbitrary UDM properties.
 It must be configured in the file ``/etc/ucsschool/kelvin/mapped_udm_properties.json``, see :ref:`UDM Properties`.
 
@@ -69,8 +72,8 @@ It must be configured in the file ``/etc/ucsschool/kelvin/mapped_udm_properties.
 of the school. This can lead to a school being created with an error following the subsequent alteration.
 In this case the Kelvin API returns a 500 status code, but the school was created anyways.
 
-List / Search
--------------
+Schools list and search
+-----------------------
 
 Example ``curl`` command to retrieve the list of all schools (OUs)::
 
@@ -110,8 +113,8 @@ resource. The search is case-insensitive. The URL would be: ``https://<fqdn>/ucs
 ``name`` is currently the only attribute that can be used to search for OUs.
 
 
-Retrieve
---------
+Schools retrieve
+----------------
 
 Example ``curl`` command to retrieve a single school (OU)::
 
@@ -122,8 +125,8 @@ Example ``curl`` command to retrieve a single school (OU)::
 With the search being case-insensitive, this matches an OU named ``DEMOSCHOOL``.
 The response body will be the first element of the list in the search example above.
 
-Create
-------
+Schools create
+--------------
 
 Since version ``1.4.0`` of the *UCS\@school Kelvin REST API* app it is possible to create school objects (OUs).
 
@@ -173,13 +176,13 @@ Response body::
     }
 
 
-Modify / Move
--------------
+Schools modify and move
+-----------------------
 
 Currently not supported.
 
-Delete
-------
+Schools delete
+--------------
 
 Currently not supported.
 

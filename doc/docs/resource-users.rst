@@ -16,8 +16,11 @@ To list the same UDM objects run::
     $ FILTER='(|(objectClass=ucsschoolStaff)(objectClass=ucsschoolStudent)(objectClass=ucsschoolTeacher))'
     $ udm users/user list --filter "$FILTER"
 
-Resource representation
------------------------
+.. _users-resource-repr:
+
+Users resource representation
+-----------------------------
+
 The following JSON is an example User resource in the *UCS\@school Kelvin REST API*::
 
     {
@@ -122,8 +125,9 @@ see :ref:`Configuration of user object management (import configuration)` and :r
 It must not contain UDM properties that are already available as regular attributes (like ``username`` → ``name``, ``mailPrimaryAddress`` → ``email``, ...).
 
 
-List / Search
--------------
+Users list and search
+---------------------
+
 Example ``curl`` command to retrieve the list of all users::
 
     $ curl -i -k -X GET "https://<fqdn>/ucsschool/kelvin/v1/users/" \
@@ -218,8 +222,9 @@ The user in the example response is working in two schools as both staff and tea
     ]
 
 
-Retrieve
---------
+Users retrieve
+--------------
+
 Example ``curl`` command to retrieve a single user object::
 
     $ curl -k -X GET "https://<fqdn>/ucsschool/kelvin/v1/users/demo_staff" \
@@ -237,8 +242,9 @@ The response body will be similar to the following (shortened)::
         ...
     }
 
-Create
-------
+Users create
+------------
+
 When creating a user, a number of attributes must be set, unless formatted from a template (see *Handbuch zur CLI-Import-Schnittstelle*, section `Formatierungsschema`_):
 
 * ``name``
@@ -319,8 +325,8 @@ Response body::
 
 The ``password`` attribute is missing in the response, because UCS systems never stores or sends clear text passwords.
 
-Modify / Move
--------------
+Users modify and move
+---------------------
 
 It is possible to perform complete and partial updates of existing user objects.
 The ``PUT`` method expects a JSON object with all user attributes set.
@@ -466,8 +472,9 @@ A few examples of possible problems:
 * Home directories of UCS\@school users are located on school servers in a directory structure containing the user's role (e.g. ``/home/$OU/lehrer/$USERNAME``). The directory path is stored in the LDAP attribute ``homeDirectory`` / the UDM property ``unixhome``. The location of home directories is of no technical consequence. When user roles are changed, the *UCS\@school Kelvin REST API* will not modify the users home directory property and will not move its files and directories.
 
 
-Delete
-------
+Users delete
+------------
+
 The ``DELETE`` method is used to delete a user object::
 
     $ curl -i -k -X DELETE "https://<fqdn>/ucsschool/kelvin/v1/users/bob" \

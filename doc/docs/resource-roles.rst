@@ -12,8 +12,9 @@ The item list of the ``Roles`` resource is hard coded.
 It does only support listing objects.
 It does not support creating, modifying or deleting roles.
 
-Resource representation
------------------------
+Roles resource representation
+-----------------------------
+
 The following JSON is an example Roles resource in the *UCS\@school Kelvin REST API*::
 
     {
@@ -33,8 +34,8 @@ The following JSON is an example Roles resource in the *UCS\@school Kelvin REST 
     "url", "URL", "The URL of the role object in the UCS\@school Kelvin API.", "read only"
 
 
-List / Search
--------------
+Roles list and search
+---------------------
 
 Example ``curl`` command to retrieve the list of all roles::
 
@@ -74,8 +75,8 @@ The response body will be::
 
 Searching for roles (with ``?name=abc*`` or similar) is *not* supported.
 
-Retrieve
---------
+Roles retrieve
+--------------
 
 Example ``curl`` command to retrieve a single role::
 
