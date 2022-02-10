@@ -16,7 +16,7 @@ A part of the Python UDM REST API Client library is auto-generated from it using
 Although the *OpenAPI client* library rebuild is automatically triggered, because of `Bug #50253`_ the UDM REST API server will not have been reloaded.
 This will prevent the changes to be incorporated into the UDM REST client of the UCS\@school Kelvin REST API server.
 
-**It is thus currently necessary to rebuild the OpenAPI client manually.**
+**It is thus necessary to rebuild the OpenAPI client manually.**
 
 This can be done with the following commands::
 

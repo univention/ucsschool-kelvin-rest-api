@@ -110,7 +110,7 @@ The response body will be::
 To search for schools with a name that starts with ``abc``, append ``?name=abc*`` to the school
 resource. The search is case-insensitive. The URL would be: ``https://<fqdn>/ucsschool/kelvin/v1/schools/?name=abc%2A``
 
-``name`` is currently the only attribute that can be used to search for OUs.
+``name`` is the only attribute that can be used to search for OUs.
 
 
 Schools retrieve
@@ -179,11 +179,11 @@ Response body::
 Schools modify and move
 -----------------------
 
-Currently not supported.
+Not supported.
 
 Schools delete
 --------------
 
-Currently not supported.
+Not supported.
 
 .. _`UDM REST API`: https://docs.software-univention.de/developer-reference-4.4.html#udm:rest_api
