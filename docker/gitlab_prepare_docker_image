@@ -87,6 +87,8 @@ rsync -a --delete \
    Dockerfile \
    opa.initd \
    ucsschool-kelvin-rest-api.initd \
+   logrotate_opa_info \
+   logrotate_opa_template \
  build/
 
 echo "Create empty import configs"
