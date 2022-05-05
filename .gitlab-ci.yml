@@ -8,9 +8,6 @@ prepare:
     - dm-s
   image:
     name: python:3.9-bullseye
-  rules:
-    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
-      when: never
   artifacts:
     paths:
     - docker/build/
