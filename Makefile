@@ -29,9 +29,5 @@ format-all: ## This formats all python files in the repository
 	-pre-commit run -a --hook-stage manual isort-edit
 	-pre-commit run -a --hook-stage manual black-edit
 
-build-docker-image: ## build docker image
-	make -C kelvin-api clean
-	(cd docker && ./build_docker_image)
-
 tests: ## run tests in ucs-school-lib and kelvin-api
 	python3 -m pytest -l -v ucs-school-lib/modules/ucsschool/lib/tests/ kelvin-api/tests/
