@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#test
 set -ex
 
 APP_ID="ucsschool-kelvin-rest-api"
