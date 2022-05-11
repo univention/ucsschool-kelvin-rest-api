@@ -25,3 +25,4 @@ and errors are logged. The output of the complete object as well as the stack tr
    resource-roles
    resource-schools
    resource-users
+   resource-classes
