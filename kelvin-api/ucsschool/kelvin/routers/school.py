@@ -276,6 +276,13 @@ async def create(
     """
     Create a school (OU) with all the information:
 
+    **Parameters**
+
+    - **alter_dhcpd_base**: whether the UCR variable dhcpd/ldap/base should be modified during school
+        creation on singleserver environments. (optional, **currently non-functional!**)
+
+    **Request Body**
+
     - **name**: name of the school class (**required**, only ASCII letters, digits and dashes are
         allowed, dash not at start or end)
     - **display_name**: full name (optional, will be set to '$name' if unset)
@@ -288,11 +295,17 @@ async def create(
         will be alphabetically first of '$educational_servers' if unset)
     - **home_share_file_server**: host names of DCs for the home shares (optional,
         will be alphabetically first of '$educational_servers' if unset)
-    - **alter_dhcpd_base**: whether the UCR variable dhcpd/ldap/base should be modified during school
-        creation on singleserver environments. (optional, currently non-functional!)
     - **udm_properties**: object with UDM properties (optional, e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
+
+    **JSON-example**:
+
+        {
+            "udm_properties": {},
+            "name": "EXAMPLESCHOOL",
+            "display_name": "Example School"
+        }
     """
     if not await OPAClient.instance().check_policy_true(
         policy="schools",
