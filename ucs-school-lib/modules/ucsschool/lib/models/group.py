@@ -311,6 +311,9 @@ class SchoolClass(Group, _MayHaveSchoolPrefix):
 
 class WorkGroup(EmailAttributesMixin, SchoolClass, _MayHaveSchoolPrefix):
     default_roles: List[str] = [role_workgroup]
+    email: str = None
+    allowed_email_senders_users: List[str] = []
+    allowed_email_senders_groups: List[str] = []
     ShareClass = WorkGroupShare
 
     @classmethod

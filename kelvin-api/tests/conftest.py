@@ -147,6 +147,19 @@ class SchoolClassFactory(factory.Factory):
     users = factory.List([])
 
 
+class WorkGroupFactory(factory.Factory):
+    class Meta:
+        model = ucsschool.lib.models.group.WorkGroup
+
+    name = factory.LazyAttribute(lambda o: f"{o.school}-test.{fake.user_name()}")
+    school = factory.LazyFunction(lambda: fake.user_name()[:10])
+    description = factory.Faker("text", max_nb_chars=50)
+    users = factory.List([])
+    email = None
+    allowed_email_senders_users = []
+    allowed_email_senders_groups = []
+
+
 @pytest.fixture(scope="session")
 def udm_kwargs() -> Dict[str, Any]:
     with open(CN_ADMIN_PASSWORD_FILE, "r") as fp:
@@ -501,6 +514,44 @@ async def new_school_class_using_lib(ldap_base, new_school_class_using_lib_obj, 
                 continue
             await obj.remove(udm)
             logger.debug("Deleted SchoolClass %r through UDM.", dn)
+
+
+@pytest.fixture
+def new_workgroup_using_lib_obj():
+    def _func(school: str, **kwargs) -> ucsschool.lib.models.group.WorkGroup:
+        return WorkGroupFactory.build(school=school, **kwargs)
+
+    return _func
+
+
+@pytest.fixture
+async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kwargs):
+    """Create a new school workgroup"""
+    created_workgroups = []
+
+    async def _func(school: str, **kwargs) -> Tuple[str, Dict[str, Any]]:
+        sc: ucsschool.lib.models.group.WorkGroup = new_workgroup_using_lib_obj(school, **kwargs)
+        assert sc.name.startswith(f"{sc.school}-")
+
+        async with UDM(**udm_kwargs) as udm:
+            success = await sc.create(udm)
+            assert success
+            created_workgroups.append(sc.dn)
+            logger.debug("Created new WorkGroup: %r", sc)
+
+        return sc.dn, sc.to_dict()
+
+    yield _func
+
+    async with UDM(**udm_kwargs) as udm:
+        for dn in created_workgroups:
+            try:
+                obj = await ucsschool.lib.models.group.WorkGroup.from_dn(dn, None, udm)
+            except ucsschool.lib.models.base.NoObject:
+                logger.debug("WorkGroup %r does not exist (anymore).", dn)
+                continue
+            await obj.remove(udm)
+            logger.debug("Deleted WorkGroup %r through UDM.", dn)
 
 
 def restart_kelvin_api_server() -> None:

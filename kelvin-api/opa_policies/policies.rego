@@ -6,6 +6,8 @@ default schools = false
 
 default classes = false
 
+default workgroups = false
+
 default roles = false
 
 # Allow kelvin_admin to do any operations
@@ -18,6 +20,10 @@ schools {
 }
 
 classes {
+	actor.kelvin_admin
+}
+
+workgroups {
 	actor.kelvin_admin
 }
 
