@@ -55,7 +55,7 @@ from .constants import (
 from .import_config import get_import_config
 from .ldap_access import LDAPAccess
 from .opa import OPAClient
-from .routers import role, school, school_class, user
+from .routers import role, school, school_class, user, workgroup
 from .token_auth import Token, create_access_token, get_token_ttl
 
 ldap_auth_instance: LDAPAccess = lazy_object_proxy.Proxy(LDAPAccess)
@@ -166,6 +166,11 @@ app.include_router(
     school_class.router,
     prefix=f"{URL_API_PREFIX}/classes",
     tags=["classes"],
+)
+app.include_router(
+    workgroup.router,
+    prefix=f"{URL_API_PREFIX}/workgroups",
+    tags=["workgroups"],
 )
 # app.include_router(
 #     computer_room.router,
