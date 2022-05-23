@@ -242,6 +242,8 @@ async def create(
     - **school**: school the workgroup belongs to (**required**)
     - **description**: additional text (optional)
     - **users**: list of URLs to User resources (optional)
+    - **create_share**: whether a share should be created for the workgroup
+        (optional)
     - **ucsschool_roles**: list of tags of the form
         $ROLE:$CONTEXT_TYPE:$CONTEXT (optional)
     - **udm_properties**: object with UDM properties (optional, e.g.
