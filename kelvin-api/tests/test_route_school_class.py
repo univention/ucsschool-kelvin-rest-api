@@ -35,6 +35,7 @@ import ucsschool.kelvin.constants
 from ucsschool.kelvin.routers.school_class import SchoolClassModel
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.group import SchoolClass
+from ucsschool.lib.models.share import ClassShare
 from ucsschool.lib.models.user import Student, User
 from udm_rest_client import UDM
 
@@ -183,6 +184,7 @@ async def test_create(
         "description": lib_obj.description,
         "users": lib_obj.users,
         "udm_properties": {"mailAddress": f"{name}@{mail_domain}"},
+        "create_share": True,
     }
     async with UDM(**udm_kwargs) as udm:
         assert await lib_obj.exists(udm) is False
@@ -202,6 +204,7 @@ async def test_create(
         compare_ldap_json_obj(json_resp["dn"], json_resp, url_fragment)
         udm_obj = await udm.obj_by_dn(json_resp["dn"])
         assert udm_obj.props["mailAddress"] == f"{name}@{mail_domain}"
+        assert await ClassShare.from_school_group(lib_obj).exists(udm) is True
         await SchoolClass(name=lib_obj.name, school=lib_obj.school).remove(udm)
         assert await SchoolClass(name=lib_obj.name, school=lib_obj.school).exists(udm) is False
 
@@ -405,3 +408,33 @@ async def test_delete(
     async with UDM(**udm_kwargs) as udm:
         with pytest.raises(NoObject):
             await SchoolClass.from_dn(sc1_dn, ou, udm)
+
+
+@pytest.mark.asyncio
+async def test_school_class_does_not_create_share_if_disabled(
+    auth_header,
+    create_ou_using_python,
+    retry_http_502,
+    url_fragment,
+    udm_kwargs,
+    new_school_class_using_lib_obj,
+):
+    school = await create_ou_using_python()
+    lib_obj: SchoolClass = new_school_class_using_lib_obj(school)
+    name = lib_obj.name[len(lib_obj.school) + 1 :]  # noqa: E203
+    attrs = {
+        "name": name,
+        "school": f"{url_fragment}/schools/{lib_obj.school}",
+        "description": lib_obj.description,
+        "users": lib_obj.users,
+        "create_share": False,
+    }
+    async with UDM(**udm_kwargs) as udm:
+        assert await lib_obj.exists(udm) is False
+        retry_http_502(
+            requests.post,
+            f"{url_fragment}/workgroups/",
+            headers={"Content-Type": "application/json", **auth_header},
+            json=attrs,
+        )
+        assert await ClassShare.from_school_group(lib_obj).exists(udm) is False
