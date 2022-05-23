@@ -35,6 +35,7 @@ import ucsschool.kelvin.constants
 from ucsschool.kelvin.routers.workgroup import WorkGroupModel
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.group import WorkGroup
+from ucsschool.lib.models.share import WorkGroupShare
 from ucsschool.lib.models.user import Student, User
 from udm_rest_client import UDM
 
@@ -182,6 +183,7 @@ async def test_create(
         "school": f"{url_fragment}/schools/{lib_obj.school}",
         "description": lib_obj.description,
         "users": lib_obj.users,
+        "create_share": True,
     }
     async with UDM(**udm_kwargs) as udm:
         assert await lib_obj.exists(udm) is False
@@ -198,6 +200,7 @@ async def test_create(
         assert await WorkGroup(name=lib_obj.name, school=lib_obj.school).exists(udm) is True
         await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
         compare_ldap_json_obj(json_resp["dn"], json_resp, url_fragment)
+        assert await WorkGroupShare.from_school_group(lib_obj).exists(udm) is True
         await WorkGroup(name=lib_obj.name, school=lib_obj.school).remove(udm)
         assert await WorkGroup(name=lib_obj.name, school=lib_obj.school).exists(udm) is False
 
@@ -444,3 +447,33 @@ async def test_workgroup_school_cant_change(
         json=change_data,
     )
     assert response.status_code == 422, response.__dict__
+
+
+@pytest.mark.asyncio
+async def test_workgroup_does_not_create_share_if_disabled(
+    auth_header,
+    create_ou_using_python,
+    retry_http_502,
+    url_fragment,
+    udm_kwargs,
+    new_workgroup_using_lib_obj,
+):
+    school = await create_ou_using_python()
+    lib_obj: WorkGroup = new_workgroup_using_lib_obj(school)
+    name = lib_obj.name[len(lib_obj.school) + 1 :]  # noqa: E203
+    attrs = {
+        "name": name,
+        "school": f"{url_fragment}/schools/{lib_obj.school}",
+        "description": lib_obj.description,
+        "users": lib_obj.users,
+        "create_share": False,
+    }
+    async with UDM(**udm_kwargs) as udm:
+        assert await lib_obj.exists(udm) is False
+        retry_http_502(
+            requests.post,
+            f"{url_fragment}/workgroups/",
+            headers={"Content-Type": "application/json", **auth_header},
+            json=attrs,
+        )
+        assert await WorkGroupShare.from_school_group(lib_obj).exists(udm) is False
