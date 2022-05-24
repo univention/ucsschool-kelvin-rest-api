@@ -23,7 +23,14 @@ from ucsschool.lib.models.validator import (
     get_class,
     validate,
 )
-from ucsschool.lib.roles import role_exam_user, role_school_admin, role_staff, role_student, role_teacher
+from ucsschool.lib.roles import (
+    all_context_types,
+    role_exam_user,
+    role_school_admin,
+    role_staff,
+    role_student,
+    role_teacher,
+)
 from ucsschool.lib.schoolldap import SchoolSearchBase
 from univention.config_registry import handler_set, handler_unset
 
@@ -312,6 +319,15 @@ all_user_roles_names = [
     role_school_admin,
 ]
 
+all_validator_classes = [
+    StudentValidator,
+    TeacherValidator,
+    StaffValidator,
+    ExamStudentValidator,
+    TeachersAndStaffValidator,
+    SchoolAdminValidator,
+]
+
 
 @pytest.fixture
 def reload_school_search_base():
@@ -507,9 +523,12 @@ def test_false_ldap_position(caplog, get_user_a, get_user_b, random_logger):
 @pytest.mark.parametrize("dict_obj", all_user_role_objects, ids=all_user_roles_names)
 def test_wrong_ucsschool_role(caplog, dict_obj, random_logger, random_user_name):
     wrong_school = random_user_name()
-    dict_obj["props"]["ucsschoolRole"] = ["{}:school:{}".format(random_user_name(), wrong_school)]
+    role = random_user_name()
+    dict_obj["props"]["ucsschoolRole"] = ["{}:school:{}".format(role, wrong_school)]
     validate(dict_obj, logger=random_logger)
-    expected_msg = "is not part of schools: {!r}".format([wrong_school])
+    expected_msg = (
+        f"The role string '{dict_obj['props']['ucsschoolRole'][0]}' includes the unknown role '{role}'"
+    )
     check_logs(dict_obj, caplog.record_tuples, random_logger.name, expected_msg)
 
 
@@ -714,9 +733,12 @@ def test_validation_log_enabled(caplog, random_logger, random_user_name, logging
 
         user = student_user()
         wrong_school = random_user_name()
-        user["props"]["ucsschoolRole"] = ["{}:school:{}".format(random_user_name(), wrong_school)]
+        role = random_user_name()
+        user["props"]["ucsschoolRole"] = ["{}:school:{}".format(role, wrong_school)]
         validate(user, logger=random_logger)
-        expected_msg = "is not part of schools: {!r}".format([wrong_school])
+        expected_msg = (
+            f"The role string '{user['props']['ucsschoolRole'][0]}' includes the unknown role '{role}'"
+        )
 
         public_logs = filter_log_messages(caplog.record_tuples, random_logger.name)
         secret_logs = filter_log_messages(caplog.record_tuples, VALIDATION_LOGGER)
@@ -727,3 +749,79 @@ def test_validation_log_enabled(caplog, random_logger, random_user_name, logging
                 assert expected_msg in log
     finally:
         handler_set(["{}={}".format(varname, ucr_value_before)])
+
+
+def get_invalid_school_role_error(school_role: str) -> str:
+    return f"Invalid UCS@school role string: '{school_role}'."
+
+
+def get_invalid_role_error(school_role: str, rolestr_role: str) -> str:
+    return f"The role string '{school_role}' includes the unknown role '{rolestr_role}'."
+
+
+def get_invalid_context_error(school_role: str, rolestr_context: str) -> str:
+    return f"The role string '{school_role}' includes the unknown context type '{rolestr_context}'."
+
+
+@pytest.mark.parametrize(
+    "validator, user_generator, school_role",
+    zip(
+        all_validator_classes,
+        all_user_role_generators,
+        [
+            "role:str:with:too:many:fields",
+            "rolestrwithnofields",
+            "role:with:4:fields",
+            "rolewith:2fields",
+        ],
+    ),
+)
+def test_unsplittable_role_detection(validator, user_generator, school_role):
+    user = user_generator()
+    user["props"]["ucsschoolRole"] = [school_role]
+    assert get_invalid_school_role_error(school_role) in validator.validate(user)
+
+
+@pytest.mark.parametrize(
+    "validator, user_generator",
+    zip(all_validator_classes, all_user_role_generators),
+)
+def test_unkown_role_name(validator, user_generator):
+    user = user_generator()
+    rolestr_role = fake.user_name()
+    school_role = rolestr_role + f":{fake.user_name()}:{fake.user_name()}"
+    user["props"]["ucsschoolRole"] = [school_role]
+    assert get_invalid_role_error(school_role, rolestr_role) in validator.validate(user)
+
+
+@pytest.mark.parametrize(
+    "validator, user_generator, rolestr_role",
+    zip(all_validator_classes, all_user_role_generators, all_user_roles_names),
+)
+def test_unkown_context_detection(validator, user_generator, rolestr_role):
+    rolestr_context = fake.user_name()
+    rolestr_role = role_teacher if rolestr_role == "teacher_and_staff" else rolestr_role
+    school_role = f"{rolestr_role}:{rolestr_context}:{fake.user_name()}"
+    user = user_generator()
+    user["props"]["ucsschoolRole"] = [school_role]
+    assert get_invalid_context_error(school_role, rolestr_context) in validator.validate(user)
+
+
+@pytest.mark.parametrize(
+    "validator, user_generator, rolestr_role",
+    zip(all_validator_classes, all_user_role_generators, all_user_roles_names),
+)
+@pytest.mark.parametrize("rolestr_context", all_context_types)
+def test_valid_role_str(validator, user_generator, rolestr_role, rolestr_context):
+    rolestr_role = role_teacher if rolestr_role == "teacher_and_staff" else rolestr_role
+    school_role = f"{rolestr_role}:{rolestr_context}:{fake.user_name()}"
+    user = user_generator()
+    user["props"]["ucsschoolRole"] = [school_role]
+    result = validator.validate(user)
+    expected_errstrs = [
+        get_invalid_school_role_error(school_role),
+        get_invalid_role_error(school_role, rolestr_role),
+        get_invalid_context_error(school_role, rolestr_context),
+    ]
+    for msg in result:
+        assert msg not in expected_errstrs

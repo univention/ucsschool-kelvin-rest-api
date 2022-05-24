@@ -9,7 +9,8 @@ v1.5.5 (2022-05-31)
 .........
 * Enable log rotation of the Open Policy Agent (Bug #54247).
 * Added documentation for the classes resource (Bug #52734).
-* The validation was adapted to prevent invalid school names in multiserver environments (Bug #54793)
+* The validation was adapted to prevent invalid school names in multiserver environments (Bug #54793).
+* An error has been fixed, which was raised by invalid UCS@school roles during the validation (Bug #54653).
 
 v1.5.4 (2022-04-27)
 .........

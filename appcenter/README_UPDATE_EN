@@ -9,7 +9,10 @@
          Added documentation for the classes resource (Bug #52734).
     </li>
     <li>
-         The validation was adapted to prevent invalid school names in multiserver environments (Bug #54793)
+         The validation was adapted to prevent invalid school names in multiserver environments (Bug #54793).
+    </li>
+    <li>
+         An error has been fixed, which was raised by invalid UCS@school roles during the validation (Bug #54653).
     </li>
 </ul>
 
