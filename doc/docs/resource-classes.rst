@@ -34,12 +34,23 @@ The following JSON is an example Classes resource in the *UCS\@school Kelvin RES
 
     "dn", "string", "dn of the LDAP", "read only"
     "url", "URL", "The URL of the class object in the UCS\@school Kelvin API.", "read only"
-    "ucsschool_roles", "List<string>", "Reference to UCs\@school LDAP attributes.","read_only"
-    "udm_properties", "Dictionary", "Key-value pair of mapped udm_properties within the UCS\@school Kelvin API.", "read_only"
+    "ucsschool_roles", "list", "List of roles the class has. Format is ``ROLE:CONTEXT_TYPE:CONTEXT``, for example: ``['"'school_class:school:DEMOSCHOOL'"']``.", "auto-managed by system, setting and changing discouraged"
+    "udm_properties", "nested object", "Object with UDM properties. For example: ``{'"'street'"': '"'Luise Av.'"', '"'phone'"': ['"'+49 30 321654987'"', '"'123 456 789'"']}``", "Must be configured."
     "name", "string", "Name of the class", "editable"
     "school", "URL", "The URL of the school object a class belongs to in the UCS\@school Kelvin API.", "read_only"
     "description","null|string","Descriptive information about a class.","editable"
     "users","List<URL>", "A list with the URL in the UCS\@school Kelvin API per user within the class.","editable"
+
+
+udm_properties
+--------------
+
+The attribute ``udm_properties`` is an object that can contain arbitrary UDM properties.
+It must be configured in the file ``/etc/ucsschool/kelvin/mapped_udm_properties.json``, see :ref:`UDM Properties`.
+
+**Attention**: Due to the technical way classes are created, udm_properties are set after the initial creation
+of the school. This can lead to a school being created with an error following the subsequent alteration.
+In this case the Kelvin API returns a 500 status code, but the class was created anyways.
 
 
 List / Search
@@ -52,7 +63,7 @@ Example ``curl`` command to retrieve the list of all classes at ``DEMOSCHOOL`` :
             -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciO..."
 
 
- 
+
 
 The response headers will be::
 
@@ -84,7 +95,7 @@ The response body will be::
         }
     ]
 
-Searching for classes (with ``?name=abc*`` or similar) is *not* supported and will return an empty response.
+``Classes`` support wildcard search and are case-sensitive.
 
 Retrieve
 --------
@@ -124,7 +135,7 @@ The response body will be::
     }
 
 
-The queried class must exist, matching is case-sensitive.
+Matching of the queried ``class`` *and* ``school`` is case-sensitive.
 The response body will be identical to the response in the example above, if a school only has a single class registered.
 Otherwise the list of classes from the example above will contain the ``class`` which has been requested.
 
@@ -169,7 +180,7 @@ The response will be::
         "users": []
     }
 
-The example shows how to rename a certain ``class``. Optionally a ``description``, a list ``udm_properties`` and/or ``users`` can be modified.
+The example shows how to rename a certain ``class``. Optionally ``description``, ``udm_properties`` and/or ``users`` can be modified.
 But a ``class`` objects school can't be modified.
 
 
@@ -202,7 +213,10 @@ The response headers will be::
 The response will be::
 
     {
-        "dn": "cn=DEMOSCHOOL-Democlass2,cn=klassen,cn=schueler,cOptionally a ``description``, a list ``udm_properties`` and/or ``users`` can be provided on creation.
+        "dn": "cn=DEMOSCHOOL-Democlass2,cn=klassen,cn=schueler,cn=groups,ou=DEMOSCHOOL,dc=******,dc=******",
+        "url": "https://<fqdn>/ucsschool/kelvin/v1/classes/DEMOSCHOOL/DEMOCLASS_2",
+        "ucsschool_roles": [
+            "school_class:school:DEMOSCHOOL"
         ],
         "udm_properties": {},
         "name": "Democlass2",
@@ -213,9 +227,9 @@ The response will be::
 
 
 
-The queried has school exist, whilst the ``class`` to be created must **not** exist.
+The queried school has to exist, whilst the ``class`` to be created must **not** exist.
 To create a ``class`` its name and the corresponding school must be provided.
-Optionally a ``description``, a list ``udm_properties`` and/or ``users`` can be provided on creation.
+Optionally a ``description``, a dictionary ``udm_properties`` and/or ``users`` can be provided on creation.
 
 
 
@@ -235,9 +249,8 @@ The response headers will be::
     Connection: keep-alive
     Date: Tue,10 May 2022 07:38:49 GMT
     Keep-alive: timeout=5,max=100
-    Server: uvicorn  
+    Server: uvicorn
     Via: 1.1 <fqdn>
 
-There won't be a response, if a class got deleted successfully.
-
-The ``class`` and ``school`` have to exist.
+The server responses with 204 (with no body), if a class got deleted successfully.
+Matching of the queried ``class`` *and* ``school`` is case-sensitive.
