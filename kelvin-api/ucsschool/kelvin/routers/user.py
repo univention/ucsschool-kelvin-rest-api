@@ -671,6 +671,9 @@ async def create(
             "firstname": "EXAMPLE",
             "lastname": "STUDENT",
             "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
+            "schools": [
+                "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL"
+            ],
             "roles": [
                 "https://<fqdn>/ucsschool/kelvin/v1/roles/student"
             ],
@@ -684,6 +687,9 @@ async def create(
             "disabled": false,
             "udm_properties": {}
         }
+
+    **Note:** Eventhough only **school** or **schools** needs to be set,
+        its advised to set both as best practice.
     """
     request_user.Config.lib_class = SchoolUserRole.get_lib_class(
         [
@@ -846,7 +852,7 @@ async def partial_update(  # noqa: C901
     **Parameters**
 
     - **username**: current name of the user, if the name changes within the body
-        this parameter will change accordingly(**required**)
+        this parameter will change accordingly (**required**)
 
     **Request Body**
 
@@ -858,7 +864,7 @@ async def partial_update(  # noqa: C901
     - **schools**: list of **URLs** of school resources the user belongs to (**required unless
         school is set**)
     - **roles**: list of **URLs** of **role** resources, either type: *staff*, *student*,
-        *teacher* or *teacher and staff*(**required**)
+        *teacher* or *teacher and staff* (**required**)
     - **password**: users password, if unset random generated (optional)
     - **email**: the users email address (**mailPrimaryAddress**)
     - **expiration_date**: date of password expiration (optional, format: **YYYY-MM-DD**,
@@ -884,6 +890,9 @@ async def partial_update(  # noqa: C901
             "firstname": "EXAMPLE",
             "lastname": "STUDENT",
             "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
+            "schools": [
+                "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL"
+            ],
             "roles": [
                 "https://<fqdn>/ucsschool/kelvin/v1/roles/student"
             ],
@@ -897,6 +906,9 @@ async def partial_update(  # noqa: C901
             "disabled": false,
             "udm_properties": {}
         }
+
+    **Note:** Eventhough only **school** or **schools** needs to be set,
+        its advised to set both as best practice.
     """
     async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
         break
@@ -1053,6 +1065,9 @@ async def complete_update(  # noqa: C901
             "firstname": "EXAMPLE",
             "lastname": "STUDENT",
             "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
+            "schools": [
+                "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL"
+            ],
             "roles": [
                 "https://<fqdn>/ucsschool/kelvin/v1/roles/student"
             ],
@@ -1066,6 +1081,9 @@ async def complete_update(  # noqa: C901
             "disabled": false,
             "udm_properties": {}
         }
+
+    **Note:** Eventhough only **school** or **schools** needs to be set,
+        its advised to set both as best practice.
     """
     async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
         break

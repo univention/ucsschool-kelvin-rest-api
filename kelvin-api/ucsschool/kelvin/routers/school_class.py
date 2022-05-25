@@ -240,7 +240,7 @@ async def create(
 
     - **name**: name of the school class (**required**)
     - **school**: **URL** of the school resource the class belongs to (**required**)
-        **ATTENTION: The referecend school cannot be changed!!!**
+        **ATTENTION: Once created, the school cannot be changed!!!**
     - **description**: additional text (optional)
     - **users**: list of **URLs** of User resources (optional)
     - **ucsschool_roles**: list of tags of the form
@@ -304,14 +304,14 @@ async def partial_update(
     **Parameters**
 
     - **class_name**: current name of the class , if the name changes within the
-        body this parameter will change accordingly(**required**)
-    - **school**: name of the school the queried class is assigned to(**required**)
+        body this parameter will change accordingly (**required**)
+    - **school**: name of the school the queried class is assigned to (**required**)
 
     **Request Body**
 
     - **name**: name of the school class (**required**)
     - **school**: school the class belongs to (**required**)
-        **ATTENTION: The referecend school cannot be changed!!!**
+        **ATTENTION: The original school (set on creation) cannot be changed!**
     - **description**: additional text (optional)
     - **users**: list of URLs to User resources (optional)
     - **ucsschool_roles**: list of tags of the form
@@ -386,13 +386,14 @@ async def complete_update(
     **Parameters**
 
     - **class_name**: current name of the class , if the name changes within the body
-        this parameter will change accordingly(**required**)
-    - **school**: name of the school the queried class is assigned to(**required**)
+        this parameter will change accordingly (**required**)
+    - **school**: name of the school the queried class is assigned to (**required**)
 
     **Request Body**
 
     - **name**: name of the school class (**required**)
     - **school**: school the class belongs to (**required**)
+        **ATTENTION: The original school (set on creation) cannot be changed!**
     - **description**: additional text (optional)
     - **users**: list of URLs to User resources (optional)
     - **ucsschool_roles**: list of tags of the form
