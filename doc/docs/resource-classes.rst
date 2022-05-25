@@ -3,7 +3,7 @@ Resource Classes
 
 The ``Classes`` resource represents the classes a school user is a member of.
 
-The resource objects are represents as group objects in the LDAP.
+The resource objects are represented as group objects in the LDAP.
 
 ``Classes`` can be created, retrieved, modified, deleted and searched for with the Kelvin API.
 
@@ -32,14 +32,14 @@ The following JSON is an example Classes resource in the *UCS\@school Kelvin RES
    :widths: 8, 5, 50, 18
    :escape: '
 
-    "dn", "string", "dn of the LDAP", "read only"
+    "dn", "string", "The DN of the group in LDAP", "read only"
     "url", "URL", "The URL of the class object in the UCS\@school Kelvin API.", "read only"
     "ucsschool_roles", "list", "List of roles the class has. Format is ``ROLE:CONTEXT_TYPE:CONTEXT``, for example: ``['"'school_class:school:DEMOSCHOOL'"']``.", "auto-managed by system, setting and changing discouraged"
     "udm_properties", "nested object", "Object with UDM properties. For example: ``{'"'street'"': '"'Luise Av.'"', '"'phone'"': ['"'+49 30 321654987'"', '"'123 456 789'"']}``", "Must be configured."
     "name", "string", "Name of the class", "editable"
-    "school", "URL", "The URL of the school object a class belongs to in the UCS\@school Kelvin API.", "read_only"
-    "description","null|string","Descriptive information about a class.","editable"
-    "users","List<URL>", "A list with the URL in the UCS\@school Kelvin API per user within the class.","editable"
+    "school", "URL", "School (OU) the class belongs to. A URL in the ``schools`` resource.", "read_only"
+    "description","null|string","Descriptive information about a class.", "editable"
+    "users","List<URL>", "A list with the URL in the UCS\@school Kelvin API per user within the class.", "editable"
 
 
 udm_properties
@@ -47,10 +47,6 @@ udm_properties
 
 The attribute ``udm_properties`` is an object that can contain arbitrary UDM properties.
 It must be configured in the file ``/etc/ucsschool/kelvin/mapped_udm_properties.json``, see :ref:`UDM Properties`.
-
-**Attention**: Due to the technical way classes are created, udm_properties are set after the initial creation
-of the school. This can lead to a school being created with an error following the subsequent alteration.
-In this case the Kelvin API returns a 500 status code, but the class was created anyways.
 
 
 List / Search
@@ -95,7 +91,15 @@ The response body will be::
         }
     ]
 
-``Classes`` support wildcard search and are case-sensitive.
+It is required to provide the ``?school=<schoolname>`` in the query. The search for the school name is
+case sensitive and requires exact match.
+
+Only providing the school will list all classes of that school.
+Optionally you can search for specific class names in that school by appending ``?name=<classname>`` to the school
+resource. This search for the class name is case-insensitive and supports wildcards (*).
+For example to search for a class with the name ``DEMOCLASS`` you can append ``?name=*class``.
+The URL would be: ``https://<fqdn>/ucsschool/kelvin/v1/classes/?school=DEMOSCHOOL?name=%2class``.
+
 
 Retrieve
 --------
@@ -134,8 +138,7 @@ The response body will be::
         ]
     }
 
-
-Matching of the queried ``class`` *and* ``school`` is case-sensitive.
+Matching of the queried ``class`` *and* ``school`` is case-insensitive.
 The response body will be identical to the response in the example above, if a school only has a single class registered.
 Otherwise the list of classes from the example above will contain the ``class`` which has been requested.
 
@@ -150,7 +153,7 @@ Example ``curl`` command to modify the class ``Democlass2`` at ``DEMOSCHOOL`` ::
             -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1N..." \
             -H "Content-Type: application/json" \
             -d "{
-            "name": "Democlass_2"
+                "name": "Democlass_2"
             }"
 
 
@@ -195,7 +198,7 @@ Example ``curl`` command to create the class ``Democlass2`` at ``DEMOSCHOOL`` ::
             -H "Content-Type: application/json" \
             -d "{
             "name": "Democlass2",
-            "school": "https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL"
+                "school": "https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL"
             }"
 
 The response headers will be::
@@ -229,7 +232,7 @@ The response will be::
 
 The queried school has to exist, whilst the ``class`` to be created must **not** exist.
 To create a ``class`` its name and the corresponding school must be provided.
-Optionally a ``description``, a dictionary ``udm_properties`` and/or ``users`` can be provided on creation.
+Optionally a ``description``, ``udm_properties`` and/or ``users`` can be provided on creation.
 
 
 
@@ -253,4 +256,4 @@ The response headers will be::
     Via: 1.1 <fqdn>
 
 The server responses with 204 (with no body), if a class got deleted successfully.
-Matching of the queried ``class`` *and* ``school`` is case-sensitive.
+Matching of the queried ``class`` *and* ``school`` is case-insensitive.
