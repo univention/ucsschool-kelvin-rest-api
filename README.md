@@ -52,5 +52,5 @@ univention-app dev-set \
     "DockerImage"="gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:branch-cgarcia-6-workgroup-management-in-kelvin-api"
 univention-app install \
     4.4/ucsschool-kelvin-rest-api=1.5.4
-``
+```
 
