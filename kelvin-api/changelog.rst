@@ -5,15 +5,11 @@
 Changelog
 ---------
 
-v1.5.6 (2022-05-30)
+v1.5.5 (2022-05-31)
 .........
-
-* Added documentation for the classes resource (Bug #52734).
-
-v1.5.5 (2022-05-04)
-.........
-
 * Enable log rotation of the Open Policy Agent (Bug #54247).
+* Added documentation for the classes resource (Bug #52734).
+* The validation was adapted to prevent invalid school names in multiserver environments (Bug #54793)
 
 v1.5.4 (2022-04-27)
 .........

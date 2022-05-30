@@ -1,9 +1,15 @@
 <h1>Changelog</h1>
 
-<h2>v1.5.5 (2022-05-04)</h2>
+<h2>v1.5.5 (2022-05-31)</h2>
 <ul>
     <li>
          Enable log rotation of the Open Policy Agent (Bug #54247).
+    </li>
+    <li>
+         Added documentation for the classes resource (Bug #52734).
+    </li>
+    <li>
+         The validation was adapted to prevent invalid school names in multiserver environments (Bug #54793)
     </li>
 </ul>
 
