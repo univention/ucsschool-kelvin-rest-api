@@ -1,16 +1,3 @@
-#!/usr/share/ucs-test/runner /usr/bin/pytest -l -v
-## -*- coding: utf-8 -*-
-## desc: test ucsschool.lib.models.users validation
-## roles: [domaincontroller_master]
-## tags: [apptest,ucsschool,ucsschool_import1,unit-test]
-## exposure: safe
-## packages:
-##   - python-ucs-school
-
-#
-# Hint: When debugging interactively, disable output capturing:
-# $ pytest -s -l -v ./......py::test_*
-#
 import re
 
 try:
