@@ -5,6 +5,11 @@
 Changelog
 ---------
 
+v1.5.6 (2022-05-30)
+.........
+
+* Added documentation for the classes resource (Bug #52734).
+
 v1.5.5 (2022-05-04)
 .........
 
