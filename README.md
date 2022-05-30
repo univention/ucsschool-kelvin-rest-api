@@ -42,3 +42,15 @@ docker login -u $TOKEN_NAME -p $TOKEN_SECRET gitregistry.knut.univention.de
 
 You can either use a personal access token or a project access token, which has at least the registry_read scope.
 A project access token can be found in [univention/components/ucsschool-kelvin-rest-api#1](https://git.knut.univention.de/univention/components/ucsschool-kelvin-rest-api/-/issues/1).
+
+To install the kelvin App with the new branch docker image you can temporarily 
+change the App's docker image setting:
+
+```
+univention-app dev-set \
+    4.4/ucsschool-kelvin-rest-api=1.5.4 \
+    "DockerImage"="gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:branch-cgarcia-6-workgroup-management-in-kelvin-api"
+univention-app install \
+    4.4/ucsschool-kelvin-rest-api=1.5.4
+``
+
