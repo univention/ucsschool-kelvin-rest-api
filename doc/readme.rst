@@ -22,7 +22,7 @@ instead and checkout the git submodule with ``git submodule update --init --recu
 
 To build the HTML documentation run::
 
-    $ cd doc/kelvin
+    $ cd doc
     $ make -C docs html
 
 
