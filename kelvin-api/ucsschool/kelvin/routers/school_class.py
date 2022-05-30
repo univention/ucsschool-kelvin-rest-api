@@ -240,7 +240,7 @@ async def create(
 
     - **name**: name of the school class (**required**)
     - **school**: **URL** of the school resource the class belongs to (**required**)
-        **ATTENTION: Once created, the school cannot be changed!!!**
+        **ATTENTION: Once created, the school cannot be changed!**
     - **description**: additional text (optional)
     - **users**: list of **URLs** of User resources (optional)
     - **ucsschool_roles**: list of tags of the form
