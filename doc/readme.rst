@@ -1,8 +1,6 @@
 Developer docu for building the UCS\@school Kelvin REST API
 ===========================================================
 
-The Univention style is brought in by the git submodule ``sphinx-univention``.
-
 HTML is built using a Docker container with Sphinx: https://github.com/keimlink/docker-sphinx-doc
 
 Initial docs
@@ -17,8 +15,6 @@ You don't have to do this anymore. This is here just for documentations sake.
 Build HTML output from RST files
 --------------------------------
 
-Don't use the ``sphinx-univention`` for this. It's outdated. Use a local ``sphinx`` version
-instead and checkout the git submodule with ``git submodule update --init --recursive --remote``.
 
 To build the HTML documentation run::
 
