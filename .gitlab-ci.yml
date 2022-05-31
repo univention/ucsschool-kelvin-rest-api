@@ -1,6 +1,7 @@
 stages:
   - prepare
   - build
+  - production
 
 prepare:
   stage: prepare
@@ -17,6 +18,93 @@ prepare:
     - apt-get install git rsync
     - cd ${CI_PROJECT_DIR}/docker
     - ./gitlab_prepare_docker_image
+  rules:
+    - if: "$pipeline =~ /skip-build/"
+      when: never
+    - if: "$pipeline =~ /force-build/"
+
+.sphinx-doc:
+  stage: build
+  image: docker-registry.knut.univention.de/sphinx
+  variables:
+    doc_base: doc/docs
+  artifacts:
+    paths:
+    - $CI_PROJECT_DIR/public
+  rules:
+    - changes:
+      - $doc_base/**/*
+    - if: "$pipeline =~ /skip-doc/"
+      when: never
+    - if: "$pipeline =~ /force-doc/"
+
+sphinx-html:
+  extends: .sphinx-doc
+  script:
+    - make -C "$doc_base" html
+    - mkdir -p "$CI_PROJECT_DIR"/public
+    - rsync -av --delete --exclude "*webpack-macros.html" --exclude ".buildinfo" --exclude "*.py" --exclude "__pycache__" --exclude ".doctrees" "$doc_base"/_build/html/ "$CI_PROJECT_DIR"/public/
+
+sphinx-pdf:
+  extends: .sphinx-doc
+  script:
+    - make -C "$doc_base" latexpdf
+    - mkdir -p "$CI_PROJECT_DIR"/public
+    - cp "$doc_base"/_build/latex/UCSschoolKelvinRESTAPI.pdf "$CI_PROJECT_DIR"/public
+
+sphinx-linkcheck:
+  extends: .sphinx-doc
+  script:
+    - make -C "$doc_base" -e SPHINXOPTS="-W --keep-going" linkcheck
+  artifacts:
+    paths:
+      - $doc_base/_build/linkcheck
+
+sphinx-spelling:
+  extends: .sphinx-doc
+  script:
+    - make -C "$doc_base" -e SPHINXOPTS="-W --keep-going" spelling
+  artifacts:
+    paths:
+      - $doc_base/_build/spelling
+
+docs-production:
+  stage: production
+  needs:
+    - job: sphinx-linkcheck
+      artifacts: false
+    - job: sphinx-spelling
+      artifacts: false
+    - job: sphinx-html
+    - job: sphinx-pdf
+  cache:
+    key: docs-$CI_COMMIT_REF_SLUG
+    paths:
+      - univention-docs
+  interruptible: false
+  variables:
+    GIT_STRATEGY: none
+  tags:
+    - omar
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  script:
+    - '[ -d univention-docs ] || git clone --branch master --depth 1 --single-branch https://ucs-docs-deployment:$DOCS_REPO_TOKEN@git.knut.univention.de/univention/docs.univention.de.git univention-docs'
+    - cd univention-docs
+    - git remote set-url origin https://$DOCS_REPO_TOKEN@git.knut.univention.de/univention/docs.univention.de.git
+    - git clean --force -d
+    - git fetch --no-tags origin
+    - git reset --hard origin/master
+    - rsync -av --delete "$CI_PROJECT_DIR"/public/ ./ucsschool-kelvin-rest-api/
+    - git add -- .
+    - git commit -m "Automatic doc deployment from $CI_PROJECT_PATH by GitLab commit $CI_COMMIT_SHA"
+    - git push
+  environment:
+    name: production
+    url: http://updates.knut.univention.de/download/docs/
+  after_script:
+    - rm -Rf public
 
 build:
   stage: build
@@ -43,3 +131,7 @@ build:
       --dockerfile "${CI_PROJECT_DIR}/docker/build/Dockerfile"
       --destination "${CI_REGISTRY_IMAGE}:${DOCKER_TAG}"
       ${ARG_DESTINATION_LATEST}
+  rules:
+    - if: "$pipeline =~ /skip-build/"
+      when: never
+    - if: "$pipeline =~ /force-build/"
