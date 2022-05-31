@@ -249,13 +249,13 @@ async def create(
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
 
-    **JSON-example:**
+    **JSON Example:**
 
         {
             "udm_properties": {},
             "name": "EXAMPLE_CLASS",
             "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
-            "description": "Some arbitrary description",
+            "description": "Example description",
             "users": [
                 "http://<fqdn>/ucsschool/kelvin/v1/users/EXAMPLE_STUDENT"
             ]
@@ -320,13 +320,13 @@ async def partial_update(
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
 
-    **JSON-example:**
+    **JSON Example:**
 
         {
             "udm_properties": {},
             "name": "EXAMPLE_CLASS",
             "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
-            "description": "Some arbitrary description",
+            "description": "Example description",
             "users": [
                 "http://<fqdn>/ucsschool/kelvin/v1/users/EXAMPLE_STUDENT"
             ]
@@ -402,13 +402,13 @@ async def complete_update(
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
 
-    **JSON-example:**
+    **JSON Example:**
 
         {
             "udm_properties": {},
             "name": "EXAMPLE_CLASS",
             "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
-            "description": "Some arbitrary description",
+            "description": "Example description",
             "users": [
                 "http://<fqdn>/ucsschool/kelvin/v1/users/EXAMPLE_STUDENT"
             ]

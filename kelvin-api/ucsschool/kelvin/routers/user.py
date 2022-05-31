@@ -664,7 +664,7 @@ async def create(
     - **kelvin_password_hashes**: Password hashes to be stored unchanged in
         OpenLDAP (optional)
 
-    **JSON-example**:
+    **JSON Example**:
 
         {
             "name": "EXAMPLE_STUDENT",
@@ -883,7 +883,7 @@ async def partial_update(  # noqa: C901
         **mapped_udm_properties**, see documentation)
     - **kelvin_password_hashes**: password hashes to be stored unchanged in OpenLDAP
 
-    **JSON-example**:
+    **JSON Example**:
 
         {
             "name": "EXAMPLE_STUDENT",

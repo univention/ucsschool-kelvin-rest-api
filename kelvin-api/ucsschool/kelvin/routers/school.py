@@ -299,7 +299,7 @@ async def create(
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
 
-    **JSON-example**:
+    **JSON Example**:
 
         {
             "udm_properties": {},
