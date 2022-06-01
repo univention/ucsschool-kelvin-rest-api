@@ -43,9 +43,10 @@ The following JSON is an example Classes resource in the *UCS\@school Kelvin RES
     "users","List<URL>", "A list with the URL in the UCS\@school Kelvin API per user within the class.", "editable"
     "create_share", "boolean", "Whether a share should be created for the class.", "read only"
 
+.. _resource-classes-udm-properties:
 
-udm_properties
---------------
+udm_properties for resource classes
+-----------------------------------
 
 The attribute ``udm_properties`` is an object that can contain arbitrary UDM properties.
 It must be configured in the file ``/etc/ucsschool/kelvin/mapped_udm_properties.json``, see :ref:`UDM Properties`.

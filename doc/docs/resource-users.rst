@@ -125,8 +125,10 @@ school_classes
 ^^^^^^^^^^^^^^
 All school names in ``school_classes`` must exist (as URLs) in ``schools``.
 
-udm_properties
-^^^^^^^^^^^^^^
+.. _resource-users-udm-properties:
+
+udm_properties for resource users
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The attribute ``udm_properties`` is an object that can contain arbitrary UDM properties.
 It must be configured in the file :file:`/var/lib/ucs-school-import/configs/kelvin.json`, or :file:`/etc/ucsschool/kelvin/mapped_udm_properties.json`;
 see :ref:`Configuration of user object management (import configuration)` and :ref:`configuration-udm-properties`.

@@ -1,5 +1,5 @@
 Resource Workgroups
-================
+===================
 
 The ``Workgroups`` resource represents the workgroups a school user is a member of.
 
@@ -7,8 +7,9 @@ The resource objects are represents as group objects in the LDAP.
 
 ``Workgroups`` can be created, retrieved, modified, deleted and searched for with the Kelvin API.
 
-Resource representation
------------------------
+Workgroups resource representation
+----------------------------------
+
 The following JSON is an example Workgroups resource in the *UCS\@school Kelvin REST API*::
 
     {
@@ -57,17 +58,14 @@ The attribute ``udm_properties`` is an object that can contain arbitrary UDM pro
 It must be configured in the file ``/etc/ucsschool/kelvin/mapped_udm_properties.json``, see :ref:`UDM Properties`.
 
 
-List / Search
--------------
+Workgroups list and search
+--------------------------
 
 Example ``curl`` command to retrieve the list of all workgroups at ``DEMOSCHOOL`` ::
 
     $ curl  -X GET  "https://<fqdn>/ucsschool/kelvin/v1/workgroups/?school=DEMOSCHOOL" \
             -H "accept: application/json"
             -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciO..."
-
-
-
 
 The response headers will be::
 
@@ -113,15 +111,14 @@ For example to search for a workgroup with the name ``DEMOWORKGROUP`` you can ap
 The URL would be: ``https://<fqdn>/ucsschool/kelvin/v1/workgroups/?school=DEMOSCHOOL?name=%2workgroup``.
 
 
-Retrieve
---------
+Workgroups retrieve
+-------------------
 
 Example ``curl`` command to retrieve the workgroup ``Demoworkgroup`` at ``DEMOSCHOOL`` ::
 
     $ curl  -X GET  "https://<fqdn>/ucsschool/kelvin/v1/workgroups/DEMOSCHOOL/Demoworkgroup" \
             -H "accept: application/json"
             -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciO..."
-
 
 The response headers will be::
 
@@ -154,14 +151,13 @@ The response body will be::
         "allowed_email_senders_groups": []
     }
 
-
 Matching of the queried ``workgroup`` *and* ``school`` is case-sensitive.
 The response body will be identical to the response in the example above, if a school only has a single workgroup registered.
 Otherwise the list of workgroups from the example above will contain the ``workgroup`` which has been requested.
 
 
-Modify
-------
+Workgroups modify
+-----------------
 
 Example ``curl`` command to modify the workgroup ``Demoworkgroup2`` at ``DEMOSCHOOL`` ::
 
@@ -172,7 +168,6 @@ Example ``curl`` command to modify the workgroup ``Demoworkgroup2`` at ``DEMOSCH
             -d "{
             "description": "The new workgroup description."
             }"
-
 
 The response headers will be::
 
@@ -209,8 +204,8 @@ Optionally ``udm_properties`` and/or ``users`` can be modified.
 But a ``workgroup`` object's ``school`` or ``create_share`` can't be modified.
 
 
-Create
-------
+Workgroups create
+-----------------
 
 Example ``curl`` command to create the workgroup ``Demoworkgroup2`` at ``DEMOSCHOOL`` ::
 
@@ -260,10 +255,8 @@ The queried school has to exist, whilst the ``workgroup`` to be created must **n
 To create a ``workgroup`` its name and the corresponding school must be provided.
 Optionally a ``description``, ``udm_properties``, ``users`` and/or ``create_share`` can be provided on creation.
 
-
-
-Delete
-------
+Workgroups delete
+-----------------
 
 Example ``curl`` command to delete the workgroup ``Demoworkgroup2`` at ``DEMOSCHOOL`` ::
 
