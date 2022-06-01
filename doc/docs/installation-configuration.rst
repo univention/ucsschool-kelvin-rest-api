@@ -136,7 +136,7 @@ The differences are:
 It can be used to comfortably query the UDM REST API running on the DC master.
 When using the UCS\@school lib or import, it must be used in most places that ``self.lo`` was used before.
 
-**Important**: When calling methods of ucsschool objects (e.g. ``ImportUser``, ``SchoolClass`` etc.) ``self.udm`` must be used instead of ``self.lo`` and those methods may have to be used with ``await``. Thus hooks methods will be ``async``.
+**Important**: When calling methods of *ucsschool* objects (e.g. ``ImportUser``, ``SchoolClass`` etc.) ``self.udm`` must be used instead of ``self.lo`` and those methods may have to be used with ``await``. Thus hooks methods will be ``async``.
 For example:
 
 .. code-block:: python
@@ -205,12 +205,17 @@ To activate a hook, or or a change to a hook, restart the *UCS\@school Kelvin RE
 Further reading about the UCS\@school hooks is available for German readers in `Handbuch zur CLI-Import-Schnittstelle`_ chapter "12. Pre- und Post-Hook-Skripte für den Import".
 Please note that the example in that text is for the synchronous variant, missing the ``async/await`` keywords and not using the UDM REST API client. Compare with the examples linked in this chapter.
 
+.. spelling::
+
+   und
+   Skripte
+   für
 
 File locations
 --------------
 
-Logfiles
-^^^^^^^^
+Log files
+^^^^^^^^^
 
 :file:`/var/log/univention/ucsschool-kelvin-rest-api` is a volume mounted into the docker container, so it can be accessed from the host.
 The directory contains the file ``http.log``, which is the log of the HTTP-API (both ASGI server and API application)
