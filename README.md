@@ -29,7 +29,7 @@ The release flow will be the following (This was not tested yet):
 The gitlab docker registry uses our internal rootCA. This has to be imported in the UCS VM before installing the app
 and can be done like this:
 ```
-wget --no-check-certificate http://nissedal.knut.univention.de/ucs-root-ca.crt -o /usr/local/share/ca-certificates/
+wget --no-check-certificate http://nissedal.knut.univention.de/ucs-root-ca.crt -P /usr/local/share/ca-certificates/
 update-ca-certificates
 ```
 
@@ -47,6 +47,7 @@ To install the kelvin App with the new branch docker image you can temporarily
 change the App's docker image setting:
 
 ```
+univention-install univention-appcenter-dev
 univention-app dev-set \
     4.4/ucsschool-kelvin-rest-api=1.5.4 \
     "DockerImage"="gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:branch-cgarcia-6-workgroup-management-in-kelvin-api"
