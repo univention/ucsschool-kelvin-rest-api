@@ -175,6 +175,7 @@ class Configuration(object):
         conffiles = list()
 
         def __init__(self, filenames):  # type: (List[str]) -> None
+
             if not filenames:
                 raise InitialisationError("Configuration not yet loaded.")
             self.config = None

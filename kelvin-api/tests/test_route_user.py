@@ -121,6 +121,12 @@ async def compare_lib_api_user(  # noqa: C901
                 assert set(classes) == {
                     kls.replace(f"{school}-", "") for kls in lib_user.school_classes[school]
                 }
+        elif key == "workgroups":
+            for school, workgroups in value.items():
+                assert school in lib_user.workgroups
+                assert set(workgroups) == {
+                    wg.replace(f"{school}-", "") for wg in lib_user.workgroups[school]
+                }
         else:
             lib_user_value = getattr(lib_user, key)
             if isinstance(value, (list, set, tuple)) or isinstance(lib_user_value, (list, set, tuple)):
@@ -188,6 +194,9 @@ def import_user_to_create_model_kwargs(url_fragment):
         ]
         user_data["school_classes"] = {
             k: [klass.split("-", 1)[1] for klass in v] for k, v in user_data["school_classes"].items()
+        }
+        user_data["workgroups"] = {
+            k: [wg.split("-", 1)[1] for wg in v] for k, v in user_data["workgroups"].items()
         }
         user_data["school"] = f"{url_fragment}/schools/{user_data['school']}"
         user_data["schools"] = [f"{url_fragment}/schools/{school}" for school in user_data["schools"]]
@@ -512,6 +521,7 @@ async def test_get(
             "ucsschool_roles",
             "udm_properties",
             "url",
+            "workgroups",
         )
     )
     api_user = UserModel(**json_resp)
@@ -864,6 +874,7 @@ async def test_create_with_password_hashes(
         roles=[f"{url_fragment}/roles/{role_}" for role_ in roles],
         disabled=False,
         school_classes={},
+        workgroups={},
     )
     school = r_user.school.split("/")[-1]
     r_user.password = None
@@ -968,7 +979,9 @@ async def test_put_with_password_hashes(
 ):
     role = random.choice(USER_ROLES)
     school = await create_ou_using_python()
-    user: ImportUser = await new_import_user(school, role.name, disabled=False, school_classes={})
+    user: ImportUser = await new_import_user(
+        school, role.name, disabled=False, school_classes={}, workgroups={}
+    )
     await check_password(user.dn, user.password)
     logger.debug("OK: can login with old password")
     old_user_data = import_user_to_create_model_kwargs(user)
@@ -1089,7 +1102,9 @@ async def test_patch_with_password_hashes(
 ):
     role = random.choice(USER_ROLES)
     school = await create_ou_using_python()
-    user: ImportUser = await new_import_user(school, role.name, disabled=False, school_classes={})
+    user: ImportUser = await new_import_user(
+        school, role.name, disabled=False, school_classes={}, workgroups={}
+    )
     await check_password(user.dn, user.password)
     logger.debug("OK: can login with old password")
     old_user_data = import_user_to_create_model_kwargs(user)
@@ -1141,6 +1156,7 @@ async def test_role_change(
     udm_kwargs,
     schedule_delete_user_name_using_udm,
     new_school_class_using_lib,
+    new_workgroup_using_lib,
     random_name,
     roles: Tuple[Role, Role],
     method: str,
@@ -1158,6 +1174,10 @@ async def test_role_change(
         roles_ulrs = [f"{url_fragment}/roles/{role_to.name}"]
     user_url = f"{url_fragment}/users/{user.name}"
     schedule_delete_user_name_using_udm(user.name)
+    wg_dn2, wg_attr2 = await new_workgroup_using_lib(ou2)
+    workgroups = {ou2: [wg_attr2["name"]]}
+    sc_dn2, sc_attr2 = await new_school_class_using_lib(ou2)
+    school_classes = {ou2: [sc_attr2["name"]]}
     if role_to.name == "student":
         # For conversion to Student one class per school is required, but user has only the one for ou1.
         sc_dn2, sc_attr2 = await new_school_class_using_lib(ou2)
@@ -1172,6 +1192,8 @@ async def test_role_change(
         patch_data = {"roles": roles_ulrs}
         if school_classes:
             patch_data["school_classes"] = school_classes
+        if workgroups:
+            patch_data["workgroups"] = workgroups
         response = retry_http_502(
             requests.patch,
             user_url,
@@ -1182,6 +1204,8 @@ async def test_role_change(
         old_data = import_user_to_create_model_kwargs(user, ["roles"])
         if school_classes:
             old_data["school_classes"] = school_classes
+        if workgroups:
+            old_data["workgroups"] = workgroups
         modified_user = UserCreateModel(roles=roles_ulrs, **old_data)
         response = retry_http_502(
             requests.put,

@@ -59,6 +59,7 @@ class TestUserCreator(object):
         inclasses=2,
         schools=2,
         email=False,
+        workgroups=0,
     ):
         self.ous = sorted(ous)
         self.num_staff = staff
@@ -68,6 +69,7 @@ class TestUserCreator(object):
         self.num_classes = classes
         self.num_inclasses = inclasses
         self.num_schools = schools
+        self.num_workgroups = workgroups
         self.email = email
         self.staff = list()
         self.students = list()
@@ -75,6 +77,7 @@ class TestUserCreator(object):
         self.staffteachers = list()
         self.class_names = list()
         self.class_name_generators = dict()
+        self.workgroup_names = list()
         self.logger = logging.getLogger(__name__)
         self.test_data = self.get_test_data(TEST_DATA_FILE)
         self.mail_domain = self._get_maildomain()
@@ -95,6 +98,20 @@ class TestUserCreator(object):
                         "Created %d class names for %d schools.", len(self.class_names), len(self.ous)
                     )
                     return self.class_names
+
+    def make_workgroups(self):
+        grade = 0
+        while len(self.workgroup_names) * len(self.ous) < self.num_workgroups:
+            grade += 1
+            for letter in string.ascii_lowercase:
+                self.workgroup_names.append("{}{}".format(grade, letter))
+                if len(self.workgroup_names) * len(self.ous) >= self.num_workgroups:
+                    self.logger.info(
+                        "Created %d workgroup names for %d schools.",
+                        len(self.workgroup_names),
+                        len(self.ous),
+                    )
+                    return self.workgroup_names
 
     def _get_new_given_name(self):
         give_modifier = ""

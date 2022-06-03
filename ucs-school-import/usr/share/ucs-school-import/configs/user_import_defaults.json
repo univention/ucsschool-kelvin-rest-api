@@ -42,5 +42,7 @@
 		"lastname": false
 	},
 	"school_classes_invalid_character_replacement": "-",
-	"school_classes_keep_if_empty": false
+	"school_classes_keep_if_empty": false,
+	"workgroups_invalid_character_replacement": "-",
+	"workgroups_keep_if_empty": false
 }
