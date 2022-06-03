@@ -20,6 +20,8 @@ from ucsschool.lib.roles import (
     role_school_class_share,
     role_staff,
     role_teacher,
+    role_workgroup,
+    role_workgroup_share,
 )
 from ucsschool.lib.schoolldap import SchoolSearchBase
 from udm_rest_client import UDM, NoObject as UdmNoObject
@@ -114,6 +116,31 @@ def school_class_attrs(ldap_base):
     return _func
 
 
+@pytest.fixture
+def workgroup_attrs(ldap_base):
+    async def _func(school: str, **kwargs) -> Dict[str, str]:
+        return {
+            "name": kwargs.get("name", f"test.{fake.user_name()}"),
+            "school": school,
+            "description": kwargs.get("description", fake.text(max_nb_chars=50)),
+            "users": kwargs.get(
+                "users",
+                [
+                    f"uid={fake.user_name()},cn=users,{ldap_base}",
+                    f"uid={fake.user_name()},cn=users,{ldap_base}",
+                ],
+            ),
+            "ucsschool_roles": kwargs.get(
+                "ucsschool_roles", [create_ucsschool_role_string(role_workgroup, school)]
+            ),
+            "email": None,
+            "allowed_email_senders_users": [],
+            "allowed_email_senders_groups": [],
+        }
+
+    return _func
+
+
 class UserFactory(factory.Factory):
     """
     Not yet created lib User object (missing specific roles), you probably want to use
@@ -140,6 +167,7 @@ class UserFactory(factory.Factory):
     password = factory.Faker("password", length=20)
     disabled = False
     school_classes = factory.Dict({})
+    workgroups = factory.Dict({})
 
 
 @pytest.fixture(scope="session")
@@ -277,8 +305,72 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs):
 
 
 @pytest.fixture
+async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs):
+    """Create a new school class. -> (DN, {attrs})"""
+    created_workgroups = []
+    created_school_shares = []
+
+    async def _func(school: str, **kwargs) -> Tuple[str, Dict[str, str]]:
+        async with UDM(**udm_kwargs) as udm:
+            sc_attrs = await workgroup_attrs(school, **kwargs)
+            grp_obj = await udm.get("groups/group").new()
+            grp_obj.position = f"cn=schueler,cn=groups,ou={sc_attrs['school']},{ldap_base}"
+            grp_obj.props.name = f"{sc_attrs['school']}-{sc_attrs['name']}"
+            grp_obj.props.description = sc_attrs["description"]
+            grp_obj.props.users = sc_attrs["users"]
+            grp_obj.props.ucsschoolRole = sc_attrs["ucsschool_roles"]
+            await grp_obj.save()
+            created_workgroups.append(grp_obj.dn)
+            logger.debug("Created new WorkGroup: %r.", grp_obj)
+
+            share_obj = await udm.get("shares/share").new()
+            share_obj.position = f"cn=shares,ou={school},{ldap_base}"
+            share_obj.props.name = grp_obj.props.name
+            share_obj.props.host = f"{school}.{env_or_ucr('domainname')}"
+            share_obj.props.owner = 0
+            share_obj.props.group = 0
+            share_obj.props.path = f"/home/tmp/{grp_obj.props.name}"
+            share_obj.props.directorymode = "0770"
+            share_obj.props.ucsschoolRole = [
+                create_ucsschool_role_string(role_workgroup_share, school),
+            ]
+            await share_obj.save()
+            created_school_shares.append(share_obj.dn)
+            logger.debug("Created new ClassShare: %r.", share_obj)
+
+        return grp_obj.dn, sc_attrs
+
+    yield _func
+
+    async with UDM(**udm_kwargs) as udm:
+        grp_mod = udm.get("groups/group")
+        for dn in created_workgroups:
+            try:
+                grp_obj = await grp_mod.get(dn)
+            except UdmNoObject:
+                logger.debug("WorkGroup %r does not exist (anymore).", dn)
+                continue
+            await grp_obj.delete()
+            logger.debug("Deleted WorkGroup %r through UDM.", dn)
+        share_mod = udm.get("shares/share")
+        for dn in created_school_shares:
+            try:
+                share_obj = await share_mod.get(dn)
+            except UdmNoObject:
+                logger.debug("WorkgroupShare %r does not exist (anymore).", dn)
+                continue
+            await share_obj.delete()
+            logger.debug("Deleted WorkgroupShare %r through UDM.", dn)
+
+
+@pytest.fixture
 def new_udm_user(
-    udm_kwargs, ldap_base, udm_users_user_props, new_school_class_using_udm, schedule_delete_user_dn
+    udm_kwargs,
+    ldap_base,
+    udm_users_user_props,
+    new_school_class_using_udm,
+    new_workgroup_using_udm,
+    schedule_delete_user_dn,
 ):
     """Create a new school user using UDM. -> (DN, {attrs})"""
 
@@ -331,7 +423,12 @@ def new_udm_user(
                 cls_dn1, _ = await new_school_class_using_udm(school=school)
                 cls_dn2, _ = await new_school_class_using_udm(school=school)
                 user_obj.props.groups.extend([cls_dn1, cls_dn2])
+            if "workgroups" not in school_user_kwargs:
+                wg_dn1, _ = await new_workgroup_using_udm(school=school)
+                wg_dn2, _ = await new_workgroup_using_udm(school=school)
+                user_obj.props.groups.extend([wg_dn1, wg_dn2])
             await user_obj.save()
+
             schedule_delete_user_dn(user_obj.dn)
             logger.debug("Created new %s%s: %r", role[0].upper(), role[1:], user_obj)
 

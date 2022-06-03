@@ -316,7 +316,7 @@ def random_school_create_model() -> Callable[[], SchoolCreateModel]:
 
 @pytest.fixture
 def random_user_create_model(
-    url_fragment, new_school_class_using_lib, udm_users_user_props, mail_domain
+    url_fragment, new_school_class_using_lib, new_workgroup_using_lib, udm_users_user_props, mail_domain
 ):
     async def _create_random_user_data(ou_name: str, **kwargs) -> UserCreateModel:
         user_props = await udm_users_user_props(ou_name)
@@ -336,6 +336,11 @@ def random_user_create_model(
             else:
                 sc_dn, sc_attr = await new_school_class_using_lib(ou_name)
                 school_classes = {ou_name: [sc_attr["name"]]}
+        try:
+            workgroups = kwargs.pop("workgroups")
+        except KeyError:
+            wg_dn, wg_attr = await new_workgroup_using_lib(ou_name)
+            workgroups = {ou_name: [wg_attr["name"]]}
         data = dict(
             email=f"{user_props['username']}mail{fake.pyint()}@{mail_domain}".lower(),
             record_uid=user_props["username"],
@@ -350,6 +355,7 @@ def random_user_create_model(
             school=school,
             schools=schools,
             school_classes=school_classes,
+            workgroups=workgroups,
             password=fake.password(length=20),
         )
         for key, value in kwargs.items():
@@ -530,16 +536,16 @@ async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kw
     created_workgroups = []
 
     async def _func(school: str, **kwargs) -> Tuple[str, Dict[str, Any]]:
-        sc: ucsschool.lib.models.group.WorkGroup = new_workgroup_using_lib_obj(school, **kwargs)
-        assert sc.name.startswith(f"{sc.school}-")
+        wg: ucsschool.lib.models.group.WorkGroup = new_workgroup_using_lib_obj(school, **kwargs)
+        assert wg.name.startswith(f"{wg.school}-")
 
         async with UDM(**udm_kwargs) as udm:
-            success = await sc.create(udm)
+            success = await wg.create(udm)
             assert success
-            created_workgroups.append(sc.dn)
-            logger.debug("Created new WorkGroup: %r", sc)
+            created_workgroups.append(wg.dn)
+            logger.debug("Created new WorkGroup: %r", wg)
 
-        return sc.dn, sc.to_dict()
+        return wg.dn, wg.to_dict()
 
     yield _func
 
@@ -709,7 +715,7 @@ def password_hash(check_password, create_ou_using_python, new_udm_user):
         password = password or fake.password(length=20)
         ou = await create_ou_using_python()
         user_dn, user = await new_udm_user(
-            ou, "student", disabled=False, password=password, school_classes={}
+            ou, "student", disabled=False, password=password, school_classes={}, workgroups={}
         )
         ldap_access = ucsschool.kelvin.ldap_access.LDAPAccess()
         await check_password(user_dn, password)
