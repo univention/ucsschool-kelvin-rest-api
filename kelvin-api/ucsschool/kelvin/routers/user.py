@@ -202,6 +202,7 @@ class UserBaseModel(UcsSchoolBaseModel):
     roles: List[HttpUrl]
     schools: List[HttpUrl]
     school_classes: Dict[str, List[str]] = {}
+    workgroups: Dict[str, List[str]] = {}
     source_uid: str = None
     ucsschool_roles: List[str] = []
 
@@ -311,6 +312,13 @@ class UserModel(UserBaseModel, APIAttributesMixin):
             )
             for school in sorted(kwargs["school_classes"].keys())
         )
+        kwargs["workgroups"] = dict(
+            (
+                school,
+                sorted(wg.replace("{}-".format(school), "") for wg in kwargs["workgroups"][school]),
+            )
+            for school in sorted(kwargs["workgroups"].keys())
+        )
         return kwargs
 
 
@@ -328,6 +336,7 @@ class UserPatchModel(BasePatchModel):
     school: HttpUrl = None
     schools: List[HttpUrl] = None
     school_classes: Dict[str, List[str]] = None
+    workgroups: Dict[str, List[str]] = None
     source_uid: str = None
     udm_properties: Dict[str, Any] = None
     kelvin_password_hashes: PasswordsHashes = None
@@ -393,7 +402,7 @@ class UserPatchModel(BasePatchModel):
                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                         detail="Non-boolean value in 'disabled' property.",
                     )
-            elif key in ("school_classes", "udm_properties"):
+            elif key in ("school_classes", "udm_properties", "workgroups"):
                 if not isinstance(value, dict):
                     raise HTTPException(
                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -705,6 +714,8 @@ async def create(
         **Kelvin** if unset, used by the UCS@school import)
     - **school_classes**: school classes the user is a member of (optional,
         format: **{"school1": ["class1", "class2"], "school2": ["class3"]}**)
+    - **workgroups**: workgroups the user is a member of (optional,
+        format: **{"school1": ["workgroup1", "workgroup2"], "school2": ["workgroup3"]}**)
     - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **expiration_date**: date of password expiration (optional, format: **YYYY-MM-DD**,
         valid range: 1961-01-01 to 2099-12-31)
@@ -871,13 +882,14 @@ async def change_roles(
     user: ImportUser,
     new_roles: List[str],
     new_school_classes: Dict[str, List[str]] = None,
+    new_workgroups: Dict[str, List[str]] = None,
 ) -> ImportUser:
     target_cls = SchoolUserRole.get_lib_class([SchoolUserRole(role_s) for role_s in new_roles])
     if set(user.roles) == set(target_cls.roles):
         return user
     converter_func = conversion_target_to_func[target_cls]
     try:
-        return await converter_func(user, udm, new_school_classes)
+        return await converter_func(user, udm, new_school_classes, new_workgroups)
     except TypeError as exc:
         logger.error(
             "Changing role of user %r to %r: %s",
@@ -927,6 +939,8 @@ async def partial_update(  # noqa: C901
     - **source_uid**: identifier of the upstream database)
     - **school_classes**: school classes the user is a member of (format: **{"school1": ["class1",
         "class2"], "school2": ["class3"]}**)
+    - **workgroups**: workgroups the user is a member of (format: **{"school1": ["workgroup1",
+        "workgroup2"], "school2": ["workgroup3"]}**)
     - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **disabled**: whether the user should be created deactivated (default: **false**)
     - **ucsschool_roles**: list of roles the user has in to each school (auto-managed by system,
@@ -1026,10 +1040,13 @@ async def partial_update(  # noqa: C901
     try:
         new_roles = to_change["roles"]
         new_school_classes = to_change.get("school_classes")
+        new_workgroups = to_change.get("workgroups")
     except KeyError:
         pass
     else:
-        user_current = await change_roles(udm, logger, user_current, new_roles, new_school_classes)
+        user_current = await change_roles(
+            udm, logger, user_current, new_roles, new_school_classes, new_workgroups
+        )
 
     # 4. modify
     changed = False
@@ -1103,6 +1120,8 @@ async def complete_update(  # noqa: C901
         **Kelvin** if unset, used by the UCS@school import)
     - **school_classes**: school classes the user is a member of (optional,
         format: **{"school1": ["class1", "class2"], "school2": ["class3"]}**)
+    - **workgroups**: workgroups the user is a member of (optional,
+        format: **{"school1": ["workgroup1", "workgroup2"], "school2": ["workgroup3"]}**)
     - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **disabled**: whether the user should be created
     - **alter_dhcpd_base**: whether the UCR variable dhcpd/ldap/base should be modified during school
@@ -1180,7 +1199,10 @@ async def complete_update(  # noqa: C901
     # 3. change roles
     new_roles = user_request.roles
     new_school_classes = user_request.school_classes
-    user_current = await change_roles(udm, logger, user_current, new_roles, new_school_classes)
+    new_workgroups = user_request.workgroups
+    user_current = await change_roles(
+        udm, logger, user_current, new_roles, new_school_classes, new_workgroups
+    )
 
     # 4. modify
     changed = False

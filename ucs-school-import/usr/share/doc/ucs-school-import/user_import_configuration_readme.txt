@@ -91,6 +91,8 @@ After that follow
 "school": str: name (abbreviation) of school this import is for, if not available from input
 "school_classes_invalid_character_replacement": str: invalid characters in class names (valid are digits, ascii-characters and the characters '- ._') will be replaced with this string.
 "school_classes_keep_if_empty": bool: if true, a users school_classes attribute will not be changed, when it is set to empty
+"workgroups_invalid_character_replacement": str: invalid characters in class names (valid are digits, ascii-characters and the characters '- ._') will be replaced with this string.
+"workgroups_keep_if_empty": bool: if true, a users workgroups attribute will not be changed, when it is set to empty
 "source_uid": str [1]: UID of source database
 "tolerate_errors": int [1]: number of non-fatal errors to tolerate before aborting, -1 means unlimited
 "user_deletion": DEPRECATED - use deletion_grace_period instead,

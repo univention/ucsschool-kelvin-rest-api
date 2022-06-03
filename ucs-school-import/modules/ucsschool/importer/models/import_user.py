@@ -66,7 +66,6 @@ from ucsschool.lib.roles import (
 from udm_rest_client import UDM, UdmObject
 from univention.admin import property as uadmin_property
 from univention.admin.syntax import gid as gid_syntax
-from univention.admin.uexceptions import noProperty, valueError, valueInvalidSyntax
 from univention.config_registry import ConfigRegistry
 
 from ..configuration import Configuration, ReadOnlyDict
@@ -88,10 +87,8 @@ from ..exceptions import (
     NotSupportedError,
     NoUsernameAtAll,
     UDMError,
-    UDMValueError,
     UniqueIdError,
     UnknownDisabledSetting,
-    UnknownProperty,
     UnknownSchoolName,
     UsernameToLong,
     UserValidationError,
@@ -107,6 +104,7 @@ FunctionSignature = namedtuple("FunctionSignature", ["name", "args", "kwargs"])
 UsernameUniquenessTuple = namedtuple("UsernameUniquenessTuple", ["record_uid", "source_uid", "dn"])
 GLOBAL_SOURCE_UID = "global_source_uid"
 ALLOWED_CHARS_IN_SCHOOL_CLASS_NAME = set(string.digits + string.ascii_letters + " -._")
+ALLOWED_CHARS_IN_WORKGROUP_NAME = set(string.digits + string.ascii_letters + " -._")
 UNIQUENESS = "uniqueness"
 
 
@@ -589,6 +587,7 @@ class ImportUser(User):
             self.udm_properties["overridePWHistory"] = True
             self.udm_properties["overridePWLength"] = True
         self.make_classes()
+        self.make_workgroups()
         self.make_birthday()
         self.make_disabled()
         self.make_email()
@@ -647,7 +646,8 @@ class ImportUser(User):
         """
         if self.expiration_date:
             self.logger.warning(
-                "The expiration date is usually set by the import itself. Setting it manually may lead to errors in future imports."
+                "The expiration date is usually set by the import itself. "
+                "Setting it manually may lead to errors in future imports."
             )
             try:
                 self.expiration_date = self.parse_date(self.expiration_date)
@@ -763,6 +763,72 @@ class ImportUser(User):
                 "Unknown data in attribute 'school_classes': {!r}".format(self.school_classes)
             )
         return self.school_classes
+
+    def make_workgroups(self):  # type: () -> Dict[str, Dict[str, List[str]]]
+        """
+        Create workgroups.
+
+        * This should run after make_school().
+        * If attribute already exists as a dict, it is not changed.
+        * Attribute is only written if it is set to a string like 'school1-wg2,school3-wg4'.
+        """
+        from ..reader.base_reader import BaseReader  # isort:skip  # prevent cyclic import
+
+        char_replacement = self.config["workgroups_invalid_character_replacement"]
+        if isinstance(self.workgroups, dict) and self.workgroups:
+            for school, workgroups in iteritems(self.workgroups):
+                self.workgroups[school] = [
+                    self.workgroups_invalid_character_replacement(class_name, char_replacement)
+                    for class_name in workgroups
+                ]
+        elif isinstance(self.workgroups, dict) and not self.workgroups:
+            self.reader = cast(BaseReader, self.reader)
+            input_dict = self.reader.get_data_mapping(self.input_data)
+            if input_dict.get("workgroups") == "":
+                if self.old_user and self.config.get("workgroups_keep_if_empty", False):
+                    self.logger.info(
+                        "Reverting workgroups of %r to previous value %r.",
+                        self,
+                        self.old_user.workgroups,
+                    )
+                    self.workgroups = dict(
+                        (school, workgroups)
+                        for school, workgroups in iteritems(self.old_user.workgroups)
+                        if school in self.schools
+                    )
+            elif "workgroups" not in input_dict:
+                # no mapping -> try to get previous data
+                if self.old_user:
+                    self.workgroups = self.old_user.workgroups
+            else:
+                raise RuntimeError("Input data contains workgroups data, but self.workgroups is empty.")
+        elif isinstance(self.workgroups, string_types):
+            res = defaultdict(list)
+            workgroups = cast(str, self.workgroups)
+            self.workgroups = workgroups.strip(" \n\r\t,")
+            for a_class in [wg.strip() for wg in self.workgroups.split(",") if wg.strip()]:
+                school, sep, wg_name = [x.strip() for x in a_class.partition("-")]
+                if sep and not wg_name:
+                    raise InvalidClassName("Empty class name.")
+                if not sep:
+                    # no school prefix
+                    if not self.school:
+                        self.make_school()
+                    wg_name = school
+                    school = self.school
+                wg_name = self.normalize(wg_name)
+                school = self.normalize(school)
+                wg_name = self.workgroups_invalid_character_replacement(
+                    "{}-{}".format(school, wg_name), char_replacement
+                )
+                if wg_name not in res[school]:
+                    res[school].append(wg_name)
+            self.workgroups = dict(res)
+        elif self.workgroups is None:
+            self.workgroups = dict()
+        else:
+            raise RuntimeError("Unknown data in attribute 'workgroups': {!r}".format(self.workgroups))
+        return self.workgroups
 
     def make_disabled(self):  # type: () -> bool
         """
@@ -1550,6 +1616,12 @@ class ImportUser(User):
             self.make_classes()
         return super(ImportUser, self).get_school_class_objs()
 
+    def get_workgroup_objs(self):  # type: () -> List[School]
+        if isinstance(self.workgroups, string_types):
+            # workgroups was set from input data
+            self.make_workgroups()
+        return super(ImportUser, self).get_workgroup_objs()
+
     def _prevent_mapped_attributes_in_udm_properties(self):  # type: () -> None
         """
         Make sure users do not store values for ucsschool.lib mapped Attributes
@@ -1623,6 +1695,30 @@ class ImportUser(User):
             cls.logger.debug("Class name changed from %r to %r.", klass_name_old, school_class)
         return school_class
 
+    @classmethod
+    def workgroups_invalid_character_replacement(cls, workgroup: str, char_replacement: str) -> str:
+        """
+        Replace disallowed characters in ``workgroup`` with ``char_replacement``. Allowed chars:
+        ``[string.digits, string.ascii_letters, " -._"]``. If ``char_replacement`` is empty no
+        replacement will be done.
+
+        :param str workgroup: name of school class
+        :param str char_replacement: character to replace disallowed characters with
+        :return: (possibly modified) name of school class
+        :rtype: str
+        """
+        if not char_replacement or not workgroup:
+            return workgroup
+        wg_name_old = workgroup  # for debug output at the end
+        if isinstance(workgroup, bytes):
+            workgroup = workgroup.decode("utf-8")
+        for character in workgroup:
+            if character not in ALLOWED_CHARS_IN_WORKGROUP_NAME:
+                workgroup = workgroup.replace(character, char_replacement)
+        if workgroup != wg_name_old:
+            cls.logger.debug("Class name changed from %r to %r.", wg_name_old, workgroup)
+        return workgroup
+
 
 class ImportStaff(ImportUser, Staff):
     pass
@@ -1653,12 +1749,15 @@ class ImportUserTypeConverter(UserTypeConverter):
         new_cls: Type[ConcreteImportUserClass],
         udm: UDM,
         additional_classes: Dict[str, List[str]] = None,
+        additional_workgroups: Dict[str, List[str]] = None,
     ) -> ConcreteImportUserClass:
         if not isinstance(user, ImportUser) or user.__class__ is ImportUser:
             raise TypeError(f"Argument 'user' is not an object of a 'ImportUser' subclass: {user!r}")
         if new_cls is ImportUser or not issubclass(new_cls, ImportUser):
             raise TypeError(f"Argument 'new_cls' is not a subclass of 'ImportUser': {new_cls!r}")
-        return await super(ImportUserTypeConverter, cls).convert(user, new_cls, udm, additional_classes)
+        return await super(ImportUserTypeConverter, cls).convert(
+            user, new_cls, udm, additional_classes, additional_workgroups
+        )
 
     @staticmethod
     def _dump_user_data(udm_user: UdmObject) -> str:
@@ -1672,29 +1771,41 @@ async def convert_to_staff(
     user: ConcreteUserClass,
     udm: UDM,
     additional_classes: Dict[str, List[str]] = None,
+    additional_workgroups: Dict[str, List[str]] = None,
 ) -> ImportStaff:
-    return await ImportUserTypeConverter.convert(user, ImportStaff, udm, additional_classes)
+    return await ImportUserTypeConverter.convert(
+        user, ImportStaff, udm, additional_classes, additional_workgroups
+    )
 
 
 async def convert_to_student(
     user: ConcreteUserClass,
     udm: UDM,
     additional_classes: Dict[str, List[str]] = None,
+    additional_workgroups: Dict[str, List[str]] = None,
 ) -> ImportStudent:
-    return await ImportUserTypeConverter.convert(user, ImportStudent, udm, additional_classes)
+    return await ImportUserTypeConverter.convert(
+        user, ImportStudent, udm, additional_classes, additional_workgroups
+    )
 
 
 async def convert_to_teacher(
     user: ConcreteUserClass,
     udm: UDM,
     additional_classes: Dict[str, List[str]] = None,
+    additional_workgroups: Dict[str, List[str]] = None,
 ) -> ImportTeacher:
-    return await ImportUserTypeConverter.convert(user, ImportTeacher, udm, additional_classes)
+    return await ImportUserTypeConverter.convert(
+        user, ImportTeacher, udm, additional_classes, additional_workgroups
+    )
 
 
 async def convert_to_teacher_and_staff(
     user: ConcreteUserClass,
     udm: UDM,
     additional_classes: Dict[str, List[str]] = None,
+    additional_workgroups: Dict[str, List[str]] = None,
 ) -> ImportTeachersAndStaff:
-    return await ImportUserTypeConverter.convert(user, ImportTeachersAndStaff, udm, additional_classes)
+    return await ImportUserTypeConverter.convert(
+        user, ImportTeachersAndStaff, udm, additional_classes, additional_workgroups
+    )
