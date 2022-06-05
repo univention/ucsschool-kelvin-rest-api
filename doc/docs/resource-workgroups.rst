@@ -24,7 +24,10 @@ The following JSON is an example Workgroups resource in the *UCS\@school Kelvin 
         "users": [
             "https://<fqdn>/ucsschool/kelvin/v1/users/demo_student"
         ],
-        "create_share": true
+        "create_share": true,
+        "email": null,
+        "allowed_email_senders_users": [],
+        "allowed_email_senders_groups": []
     }
 
 
@@ -42,6 +45,9 @@ The following JSON is an example Workgroups resource in the *UCS\@school Kelvin 
     "description","null|string","Descriptive information about a workgroup.","editable"
     "users","List<URL>", "A list with the URL in the UCS\@school Kelvin API per user within the workgroup.","editable"
     "create_share", "boolean", "Whether a share should be created for the workgroup.", "read only"
+    "email", "string", "Email", "editable"
+    "allowed_email_senders_users", "list", "Users that are allowed to send e-mails to the workgroup.", "editable"
+    "allowed_email_senders_groups", "list", "Groups that are allowed to send e-mails to the workgroup.", "editable"
 
 
 udm_properties
@@ -90,7 +96,10 @@ The response body will be::
             "users": [
                 "https://<fqdn>/ucsschool/kelvin/v1/users/demo_student"
             ],
-            "create_share": true
+            "create_share": true,
+            "email": null,
+            "allowed_email_senders_users": [],
+            "allowed_email_senders_groups": []
         }
     ]
 
@@ -139,7 +148,10 @@ The response body will be::
         "users": [
             "https://<fqdn>/ucsschool/kelvin/v1/users/demo_student"
         ],
-        "create_share": true
+        "create_share": true,
+        "email": null,
+        "allowed_email_senders_users": [],
+        "allowed_email_senders_groups": []
     }
 
 
@@ -186,7 +198,10 @@ The response will be::
         "school": "https://<fqdn>/ucsschool/kelvin/v1/schools/Demoschool",
         "description": "The new workgroup description.",
         "users": [],
-        "create_share": true
+        "create_share": true,
+        "email": null,
+        "allowed_email_senders_users": [],
+        "allowed_email_senders_groups": []
     }
 
 The example shows how to change the description of a ``workgroup``.
@@ -233,7 +248,10 @@ The response will be::
         "school": "https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL",
         "description": null,
         "users": [],
-        "create_share": true
+        "create_share": true,
+        "email": null,
+        "allowed_email_senders_users": [],
+        "allowed_email_senders_groups": []
     }
 
 
