@@ -58,6 +58,9 @@ class WorkGroupCreateModel(UcsSchoolBaseModel):
     description: str = None
     users: List[HttpUrl] = None
     create_share: bool = True
+    email: str = None
+    allowed_email_senders_users: List[str] = []
+    allowed_email_senders_groups: List[str] = []
 
     class Config(UcsSchoolBaseModel.Config):
         lib_class = WorkGroup
@@ -244,6 +247,11 @@ async def create(
     - **users**: list of URLs to User resources (optional)
     - **create_share**: whether a share should be created for the workgroup
         (optional)
+    - **email**: workgroup's email (optional)
+    - **allowed_email_senders_users**: users that are allowed to send e-mails
+        to the workgroup (optional)
+    - **allowed_email_senders_groups**: groups that are allowed to send e-mails
+        to the workgroup (optional)
     - **ucsschool_roles**: list of tags of the form
         $ROLE:$CONTEXT_TYPE:$CONTEXT (optional)
     - **udm_properties**: object with UDM properties (optional, e.g.

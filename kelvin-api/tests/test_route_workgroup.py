@@ -56,9 +56,6 @@ def url2username(url: str) -> str:
 
 async def compare_lib_api_obj(lib_obj: WorkGroup, api_obj: WorkGroupModel, url_fragment):
     for attr, lib_value in lib_obj.to_dict().items():
-        # skip unused attributes
-        if attr in ["email", "allowed_email_senders_users", "allowed_email_senders_groups"]:
-            continue
         if attr == "$dn$":
             assert lib_value == api_obj.dn
         elif attr == "objectType":
