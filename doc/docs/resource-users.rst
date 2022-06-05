@@ -51,6 +51,10 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
             "DEMOSCHOOL": ["Democlass"],
             "DEMOSCHOOL2": ["demoklasse2"]
         },
+        "workgroups": {
+            "DEMOSCHOOL": ["demoworkgroup"],
+            "DEMOSCHOOL2": ["demoworkgroup2"]
+        },
         "source_uid": "Kelvin",
         "udm_properties": {
             "description": "An example user attending two school.",
@@ -82,6 +86,7 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
     "school", "string", "School (OU) the user belongs to. A URL in the ``schools`` resource.", "required for creation when ``schools`` is not set"
     "schools", "list", "List of schools (OUs) the user belongs to. A list of URLs in the ``schools`` resource.", "required for creation when ``school`` is not set"
     "school_classes", "nested object", "School classes the user is a member of. A mapping from school names to class names, for example: ``{'"'school1'"': ['"'class1'"', '"'class2'"'], '"'school2'"': ['"'class3'"']}``.", "The schools must also be listed (as URLs) in the ``schools`` attribute."
+    "workgroups", "nested object", "Workgroups the user is a member of. A mapping from school names to workgroup names, for example: ``{'"'school1'"': ['"'wg1'"', '"'wg2'"'], '"'school2'"': ['"'wg3'"']}``.", "The schools must also be listed (as URLs) in the ``schools`` attribute."
     "record_uid", "string", "Unique identifier of the user in the upstream database the user was imported from. Used in combination with ``source_uid`` by the UCS\@school import to uniquely identify users in both LDAP and upstream databases.", "changing is strongly discouraged"
     "source_uid", "string", "Identifier of the upstream database the user was imported from. Defaults to ``Kelvin`` if unset.", "changing is strongly discouraged"
     "ucsschool_roles", "list", "List of roles the user has in to each school. Format is ``ROLE:CONTEXT_TYPE:CONTEXT``, for example: ``['"'teacher:school:gym1'"', '"'school_admin:school:school2'"']``.", "auto-managed by system, setting and changing discouraged"
@@ -125,7 +130,9 @@ school_classes
 ^^^^^^^^^^^^^^
 All school names in ``school_classes`` must exist (as URLs) in ``schools``.
 
-.. _resource-users-udm-properties:
+workgroups
+^^^^^^^^^^
+All school names in ``workgroups`` must exist (as URLs) in ``schools``.
 
 udm_properties for resource users
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -176,6 +183,7 @@ The response body will be:
             "roles": ["https://<fqdn>/ucsschool/kelvin/v1/roles/teacher"],
             "schools": ["https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL"],
             "school_classes": {},
+            "workgroups": {},
             "source_uid": null,
             "udm_properties": {}
         }
@@ -222,6 +230,7 @@ The user in the example response is working in two schools as both staff and tea
                 "test": ["testclass", "testclass2"],
                 "other": ["otherklasse", "otherklasse2"]
             },
+            "workgroups": {},
             "source_uid": "TESTID",
             "udm_properties": {
                 "description": "Working at two schools.",
@@ -334,6 +343,7 @@ Response body:
         "roles": ["https://<fqdn>/ucsschool/kelvin/v1/roles/teacher"],
         "schools": ["https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL"],
         "school_classes": {},
+        "workgroups": {},
         "source_uid": "Reggae DB",
         "udm_properties": {
             "description": null,
@@ -413,6 +423,7 @@ Response body:
         "roles": ["https://<fqdn>/ucsschool/kelvin/v1/roles/teacher"],
         "school": "https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL",
         "school_classes": {},
+        "workgroups": {},
         "schools": ["https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL"],
         "source_uid": "Kelvin Test2",
         "ucsschool_roles": ["teacher:school:DEMOSCHOOL"],
