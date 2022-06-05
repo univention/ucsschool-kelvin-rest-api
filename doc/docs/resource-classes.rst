@@ -23,7 +23,8 @@ The following JSON is an example Classes resource in the *UCS\@school Kelvin RES
         "description": null,
         "users": [
             "https://<fqdn>/ucsschool/kelvin/v1/users/demo_student"
-        ]
+        ],
+        "create_share": true
     }
 
 
@@ -36,10 +37,11 @@ The following JSON is an example Classes resource in the *UCS\@school Kelvin RES
     "url", "URL", "The URL of the class object in the UCS\@school Kelvin API.", "read only"
     "ucsschool_roles", "list", "List of roles the class has. Format is ``ROLE:CONTEXT_TYPE:CONTEXT``, for example: ``['"'school_class:school:DEMOSCHOOL'"']``.", "auto-managed by system, setting and changing discouraged"
     "udm_properties", "nested object", "Object with UDM properties. For example: ``{'"'street'"': '"'Luise Av.'"', '"'phone'"': ['"'+49 30 321654987'"', '"'123 456 789'"']}``", "Must be configured."
-    "name", "string", "Name of the class", "editable"
-    "school", "URL", "School (OU) the class belongs to. A URL in the ``schools`` resource.", "read_only"
-    "description","null|string","Descriptive information about a class.", "editable"
-    "users","List<URL>", "A list with the URL in the UCS\@school Kelvin API per user within the class.", "editable"
+    "name", "string", "Name of the workgroup", "editable"
+    "school", "URL", "The URL of the school object a workgroup belongs to in the UCS\@school Kelvin API.", "read_only"
+    "description","null|string","Descriptive information about a workgroup.","editable"
+    "users","List<URL>", "A list with the URL in the UCS\@school Kelvin API per user within the workgroup.","editable"
+    "create_share", "boolean", "Whether a share should be created for the workgroup.", "read only"
 
 
 udm_properties
@@ -87,7 +89,8 @@ The response body will be::
             "description": null,
             "users": [
                 "https://<fqdn>/ucsschool/kelvin/v1/users/demo_student"
-            ]
+            ],
+            "create_share": true
         }
     ]
 
@@ -135,7 +138,8 @@ The response body will be::
         "description": null,
         "users": [
             "https://<fqdn>/ucsschool/kelvin/v1/users/demo_student"
-        ]
+        ],
+        "create_share": true
     }
 
 Matching of the queried ``class`` *and* ``school`` is case-insensitive.
@@ -179,12 +183,13 @@ The response will be::
         "udm_properties": {},
         "name": "Democlass_2",
         "school": "https://<fqdn>/ucsschool/kelvin/v1/schools/Demoschool",
-        "description": null,
-        "users": []
+        "description": "The new workgroup description.",
+        "users": [],
+        "create_share": true
     }
 
 The example shows how to rename a certain ``class``. Optionally ``description``, ``udm_properties`` and/or ``users`` can be modified.
-But a ``class`` objects school can't be modified.
+But a ``class`` objects `school` or `create_share` can't be modified.
 
 
 Create
@@ -225,14 +230,15 @@ The response will be::
         "name": "Democlass2",
         "school": "https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL",
         "description": null,
-        "users": []
+        "users": [],
+        "create_share": true
     }
 
 
 
 The queried school has to exist, whilst the ``class`` to be created must **not** exist.
 To create a ``class`` its name and the corresponding school must be provided.
-Optionally a ``description``, ``udm_properties`` and/or ``users`` can be provided on creation.
+Optionally a ``description``, ``udm_properties``, ``users`` and/or ``create_share`` can be provided on creation.
 
 
 
