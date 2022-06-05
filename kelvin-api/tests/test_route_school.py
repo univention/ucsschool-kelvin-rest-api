@@ -52,8 +52,11 @@ async def compare_lib_api_obj(lib_obj: School, api_obj: SchoolModel):
         elif attr == "objectType":
             assert lib_value == "container/ou"
         elif attr in ("class_share_file_server", "home_share_file_server"):
-            hostname = explode_dn(lib_value, True)[0]
-            assert hostname == getattr(api_obj, attr)
+            if lib_value:
+                hostname = explode_dn(lib_value, True)[0]
+                assert hostname == getattr(api_obj, attr)
+            else:
+                assert getattr(api_obj, attr) is None
         elif attr in ("administrative_servers", "educational_servers"):
             assert {explode_dn(lv, True)[0] for lv in lib_value} == set(getattr(api_obj, attr))
         elif attr in ("dc_name", "dc_name_administrative"):
