@@ -14,6 +14,9 @@
     <li>
          An error has been fixed, which was raised by invalid UCS@school roles during the validation (Bug #54653).
     </li>
+    <li>
+         Updated descriptions of variables in the Swagger UI to fit the expected values and added JSON Examples to descriptions where needed (Bug #54739).
+    </li>
 </ul>
 
 <h2>v1.5.4 (2022-04-27)</h2>
