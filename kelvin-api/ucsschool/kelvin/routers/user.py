@@ -494,6 +494,7 @@ async def search(  # noqa: C901
     - **additional query parameters**: additionally to the above parameters,
         any UDM property can be used to filter, e.g.
         **?uidNumber=12345&city=Bremen**
+
     """
     logger.debug(
         "Searching for users with: school=%r username=%r ucsschool_roles=%r "
@@ -662,6 +663,33 @@ async def create(
         **mapped_udm_properties**, see documentation)
     - **kelvin_password_hashes**: Password hashes to be stored unchanged in
         OpenLDAP (optional)
+
+    **JSON Example**:
+
+        {
+            "name": "EXAMPLE_STUDENT",
+            "firstname": "EXAMPLE",
+            "lastname": "STUDENT",
+            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
+            "schools": [
+                "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL"
+            ],
+            "roles": [
+                "https://<fqdn>/ucsschool/kelvin/v1/roles/student"
+            ],
+            "password": "examplepassword",
+            "email": "example@email.com",
+            "record_uid": "EXAMPLE_RECORD_UID",
+            "source_uid": "EXAMPLE_SOURCE_UID",
+            "school_classes": "
+            "birthday": "YYYY-MM-DD",
+            "expiration_date": "YYYY-MM-DD",
+            "disabled": false,
+            "udm_properties": {}
+        }
+
+    **Note:** Eventhough only **school** or **schools** needs to be set,
+        its advised to set both as best practice.
     """
     request_user.Config.lib_class = SchoolUserRole.get_lib_class(
         [
@@ -819,16 +847,25 @@ async def partial_update(  # noqa: C901
     token: str = Depends(get_token),
 ) -> UserModel:
     """
-    Patch a school user with partial information
+    Patch a school **user** with partial information
 
-    - **name**: name of the user
-    - **firstname**: given name of the user
-    - **lastname**: family name of the user
-    - **school**: school (OU) the user belongs to  (URL to **school** resource)
-    - **schools**: list of schools the user belongs to (list of URLs to **school** resources)
-    - **roles**: user type, one of staff, student, teacher or teacher and staff (list of URLs to
-        **role** resources)
-    - **password**: users password, a random one will be generated if unset
+    **Parameters**
+
+    - **username**: current name of the user, if the name changes within the body
+        this parameter will change accordingly (**required**)
+
+    **Request Body**
+
+    - **name**: name of the user (**required**)
+    - **firstname**: given name of the user (**required**)
+    - **lastname**: family name of the user (**required**)
+    - **school**: **URL** of the school resource (**OU**) the user belongs to (**required unless
+        schools is set**)
+    - **schools**: list of **URLs** of school resources the user belongs to (**required unless
+        school is set**)
+    - **roles**: list of **URLs** of **role** resources, either type: *staff*, *student*,
+        *teacher* or *teacher and staff* (**required**)
+    - **password**: users password, if unset random generated (optional)
     - **email**: the users email address (**mailPrimaryAddress**)
     - **expiration_date**: date of password expiration (optional, format: **YYYY-MM-DD**,
         valid range: 1961-01-01 to 2099-12-31)
@@ -844,7 +881,34 @@ async def partial_update(  # noqa: C901
     - **udm_properties**: object with UDM properties (optional, e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
-    - **kelvin_password_hashes**: Password hashes to be stored unchanged in OpenLDAP
+    - **kelvin_password_hashes**: password hashes to be stored unchanged in OpenLDAP
+
+    **JSON Example**:
+
+        {
+            "name": "EXAMPLE_STUDENT",
+            "firstname": "EXAMPLE",
+            "lastname": "STUDENT",
+            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
+            "schools": [
+                "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL"
+            ],
+            "roles": [
+                "https://<fqdn>/ucsschool/kelvin/v1/roles/student"
+            ],
+            "password": "examplepassword",
+            "email": "example@email.com",
+            "record_uid": "EXAMPLE_RECORD_UID",
+            "source_uid": "EXAMPLE_SOURCE_UID",
+            "school_classes": "
+            "birthday": "YYYY-MM-DD",
+            "expiration_date": "YYYY-MM-DD",
+            "disabled": false,
+            "udm_properties": {}
+        }
+
+    **Note:** Eventhough only **school** or **schools** needs to be set,
+        its advised to set both as best practice.
     """
     async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
         break
@@ -956,19 +1020,25 @@ async def complete_update(  # noqa: C901
     token: str = Depends(get_token),
 ) -> UserModel:
     """
-    Update a school user with all the information:
+    Update a school **user** with all the information:
+
+    **Parameters**
+
+    - **username**: current name of the user, if the name changes within the
+        body this parameter will change accordingly(**required**)
+
+    **Request Body**
 
     - **name**: name of the user (**required**)
     - **firstname**: given name of the user (**required**)
     - **lastname**: family name of the user (**required**)
-    - **school**: school (OU) the user belongs to (**required unless
-        schools is set**, URL of a **school** resource)
-    - **schools**: list of schools the user belongs to (**required unless
-        school is set**, list of URLs to **school** resources)
-    - **roles**: user type, one of staff, student, teacher or teacher and staff
-        (**required**, list of URLs to **role** resources)
-    - **password**: users password, a random one will be generated if unset
-        (optional)
+    - **school**: **URL** of the school resource (**OU**) the user belongs to (**required unless
+        schools is set**)
+    - **schools**: list of **URLs** of school resources the user belongs to (**required unless
+        school is set**)
+    - **roles**: list of **URLs** of **role** resources, either type: *staff*, *student*,
+        *teacher* or *teacher and staff* (**required**)
+    - **password**: users password, if unset random generated (optional)
     - **email**: the users email address (**mailPrimaryAddress**), used only
         when the email domain is hosted on UCS, not to be confused with the
         contact property **e-mail** (optional)
@@ -982,15 +1052,38 @@ async def complete_update(  # noqa: C901
         format: **{"school1": ["class1", "class2"], "school2": ["class3"]}**)
     - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**,
         valid range: 1961-01-01 to 2099-12-31)
-    - **disabled**: whether the user should be created deactivated (optional,
-        default: **false**)
-    - **ucsschool_roles**: list of roles the user has in to each school
-        (optional, auto-managed by system, setting and changing discouraged)
-    - **udm_properties**: object with UDM properties (optional, e.g.
-        **{"udm_prop1": "value1"}**, must be configured in
-        **mapped_udm_properties**, see documentation)
+    - **disabled**: whether the user should be created
+    - **alter_dhcpd_base**: whether the UCR variable dhcpd/ldap/base should be modified during school
+        creation on singleserver environments. (optional, **currently non-functional!**)
     - **kelvin_password_hashes**: Password hashes to be stored unchanged in
         OpenLDAP (optional)
+
+    **JSON-example**:
+
+        {
+            "name": "EXAMPLE_STUDENT",
+            "firstname": "EXAMPLE",
+            "lastname": "STUDENT",
+            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
+            "schools": [
+                "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL"
+            ],
+            "roles": [
+                "https://<fqdn>/ucsschool/kelvin/v1/roles/student"
+            ],
+            "password": "examplepassword",
+            "email": "example@email.com",
+            "record_uid": "EXAMPLE_RECORD_UID",
+            "source_uid": "EXAMPLE_SOURCE_UID",
+            "school_classes": "
+            "birthday": "YYYY-MM-DD",
+            "expiration_date": "YYYY-MM-DD",
+            "disabled": false,
+            "udm_properties": {}
+        }
+
+    **Note:** Eventhough only **school** or **schools** needs to be set,
+        its advised to set both as best practice.
     """
     async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
         break
