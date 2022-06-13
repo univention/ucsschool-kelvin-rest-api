@@ -65,7 +65,7 @@ class SchoolClassCreateModel(UcsSchoolBaseModel):
 
     _validate_name = validator("name", allow_reuse=True)(check_name)
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def check_name2(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validate 'OU-name' to prevent 'must be at least 2 characters long'
