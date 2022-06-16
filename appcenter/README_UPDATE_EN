@@ -20,6 +20,9 @@
     <li>
         Allow the creation of school classes without share (Bug #54875).
     </li>
+    <li>
+         Improve date validation error messages (Bug #54812).
+    </li>
 </ul>
 
 <h2>v1.5.4 (2022-04-27)</h2>
