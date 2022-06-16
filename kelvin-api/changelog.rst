@@ -14,6 +14,7 @@ v1.5.5 (2022-05-31)
 * Updated descriptions of variables in the Swagger UI to fit the expected values and added JSON Examples to descriptions where needed (Bug #54739).
 * Allow the creation of school classes without share (Bug #54875).
 * Improve date validation error messages (Bug #54812).
+* Add work group resource (Bug #54876).
 
 v1.5.4 (2022-04-27)
 .........

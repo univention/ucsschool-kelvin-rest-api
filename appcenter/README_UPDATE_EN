@@ -23,6 +23,9 @@
     <li>
          The date validation error messages have been improved (Bug #54812).
     </li>
+    <li>
+        Add work group resource (Bug #54876).
+    </li>
 </ul>
 
 <h2>v1.5.4 (2022-04-27)</h2>
