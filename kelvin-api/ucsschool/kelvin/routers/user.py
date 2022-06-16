@@ -650,8 +650,7 @@ async def create(
         **Kelvin** if unset, used by the UCS@school import)
     - **school_classes**: school classes the user is a member of (optional,
         format: **{"school1": ["class1", "class2"], "school2": ["class3"]}**)
-    - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**,
-        valid range: 1961-01-01 to 2099-12-31)
+    - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **expiration_date**: date of password expiration (optional, format: **YYYY-MM-DD**,
         valid range: 1961-01-01 to 2099-12-31)
     - **disabled**: whether the user should be created deactivated (optional,
@@ -873,8 +872,7 @@ async def partial_update(  # noqa: C901
     - **source_uid**: identifier of the upstream database)
     - **school_classes**: school classes the user is a member of (format: **{"school1": ["class1",
         "class2"], "school2": ["class3"]}**)
-    - **birthday**: birthday of user (format: **YYYY-MM-DD**,
-        valid range: 1961-01-01 to 2099-12-31)
+    - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **disabled**: whether the user should be created deactivated (default: **false**)
     - **ucsschool_roles**: list of roles the user has in to each school (auto-managed by system,
         setting and changing discouraged)
@@ -1050,8 +1048,7 @@ async def complete_update(  # noqa: C901
         **Kelvin** if unset, used by the UCS@school import)
     - **school_classes**: school classes the user is a member of (optional,
         format: **{"school1": ["class1", "class2"], "school2": ["class3"]}**)
-    - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**,
-        valid range: 1961-01-01 to 2099-12-31)
+    - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **disabled**: whether the user should be created
     - **alter_dhcpd_base**: whether the UCR variable dhcpd/ldap/base should be modified during school
         creation on singleserver environments. (optional, **currently non-functional!**)
