@@ -49,6 +49,8 @@ from ucsschool.kelvin.routers.user import (
     UserCreateModel,
     UserModel,
     UserPatchModel,
+    _validate_date_format,
+    _validate_date_range,
     set_password_hashes,
     userexpiry_to_shadowExpire,
 )
@@ -208,6 +210,26 @@ def import_user_to_create_model_kwargs(url_fragment):
         return user_data
 
     return _func
+
+
+def test_validate_date_format():
+    _validate_date_format("2000-01-01")
+
+    with pytest.raises(ValueError):
+        _validate_date_format("2000-01-01T00:00")
+
+    with pytest.raises(ValueError):
+        _validate_date_format("2000-13-01")
+
+
+def test_validate_date_range():
+    _validate_date_range("2000-01-01")
+
+    with pytest.raises(ValueError):
+        _validate_date_range("1900-01-01")
+
+    with pytest.raises(ValueError):
+        _validate_date_range("3000-01-01")
 
 
 @pytest.mark.asyncio

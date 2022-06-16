@@ -168,6 +168,31 @@ class PasswordsHashes(BaseModel):
         self.krb_5_key = [base64.b64encode(v).decode("ascii") for v in value]
 
 
+def _validate_date_format(date: str) -> None:
+    """Validate date format (YYYY-MM-DD).
+
+    :param str date: Date string to validate.
+    :raises ValueError: If the provided date is not in YYYY-MM-DD format.
+    """
+    try:
+        datetime.datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("Incorrect date format, should be YYYY-MM-DD.")
+
+
+def _validate_date_range(date: str) -> None:
+    """Validate date range.
+
+    This function assumes that the date has the format YYYY-MM-DD. Then checks:
+        * Year must be between 1961 and 2099 (both included).
+
+    :param str date: Date string to validate.
+    :raises ValueError: If the provided date does not pass the checks.
+    """
+    if not (1961 <= int(date[0:4]) <= 2099):
+        raise ValueError("Year must be between 1961 and 2099.")
+
+
 class UserBaseModel(UcsSchoolBaseModel):
     firstname: str
     lastname: str
@@ -181,6 +206,23 @@ class UserBaseModel(UcsSchoolBaseModel):
     school_classes: Dict[str, List[str]] = {}
     source_uid: str = None
     ucsschool_roles: List[str] = []
+
+    @validator("birthday", pre=True)
+    def validate_birthday(cls, v: Any) -> Any:
+        """Validate birthday format."""
+        if not v or isinstance(v, datetime.date):
+            return v
+        _validate_date_format(v)
+        return v
+
+    @validator("expiration_date", pre=True)
+    def validate_expiration_date(cls, v: Any) -> Any:
+        """Validate expiration date format and range."""
+        if not v or isinstance(v, datetime.date):
+            return v
+        _validate_date_format(v)
+        _validate_date_range(v)
+        return v
 
     class Config(UcsSchoolBaseModel.Config):
         lib_class = ImportUser
@@ -294,6 +336,23 @@ class UserPatchModel(BasePatchModel):
     kelvin_password_hashes: PasswordsHashes = None
 
     _not_both_password_and_hashes = root_validator(allow_reuse=True)(not_both_password_and_hashes)
+
+    @validator("birthday", pre=True)
+    def validate_birthday(cls, v: Any) -> Any:
+        """Validate birthday format."""
+        if not v or isinstance(v, datetime.date):
+            return v
+        _validate_date_format(v)
+        return v
+
+    @validator("expiration_date", pre=True)
+    def validate_expiration_date(cls, v: Any) -> Any:
+        """Validate expiration date format and range"""
+        if not v or isinstance(v, datetime.date):
+            return v
+        _validate_date_format(v)
+        _validate_date_range(v)
+        return v
 
     @validator("udm_properties")
     def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
