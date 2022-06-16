@@ -259,6 +259,7 @@ async def create(
             "name": "EXAMPLE_CLASS",
             "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
             "description": "Example description",
+            "create_share": false,
             "users": [
                 "http://<fqdn>/ucsschool/kelvin/v1/users/EXAMPLE_STUDENT"
             ]
