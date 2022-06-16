@@ -361,7 +361,7 @@ class UserPatchModel(BasePatchModel):
 
 def userexpiry_to_shadowExpire(user_expiry: datetime.date) -> str:
     """
-    Convert UDM userexpiry value (ISO 8601) to str(int) stored in LDAP attribute shadowExpire.
+    Convert UDM userexpiry value (datetime.date) to str(int) stored in LDAP attribute shadowExpire.
 
     Taken from _modlist_shadow_expire() in UDM-modules/modules/univention/admin/handlers/users/user.py.
     """

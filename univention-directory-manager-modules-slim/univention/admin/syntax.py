@@ -32,7 +32,9 @@
 """
 
 import copy
+import datetime
 import re
+import time
 
 try:
     from typing import Any, Callable, List, Optional, Pattern, Sequence, Tuple, Type, Union  # noqa: F401
@@ -40,6 +42,7 @@ except ImportError:
     pass
 import ipaddr
 
+from .types import DateType
 from .uexceptions import valueError
 
 # from . import localization
@@ -314,6 +317,136 @@ class iso8601Date(simple):
         "^(\d{4}(?:(?:(?:\-)?(?:00[1-9]|0[1-9][0-9]|[1-2][0-9][0-9]|3[0-5][0-9]|36[0-6]))?|(?:(?:\-)?(?:1[0-2]|0[1-9]))?|(?:(?:\-)?(?:1[0-2]|0[1-9])(?:\-)?(?:0[1-9]|[12][0-9]|3[01]))?|(?:(?:\-)?W(?:0[1-9]|[1-4][0-9]|5[0-3]))?|(?:(?:\-)?W(?:0[1-9]|[1-4][0-9]|5[0-3])(?:\-)?[1-7])?)?)$"  # noqa: E501, W605
     )
     error_message = _('The given date does not conform to iso8601, example: "2009-01-01".')
+
+
+class date(simple):
+    """
+    Syntax for a German date (DD.MM.YY).
+    Also accepts the ISO format (YYYY-MM-DD).
+
+    .. warning::
+            Centuries are *always* stripped!
+            See :py:class:`date2`.
+
+    >>> date.parse(None)
+    ''
+    >>> date.parse('21.12.03')
+    '21.12.03'
+    >>> date.parse('1961-01-01')
+    '01.01.61'
+    >>> date.parse('2061-01-01')
+    '01.01.61'
+    >>> date.parse('01.02.00')
+    '01.02.00'
+    >>> date.parse('01.02.99')
+    '01.02.99'
+    >>> date.parse('00.00.01') #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ...
+    valueError:
+    >>> date.parse('01x02y03') #doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ...
+    valueError:
+    >>> from datetime import datetime
+    >>> date.from_datetime(datetime(2020, 1, 1))
+    '2020-01-01T00:00:00'
+    >>> date.to_datetime('31.12.19')
+    datetime.date(2019, 12, 31)
+
+    Bug #20230:
+    >>> date.parse('31.2.1') #doctest: +IGNORE_EXCEPTION_DETAIL +SKIP
+    Traceback (most recent call last):
+    ...
+    valueError:
+    """
+
+    name = "date"
+    min_length = 5
+    max_length = 0
+    _re_iso = re.compile("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+    _re_de = re.compile(r"^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]+$")
+
+    widget = "DateBox"
+    widget_default_search_pattern = "1970-01-01"
+
+    type_class = DateType
+
+    @classmethod
+    def parse(self, text):
+        if text and self._re_iso.match(text):
+            year, month, day = map(int, text.split("-", 2))
+            if 1960 < year < 2100 and 1 <= month <= 12 and 1 <= day <= 31:
+                return "%02d.%02d.%02d" % (day, month, year % 100)
+        if text and self._re_de.match(text):
+            day, month, year = map(int, text.split(".", 2))
+            if 0 <= year <= 99 and 1 <= month <= 12 and 1 <= day <= 31:
+                return text
+        if text is not None:
+            raise valueError(_("Not a valid Date"))
+        return ""
+
+    @classmethod
+    def to_datetime(cls, value):
+        value = cls.parse(value)
+        if value:
+            return datetime.date(*time.strptime(value, "%d.%m.%y")[0:3])
+
+    @classmethod
+    def from_datetime(cls, value):
+        return value.isoformat()
+
+
+class date2(date):  # fixes the century
+    """
+    Syntax for an ISO date (YYYY-MM-DD).
+    Also accepts the German format (DD.MM.YY).
+    If no century is specified, the date is mapped to 1970..2069.
+
+    >>> date2.parse('21.12.75')
+    '1975-12-21'
+    >>> date2.parse('21.12.03')
+    '2003-12-21'
+    >>> date2.parse('1961-01-01')
+    '1961-01-01'
+    >>> date2.to_datetime('1961-01-01')
+    datetime.date(1961, 1, 1)
+    >>> date2.parse('2001-02-31')  #doctest: +SKIP
+    '2001-02-31'
+    >>> date2.parse('just a string') # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ...
+    valueError: Not a valid Date. Year must be between 1961 and 2099, month
+                between 1 and 12 and day between 1 and 31.
+    """
+
+    @classmethod
+    def parse(self, text):
+        if text is None:
+            return ""
+        if self._re_iso.match(text):
+            year, month, day = map(int, text.split("-", 2))
+            if 1960 < year < 2100 and 1 <= month <= 12 and 1 <= day <= 31:
+                return text
+        if text and self._re_de.match(text):
+            day, month, year = map(int, text.split(".", 2))
+            if 0 <= year <= 99 and 1 <= month <= 12 and 1 <= day <= 31:
+                # Workaround: Don't wrap 2.1.1970 to 2.1.2070:
+                if year >= 70:  # Epoch 0
+                    return "19%02d-%02d-%02d" % (year, month, day)
+                return "20%02d-%02d-%02d" % (year, month, day)
+        raise valueError(
+            _(
+                "Not a valid Date. Year must be between 1961 and 2099, month "
+                "between 1 and 12 and day between 1 and 31."
+            )
+        )
+
+    @classmethod
+    def to_datetime(cls, value):
+        value = cls.parse(value)
+        if value:
+            return datetime.date(*time.strptime(value, "%Y-%m-%d")[0:3])
 
 
 class uid_umlauts(simple):

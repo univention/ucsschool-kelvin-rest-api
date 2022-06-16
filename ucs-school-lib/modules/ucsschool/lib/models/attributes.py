@@ -40,6 +40,7 @@ from univention.admin.syntax import (
     UDM_Objects,
     UserDN,
     boolean,
+    date2,
     disabled,
     gid,
     ipAddress,
@@ -209,7 +210,7 @@ class Birthday(Attribute):
 
 class UserExpirationDate(Attribute):
     udm_name = "userexpiry"
-    syntax = iso8601Date
+    syntax = date2
     map_if_none = True
 
 
