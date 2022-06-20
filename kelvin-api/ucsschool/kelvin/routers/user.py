@@ -169,8 +169,7 @@ class PasswordsHashes(BaseModel):
 
 
 def _validate_date_format(date: str) -> None:
-    """Validate date format (YYYY-MM-DD).
-
+    """
     :param str date: Date string to validate.
     :raises ValueError: If the provided date is not in YYYY-MM-DD format.
     """
@@ -181,8 +180,7 @@ def _validate_date_format(date: str) -> None:
 
 
 def _validate_date_range(date: str) -> None:
-    """Validate date range.
-
+    """
     This function assumes that the date has the format YYYY-MM-DD. Then checks:
         * Year must be between 1961 and 2099 (both included).
 
