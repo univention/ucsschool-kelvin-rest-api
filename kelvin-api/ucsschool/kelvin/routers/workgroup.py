@@ -239,12 +239,15 @@ async def create(
     token: str = Depends(get_token),
 ) -> WorkGroupModel:
     """
-    Create a school workgroup with all the information:
+    Create a **workgroup** with all the information:
+
+    **Request body**
 
     - **name**: name of the school workgroup (**required**)
-    - **school**: school the workgroup belongs to (**required**)
+    - **school**: **URL** of the school the workgroup belongs to (**required**)
+        **ATTENTION: Once created, the school cannot be changed!**
     - **description**: additional text (optional)
-    - **users**: list of URLs to User resources (optional)
+    - **users**: list of **URLs** of User resources (optional)
     - **create_share**: whether a share should be created for the workgroup
         (optional)
     - **email**: workgroup's email (optional)
@@ -257,6 +260,21 @@ async def create(
     - **udm_properties**: object with UDM properties (optional, e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
+
+    **JSON Example:**
+
+        {
+            "udm_properties": {},
+            "name": "EXAMPLE_WORKGROUP",
+            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
+            "description": "Example description",
+            "users": [
+                "http://<fqdn>/ucsschool/kelvin/v1/users/EXAMPLE_STUDENT"
+            ],
+            "email": null,
+            "allowed_email_senders_users": [],
+            "allowed_email_senders_groups": []
+        }
     """
     if not await OPAClient.instance().check_policy_true(
         policy="workgroups",
@@ -303,6 +321,50 @@ async def partial_update(
     logger: logging.Logger = Depends(get_logger),
     token: str = Depends(get_token),
 ) -> WorkGroupModel:
+    """
+    Update a **workgroup** with all the information:
+
+    **Parameters**
+
+    - **workgroup_name**: current name of the workgroup , if the name changes within the
+        body this parameter will change accordingly (**required**)
+    - **school**: name of the school the queried workgroup is assigned to (**required**)
+
+    **Request Body**
+
+    - **name**: name of the school workgroup (**required**)
+    - **school**: **URL** of the school the workgroup belongs to (**required**)
+        **ATTENTION: Once created, the school cannot be changed!**
+    - **description**: additional text (optional)
+    - **users**: list of **URLs** of User resources (optional)
+    - **create_share**: whether a share should be created for the workgroup
+        (optional)
+    - **email**: workgroup's email (optional)
+    - **allowed_email_senders_users**: users that are allowed to send e-mails
+        to the workgroup (optional)
+    - **allowed_email_senders_groups**: groups that are allowed to send e-mails
+        to the workgroup (optional)
+    - **ucsschool_roles**: list of tags of the form
+        $ROLE:$CONTEXT_TYPE:$CONTEXT (optional)
+    - **udm_properties**: object with UDM properties (optional, e.g.
+        **{"udm_prop1": "value1"}**, must be configured in
+        **mapped_udm_properties**, see documentation)
+
+    **JSON Example:**
+
+        {
+            "udm_properties": {},
+            "name": "EXAMPLE_WORKGROUP",
+            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
+            "description": "Example description",
+            "users": [
+                "http://<fqdn>/ucsschool/kelvin/v1/users/EXAMPLE_STUDENT"
+            ],
+            "email": null,
+            "allowed_email_senders_users": [],
+            "allowed_email_senders_groups": []
+        }
+    """
     if not await OPAClient.instance().check_policy_true(
         policy="workgroups",
         token=token,
@@ -352,6 +414,50 @@ async def complete_update(
     logger: logging.Logger = Depends(get_logger),
     token: str = Depends(get_token),
 ) -> WorkGroupModel:
+    """
+    Update a **workgroup** with all the information:
+
+    **Parameters**
+
+    - **workgroup_name**: current name of the workgroup , if the name changes within the
+        body this parameter will change accordingly (**required**)
+    - **school**: name of the school the queried workgroup is assigned to (**required**)
+
+    **Request Body**
+
+    - **name**: name of the school workgroup (**required**)
+    - **school**: **URL** of the school the workgroup belongs to (**required**)
+        **ATTENTION: Once created, the school cannot be changed!**
+    - **description**: additional text (optional)
+    - **users**: list of **URLs** of User resources (optional)
+    - **create_share**: whether a share should be created for the workgroup
+        (optional)
+    - **email**: workgroup's email (optional)
+    - **allowed_email_senders_users**: users that are allowed to send e-mails
+        to the workgroup (optional)
+    - **allowed_email_senders_groups**: groups that are allowed to send e-mails
+        to the workgroup (optional)
+    - **ucsschool_roles**: list of tags of the form
+        $ROLE:$CONTEXT_TYPE:$CONTEXT (optional)
+    - **udm_properties**: object with UDM properties (optional, e.g.
+        **{"udm_prop1": "value1"}**, must be configured in
+        **mapped_udm_properties**, see documentation)
+
+    **JSON Example:**
+
+        {
+            "udm_properties": {},
+            "name": "EXAMPLE_WORKGROUP",
+            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
+            "description": "Example description",
+            "users": [
+                "http://<fqdn>/ucsschool/kelvin/v1/users/EXAMPLE_STUDENT"
+            ],
+            "email": null,
+            "allowed_email_senders_users": [],
+            "allowed_email_senders_groups": []
+        }
+    """
     if not await OPAClient.instance().check_policy_true(
         policy="workgroups",
         token=token,
