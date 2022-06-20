@@ -7,7 +7,7 @@ from pydantic import BaseSettings
 
 from ..importer.configuration import ReadOnlyDict
 from ..importer.models.import_user import ImportUser
-from ..lib.models.group import SchoolClass
+from ..lib.models.group import SchoolClass, WorkGroup
 from ..lib.models.school import School
 from .constants import UDM_MAPPED_PROPERTIES_CONFIG_FILE
 from .exceptions import InvalidConfiguration
@@ -49,6 +49,7 @@ class UDMMappingConfiguration(BaseSettings):
     school: List[str] = []
     user: List[str] = []
     school_class: List[str] = []
+    workgroup: List[str] = []
 
     class Config:
         env_file_encoding = "utf-8"
@@ -75,6 +76,7 @@ class UDMMappingConfiguration(BaseSettings):
             (self.school, School),
             (self.user, ImportUser),
             (self.school_class, SchoolClass),
+            (self.workgroup, WorkGroup)
         ]:
             bad_props = set(udm_properties).intersection(lib_model.attribute_udm_names())
             if bad_props:
