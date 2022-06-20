@@ -77,7 +77,7 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
     "birthday", "date", "The users birthday in ISO 8601 format: ``YYYY-MM-DD``.", ""
     "disabled", "boolean", "Whether the user should be deactivated.", ""
     "email", "string", "The users email address (``mailPrimaryAddress``), used only when the emails domain is hosted on UCS, not to be confused with the *contact* attribute ``e-mail``.", ""
-    "expiration_date", "string", "The users password expiration date. The user won't be able to log in from that date on.", ""
+    "expiration_date", "string", "The users password expiration date. The user won't be able to log in from that date on. Format: ``YYYY-MM-DD``.", "The year must be between 1961 and 2099."
     "roles", "list", "The users UCS\@school roles. A list of URLs in the ``roles`` resource.", "required when creating, see section ``Changing roles`` below about changing a user''s roles"
     "school", "string", "School (OU) the user belongs to. A URL in the ``schools`` resource.", "required for creation when ``schools`` is not set"
     "schools", "list", "List of schools (OUs) the user belongs to. A list of URLs in the ``schools`` resource.", "required for creation when ``school`` is not set"
