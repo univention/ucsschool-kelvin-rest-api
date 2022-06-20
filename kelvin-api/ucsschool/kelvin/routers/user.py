@@ -209,7 +209,6 @@ class UserBaseModel(UcsSchoolBaseModel):
 
     @validator("birthday", pre=True)
     def validate_birthday(cls, v: Any) -> Any:
-        """Validate birthday format."""
         if not v or isinstance(v, datetime.date):
             return v
         _validate_date_format(v)
@@ -339,7 +338,6 @@ class UserPatchModel(BasePatchModel):
 
     @validator("birthday", pre=True)
     def validate_birthday(cls, v: Any) -> Any:
-        """Validate birthday format."""
         if not v or isinstance(v, datetime.date):
             return v
         _validate_date_format(v)
