@@ -21,7 +21,7 @@
         Allow the creation of school classes without share (Bug #54875).
     </li>
     <li>
-         Improve date validation error messages (Bug #54812).
+         The date validation error messages have been improved (Bug #54812).
     </li>
 </ul>
 
