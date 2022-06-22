@@ -17,6 +17,9 @@
     <li>
          Updated descriptions of variables in the Swagger UI to fit the expected values and added JSON Examples to descriptions where needed (Bug #54739).
     </li>
+    <li>
+        Entering an invalid school URL does not result in HTTP error-code 422 instead of 500 (Bug #52895).
+   </li>
 </ul>
 
 <h2>v1.5.4 (2022-04-27)</h2>
