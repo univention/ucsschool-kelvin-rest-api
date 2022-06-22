@@ -16,6 +16,7 @@ v1.5.5 (2022-05-31)
 * Improve date validation error messages (Bug #54812).
 * Add work group resource (Bug #54876).
 
+
 v1.5.4 (2022-04-27)
 .........
 * The valid date range is now specified (Bug #54668).
