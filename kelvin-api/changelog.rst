@@ -12,6 +12,7 @@ v1.5.5 (2022-05-31)
 * The validation was adapted to prevent invalid school names in multiserver environments (Bug #54793).
 * An error has been fixed, which was raised by invalid UCS@school roles during the validation (Bug #54653).
 * Updated descriptions of variables in the Swagger UI to fit the expected values and added JSON Examples to descriptions where needed (Bug #54739).
+* Entering an invalid school URL does not result in HTTP error-code 422 instead of 500 (Bug #52895).
 
 v1.5.4 (2022-04-27)
 .........
