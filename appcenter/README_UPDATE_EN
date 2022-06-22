@@ -26,6 +26,9 @@
     <li>
         Add work group resource (Bug #54876).
     </li>
+    <li>
+        Entering an invalid school URL does not result in HTTP error-code 422 instead of 500 (Bug #52895).
+   </li>
 </ul>
 
 <h2>v1.5.4 (2022-04-27)</h2>
