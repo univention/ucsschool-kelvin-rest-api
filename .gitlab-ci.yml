@@ -89,8 +89,8 @@ docs-production:
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: manual
-  - changes:
-    - doc/docs/**/*
+    - changes:
+     - doc/docs/**/*
   script:
     - '[ -d univention-docs ] || git clone --branch master --depth 1 --single-branch https://ucs-docs-deployment:$DOCS_REPO_TOKEN@git.knut.univention.de/univention/docs.univention.de.git univention-docs'
     - cd univention-docs
