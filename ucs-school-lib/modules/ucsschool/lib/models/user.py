@@ -77,6 +77,10 @@ SuperOrdinateType = Union[str, UdmObject]
 unicode_s = str  # py3
 
 
+class WorkgroupDoesNotExistError(ValueError):
+    pass
+
+
 class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     name: str = Username(_("Username"), aka=["Username", "Benutzername"])
     schools: List[str] = Schools(_("Schools"))
@@ -607,6 +611,10 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             group = SchoolClass.cache(name, school)
         elif Group.is_workgroup(school, group_dn):
             group = WorkGroup.cache(name, school)
+            if await group.exists(lo):
+                return group
+            # this should not happen
+            raise RuntimeError("Work group '%s' does not exist, please create it first." % group_dn)
         else:
             group = Group.cache(name, school)
         if fresh:
