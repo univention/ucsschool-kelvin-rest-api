@@ -90,7 +90,7 @@ docs-production:
       if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: manual
     - changes:
-     - doc/docs/**/*
+      - "docs/**/*"
   script:
     - git config --global credential.$CI_SERVER_URL.username ucs-docs-deployment
     - git config --global credential.$CI_SERVER_URL.helper '!f() { [ "$1" = get ] && echo password="$DOCS_TOKEN"; }; f'
