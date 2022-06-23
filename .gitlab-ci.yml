@@ -44,6 +44,9 @@ sphinx-html:
     - make -C "$doc_base" html
     - mkdir -p "$CI_PROJECT_DIR"/public
     - rsync -av --delete --exclude "*webpack-macros.html" --exclude ".buildinfo" --exclude "*.py" --exclude "__pycache__" --exclude ".doctrees" "$doc_base"/_build/html/ "$CI_PROJECT_DIR"/public/
+  rules:
+    - changes:
+        - "docs/**/*"
 
 sphinx-pdf:
   extends: .sphinx-doc
@@ -51,6 +54,9 @@ sphinx-pdf:
     - make -C "$doc_base" latexpdf
     - mkdir -p "$CI_PROJECT_DIR"/public
     - cp "$doc_base"/_build/latex/UCSschoolKelvinRESTAPI.pdf "$CI_PROJECT_DIR"/public
+  rules:
+    - changes:
+        - "docs/**/*"
 
 sphinx-linkcheck:
   extends: .sphinx-doc
@@ -59,6 +65,9 @@ sphinx-linkcheck:
   artifacts:
     paths:
       - $doc_base/_build/linkcheck
+  rules:
+    - changes:
+        - "docs/**/*"
 
 sphinx-spelling:
   extends: .sphinx-doc
@@ -67,6 +76,9 @@ sphinx-spelling:
   artifacts:
     paths:
       - $doc_base/_build/spelling
+  rules:
+    - changes:
+        - "docs/**/*"
 
 .docs-pre-production:
   rules:
@@ -93,7 +105,9 @@ docs-production:
   tags:
     - omar
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - changes:
+        - "docs/**/*"
+    - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
       when: manual
   script:
     - '[ -d univention-docs ] || git clone --branch master --depth 1 --single-branch https://ucs-docs-deployment:$DOCS_REPO_TOKEN@git.knut.univention.de/univention/docs.univention.de.git univention-docs'
