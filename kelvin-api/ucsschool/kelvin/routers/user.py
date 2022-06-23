@@ -55,6 +55,7 @@ from ucsschool.importer.models.import_user import (
     convert_to_teacher_and_staff,
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
+from ucsschool.lib.models.user import WorkgroupDoesNotExistError
 from udm_rest_client import UDM, APICommunicationError, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
@@ -791,7 +792,7 @@ async def create(
         await user.validate(udm, validate_unlikely_changes=True, check_username=True)
         logger.info("Going to create %s with %r...", user, user.to_dict())
         res = await user.create(udm)
-    except (CreateError, LibValidationError, UcsSchoolImportError) as exc:
+    except (CreateError, LibValidationError, UcsSchoolImportError, WorkgroupDoesNotExistError) as exc:
         error_msg = f"Failed to create {user!r}: {exc}"
         logger.exception(error_msg)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)

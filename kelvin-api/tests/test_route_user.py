@@ -2428,3 +2428,45 @@ async def test_change_schools_and_classes(
     assert not lib_user.school_classes.get(school2)
     assert lib_user.school_classes[school1] == [f"{school1}-{school1_class}"]
     assert lib_user.school_classes[school3] == [f"{school3}-{school3_class}"]
+
+
+@pytest.mark.asyncio
+async def test_create_with_non_existing_workgroup_raises(
+    auth_header,
+    check_password,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    random_user_create_model,
+    random_name,
+    import_config,
+    udm_kwargs,
+    schedule_delete_user_name_using_udm,
+):
+    school = await create_ou_using_python()
+    r_user = await random_user_create_model(school, roles=[f"{url_fragment}/roles/student"])
+    title = random_name()
+    r_user.udm_properties["title"] = title
+    phone = [random_name(), random_name()]
+    r_user.udm_properties["phone"] = phone
+    r_user.workgroups = {school: ["thiswgdoesnotexist"]}
+    data = r_user.json()
+    logger.debug("POST data=%r", data)
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
+    schedule_delete_user_name_using_udm(r_user.name)  # just in case
+    response = retry_http_502(
+        requests.post,
+        f"{url_fragment}/users/",
+        headers={"Content-Type": "application/json", **auth_header},
+        data=data,
+    )
+    assert response.status_code == 400, f"{response.__dict__!r}"
+    assert (
+        f"Work group 'thiswgdoesnotexist' of school '{school}' does not exist"
+        in response.json()["detail"]
+    )
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
