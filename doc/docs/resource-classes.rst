@@ -30,7 +30,7 @@ The following JSON is an example Classes resource in the *UCS\@school Kelvin RES
 
 .. csv-table:: Property description
    :header: "name", "value", "Description", "Notes"
-   :widths: 8, 5, 50, 18
+   :widths: 3, 2, 7, 4
    :escape: '
 
     "dn", "string", "The DN of the group in LDAP", "read only"

@@ -28,7 +28,7 @@ The following JSON is an example Roles resource in the *UCS\@school Kelvin REST 
 
 .. csv-table:: Property description
    :header: "name", "value", "Description", "Notes"
-   :widths: 8, 5, 50, 18
+   :widths: 3, 2, 8, 3
    :escape: '
 
     "display_name", "string", "The name of the role (for views).", "read only"

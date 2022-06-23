@@ -51,7 +51,7 @@ The following JSON is an example Schools resource in the *UCS\@school Kelvin RES
 
 .. csv-table:: Property description
    :header: "name", "value", "Description", "Notes"
-   :widths: 8, 5, 50, 18
+   :widths: 4, 2, 6, 4
    :escape: '
 
     "dn", "string", "The DN of the OU in LDAP.", "read only"
