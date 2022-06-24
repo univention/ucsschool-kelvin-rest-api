@@ -59,9 +59,8 @@ univention-app install \
 
 ## Update the docker image
 
-- In the provider portal set the docker image to `gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:branch-main`. Copy the name of the docker image and save it for later.
-- Run the [docker-update](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCS-5.0/job/Apps/job/ucsschool-kelvin-rest-api/job/App%20Autotest%20MultiEnv/SambaVersion=s4,Systemrolle=docker-update/) job of the `ucsschool-kelvin-rest-api` app test. It will pull the docker image and set the needed tags for you automatically.
-- Reset the docker image to the one before (e.g. `docker.software-univention.de/ucsschool-kelvin-rest-api:1.5.5`)
+- In the provider portal set the docker image to `gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:branch-main`.
+- Run the [docker-update](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCS-5.0/job/Apps/job/ucsschool-kelvin-rest-api/job/App%20Autotest%20MultiEnv/SambaVersion=s4,Systemrolle=docker-update/) job of the `ucsschool-kelvin-rest-api` app test. The job will pull the current docker image, tag it to `docker.software-univention.de/$APP_ID:$APP_VERSION`, upload the image and finally change the apps ini to use `docker.software-univention.de/$APP_ID:$APP_VERSION` as docker image.
 
 ## Publish packages from TestAppCenter
 
