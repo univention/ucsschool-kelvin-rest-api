@@ -75,7 +75,6 @@ sphinx-spelling:
 
 docs-production:
   stage: production
-  extends: .doc-base
   cache:
     key: docs-$CI_COMMIT_REF_SLUG
     paths:
@@ -88,13 +87,13 @@ docs-production:
     GIT_COMMITTER_NAME: $GITLAB_USER_NAME
     GIT_COMMITTER_EMAIL: $GITLAB_USER_EMAIL
   resource_group: prod
+  image: docker-registry.knut.univention.de/sphinx
   rules:
     - changes:
-      - $doc_base/**/*
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-      when: manual
+      - doc/docs/**/*
     - if: "$pipeline =~ /skip-doc/"
       when: never
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   script:
     - git config --global credential.$CI_SERVER_URL.username ucs-docs-deployment
     - git config --global credential.$CI_SERVER_URL.helper '!f() { [ "$1" = get ] && echo password="$DOCS_TOKEN"; }; f'
