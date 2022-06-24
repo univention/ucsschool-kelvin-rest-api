@@ -43,15 +43,14 @@ To stop the container hit ``Ctrl-C``.
 Publish HTML documentation
 --------------------------
 
-After building the HTML files (see section ``Build HTML output from RST files`` above) the result has to be published.
-Add the files to the docs git repository and start a Jenkins job::
+The pipeline takes care of building and publishing the HTML and PDF. After
+merging the documentation changes to the default branch, the ``docs-production``
+job adds to the pipeline. Start it manually to run the job to publish the
+content to the `docs.univention.de
+<https://git.knut.univention.de/univention/docs.univention.de>`_ repository.
 
-    $ rsync -av --delete docs/_build/html/ ~/git/docs.univention.de/ucsschool-kelvin-rest-api/
-    $ cd ~/git/docs.univention.de/
-    $ git add -u
-    $ git commit -m "Bug #52220: update Kelvin API documentation"
-    $ git push
-
+The job will fail, if no Sphinx build job that generate the needed artifacts
+haven run before.
 
 The documentation will be build automatically in our pipeline https://git.knut.univention.de/univention/docs.univention.de/-/pipelines
 Check the [staged documentation](http://univention-repository.knut.univention.de/download/docs/).
