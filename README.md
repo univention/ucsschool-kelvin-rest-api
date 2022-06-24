@@ -4,7 +4,7 @@ This repository contains the code for the UCS@school Kelvin REST API
 
 ## Automatic Docker image build
 
-The docker images are automatically built in the projects [docker registry](https://git.knut.univention.de/univention/components/ucsschool-kelvin-rest-api/container_registry).
+The docker images are automatically built in the project's [docker registry](https://git.knut.univention.de/univention/components/ucsschool-kelvin-rest-api/container_registry).
 The following rules apply:
 - If you commit on **any** branch an image will be built with the tag `branch-$CI_COMMIT_REF_SLUG`. These images will be
   cleaned up after 30 days
@@ -54,4 +54,35 @@ univention-app dev-set \
 univention-app install \
     4.4/ucsschool-kelvin-rest-api=1.5.4
 ```
+
+# Release
+
+## Update the docker image
+
+- In the provider portal set the docker image to `gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:branch-main`. Copy the name of the docker image and save it for later.
+- Run the [docker-update](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCS-5.0/job/Apps/job/ucsschool-kelvin-rest-api/job/App%20Autotest%20MultiEnv/SambaVersion=s4,Systemrolle=docker-update/) job of the `ucsschool-kelvin-rest-api` app test. It will pull the docker image and set the needed tags for you automatically.
+- Reset the docker image to the one before (e.g. `docker.software-univention.de/ucsschool-kelvin-rest-api:1.5.5`)
+
+## Publish packages from TestAppCenter
+
+The correct version string, for example `ucsschool-kelvin-rest-api_2022050407282` can be found here
+https://appcenter-test.software-univention.de/meta-inf/4.4/ucsschool-kelvin-rest-api/ by navigating to the last (published) version.
+
+This code should be run **on dimma or omar**:
+```shell
+cd /mnt/omar/vmwares/mirror/appcenter
+./copy_from_appcenter.test.sh 4.4 ucsschool-kelvin-rest-api_20220504072827  # copies the given version to public app center on local mirror!
+sudo update_mirror.sh -v appcenter  # syncs the local mirror to the public download server!
+```
+
+## Publish documentation
+
+The documentation is build automatically when changes are pushed in `docs/**/**`.
+The job to copy the documentation `docs-production` to the repository `docs.univention.de` must be triggered manually.
+**Warning**: Currently the job can be started regardless of any changes. This will be fixed with https://git.knut.univention.de/univention/components/ucsschool-kelvin-rest-api/-/issues/15
+
+The commit in `docs.univention.de` will also trigger a pipeline, which will do the actual release.
+The pipeline also needs to be triggered manually. 
+
+
 
