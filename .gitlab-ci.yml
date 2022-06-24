@@ -93,6 +93,9 @@ docs-production:
       when: manual
     - if: "$pipeline =~ /skip-doc/"
       when: never
+  dependencies:
+    - sphinx-html
+    - sphinx-pdf
   script:
     - git config --global credential.$CI_SERVER_URL.username ucs-docs-deployment
     - git config --global credential.$CI_SERVER_URL.helper '!f() { [ "$1" = get ] && echo password="$DOCS_TOKEN"; }; f'
