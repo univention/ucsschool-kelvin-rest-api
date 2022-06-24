@@ -90,7 +90,7 @@ docs-production:
   image: docker-registry.knut.univention.de/sphinx
   rules:
     - changes:
-      - doc/docs/**/*
+      - "doc/docs/**/*"
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: manual
   script:
