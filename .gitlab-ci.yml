@@ -91,8 +91,6 @@ docs-production:
   rules:
     - changes:
       - doc/docs/**/*
-    - if: "$pipeline =~ /skip-doc/"
-      when: never
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   script:
     - git config --global credential.$CI_SERVER_URL.username ucs-docs-deployment
