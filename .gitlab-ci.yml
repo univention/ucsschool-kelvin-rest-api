@@ -104,7 +104,6 @@ docs-production:
     - rsync -av --delete "$CI_PROJECT_DIR"/public/ ./ucsschool-kelvin-rest-api/
     - git add -- .
     - git commit -m "Automatic doc deployment from $CI_PROJECT_PATH by GitLab commit $CI_COMMIT_SHA"
-    - git push
   environment:
     name: production
     url: http://updates.knut.univention.de/download/docs/ucsscchool-kelvin-rest-api
