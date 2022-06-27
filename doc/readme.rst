@@ -12,6 +12,8 @@ The initial ``docs`` content was created with::
 
 You don't have to do this anymore. This is here just for documentations sake.
 
+test should not trigger
+
 Build HTML output from RST files
 --------------------------------
 
