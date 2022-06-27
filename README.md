@@ -76,12 +76,15 @@ sudo update_mirror.sh -v appcenter  # syncs the local mirror to the public downl
 
 ## Publish documentation
 
-The documentation is build automatically when changes are pushed in `docs/**/**`.
+The documentation is build automatically when changes are pushed in `doc/docs/**/*`.
 The job to copy the documentation `docs-production` to the repository `docs.univention.de` must be triggered manually.
-**Warning**: Currently the job can be started regardless of any changes. This will be fixed with https://git.knut.univention.de/univention/components/ucsschool-kelvin-rest-api/-/issues/15
+
+The pipeline rule definition has two conditions in **one** rule. The
+*docs-production* is only created when the files below `doc/docs/**/*` changed
+**AND** when the branch is the default branch. This means, you need to develop
+your documentation changes in a feature branch. And after the merge to the
+default branch, the job starts, because it is in the default branch and
+documentation files were changed. To run the job, you need to start it manually.
 
 The commit in `docs.univention.de` will also trigger a pipeline, which will do the actual release.
 The pipeline also needs to be triggered manually. 
-
-
-
