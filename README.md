@@ -55,3 +55,36 @@ univention-app install \
     4.4/ucsschool-kelvin-rest-api=1.5.4
 ```
 
+# Release
+
+## Update the docker image
+
+- In the provider portal set the docker image to `gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:branch-main`.
+- Run the [docker-update](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCS-5.0/job/Apps/job/ucsschool-kelvin-rest-api/job/App%20Autotest%20MultiEnv/SambaVersion=s4,Systemrolle=docker-update/) job of the `ucsschool-kelvin-rest-api` app test. The job will pull the current docker image, tag it to `docker.software-univention.de/$APP_ID:$APP_VERSION`, upload the image and finally change the apps ini to use `docker.software-univention.de/$APP_ID:$APP_VERSION` as docker image.
+
+## Publish packages from TestAppCenter
+
+The correct version string, for example `ucsschool-kelvin-rest-api_2022050407282` can be found here
+https://appcenter-test.software-univention.de/meta-inf/4.4/ucsschool-kelvin-rest-api/ by navigating to the last (published) version.
+
+This code should be run **on dimma or omar**:
+```shell
+cd /mnt/omar/vmwares/mirror/appcenter
+./copy_from_appcenter.test.sh 4.4 ucsschool-kelvin-rest-api_20220504072827  # copies the given version to public app center on local mirror!
+sudo update_mirror.sh -v appcenter  # syncs the local mirror to the public download server!
+```
+
+## Publish documentation
+
+The documentation is build automatically when changes are pushed in `doc/docs/**/*`.
+The job to copy the documentation `docs-production` to the repository `docs.univention.de` must be triggered manually.
+
+The pipeline rule definition has two conditions in **one** rule. The
+*docs-production* is only created when the files below `doc/docs/**/*` changed
+**AND** when the branch is the default branch. This means, you need to develop
+your documentation changes in a feature branch. And after the merge to the
+default branch, the job starts, because it is in the default branch and
+documentation files were changed. To run the job, you need to start it manually.
+
+The commit in `docs.univention.de` will also trigger a pipeline, which will do the actual release.
+The pipeline also needs to be triggered manually. 
