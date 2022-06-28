@@ -2464,7 +2464,7 @@ async def test_create_with_non_existing_workgroup_raises(
     )
     assert response.status_code == 400, f"{response.__dict__!r}"
     assert (
-        f"Work group 'thiswgdoesnotexist' of school '{school}' does not exist"
+        f"Work group '{school}-thiswgdoesnotexist' of school '{school}' does not exist"
         in response.json()["detail"]
     )
     async with UDM(**udm_kwargs) as udm:
