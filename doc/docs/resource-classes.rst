@@ -23,8 +23,7 @@ The following JSON is an example Classes resource in the *UCS\@school Kelvin RES
         "description": null,
         "users": [
             "https://<fqdn>/ucsschool/kelvin/v1/users/demo_student"
-        ],
-        "create_share": true
+        ]
     }
 
 
@@ -41,7 +40,6 @@ The following JSON is an example Classes resource in the *UCS\@school Kelvin RES
     "school", "URL", "School (OU) the class belongs to. A URL in the ``schools`` resource.", "read_only"
     "description","null|string","Descriptive information about a class.", "editable"
     "users","List<URL>", "A list with the URL in the UCS\@school Kelvin API per user within the class.", "editable"
-    "create_share", "boolean", "Whether a share should be created for the class.", "read only"
 
 .. _resource-classes-udm-properties:
 
@@ -90,8 +88,7 @@ The response body will be::
             "description": null,
             "users": [
                 "https://<fqdn>/ucsschool/kelvin/v1/users/demo_student"
-            ],
-            "create_share": true
+            ]
         }
     ]
 
@@ -139,8 +136,7 @@ The response body will be::
         "description": null,
         "users": [
             "https://<fqdn>/ucsschool/kelvin/v1/users/demo_student"
-        ],
-        "create_share": true
+        ]
     }
 
 Matching of the queried ``class`` *and* ``school`` is case-insensitive.
@@ -185,12 +181,11 @@ The response will be::
         "name": "Democlass_2",
         "school": "https://<fqdn>/ucsschool/kelvin/v1/schools/Demoschool",
         "description": null,
-        "users": [],
-        "create_share": true
+        "users": []
     }
 
 The example shows how to rename a certain ``class``. Optionally ``description``, ``udm_properties`` and/or ``users`` can be modified.
-But a ``class`` objects `school` or `create_share` can't be modified.
+But a ``class`` objects school can't be modified.
 
 
 Create
@@ -231,15 +226,14 @@ The response will be::
         "name": "Democlass2",
         "school": "https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL",
         "description": null,
-        "users": [],
-        "create_share": true
+        "users": []
     }
 
 
 
 The queried school has to exist, whilst the ``class`` to be created must **not** exist.
 To create a ``class`` its name and the corresponding school must be provided.
-Optionally a ``description``, ``udm_properties``, ``users`` and/or ``create_share`` can be provided on creation.
+Optionally a ``description``, ``udm_properties`` and/or ``users`` can be provided on creation.
 
 
 
