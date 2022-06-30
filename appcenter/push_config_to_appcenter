@@ -51,9 +51,10 @@ fi
 download_univention-appcenter-control
 
 echo -e "\nFiles to upload:\n-------------------------------------------------------------------------------"
-find -type f | egrep -v 'univention-appcenter-control|push_config_to_appcenter' | sort
+files_to_upload=$(find -L -type f | egrep -v 'univention-appcenter-control|push_config_to_appcenter' | sort)
+echo "$files_to_upload"
 
 read -n1 -r -p "Press any key to continue or Ctrl-C to abort."
 echo
 
-./univention-appcenter-control upload "$APP_VERSION_STRING" $(find -type f | egrep -v 'univention-appcenter-control|push_config_to_appcenter' | sort)
+./univention-appcenter-control upload "$APP_VERSION_STRING" $files_to_upload
