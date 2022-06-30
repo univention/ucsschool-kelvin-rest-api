@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.5.6 (2022-06-30)
+.........
+* Remove create_share from school class objects to avoid conflicts with older Kelvin client versions (Bug #54916).
+
 v1.5.5 (2022-06-23)
 .........
 * Add work group resource (Bug #54876).
