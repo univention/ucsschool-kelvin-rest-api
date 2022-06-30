@@ -57,7 +57,6 @@ def check_name(value: str) -> str:
 class SchoolClassCreateModel(UcsSchoolBaseModel):
     description: str = None
     users: List[HttpUrl] = None
-    create_share: bool = True
 
     class Config(UcsSchoolBaseModel.Config):
         lib_class = SchoolClass
@@ -244,8 +243,6 @@ async def create(
         **ATTENTION: Once created, the school cannot be changed!**
     - **description**: additional text (optional)
     - **users**: list of **URLs** of User resources (optional)
-    - **create_share**: whether a share should be created for the class
-        (optional)
     - **ucsschool_roles**: list of tags of the form
         $ROLE:$CONTEXT_TYPE:$CONTEXT (optional)
     - **udm_properties**: object with UDM properties (optional, e.g.
