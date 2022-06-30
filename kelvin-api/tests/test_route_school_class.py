@@ -35,6 +35,7 @@ import ucsschool.kelvin.constants
 from ucsschool.kelvin.routers.school_class import SchoolClassModel
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.group import SchoolClass
+from ucsschool.lib.models.share import ClassShare
 from ucsschool.lib.models.user import Student, User
 from udm_rest_client import UDM
 
@@ -202,6 +203,7 @@ async def test_create(
         compare_ldap_json_obj(json_resp["dn"], json_resp, url_fragment)
         udm_obj = await udm.obj_by_dn(json_resp["dn"])
         assert udm_obj.props["mailAddress"] == f"{name}@{mail_domain}"
+        assert await ClassShare.from_school_group(lib_obj).exists(udm) is True
         await SchoolClass(name=lib_obj.name, school=lib_obj.school).remove(udm)
         assert await SchoolClass(name=lib_obj.name, school=lib_obj.school).exists(udm) is False
 
