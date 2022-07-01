@@ -14,6 +14,8 @@ The components participating in the *UCS\@school Kelvin REST API* are:
 * the `UDM REST API *server*`_ on the DC master
 * the LDAP server on the DC master
 
+.. kelvin-components
+
 Components
 ----------
 
