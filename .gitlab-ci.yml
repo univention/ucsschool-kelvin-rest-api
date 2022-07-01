@@ -27,9 +27,6 @@ prepare:
   variables:
     doc_base: doc/docs
   image: docker-registry.knut.univention.de/sphinx
-  rules:
-    - changes:
-      - $doc_base/**/*
 
 .sphinx-doc:
   stage: build
