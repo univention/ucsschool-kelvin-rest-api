@@ -8,13 +8,12 @@ The same objects can be managed through a graphical web interface (UMC modules) 
 The components participating in the *UCS\@school Kelvin REST API* are:
 
 * clients of the *UCS\@school Kelvin REST API* (for example the `Python client`_)
-* the *UCS\@school Kelvin REST API* server on the DC master / DC backup [#dcmasterbackup]_
+* the *UCS\@school Kelvin REST API* server on the DC primary / DC backup [#dcmasterbackup]_
 * the `Open Policy Agent`_ used for authorization
 * the `UDM REST API *client*`_ component of the *UCS\@school Kelvin REST API*
 * the `UDM REST API *server*`_ on the DC master
 * the LDAP server on the DC master
 
-.. kelvin-components
 
 Components
 ----------
