@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.7.0 (2022-07-18)
+.........
+* Add work group support in user resource (Bug #54891).
+
 v1.5.5 (2022-06-23)
 .........
 * Add work group resource (Bug #54876).

@@ -1,5 +1,12 @@
 <h1>Changelog</h1>
 
+<h2>v1.7.0 (2022-07-18)</h2>
+<ul>
+    <li>
+        Add work group support in user resource (Bug #54891).
+    </li>
+</ul>
+
 <h2>v1.5.5 (2022-06-23)</h2>
 <ul>
     <li>

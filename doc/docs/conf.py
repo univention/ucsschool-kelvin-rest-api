@@ -14,6 +14,7 @@
 #
 # import os
 import sys
+
 # sys.path.insert(0, os.path.abspath('.'))
 
 
@@ -26,7 +27,7 @@ author = "Univention GmbH"
 # The short X.Y version
 version = ""
 # The full version, including alpha/beta/rc tags
-release = "1.5.5"
+release = "1.7.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -121,7 +122,7 @@ latex_elements = {
     "babel": "\\usepackage{babel}",
 }
 
-latex_engine = 'lualatex'
+latex_engine = "lualatex"
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
@@ -169,10 +170,10 @@ if "spelling" in sys.argv:
     spelling_show_suggestions = True
     spelling_word_list_filename = list()
     spelling_word_list_filename = ["spelling_wordlist"]
-    suppress_warnings = ['git.too_shallow']
+    suppress_warnings = ["git.too_shallow"]
 
 if "linkcheck" in sys.argv:
-    suppress_warnings = ['git.too_shallow']
+    suppress_warnings = ["git.too_shallow"]
 
 # Sitemap, see https://github.com/jdillard/sphinx-sitemap
-html_baseurl = 'https://docs.software-univention.de/ucsschool-kelvin-rest-api/'
+html_baseurl = "https://docs.software-univention.de/ucsschool-kelvin-rest-api/"
