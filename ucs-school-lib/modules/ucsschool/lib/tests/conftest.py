@@ -306,19 +306,19 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs):
 
 @pytest.fixture
 async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs):
-    """Create a new school class. -> (DN, {attrs})"""
+    """Create a new work group. -> (DN, {attrs})"""
     created_workgroups = []
-    created_school_shares = []
+    created_wg_shares = []
 
     async def _func(school: str, **kwargs) -> Tuple[str, Dict[str, str]]:
         async with UDM(**udm_kwargs) as udm:
-            sc_attrs = await workgroup_attrs(school, **kwargs)
+            wg_attrs = await workgroup_attrs(school, **kwargs)
             grp_obj = await udm.get("groups/group").new()
-            grp_obj.position = f"cn=schueler,cn=groups,ou={sc_attrs['school']},{ldap_base}"
-            grp_obj.props.name = f"{sc_attrs['school']}-{sc_attrs['name']}"
-            grp_obj.props.description = sc_attrs["description"]
-            grp_obj.props.users = sc_attrs["users"]
-            grp_obj.props.ucsschoolRole = sc_attrs["ucsschool_roles"]
+            grp_obj.position = f"cn=schueler,cn=groups,ou={wg_attrs['school']},{ldap_base}"
+            grp_obj.props.name = f"{wg_attrs['school']}-{wg_attrs['name']}"
+            grp_obj.props.description = wg_attrs["description"]
+            grp_obj.props.users = wg_attrs["users"]
+            grp_obj.props.ucsschoolRole = wg_attrs["ucsschool_roles"]
             await grp_obj.save()
             created_workgroups.append(grp_obj.dn)
             logger.debug("Created new WorkGroup: %r.", grp_obj)
@@ -335,10 +335,10 @@ async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs):
                 create_ucsschool_role_string(role_workgroup_share, school),
             ]
             await share_obj.save()
-            created_school_shares.append(share_obj.dn)
+            created_wg_shares.append(share_obj.dn)
             logger.debug("Created new ClassShare: %r.", share_obj)
 
-        return grp_obj.dn, sc_attrs
+        return grp_obj.dn, wg_attrs
 
     yield _func
 
@@ -353,7 +353,7 @@ async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs):
             await grp_obj.delete()
             logger.debug("Deleted WorkGroup %r through UDM.", dn)
         share_mod = udm.get("shares/share")
-        for dn in created_school_shares:
+        for dn in created_wg_shares:
             try:
                 share_obj = await share_mod.get(dn)
             except UdmNoObject:

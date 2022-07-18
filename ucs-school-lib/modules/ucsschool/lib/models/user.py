@@ -77,10 +77,6 @@ SuperOrdinateType = Union[str, UdmObject]
 unicode_s = str  # py3
 
 
-class WorkgroupDoesNotExistError(ValueError):
-    pass
-
-
 class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     name: str = Username(_("Username"), aka=["Username", "Benutzername"])
     schools: List[str] = Schools(_("Schools"))
@@ -273,14 +269,6 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         return obj
 
     async def do_create(self, udm_obj: UdmObject, lo: UDM) -> None:
-        for workgroup in self.get_workgroup_objs():
-            workgroup_name = "%s-%s" % (workgroup.school, workgroup.name)
-            wg = WorkGroup.cache(workgroup_name, workgroup.school)
-            if not await wg.exists(lo):
-                raise WorkgroupDoesNotExistError(
-                    "Work group '%s' of school '%s' does not exist, please create it first"
-                    % (wg.name, wg.school)
-                )
         if not self.schools:
             self.schools = [self.school]
         await self.set_default_options(udm_obj)
@@ -511,6 +499,32 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                 except valueError as exc:
                     self.add_error("school_classes", str(exc))
 
+        if not isinstance(self.workgroups, Mapping):
+            self.add_error(
+                "workgroups",
+                _("Type of 'workgroups' is {type!r}, but must be dictionary.").format(
+                    type=type(self.workgroups)
+                ),
+            )
+
+        # verify user is (or will be) in all schools of its work groups
+        for school, workgroups in iteritems(self.workgroups):
+            if school.lower() not in (s.lower() for s in self.schools + [self.school]):
+                self.add_error(
+                    "workgroups",
+                    _(
+                        "School {school!r} in 'workgroups' is missing in the users 'school(s)' "
+                        "attributes."
+                    ).format(school=school),
+                )
+        # check syntax of all work group names
+        for school, workgroups in iteritems(self.workgroups):
+            for work_group_name in workgroups:
+                try:
+                    syntax.gid.parse(work_group_name)
+                except valueError as exc:
+                    self.add_error("workgroups", str(exc))
+
     async def remove_from_school(self, school: str, lo: UDM) -> bool:
         if not await self.exists(lo):
             self.logger.warning("User does not exists, not going to remove.")
@@ -560,7 +574,8 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     async def get_workgroup_dn(self, workgroup_name: str, school: str, lo: UDM) -> str:
         school_workgroup = WorkGroup.cache(workgroup_name, school)
         if school_workgroup.get_relative_name() == school_workgroup.name:
-            if not await school_workgroup.exists(lo):
+            wg = WorkGroup.cache(workgroup_name, school)
+            if not await wg.exists(lo):
                 workgroup_name = "%s-%s" % (school, workgroup_name)
                 school_workgroup = WorkGroup.cache(workgroup_name, school)
         return school_workgroup.dn
@@ -602,6 +617,11 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     @classmethod
     async def get_or_create_group_udm_object(cls, group_dn: str, lo: UDM, fresh: bool = False) -> Group:
+        """
+        In the case of work groups, this function assumes that they already exists.
+
+        :raises RuntimeError: if a work group does not exist.
+        """
         name = cls.get_name_from_dn(group_dn)
         school = cls.get_school_from_dn(group_dn)
         if school is None and name.startswith(cls.get_search_base(school).group_prefix_admins):
@@ -609,7 +629,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             group = await BasicGroup.from_dn(group_dn, None, lo)
         elif Group.is_school_class(school, group_dn):
             group = SchoolClass.cache(name, school)
-        elif Group.is_workgroup(school, group_dn):
+        elif Group.is_school_workgroup(school, group_dn):
             group = WorkGroup.cache(name, school)
             if await group.exists(lo):
                 return group
@@ -654,7 +674,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                 ret.append(SchoolClass.cache(school_class, school))
         return ret
 
-    def get_workgroup_objs(self) -> List[SchoolClass]:
+    def get_workgroup_objs(self) -> List[WorkGroup]:
         ret = []
         for school, workgroups in iteritems(self.workgroups):
             for workgroup in workgroups:
@@ -676,7 +696,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         workgroups = {}
         for group in udm_obj.props.groups:
             for school in obj.schools:
-                if Group.is_workgroup(school, group):
+                if Group.is_school_workgroup(school, group):
                     workgroup_name = cls.get_name_from_dn(group)
                     workgroups.setdefault(school, []).append(workgroup_name)
         return workgroups

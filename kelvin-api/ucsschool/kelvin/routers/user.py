@@ -49,13 +49,13 @@ from ucsschool.importer.models.import_user import (
     ImportTeacher,
     ImportTeachersAndStaff,
     ImportUser,
+    WorkgroupDoesNotExistError,
     convert_to_staff,
     convert_to_student,
     convert_to_teacher,
     convert_to_teacher_and_staff,
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
-from ucsschool.lib.models.user import WorkgroupDoesNotExistError
 from udm_rest_client import UDM, APICommunicationError, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
@@ -747,7 +747,16 @@ async def create(
             "email": "example@email.com",
             "record_uid": "EXAMPLE_RECORD_UID",
             "source_uid": "EXAMPLE_SOURCE_UID",
-            "school_classes": "
+            "school_classes": {
+                "EXAMPLE_SCHOOL": [
+                    "EXAMPLE_SCHOOL_CLASS"
+                ]
+            },
+            "workgroups": {
+                "EXAMPLE_SCHOOL": [
+                    "EXAMPLE_WORKGROUP"
+                ]
+            },
             "birthday": "YYYY-MM-DD",
             "expiration_date": "YYYY-MM-DD",
             "disabled": false,
@@ -968,7 +977,16 @@ async def partial_update(  # noqa: C901
             "email": "example@email.com",
             "record_uid": "EXAMPLE_RECORD_UID",
             "source_uid": "EXAMPLE_SOURCE_UID",
-            "school_classes": "
+            "school_classes": {
+                "EXAMPLE_SCHOOL": [
+                    "EXAMPLE_SCHOOL_CLASS"
+                ]
+            },
+            "workgroups": {
+                "EXAMPLE_SCHOOL": [
+                    "EXAMPLE_WORKGROUP"
+                ]
+            },
             "birthday": "YYYY-MM-DD",
             "expiration_date": "YYYY-MM-DD",
             "disabled": false,
@@ -1062,7 +1080,12 @@ async def partial_update(  # noqa: C901
     if changed:
         try:
             await user_current.modify(udm)
-        except (LibValidationError, ModifyError, UcsSchoolImportError) as exc:
+        except (
+            LibValidationError,
+            ModifyError,
+            UcsSchoolImportError,
+            WorkgroupDoesNotExistError,
+        ) as exc:
             logger.warning(
                 "Error modifying user %r with %r: %s",
                 user_current,
@@ -1123,6 +1146,7 @@ async def complete_update(  # noqa: C901
         format: **{"school1": ["class1", "class2"], "school2": ["class3"]}**)
     - **workgroups**: workgroups the user is a member of (optional,
         format: **{"school1": ["workgroup1", "workgroup2"], "school2": ["workgroup3"]}**)
+        if not passed, the current value is kept
     - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **disabled**: whether the user should be created
     - **alter_dhcpd_base**: whether the UCR variable dhcpd/ldap/base should be modified during school
@@ -1147,7 +1171,16 @@ async def complete_update(  # noqa: C901
             "email": "example@email.com",
             "record_uid": "EXAMPLE_RECORD_UID",
             "source_uid": "EXAMPLE_SOURCE_UID",
-            "school_classes": "
+            "school_classes": {
+                "EXAMPLE_SCHOOL": [
+                    "EXAMPLE_SCHOOL_CLASS"
+                ]
+            },
+            "workgroups": {
+                "EXAMPLE_SCHOOL": [
+                    "EXAMPLE_WORKGROUP"
+                ]
+            },
             "birthday": "YYYY-MM-DD",
             "expiration_date": "YYYY-MM-DD",
             "disabled": false,
@@ -1182,6 +1215,10 @@ async def complete_update(  # noqa: C901
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No object with name={username!r} found or not authorized.",
         )
+
+    # leave workgroups as they were if not passed in the request
+    if "workgroups" not in await request.json():
+        user_request.workgroups = user_current.workgroups
 
     # 1. move
     new_school = user_request.school
@@ -1226,7 +1263,12 @@ async def complete_update(  # noqa: C901
     if changed:
         try:
             await user_current.modify(udm)
-        except (LibValidationError, ModifyError, UcsSchoolImportError) as exc:
+        except (
+            LibValidationError,
+            ModifyError,
+            UcsSchoolImportError,
+            WorkgroupDoesNotExistError,
+        ) as exc:
             logger.warning(
                 "Error modifying user %r with %r: %s",
                 user_current,

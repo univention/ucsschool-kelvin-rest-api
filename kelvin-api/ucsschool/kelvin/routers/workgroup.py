@@ -74,7 +74,7 @@ class WorkGroupCreateModel(UcsSchoolBaseModel):
         Validate 'OU-name' to prevent 'must be at least 2 characters long'
         error when checking a workgroup name with just one char.
         """
-        school = values["school"].split("/")[-1]
+        school = values.get("school", "").split("/")[-1]
         workgroup_name = f"{school}-{values['name']}"
         cls.Config.lib_class.name.validate(workgroup_name)
         return values

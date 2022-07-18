@@ -103,6 +103,10 @@ class InvalidClassName(UcsSchoolImportError):
     pass
 
 
+class InvalidWorkgroupName(UcsSchoolImportError):
+    pass
+
+
 class InvalidEmail(UcsSchoolImportError):
     pass
 

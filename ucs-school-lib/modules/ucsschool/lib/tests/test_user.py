@@ -522,7 +522,11 @@ async def test_modify_add_and_remove_primary_school(
     """User(ou1, [ou1, ou2]) -> User(ou2, [ou2, ou3])"""
     ou1, ou2, ou3 = await create_multiple_ous(3)
     dn, attr = await new_udm_user(
-        ou1, role.name, schools=[ou1, ou2], ucsschool_roles=make_ucsschool_roles(role.klass, [ou1, ou2])
+        ou1,
+        role.name,
+        schools=[ou1, ou2],
+        ucsschool_roles=make_ucsschool_roles(role.klass, [ou1, ou2]),
+        workgroups={},
     )
     async with UDM(**udm_kwargs) as udm:
         user: User = await role.klass.from_dn(dn, ou1, udm)

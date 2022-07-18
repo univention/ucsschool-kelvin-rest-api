@@ -45,6 +45,7 @@ from six import iteritems, string_types
 
 from ucsschool.lib.models.attributes import RecordUID, SourceUID, ValidationError
 from ucsschool.lib.models.base import NoObject, UDMPropertiesError, WrongObjectType
+from ucsschool.lib.models.group import WorkGroup
 from ucsschool.lib.models.school import School
 from ucsschool.lib.models.user import (
     ConcreteUserClass,
@@ -80,6 +81,7 @@ from ..exceptions import (
     InvalidEmail,
     InvalidSchoolClasses,
     InvalidSchools,
+    InvalidWorkgroupName,
     MissingMailDomain,
     MissingMandatoryAttribute,
     MissingSchoolName,
@@ -106,6 +108,26 @@ GLOBAL_SOURCE_UID = "global_source_uid"
 ALLOWED_CHARS_IN_SCHOOL_CLASS_NAME = set(string.digits + string.ascii_letters + " -._")
 ALLOWED_CHARS_IN_WORKGROUP_NAME = set(string.digits + string.ascii_letters + " -._")
 UNIQUENESS = "uniqueness"
+
+
+class WorkgroupDoesNotExistError(ValueError):
+    pass
+
+
+async def _validate_workgroups(workgroups: Iterable[WorkGroup], lo: UDM) -> None:
+    """Check that all workgroups exist.
+
+    :raises WorkgroupDoesNotExistError: if the work group does not exist.
+    """
+    for workgroup in workgroups:
+        if not workgroup.name.startswith("%s-" % workgroup.school):
+            workgroup.name = "%s-%s" % (workgroup.school, workgroup.name)
+        wg: WorkGroup = WorkGroup.cache(workgroup.name, workgroup.school)
+        if not await wg.exists(lo):
+            raise WorkgroupDoesNotExistError(
+                "Work group '%s' of school '%s' does not exist, please create it first"
+                % (wg.name, wg.school)
+            )
 
 
 class ImportUser(User):
@@ -374,6 +396,7 @@ class ImportUser(User):
         return res
 
     async def create_without_hooks_roles(self, lo: UDM) -> None:
+        await _validate_workgroups(self.get_workgroup_objs(), lo)
         if self.config["dry_run"]:
             self.logger.info("Dry-run: skipping user.create() for %s.", self)
             return True
@@ -646,8 +669,7 @@ class ImportUser(User):
         """
         if self.expiration_date:
             self.logger.warning(
-                "The expiration date is usually set by the import itself. "
-                "Setting it manually may lead to errors in future imports."
+                "The expiration date is usually set by the import itself. Setting it manually may lead to errors in future imports."
             )
             try:
                 self.expiration_date = self.parse_date(self.expiration_date)
@@ -778,8 +800,8 @@ class ImportUser(User):
         if isinstance(self.workgroups, dict) and self.workgroups:
             for school, workgroups in iteritems(self.workgroups):
                 self.workgroups[school] = [
-                    self.workgroups_invalid_character_replacement(class_name, char_replacement)
-                    for class_name in workgroups
+                    self.workgroups_invalid_character_replacement(workgroup_name, char_replacement)
+                    for workgroup_name in workgroups
                 ]
         elif isinstance(self.workgroups, dict) and not self.workgroups:
             self.reader = cast(BaseReader, self.reader)
@@ -806,10 +828,10 @@ class ImportUser(User):
             res = defaultdict(list)
             workgroups = cast(str, self.workgroups)
             self.workgroups = workgroups.strip(" \n\r\t,")
-            for a_class in [wg.strip() for wg in self.workgroups.split(",") if wg.strip()]:
-                school, sep, wg_name = [x.strip() for x in a_class.partition("-")]
+            for a_workgroup in [wg.strip() for wg in self.workgroups.split(",") if wg.strip()]:
+                school, sep, wg_name = [x.strip() for x in a_workgroup.partition("-")]
                 if sep and not wg_name:
-                    raise InvalidClassName("Empty class name.")
+                    raise InvalidWorkgroupName("Empty workgroup name.")
                 if not sep:
                     # no school prefix
                     if not self.school:
@@ -1104,10 +1126,24 @@ class ImportUser(User):
     async def modify_without_hooks(
         self, lo: UDM, validate: bool = True, move_if_necessary: bool = None
     ) -> bool:
+        udm_obj = None
+        if self.workgroups:
+            udm_obj = await self.get_udm_object(lo)
+            current_workgroups = await self.get_workgroups(udm_obj, self)
+            new_workgroup_objs = self.get_workgroup_objs()
+            await _validate_workgroups(
+                [
+                    wg
+                    for wg in new_workgroup_objs
+                    if wg.name not in current_workgroups.get(wg.school, [])
+                ],
+                lo,
+            )
         if not self.school_classes and self.config.get("school_classes_keep_if_empty", False):
             # empty classes input means: don't change existing classes (Bug #42288)
             # except removing classes from schools that user is not a member of anymore (Bug #49995)
-            udm_obj = await self.get_udm_object(lo)
+            if not udm_obj:
+                udm_obj = await self.get_udm_object(lo)
             school_classes = await self.get_school_classes(udm_obj, self)
             self.logger.info(
                 "Reverting school_classes of %r to %r, because school_classes_keep_if_empty=%r and new "
@@ -1702,9 +1738,9 @@ class ImportUser(User):
         ``[string.digits, string.ascii_letters, " -._"]``. If ``char_replacement`` is empty no
         replacement will be done.
 
-        :param str workgroup: name of school class
+        :param str workgroup: name of workgroup
         :param str char_replacement: character to replace disallowed characters with
-        :return: (possibly modified) name of school class
+        :return: (possibly modified) name of workgroup
         :rtype: str
         """
         if not char_replacement or not workgroup:

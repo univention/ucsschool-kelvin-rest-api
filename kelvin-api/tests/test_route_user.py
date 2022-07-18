@@ -27,6 +27,7 @@
 import asyncio
 import datetime
 import itertools
+import json
 import logging
 import random
 from typing import Any, Dict, List, NamedTuple, Tuple, Type, Union
@@ -1479,7 +1480,7 @@ async def test_school_change(
             json=patch_data,
         )
     elif method == "put":
-        old_data = user.dict(exclude={"school", "schools", "school_classes"})
+        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(school=new_school_url, schools=[new_school_url], **old_data)
         response = retry_http_502(
             requests.put,
@@ -1981,7 +1982,7 @@ async def test_set_school_with_multiple_schools(
             json=patch_data,
         )
     elif method == "put":
-        old_data = user.dict(exclude={"school", "schools", "school_classes"})
+        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(
             school=f"{url_fragment}/schools/{school2}", school_classes=new_school_classes, **old_data
         )
@@ -2240,7 +2241,7 @@ async def test_change_school_and_schools(
             json=patch_data,
         )
     elif method == "put":
-        old_data = user.dict(exclude={"school", "schools", "school_classes"})
+        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(
             schools=[f"{url_fragment}/schools/{school2}", f"{url_fragment}/schools/{school3}"],
             school_classes=new_school_classes,
@@ -2371,7 +2372,7 @@ async def test_change_schools_and_classes(
             json=patch_data,
         )
     elif method == "put":
-        old_data = user.dict(exclude={"school", "schools", "school_classes"})
+        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(
             schools=[f"{url_fragment}/schools/{school1}", f"{url_fragment}/schools/{school3}"],
             school_classes=new_school_classes,
@@ -2470,3 +2471,148 @@ async def test_create_with_non_existing_workgroup_raises(
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
     assert len(lib_users) == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ("patch", "put"))
+async def test_modify_with_non_existing_workgroup(
+    auth_header,
+    check_password,
+    retry_http_502,
+    import_user_to_create_model_kwargs,
+    url_fragment,
+    create_ou_using_python,
+    new_import_user,
+    random_user_create_model,
+    random_name,
+    import_config,
+    udm_kwargs,
+    method: str,
+):
+    role: Role = Role("student", Student)
+    school = await create_ou_using_python()
+    user: ImportUser = await new_import_user(school, role.name, disabled=False)
+    await check_password(user.dn, user.password)
+    logger.debug("OK: can login with old password")
+    old_user_data = import_user_to_create_model_kwargs(user)
+    user_create_model = await random_user_create_model(
+        school,
+        roles=old_user_data["roles"],
+        disabled=False,
+        school=old_user_data["school"],
+        schools=old_user_data["schools"],
+    )
+    new_user_data = user_create_model.dict(exclude={"name", "record_uid", "source_uid"})
+    title = random_name()
+    new_user_data["udm_properties"] = {"title": title}
+    modified_user = UserCreateModel(**{**old_user_data, **new_user_data})
+    modified_user.workgroups = {school: ["thiswgdoesnotexist"]}
+    logger.debug(f"{method.upper()} modified_user=%r.", modified_user.dict())
+    if method == "patch":
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment}/users/{user.name}",
+            headers=auth_header,
+            data=json.dumps({"workgroups": modified_user.workgroups}),
+        )
+    elif method == "put":
+        response = retry_http_502(
+            requests.put,
+            f"{url_fragment}/users/{user.name}",
+            headers=auth_header,
+            data=modified_user.json(),
+        )
+    assert response.status_code == 400, response.reason
+    # check that the user's work groups did not change
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={user.name}")
+    assert len(lib_users) == 1
+    assert lib_users[0].workgroups == {
+        k: [f"{school}-{wg}" for wg in v] for k, v in old_user_data["workgroups"].items()
+    }
+
+
+@pytest.mark.asyncio
+async def test_create_with_non_existing_school_in_workgroup_raises(
+    auth_header,
+    check_password,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    random_user_create_model,
+    random_name,
+    import_config,
+    udm_kwargs,
+    schedule_delete_user_name_using_udm,
+    new_workgroup_using_lib,
+):
+    school = await create_ou_using_python()
+    wg_dn, wg_attr = await new_workgroup_using_lib(school)
+    r_user = await random_user_create_model(school, roles=[f"{url_fragment}/roles/student"])
+    title = random_name()
+    r_user.udm_properties["title"] = title
+    phone = [random_name(), random_name()]
+    r_user.udm_properties["phone"] = phone
+    r_user.workgroups = {school: [wg_attr["name"]], "thisschooldoesnotexist": []}
+    data = r_user.json()
+    logger.debug("POST data=%r", data)
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
+    schedule_delete_user_name_using_udm(r_user.name)  # just in case
+    response = retry_http_502(
+        requests.post,
+        f"{url_fragment}/users/",
+        headers={"Content-Type": "application/json", **auth_header},
+        data=data,
+    )
+    assert response.status_code == 400, f"{response.__dict__!r}"
+    assert "School 'thisschooldoesnotexist' in 'workgroups' is missing" in response.json()["detail"]
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
+
+
+@pytest.mark.asyncio
+async def test_complete_update_does_not_change_workgroups_if_not_passed(
+    auth_header,
+    check_password,
+    retry_http_502,
+    import_user_to_create_model_kwargs,
+    url_fragment,
+    create_ou_using_python,
+    new_import_user,
+    random_user_create_model,
+    random_name,
+    import_config,
+    udm_kwargs,
+):
+    role: Role = Role("student", Student)
+    school = await create_ou_using_python()
+    user: ImportUser = await new_import_user(school, role.name, disabled=False)
+    old_user_data = import_user_to_create_model_kwargs(user)
+    user_create_model = await random_user_create_model(
+        school,
+        roles=old_user_data["roles"],
+        disabled=False,
+        school=old_user_data["school"],
+        schools=old_user_data["schools"],
+    )
+    new_user_data = user_create_model.dict(exclude={"name", "record_uid", "source_uid"})
+    modified_user = UserCreateModel(**{**old_user_data, **new_user_data})
+    del modified_user.workgroups
+    logger.debug("PUT modified_user=%r.", modified_user.dict())
+    response = retry_http_502(
+        requests.put,
+        f"{url_fragment}/users/{user.name}",
+        headers=auth_header,
+        data=modified_user.json(),
+    )
+    assert response.status_code == 200, response.reason
+    # check that the user's work groups did not change
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={user.name}")
+    assert len(lib_users) == 1
+    assert lib_users[0].workgroups == {
+        k: [f"{school}-{wg}" for wg in v] for k, v in old_user_data["workgroups"].items()
+    }

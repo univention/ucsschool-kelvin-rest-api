@@ -37,6 +37,7 @@ from udm_rest_client import UDM, NoObject as UdmNoObject, UdmObject
 
 from ..roles import (
     create_ucsschool_role_string,
+    get_role_info,
     role_computer_room,
     role_computer_room_backend_veyon,
     role_school_class,
@@ -107,7 +108,7 @@ class Group(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         return cls.get_search_base(school).isGroup(group_dn)
 
     @classmethod
-    def is_workgroup(cls, school: str, group_dn: str) -> bool:
+    def is_school_workgroup(cls, school: str, group_dn: str) -> bool:
         return cls.get_search_base(school).isWorkgroup(group_dn)
 
     @classmethod
@@ -119,7 +120,7 @@ class Group(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         return cls.get_search_base(school).isRoom(group_dn)
 
     def self_is_workgroup(self) -> bool:
-        return self.is_workgroup(self.school, self.dn)
+        return self.is_school_workgroup(self.school, self.dn)
 
     def self_is_class(self) -> bool:
         return self.is_school_class(self.school, self.dn)
@@ -133,7 +134,7 @@ class Group(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             return SchoolClass
         elif cls.is_computer_room(school, udm_obj.dn):
             return ComputerRoom
-        elif cls.is_workgroup(school, udm_obj.dn):
+        elif cls.is_school_workgroup(school, udm_obj.dn):
             return WorkGroup
         elif cls.is_school_group(school, udm_obj.dn):
             return SchoolGroup
@@ -319,9 +320,16 @@ class WorkGroup(EmailAttributesMixin, SchoolClass, _MayHaveSchoolPrefix):
 
     @classmethod
     async def get_class_for_udm_obj(cls, udm_obj: UdmObject, school: str) -> Optional[Type["WorkGroup"]]:
-        if not cls.is_workgroup(school, udm_obj.dn):
+        if not cls.is_school_workgroup(school, udm_obj.dn):
             return
         return cls
+
+    async def exists(self, lo: UDM) -> bool:
+        """Check if the work group exists avoiding collisions with other groups."""
+        work_group_object = await self.get_udm_object(lo)
+        if not work_group_object:
+            return False
+        return any(get_role_info(r)[0] == role_workgroup for r in work_group_object.props.ucsschoolRole)
 
 
 class ComputerRoom(Group, _MayHaveSchoolPrefix):
