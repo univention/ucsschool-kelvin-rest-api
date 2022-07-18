@@ -18,10 +18,6 @@ prepare:
     - apt-get install git rsync
     - cd ${CI_PROJECT_DIR}/docker
     - ./gitlab_prepare_docker_image
-  rules:
-    - if: "$pipeline =~ /skip-build/"
-      when: never
-    - if: "$pipeline =~ /force-build/"
 
 .doc-base:
   variables:
@@ -134,7 +130,3 @@ build:
       --dockerfile "${CI_PROJECT_DIR}/docker/build/Dockerfile"
       --destination "${CI_REGISTRY_IMAGE}:${DOCKER_TAG}"
       ${ARG_DESTINATION_LATEST}
-  rules:
-    - if: "$pipeline =~ /skip-build/"
-      when: never
-    - if: "$pipeline =~ /force-build/"
