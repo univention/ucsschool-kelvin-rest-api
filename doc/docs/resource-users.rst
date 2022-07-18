@@ -130,9 +130,17 @@ school_classes
 ^^^^^^^^^^^^^^
 All school names in ``school_classes`` must exist (as URLs) in ``schools``.
 
+If the value of ``school_classes`` contains an empty dictionary in a modify
+request, the user will be removed from all classes.
+
 workgroups
 ^^^^^^^^^^
 All school names in ``workgroups`` must exist (as URLs) in ``schools``.
+
+If the value of ``workgroups`` contains an empty dictionary in a modify
+request, the user will be removed from all workgroups. To avoid this behavior,
+simply don't pass the attribute in PUT or in PATCH and the current workgroups
+will be kept.
 
 udm_properties for resource users
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -230,7 +238,10 @@ The user in the example response is working in two schools as both staff and tea
                 "test": ["testclass", "testclass2"],
                 "other": ["otherklasse", "otherklasse2"]
             },
-            "workgroups": {},
+            "workgroups": {
+                "test": ["testworkgroup", "testworkgroup2"],
+                "other": ["otherworkgroup", "otherworkgroup2"]
+            },
             "source_uid": "TESTID",
             "udm_properties": {
                 "description": "Working at two schools.",
@@ -362,7 +373,7 @@ Users modify and move
 ---------------------
 
 It is possible to perform complete and partial updates of existing user objects.
-The ``PUT`` method expects a JSON object with all user attributes set.
+The ``PUT`` method expects a JSON object with all user attributes set. Nevertheless, the attribute ``workgroups`` can be skipped to preserve its current value.
 The ``password`` attribute should *not* be sent repeatedly, as most password policies forbid reusing the same password.
 The ``PATCH`` method will update only those attributes sent in the request.
 Both methods return a complete Users resource in the response body, exactly as a ``GET`` request would.
