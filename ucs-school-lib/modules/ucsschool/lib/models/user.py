@@ -359,6 +359,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         await self.remove_from_groups_of_school(old_school, lo)
         self._udm_obj_searched = False
         self.school_classes.pop(old_school, None)
+        self.workgroups.pop(old_school, None)
         udm_obj = await self.get_udm_object(lo)
         udm_obj.props.primaryGroup = await self.primary_group_dn(lo)
         groups = set(udm_obj.props.groups)
@@ -543,6 +544,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         else:
             await self.remove_from_groups_of_school(school, lo)
         self.school_classes.pop(school, None)
+        self.workgroups.pop(school, None)
         return True
 
     async def remove_from_groups_of_school(self, school: str, lo: UDM) -> None:
