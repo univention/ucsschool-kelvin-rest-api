@@ -75,7 +75,7 @@ class CamelCaseLastnameFormatPyHook(FormatPyHook):
         import random
 
         fields["lastname"] = "".join(
-            [getattr(char, random.choice(("upper", "lower")))() for char in fields["lastname"]]
+            [getattr(char, random.choice(("upper", "lower")))() for char in fields["lastname"]]  # nosec
         )
         return fields
 

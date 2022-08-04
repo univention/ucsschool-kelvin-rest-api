@@ -190,7 +190,7 @@ The response will be::
     }
 
 The example shows how to rename a certain ``class``. Optionally ``description``, ``udm_properties`` and/or ``users`` can be modified.
-But a ``class`` objects `school` or `create_share` can't be modified.
+But a ``class`` objects ``school`` or ``create_share`` can't be modified.
 
 
 Create

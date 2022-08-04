@@ -300,7 +300,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         if password_created:
             # dont' show password in post_hooks
             # (it has already been saved to LDAP in super().do_create() above)
-            self.password = ""
+            self.password = ""  # nosec
         return success
 
     async def do_modify(self, udm_obj: UdmObject, lo: UDM) -> None:
