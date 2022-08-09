@@ -50,7 +50,7 @@ random.shuffle(USER_ROLES)
 
 
 def compare_attr_and_lib_user(attr: Dict[str, Any], user: User):
-    user_as_dict = user.to_dict()  # for pytest output
+    _user_as_dict = user.to_dict()  # noqa: F841 for pytest output
     for k, v in attr.items():
         if k in ("description", "password", "primaryGroup", "groups"):
             continue
@@ -172,7 +172,11 @@ async def test_get_class_for_udm_obj(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 async def test_create(
-    create_ou_using_python, new_school_class_using_udm, udm_users_user_props, udm_kwargs, role: Role
+    create_ou_using_python,
+    new_school_class_using_udm,
+    udm_users_user_props,
+    udm_kwargs,
+    role: Role,
 ):
     school = await create_ou_using_python()
     async with UDM(**udm_kwargs) as udm:
@@ -464,7 +468,12 @@ async def test_modify_add_school(create_multiple_ous, new_udm_user, udm_kwargs, 
         assert success is True
         assert user.school == ou1
         user = await role.klass.from_dn(dn, ou1, udm)
-    attr.update({"school": [ou1, ou2], "ucsschoolRole": make_ucsschool_roles(role.klass, [ou1, ou2])})
+    attr.update(
+        {
+            "school": [ou1, ou2],
+            "ucsschoolRole": make_ucsschool_roles(role.klass, [ou1, ou2]),
+        }
+    )
     compare_attr_and_lib_user(attr, user)
 
 
@@ -474,7 +483,10 @@ async def test_modify_remove_primary_school(create_multiple_ous, new_udm_user, u
     """User(ou1, [ou1, ou2]) -> User(ou2, [ou2])"""
     ou1, ou2 = await create_multiple_ous(2)
     dn, attr = await new_udm_user(
-        ou1, role.name, schools=[ou1, ou2], ucsschool_roles=make_ucsschool_roles(role.klass, [ou1, ou2])
+        ou1,
+        role.name,
+        schools=[ou1, ou2],
+        ucsschool_roles=make_ucsschool_roles(role.klass, [ou1, ou2]),
     )
     async with UDM(**udm_kwargs) as udm:
         user: User = await role.klass.from_dn(dn, ou1, udm)
@@ -499,7 +511,10 @@ async def test_modify_remove_additional_school(
     """User(ou1, [ou1, ou2]) -> User(ou1, [ou1])"""
     ou1, ou2 = await create_multiple_ous(2)
     dn, attr = await new_udm_user(
-        ou1, role.name, schools=[ou1, ou2], ucsschool_roles=make_ucsschool_roles(role.klass, [ou1, ou2])
+        ou1,
+        role.name,
+        schools=[ou1, ou2],
+        ucsschool_roles=make_ucsschool_roles(role.klass, [ou1, ou2]),
     )
     async with UDM(**udm_kwargs) as udm:
         user: User = await role.klass.from_dn(dn, ou1, udm)
@@ -542,7 +557,12 @@ async def test_modify_add_and_remove_primary_school(
         success = await user.modify(udm)
         assert success is True
         user = await role.klass.from_dn(user.dn, user.school, udm)
-    attr.update({"school": [ou2, ou3], "ucsschoolRole": make_ucsschool_roles(role.klass, [ou2, ou3])})
+    attr.update(
+        {
+            "school": [ou2, ou3],
+            "ucsschoolRole": make_ucsschool_roles(role.klass, [ou2, ou3]),
+        }
+    )
     compare_attr_and_lib_user(attr, user)
 
 
@@ -554,7 +574,10 @@ async def test_modify_add_and_remove_additional_school(
     """User(ou1, [ou1, ou2]) -> User(ou1, [ou1, ou3])"""
     ou1, ou2, ou3 = await create_multiple_ous(3)
     dn, attr = await new_udm_user(
-        ou1, role.name, schools=[ou1, ou2], ucsschool_roles=make_ucsschool_roles(role.klass, [ou1, ou2])
+        ou1,
+        role.name,
+        schools=[ou1, ou2],
+        ucsschool_roles=make_ucsschool_roles(role.klass, [ou1, ou2]),
     )
     async with UDM(**udm_kwargs) as udm:
         user: User = await role.klass.from_dn(dn, ou1, udm)
@@ -564,7 +587,12 @@ async def test_modify_add_and_remove_additional_school(
         success = await user.modify(udm)
         assert success is True
         user = await role.klass.from_dn(user.dn, user.school, udm)
-    attr.update({"school": [ou1, ou3], "ucsschoolRole": make_ucsschool_roles(role.klass, [ou1, ou3])})
+    attr.update(
+        {
+            "school": [ou1, ou3],
+            "ucsschoolRole": make_ucsschool_roles(role.klass, [ou1, ou3]),
+        }
+    )
     compare_attr_and_lib_user(attr, user)
 
 
@@ -613,7 +641,11 @@ unixhomes = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 async def test_unixhome(
-    create_ou_using_python, new_school_class_using_udm, udm_users_user_props, udm_kwargs, role: Role
+    create_ou_using_python,
+    new_school_class_using_udm,
+    udm_users_user_props,
+    udm_kwargs,
+    role: Role,
 ):
     school = await create_ou_using_python()
     async with UDM(**udm_kwargs) as udm:

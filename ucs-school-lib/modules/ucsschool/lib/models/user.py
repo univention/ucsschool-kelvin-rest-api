@@ -723,7 +723,9 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                 filter_s=unicode_s(filter_object_type), scope="sub"
             )
         ]
-        # objects = await udm_modules.lookup(cls._meta.udm_module, None, lo, filter=unicode_s(filter_object_type), scope='sub', superordinate=superordinate)
+        # objects = await udm_modules.lookup(cls._meta.udm_module, None, lo,
+        # filter=unicode_s(filter_object_type),
+        # scope='sub', superordinate=superordinate)
         # legacy objects (find by position in LDAP) support:
         more_objs = await super(User, cls).lookup(lo, school, filter_s, superordinate=superordinate)
         dns = {o.dn for o in objects}

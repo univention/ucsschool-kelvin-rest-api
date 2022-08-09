@@ -23,4 +23,6 @@ async def test_schoolname_validation(create_ou_using_python, udm_kwargs, ldap_ba
     """
 
     with pytest.raises(ValueError, match="'Invalid school name'"):
-        ou_name_kelvin = await create_ou_using_python(ou_name="ba€d_ou_name", cache=False)
+        _ou_name_kelvin = await create_ou_using_python(  # noqa: F841 for pytest output
+            ou_name="ba€d_ou_name", cache=False
+        )

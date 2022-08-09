@@ -33,7 +33,6 @@
 import argparse
 import sys
 
-import univention.config_registry
 from ucsschool.lib.models.utils import add_or_remove_ucrv_value
 
 

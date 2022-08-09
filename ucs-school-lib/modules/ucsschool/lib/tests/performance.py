@@ -61,9 +61,8 @@ try:
 except ImportError:
     from multiprocessing.dummy import Pool  # multiprocessing.dummy -> threading
 
-    from univention.admin.client import UDM, Module, Object
-    from univention.admin.modules import ConnectionData, get as udm_modules_get
-    from univention.admin.uldap import position
+    from univention.admin.client import UDM
+    from univention.admin.modules import ConnectionData
 
     print("*** UDM via HTTP ***")
     API = "UDM via HTTP"
@@ -103,7 +102,7 @@ def user_kwargs(school: str) -> Dict[str, str]:
         "password": None,
         "disabled": False,
         "school_classes": {
-            ou: ["{}-Da".format(school), "{}-Db".format(school)],
+            school: ["{}-Da".format(school), "{}-Db".format(school)],
         },
     }
 
@@ -313,24 +312,30 @@ def create_obj_parallel_via_ucsschool_lib(
 
 
 def read_ucsschool_objs_parallel(
-    kls: Type[UCSSchoolHelperAbstractClass], school: str, dns: List[str], parallelism: int
+    kls: Type[UCSSchoolHelperAbstractClass],
+    school: str,
+    dns: List[str],
+    parallelism: int,
 ) -> float:
     kwargs = [(kls.__name__, school, [dn]) for dn in dns]
     pool = Pool(processes=parallelism)
     t0 = time.time()
     map_async_result = pool.map_async(read_ucsschool_objs_sequential, kwargs)
-    results = map_async_result.get()
+    _results = map_async_result.get()  # noqa: F841 for pytest output
     return time.time() - t0
 
 
 def modify_ucsschool_objs_parallel(
-    kls: Type[UCSSchoolHelperAbstractClass], school: str, dns: List[str], parallelism: int
+    kls: Type[UCSSchoolHelperAbstractClass],
+    school: str,
+    dns: List[str],
+    parallelism: int,
 ) -> float:
     kwargs = [(kls.__name__, school, dn) for dn in dns]
     pool = Pool(processes=parallelism)
     t0 = time.time()
     map_async_result = pool.map_async(modify_ucsschool_obj, kwargs)
-    results = map_async_result.get()
+    _results = map_async_result.get()  # noqa: F841 for pytest output
     return time.time() - t0
 
 
@@ -349,7 +354,7 @@ def delete_objs_parallel_via_ucsschool_lib(
     pool = Pool(processes=parallelism)
     t0 = time.time()
     map_async_result = pool.map_async(delete_obj_via_ucsschool_lib, kwargs)
-    results = map_async_result.get()
+    _results = map_async_result.get()  # noqa: F841 for pytest output
     return time.time() - t0
 
 
@@ -800,12 +805,15 @@ def read_objs_via_UDM_HTTP_API_parallel(
     pool = Pool(processes=parallelism)
     t0 = time.time()
     map_async_result = pool.map_async(read_obj_via_UDM_HTTP_API, kwargs)
-    results = map_async_result.get()
+    _results = map_async_result.get()  # noqa: F841 for pytest output
     return time.time() - t0
 
 
 def modify_objs_via_UDM_HTTP_API_parallel(
-    kls: Type[UCSSchoolHelperAbstractClass], school: str, dns: List[str], parallelism: int
+    kls: Type[UCSSchoolHelperAbstractClass],
+    school: str,
+    dns: List[str],
+    parallelism: int,
 ) -> float:
     kwargs = [(kls.__name__, school, dn) for dn in dns]
     pool = Pool(processes=parallelism)
@@ -822,7 +830,7 @@ def delete_objs_via_UDM_HTTP_API_parallel(
     pool = Pool(processes=parallelism)
     t0 = time.time()
     map_async_result = pool.map_async(delete_obj_via_UDM_HTTP_API, kwargs)
-    results = map_async_result.get()
+    _results = map_async_result.get()  # noqa: F841 for pytest output
     return time.time() - t0
 
 

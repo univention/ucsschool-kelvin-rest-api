@@ -136,7 +136,11 @@ def base_user(firstname: str, lastname: str) -> Dict[str, Any]:
         },
         "id": "{}.{}".format(firstname, lastname),
         "_links": {},
-        "policies": {"policies/pwhistory": [], "policies/umc": [], "policies/desktop": []},
+        "policies": {
+            "policies/pwhistory": [],
+            "policies/umc": [],
+            "policies/desktop": [],
+        },
         "position": "",
         "options": {},
         "objectType": "users/user",
@@ -177,7 +181,10 @@ def exam_user() -> Dict[str, Any]:
     lastname = fake.last_name()
     user = base_user(firstname, lastname)
     user["dn"] = "uid={},cn={},ou={},{}".format(
-        user["props"]["username"], SchoolSearchBase._examUserContainerName, ou, ldap_base
+        user["props"]["username"],
+        SchoolSearchBase._examUserContainerName,
+        ou,
+        ldap_base,
     )
     group_prefix_students = get_current_group_prefix("pupils", "schueler-")
     user["props"]["groups"] = [
@@ -245,7 +252,10 @@ def teacher_and_staff_user() -> Dict[str, Any]:
     lastname = fake.last_name()
     user = base_user(firstname, lastname)
     user["dn"] = "uid={},cn={},cn=users,ou={},{}".format(
-        user["props"]["username"], SchoolSearchBase._containerTeachersAndStaff, ou, ldap_base
+        user["props"]["username"],
+        SchoolSearchBase._containerTeachersAndStaff,
+        ou,
+        ldap_base,
     )
     group_prefix_staff = get_current_group_prefix("staff", "mitarbeiter-")
     group_prefix_teachers = get_current_group_prefix("teachers", "lehrer-")
@@ -355,7 +365,10 @@ def filter_log_messages(logs: List[Tuple[str, int, str]], name: str) -> str:
 
 
 def check_logs(
-    dict_obj: Dict[str, Any], record_tuples: Any, public_logger_name: str, expected_msg: str
+    dict_obj: Dict[str, Any],
+    record_tuples: Any,
+    public_logger_name: str,
+    expected_msg: str,
 ) -> None:
     public_logs = filter_log_messages(record_tuples, public_logger_name)
     secret_logs = filter_log_messages(record_tuples, VALIDATION_LOGGER)

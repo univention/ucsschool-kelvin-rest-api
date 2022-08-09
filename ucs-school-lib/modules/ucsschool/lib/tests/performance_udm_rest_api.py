@@ -156,7 +156,7 @@ def read_objs_via_UDM_HTTP_API_parallel(dns: List[str], parallelism: int) -> flo
     pool = Pool(processes=parallelism)
     t0 = time.time()
     map_async_result = pool.map_async(read_objs_via_UDM_HTTP_API, kwargs)
-    results = map_async_result.get()
+    _results = map_async_result.get()  # noqa: F841 for pytest output
     res = time.time() - t0
     pool.close()
     return res
@@ -260,7 +260,7 @@ def delete_objs_via_UDM_HTTP_API_parallel(dns: List[str], parallelism: int) -> f
     pool = Pool(processes=parallelism)
     t0 = time.time()
     map_async_result = pool.map_async(delete_obj_via_UDM_HTTP_API, kwargs)
-    results = map_async_result.get()
+    _results = map_async_result.get()  # noqa: F841 for pytest output
     res = time.time() - t0
     pool.close()
     return res

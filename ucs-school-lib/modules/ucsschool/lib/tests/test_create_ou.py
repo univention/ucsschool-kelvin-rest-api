@@ -62,10 +62,12 @@ async def test_create_ou(create_ou_using_python, create_ou_using_ssh, udm_kwargs
     )
     with open("/tmp/log", "w") as fp:  # nosec
         fp.write(
-            f"in kelvin, but not in ssh: {sorted(dns_after_kelvin_school_creation - dns_after_ssh_school_creation)}\n"
+            f"in kelvin, but not in ssh: "
+            f"{sorted(dns_after_kelvin_school_creation - dns_after_ssh_school_creation)}\n"
         )
         fp.write(
-            f"in ssh, but not in kelvin: {sorted(dns_after_ssh_school_creation - dns_after_kelvin_school_creation)}\n"
+            f"in ssh, but not in kelvin: "
+            f"{sorted(dns_after_ssh_school_creation - dns_after_kelvin_school_creation)}\n"
         )
     assert dns_after_kelvin_school_creation == dns_after_ssh_school_creation
 

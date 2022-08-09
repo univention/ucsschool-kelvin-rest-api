@@ -33,7 +33,7 @@ from typing import Dict, Optional
 
 from ipaddr import AddressValueError, IPv4Network, NetmaskValueError
 
-from udm_rest_client import UDM, NoObject as UdmNoObject, UdmObject
+from udm_rest_client import UDM, UdmObject
 from univention.admin.uexceptions import noObject
 
 from .attributes import Netmask, NetworkAttribute, NetworkBroadcastAddress, SubnetName

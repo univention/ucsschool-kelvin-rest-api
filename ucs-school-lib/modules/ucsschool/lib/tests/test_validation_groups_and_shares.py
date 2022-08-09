@@ -227,7 +227,10 @@ complete_role_matrix_ids = [
 
 
 def check_logs(
-    dict_obj: Dict[str, Any], record_tuples: Any, public_logger_name: str, expected_msg: str
+    dict_obj: Dict[str, Any],
+    record_tuples: Any,
+    public_logger_name: str,
+    expected_msg: str,
 ) -> None:
     public_logs = filter_log_messages(record_tuples, public_logger_name)
     secret_logs = filter_log_messages(record_tuples, VALIDATION_LOGGER)

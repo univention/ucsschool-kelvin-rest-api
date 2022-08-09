@@ -78,7 +78,13 @@ CLASSES_MODULES = {
 # (*1) Uncaught exception PUT /udm/dhcp/subnet/cn=april86d,cn=dhcp,ou=... -> why PUT, should be POST?
 # (*2) IndexError in GET /udm/dns/reverse_zone/add
 #
-CLASSES_WITH_SCHOOL_NONE = ("AnyDHCPService", "BasicGroup", "MailDomain", "DNSReverseZone", "School")
+CLASSES_WITH_SCHOOL_NONE = (
+    "AnyDHCPService",
+    "BasicGroup",
+    "MailDomain",
+    "DNSReverseZone",
+    "School",
+)
 
 MODIFY_MODULES = copy.deepcopy(CLASSES_MODULES)
 del MODIFY_MODULES["Container"]  # (*1)
@@ -89,8 +95,14 @@ del MODIFY_MODULES["SchoolClass"]  # (*3)
 del MODIFY_MODULES["WorkGroup"]  # (*3)
 #
 # (*1) model does not support modify operation
-# (*2) possibly a bug in the UDM REST API OpenAPI schema properties->emptyAttributes->nullable=true? -> udm_rest_client.exceptions.ModifyError: Unprocessable Entity: {'emptyAttributes': 'The property emptyAttributes has an invalid value: Invalid syntax. The property Empty attribute must be a list'}
-# (*3) possibly a bug in the UDM REST API: PATCH /udm/groups/group/cn=DEMOSCHOOL-dvargas,cn=klassen,cn=schueler,cn=groups,ou=... -> udm_rest_client.exceptions.APICommunicationError: [HTTP 401] Credentials invalid or no permissions for operation 'update' on 'groups/group' with arguments {'groups_group': {'options': {'ucsschoolAdministratorGroup': False, 'samba': True, 'posix': True, 'ucsschoolImportGroup': False}, 'position': 'cn=klassen,cn=schueler,cn=groups,ou=...', 'properties': {'description': 'jeremydawson'}}, 'dn': 'cn=DEMOSCHOOL-dvargas,cn=klassen,cn=schueler,cn=groups,ou=...'}.
+# (*2) possibly a bug in the UDM REST API OpenAPI
+# schema properties->emptyAttributes->nullable=true? -> udm_rest_client.exceptions.ModifyError:
+# Unprocessable Entity: {'emptyAttributes': 'The property emptyAttributes has an
+# invalid value: Invalid syntax. The property Empty attribute must be a list'}
+# (*3) possibly a bug in the UDM REST API:
+# PATCH /udm/groups/group/cn=DEMOSCHOOL-dvargas,cn=klassen,cn=schueler,cn=groups,ou=...
+# -> udm_rest_client.exceptions.APICommunicationError: [HTTP 401] Credentials invalid or no permissions
+# for operation 'update' on 'groups/group' with arguments {'groups_group': {'options': {'ucsschoolAdministratorGroup': False, 'samba': True, 'posix': True, 'ucsschoolImportGroup': False}, 'position': 'cn=klassen,cn=schueler,cn=groups,ou=...', 'properties': {'description': 'jeremydawson'}}, 'dn': 'cn=DEMOSCHOOL-dvargas,cn=klassen,cn=schueler,cn=groups,ou=...'}.  # noqa: E501
 #
 
 MOVE_MODULES = copy.deepcopy(CLASSES_MODULES)
@@ -104,8 +116,13 @@ del MOVE_MODULES["Teacher"]  # (*3)
 del MOVE_MODULES["TeachersAndStaff"]  # (*3)
 #
 # (*1) model does not support move operation
-# (*2) Bug in UDM REST API: Uncaught exception PUT /udm/users/user/uid=geraldbenitez,cn=examusers,ou=...; UDM_Error: This operation is not allowed on this object. Destination object can't have sub objects.
-# (*3) Bug in ucsschool.lib!! TB starts at "await obj.change_school(ou2, udm)" -> udm_rest_client.exceptions.MoveError: Error moving UdmObject('users/user', 'uid=smithkyle,cn=admins,cn=users,ou=testou2176,...') to 'cn=admins,cn=users,ou=testou1991,...': [401] Unauthorized
+# (*2) Bug in UDM REST API: Uncaught exception
+# PUT /udm/users/user/uid=geraldbenitez,cn=examusers,ou=...;
+# UDM_Error: This operation is not allowed on this object. Destination object can't have sub objects.
+# (*3) Bug in ucsschool.lib!! TB starts at "await obj.change_school(ou2, udm)"
+# -> udm_rest_client.exceptions.MoveError: Error moving
+# UdmObject('users/user', 'uid=smithkyle,cn=admins,cn=users,ou=testou2176,...')
+# to 'cn=admins,cn=users,ou=testou1991,...': [401] Unauthorized
 #
 
 REMOVE_MODULES = copy.deepcopy(CLASSES_MODULES)
@@ -145,7 +162,10 @@ def create_hook_file():
         target_file.close()
         files_to_remove.append(target_file.name)
         hook_file = tempfile.NamedTemporaryFile(
-            dir=PYHOOKS_PATH, prefix=f"hook_{model}_{method}_", suffix=".py", delete=False
+            dir=PYHOOKS_PATH,
+            prefix=f"hook_{model}_{method}_",
+            suffix=".py",
+            delete=False,
         )
         files_to_remove.append(hook_file.name)
         hook_text = HOOK_TEXT.replace("IMPORT_VAR", f"from {CLASSES_MODULES[model]} import {model}")
@@ -171,7 +191,11 @@ def create_hook_file():
 
 @pytest.fixture
 def creation_kwargs(
-    random_first_name, random_last_name, random_user_name, schedule_delete_udm_obj, udm_kwargs
+    random_first_name,
+    random_last_name,
+    random_user_name,
+    schedule_delete_udm_obj,
+    udm_kwargs,
 ):
     async def _create_dhcp_service(ou: str, name: str) -> DHCPService:
         logger.debug("Creating DHCPService...")
@@ -188,7 +212,14 @@ def creation_kwargs(
             "school": ou,
             "name": random_user_name(),
         }
-        if model in ("ExamStudent", "SchoolAdmin", "Staff", "Student", "Teacher", "TeachersAndStaff"):
+        if model in (
+            "ExamStudent",
+            "SchoolAdmin",
+            "Staff",
+            "Student",
+            "Teacher",
+            "TeachersAndStaff",
+        ):
             result.update(
                 {
                     "firstname": random_first_name(),
@@ -196,7 +227,13 @@ def creation_kwargs(
                 }
             )
         elif model in ("ComputerRoom", "SchoolGroup", "SchoolClass", "WorkGroup"):
-            result.update({"name": f"{ou}-{random_user_name()}", "users": [], "allowedEmailGroups": []})
+            result.update(
+                {
+                    "name": f"{ou}-{random_user_name()}",
+                    "users": [],
+                    "allowedEmailGroups": [],
+                }
+            )
         elif model in ("Share", "ClassShare", "GroupShare", "WorkGroupShare"):
             school_group = SchoolClass(school=ou, name=f"{ou}-{random_user_name()}", users=[])
             async with UDM(**udm_kwargs) as udm:
@@ -222,7 +259,12 @@ def creation_kwargs(
         elif model == "DNSReverseZone":
             result["name"] = fake.ipv4_private().rsplit(".", 1)[0]
         elif model in ("IPComputer", "MacComputer", "WindowsComputer"):
-            result.update({"ip_address": [fake.ipv4_private()], "mac_address": [fake.mac_address()]})
+            result.update(
+                {
+                    "ip_address": [fake.ipv4_private()],
+                    "mac_address": [fake.mac_address()],
+                }
+            )
         elif model == "MarketplaceShare":
             # there can be only one MarketplaceShare, and the test OU already has one
             async with UDM(**udm_kwargs) as udm:

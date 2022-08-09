@@ -36,10 +36,8 @@ Default user import class.
 import copy
 import datetime
 import logging
-import sys
 from collections import defaultdict
 
-import six
 from ldap.filter import filter_format
 
 from ucsschool.lib.models.attributes import ValidationError

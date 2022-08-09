@@ -24,7 +24,16 @@ pytestmark = pytest.mark.skipif(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "ObjectClass",
-    [Staff, Student, Teacher, TeachersAndStaff, ExamStudent, SchoolClass, WorkGroup, ComputerRoom],
+    [
+        Staff,
+        Student,
+        Teacher,
+        TeachersAndStaff,
+        ExamStudent,
+        SchoolClass,
+        WorkGroup,
+        ComputerRoom,
+    ],
 )
 async def test_udm_obj_to_dict(
     ObjectClass,

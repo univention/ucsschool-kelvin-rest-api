@@ -27,7 +27,8 @@ PIP_FALLBACK_URL = (
     "https://raw.githubusercontent.com/univention/ucs-school/4.4/ucs-school-import/debian/changelog"
 )
 
-# when installing using "setup.py install ." the directory is not changed, when using pip, work is done in /tmp
+# when installing using "setup.py install ." the directory is not changed,
+# when using pip, work is done in /tmp
 if not os.path.exists(changelog_path):
     _fp, changelog_path = tempfile.mkstemp()
     urlretrieve(PIP_FALLBACK_URL, changelog_path)  # nosec

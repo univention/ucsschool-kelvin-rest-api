@@ -225,7 +225,7 @@ class UsernameHandler(object):
     >>> BAD_CHARS = ''.join(sorted(set(map(chr, range(128))) - set(UsernameHandler(20).allowed_chars)))
     >>> UsernameHandler(20).format_username('Max.Mustermann')
     'Max.Mustermann'
-    >>> UsernameHandler(20).format_username('Foo[COUNTER2][COUNTER2]')   # doctest: +IGNORE_EXCEPTION_DETAIL
+    >>> UsernameHandler(20).format_username('Foo[COUNTER2][COUNTER2]')   # noqa: E501 doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
     FormatError:
@@ -471,7 +471,8 @@ class UsernameHandler(object):
             num = self.storage_backend.retrieve(name_base)
             self.storage_backend.modify(name_base, num, num + 1)
             res = str(num)
-        except NoValueStored:  # not handling BadValueStored, because a data corruption should stop the import
+        except NoValueStored:
+            # not handling BadValueStored, because a data corruption should stop the import
             res = initial_value
             self.storage_backend.create(name_base, 2)
         return res

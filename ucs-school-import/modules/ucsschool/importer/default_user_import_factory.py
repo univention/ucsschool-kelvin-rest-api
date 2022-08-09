@@ -40,7 +40,7 @@ from .exceptions import InitialisationError
 from .factory import load_class
 
 try:
-    from typing import Any, Iterable, Optional, TypeVar
+    from typing import Any, Iterable, Optional
 except ImportError:
     pass
 

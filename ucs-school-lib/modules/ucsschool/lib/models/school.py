@@ -30,6 +30,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import socket
+import subprocess
 from typing import Dict, Iterable, List, Optional, Set, Union
 
 import ldap

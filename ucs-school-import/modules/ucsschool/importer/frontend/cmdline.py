@@ -263,5 +263,5 @@ class CommandLine(object):
                 msg = "Import finished normally but with errors."
                 self.logger.warning(msg)
                 return 2
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             return 1

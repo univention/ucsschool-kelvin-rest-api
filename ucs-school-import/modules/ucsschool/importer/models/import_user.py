@@ -669,7 +669,8 @@ class ImportUser(User):
         """
         if self.expiration_date:
             self.logger.warning(
-                "The expiration date is usually set by the import itself. Setting it manually may lead to errors in future imports."
+                "The expiration date is usually set by the import itself. "
+                "Setting it manually may lead to errors in future imports."
             )
             try:
                 self.expiration_date = self.parse_date(self.expiration_date)

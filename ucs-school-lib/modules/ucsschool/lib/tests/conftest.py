@@ -109,7 +109,8 @@ def school_class_attrs(ldap_base):
                 ],
             ),
             "ucsschool_roles": kwargs.get(
-                "ucsschool_roles", [create_ucsschool_role_string(role_school_class, school)]
+                "ucsschool_roles",
+                [create_ucsschool_role_string(role_school_class, school)],
             ),
         }
 
@@ -131,7 +132,8 @@ def workgroup_attrs(ldap_base):
                 ],
             ),
             "ucsschool_roles": kwargs.get(
-                "ucsschool_roles", [create_ucsschool_role_string(role_workgroup, school)]
+                "ucsschool_roles",
+                [create_ucsschool_role_string(role_workgroup, school)],
             ),
             "email": None,
             "allowed_email_senders_users": [],
@@ -375,7 +377,10 @@ def new_udm_user(
     """Create a new school user using UDM. -> (DN, {attrs})"""
 
     async def _func(
-        school: str, role: str, udm_properties: Dict[str, Any] = None, **school_user_kwargs
+        school: str,
+        role: str,
+        udm_properties: Dict[str, Any] = None,
+        **school_user_kwargs,
     ) -> Tuple[str, Dict[str, Any]]:
         assert role in ("staff", "student", "teacher", "teacher_and_staff")
         udm_properties = udm_properties or {}
@@ -404,7 +409,10 @@ def new_udm_user(
             "staff": (school_search_base.staff_group,),
             "student": (school_search_base.students_group,),
             "teacher": (school_search_base.teachers_group,),
-            "teacher_and_staff": (school_search_base.staff_group, school_search_base.teachers_group),
+            "teacher_and_staff": (
+                school_search_base.staff_group,
+                school_search_base.teachers_group,
+            ),
         }[role]
         user_props.update(udm_properties)
         async with UDM(**udm_kwargs) as udm:
@@ -446,7 +454,10 @@ def new_school_user(new_udm_user, udm_kwargs):
     """
 
     async def _func(
-        school: str, role: str, udm_properties: Dict[str, Any] = None, **school_user_kwargs
+        school: str,
+        role: str,
+        udm_properties: Dict[str, Any] = None,
+        **school_user_kwargs,
     ) -> User:
         dn, user_attrs = await new_udm_user(school, role, udm_properties, **school_user_kwargs)
         async with UDM(**udm_kwargs) as udm:
@@ -671,13 +682,18 @@ def delete_ou_cleanup(ldap_base, udm_kwargs):
                 mod = udm.get("computers/domaincontroller_master")
                 async for obj in mod.search(f"cn={master_hostname}"):
                     logger.debug(
-                        "Removing 'ucsschoolRole=single_master:school:%s' from %r...", ou_name, obj.dn
+                        "Removing 'ucsschoolRole=single_master:school:%s' from %r...",
+                        ou_name,
+                        obj.dn,
                     )
                     try:
                         obj.props.ucsschoolRole.remove(f"single_master:school:{ou_name}")
                         await obj.save()
                     except ValueError:
-                        logger.debug("Error: role was no set: ucsschoolRole=%r", obj.props.ucsschoolRole)
+                        logger.debug(
+                            "Error: role was no set: ucsschoolRole=%r",
+                            obj.props.ucsschoolRole,
+                        )
 
     return _func
 
@@ -805,7 +821,10 @@ def create_ou_using_python(
             return cached_ou
         args = create_ou_kwargs(ou_name)
         ou_name = args["ou_name"]
-        logger.debug(" ================ Creating school %r using Python... ================", ou_name)
+        logger.debug(
+            " ================ Creating school %r using Python... ================",
+            ou_name,
+        )
         if cache:
             schedule_delete_ou_using_ssh_at_end_of_session(ou_name, docker_host_name)
         else:
@@ -835,9 +854,15 @@ def create_ou_using_python(
                 await udm.get("container/ou").get(f"ou={ou_name},{ldap_base}")
             except UdmNoObject:
                 raise AssertionError(f"Creation of OU {ou_name} failed.")
-        logger.debug(" ====================================================%s", len(ou_name) * "=")
+        logger.debug(
+            " ====================================================%s",
+            len(ou_name) * "=",
+        )
         logger.debug(" ================ School %r created. ================", ou_name)
-        logger.debug(" ====================================================%s", len(ou_name) * "=")
+        logger.debug(
+            " ====================================================%s",
+            len(ou_name) * "=",
+        )
         return ou_name
 
     return _func
@@ -845,7 +870,9 @@ def create_ou_using_python(
 
 @pytest.fixture
 def create_multiple_ous(
-    create_ou_using_python, random_ou_name, schedule_delete_ou_using_ssh_at_end_of_session
+    create_ou_using_python,
+    random_ou_name,
+    schedule_delete_ou_using_ssh_at_end_of_session,
 ):
     async def _func(amount: int, cache: bool = True) -> List[str]:
         if not cache:

@@ -49,11 +49,13 @@ Module to ease interactive use of import system.
 
 from __future__ import absolute_import
 
+import asyncio
 import json
 import logging
 import os.path
 import pprint
 from pathlib import Path
+from typing import Dict
 
 from ucsschool.lib.models.group import *  # noqa: F401, F403
 from ucsschool.lib.models.school import *  # noqa: F401, F403
@@ -62,6 +64,7 @@ from ucsschool.lib.models.utils import (
     env_or_ucr,
     get_stream_handler as _get_stream_handler,
 )
+from udm_rest_client import UDM
 
 from ..configuration import setup_configuration as _setup_configuration
 from ..exceptions import UcsSchoolImportFatalError as _UcsSchoolImportFatalError
@@ -95,7 +98,7 @@ _config_args = {
 try:
     with open(os.path.expanduser("~/.import_shell_args"), "rb") as fp:
         _config_args.update(json.load(fp))
-except IOError as exc:
+except IOError:
     pass
 
 logger = logging.getLogger("ucsschool")
@@ -147,10 +150,6 @@ def udm_kwargs():
         )
     return _udm_kwargs
 
-
-import asyncio
-
-from udm_rest_client import UDM
 
 assert asyncio
 assert UDM

@@ -31,7 +31,9 @@ user_mod: BaseModule = UDM.credentials(*AUTH).version(0).get("users/user")
 
 
 def random_string(  # nosec
-    length: Optional[int] = 10, alpha: Optional[bool] = True, numeric: Optional[bool] = True
+    length: Optional[int] = 10,
+    alpha: Optional[bool] = True,
+    numeric: Optional[bool] = True,
 ) -> str:
     result = ""
     for _ in range(length):
@@ -136,7 +138,7 @@ def read_objs_via_UDM_python_parallel(dns: List[str], parallelism: int) -> float
     pool = Pool(processes=parallelism)
     t0 = time.time()
     map_async_result = pool.map_async(read_objs_via_UDM_python, kwargs)
-    results = map_async_result.get()
+    _results = map_async_result.get()  # noqa: F841 for pytest output
     return time.time() - t0
 
 
@@ -186,7 +188,7 @@ def delete_objs_via_UDM_python_parallel(dns: List[str], parallelism: int) -> flo
     pool = Pool(processes=parallelism)
     t0 = time.time()
     map_async_result = pool.map_async(delete_objs_via_UDM_python, kwargs)
-    results = map_async_result.get()
+    _results = map_async_result.get()  # noqa: F841 for pytest output
     return time.time() - t0
 
 
