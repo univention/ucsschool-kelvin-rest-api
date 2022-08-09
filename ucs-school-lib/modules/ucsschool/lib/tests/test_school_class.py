@@ -108,15 +108,6 @@ async def test_get_class_for_udm_obj(create_ou_using_python, new_school_class_us
 
 
 @pytest.mark.asyncio
-async def test_from_dn(create_ou_using_python, new_school_class_using_udm, udm_kwargs):
-    ou = await create_ou_using_python()
-    dn, attr = await new_school_class_using_udm(ou)
-    async with UDM(**udm_kwargs) as udm:
-        sc = await SchoolClass.from_dn(dn, ou, udm)
-    assert_attr_eq_school_obj_attr(attr, sc)
-
-
-@pytest.mark.asyncio
 async def test_create(create_ou_using_python, school_class_attrs, udm_kwargs):
     ou = await create_ou_using_python()
     sc_attrs = await school_class_attrs(ou)
