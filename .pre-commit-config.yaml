@@ -1,6 +1,6 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
-exclude: ^venv/|^doc/doc-common/|^doc/manual/|^doc/quickstart|^doc/errata|^ucs-school-import/usr/share/ucs-school-import/scripts/ucs-school-import|^italc/|^italc-windows/|^ucs-school-branding/|^ucs-school-info/|^ucs-school-italc/|^ucs-school-l10n-fr/|^ucs-school-ldap-acls-master/|^ucs-school-metapackage/|^ucs-school-netlogon/|^ucs-school-netlogon-user-logonscripts/|^ucs-school-old-homedirs/|^ucs-school-old-sharedirs/|^ucs-school-ox-support/|^ucs-school-radius-802.1x/|^ucs-school-roleshares/|^ucs-school-s4-branch-site/|^ucs-school-selfservice-support/|^ucs-school-ucc-integration/|^ucs-school-umc-|^ucs-school-webproxy/|^ucs-test-ucsschool/|^univention-lib-slim/|^univention-management-console-module-selective-udm/|^univention-directory-manager-modules-slim/
+exclude: ^venv/|^ucs-school-import/usr/share/ucs-school-import/scripts/ucs-school-import|^univention-lib-slim/|^univention-directory-manager-modules-slim/
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.3.0

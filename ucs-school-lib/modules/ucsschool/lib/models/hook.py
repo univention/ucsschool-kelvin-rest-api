@@ -43,7 +43,8 @@ from ..pyhooks.pyhook import PyHook
 from .utils import ucr
 
 UCSSchoolModel = TypeVar(
-    "UCSSchoolModel", bound="ucsschool.lib.models.base.UCSSchoolHelperAbstractClass"
+    "UCSSchoolModel",
+    bound="ucsschool.lib.models.base.UCSSchoolHelperAbstractClass",  # noqa: F821 # prevent import loop
 )
 
 

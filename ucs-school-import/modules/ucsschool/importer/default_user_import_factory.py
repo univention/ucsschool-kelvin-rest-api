@@ -35,12 +35,15 @@ Default implementation of the Abstract Factory.
 import logging
 
 from ucsschool.lib.models.utils import ucr
+from univention.config_registry import ConfigRegistry
 
 from .exceptions import InitialisationError
 from .factory import load_class
 
 try:
     from typing import Any, Iterable, Optional
+
+    import ucsschool
 except ImportError:
     pass
 
@@ -138,7 +141,7 @@ class DefaultUserImportFactory(object):
             setattr(self, make_name, method)
             self.logger.info("%s.%s is now %s.%s", self.__class__.__name__, make_name, klass, meth)
 
-    def make_reader(self, **kwargs):  # type: (**Any) -> ucsschool.importer.reader.csv_reader.CsvReader
+    def make_reader(self, **kwargs):  # type: (**Any) -> "ucsschool.importer.reader.csv_reader.CsvReader"
         """
         Creates an input data reader.
 
@@ -160,7 +163,7 @@ class DefaultUserImportFactory(object):
             raise NotImplementedError()
 
     def make_import_user(self, cur_user_roles, *arg, **kwargs):
-        # type: (Iterable, *Any, **Any) -> ImportUserTV
+        # type: (Iterable, *Any, **Any) -> "ucsschool.importer.models.import_user.ImportUserTV"
         """
         Creates a ImportUser [of specific type], depending on its roles.
 
@@ -195,7 +198,7 @@ class DefaultUserImportFactory(object):
             return ImportStaff(*arg, **kwargs)
 
     def make_mass_importer(self, dry_run=True):
-        # type: (Optional[bool]) -> ucsschool.importer.mass_import.mass_import.MassImport
+        # type: (Optional[bool]) -> "ucsschool.importer.mass_import.mass_import.MassImport"
         """
         Creates a MassImport object.
 
@@ -208,7 +211,7 @@ class DefaultUserImportFactory(object):
         return MassImport(dry_run=dry_run)
 
     def make_password_exporter(self, *arg, **kwargs):
-        # type: (*Any, **Any) -> ucsschool.importer.writer.new_user_password_csv_exporter.NewUserPasswordCsvExporter  # noqa: E501
+        # type: (*Any, **Any) -> "ucsschool.importer.writer.new_user_password_csv_exporter.NewUserPasswordCsvExporter"  # noqa: E501
         """
         Creates a ResultExporter object that can dump passwords to disk.
 
@@ -222,7 +225,7 @@ class DefaultUserImportFactory(object):
         return NewUserPasswordCsvExporter(*arg, **kwargs)
 
     def make_result_exporter(self, *arg, **kwargs):
-        # type: (*Any, **Any) -> ucsschool.importer.writer.user_import_csv_result_exporter.UserImportCsvResultExporter  # noqa: E501
+        # type: (*Any, **Any) -> "ucsschool.importer.writer.user_import_csv_result_exporter.UserImportCsvResultExporter"  # noqa: E501
         """
         Creates a ResultExporter object.
 
@@ -236,7 +239,7 @@ class DefaultUserImportFactory(object):
         return UserImportCsvResultExporter(*arg, **kwargs)
 
     def make_user_importer(self, dry_run=True):
-        # type: (Optional[bool]) -> ucsschool.importer.mass_import.user_import.UserImport
+        # type: (Optional[bool]) -> "ucsschool.importer.mass_import.user_import.UserImport"
         """
         Creates a user importer.
 
@@ -248,7 +251,7 @@ class DefaultUserImportFactory(object):
 
         return UserImport(dry_run=dry_run)
 
-    def make_ucr(self):  # type: () -> univention.config_registry.ConfigRegistry
+    def make_ucr(self):  # type: () -> ConfigRegistry
         """
         Get a initialized UCR instance.
 
@@ -258,7 +261,7 @@ class DefaultUserImportFactory(object):
         return ucr
 
     def make_unique_email_handler(self, max_length=254, dry_run=True):
-        # type: (Optional[int], Optional[bool]) -> ucsschool.importer.utils.username_handler.EmailHandler
+        # type: (Optional[int], Optional[bool]) -> "ucsschool.importer.utils.username_handler.EmailHandler"  # noqa: E501
         """
         Get a EmailHandler instance.
 
@@ -272,7 +275,7 @@ class DefaultUserImportFactory(object):
         return EmailHandler(max_length, dry_run)
 
     def make_username_handler(self, max_length, dry_run=True):
-        # type: (int, Optional[bool]) -> ucsschool.importer.utils.username_handler.UsernameHandler
+        # type: (int, Optional[bool]) -> "ucsschool.importer.utils.username_handler.UsernameHandler"
         """
         Get a UsernameHandler instance.
 
@@ -286,7 +289,7 @@ class DefaultUserImportFactory(object):
         return UsernameHandler(max_length, dry_run)
 
     def make_user_writer(self, *arg, **kwargs):
-        # type: (*Any, **Any) -> ucsschool.importer.writer.csv_writer.CsvWriter
+        # type: (*Any, **Any) -> "ucsschool.importer.writer.csv_writer.CsvWriter"
         """
         Creates a user writer object.
 

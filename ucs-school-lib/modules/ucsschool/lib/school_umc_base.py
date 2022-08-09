@@ -50,6 +50,7 @@ try:
 
     if TYPE_CHECKING:
 
+        import ucsschool
         from univention.admin.handlers import simpleLdap as UdmObject
         from univention.admin.uldap import access as LoType
 except ImportError:
@@ -227,7 +228,7 @@ class SchoolBaseModule(Base):
         group: str = None,
         user_type: str = None,
         pattern: str = "",
-    ) -> List[ucsschool.lib.models.User]:
+    ) -> List["ucsschool.lib.models.User"]:
         # noqa: E501
         """Returns a list of all users given 'pattern', 'school' (search base) and 'group'"""
         import ucsschool.lib.models

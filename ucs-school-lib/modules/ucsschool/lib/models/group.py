@@ -44,7 +44,7 @@ from ..roles import (
     role_workgroup,
 )
 from .attributes import Attribute, Description, Email, GroupName, Groups, Hosts, SchoolClassName, Users
-from .base import RoleSupportMixin, UCSSchoolHelperAbstractClass, UCSSchoolModel
+from .base import PYHOOKS_BASE_CLASS, RoleSupportMixin, UCSSchoolHelperAbstractClass, UCSSchoolModel
 from .misc import OU, Container
 from .policy import UMCPolicy
 from .share import ClassShare, WorkGroupShare
