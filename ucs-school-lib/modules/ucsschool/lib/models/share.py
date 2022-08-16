@@ -81,7 +81,7 @@ class SetNTACLsMixin(object):
     def get_groups_samba_sid(lo: UDM, dn: str) -> str:
         ldap_lo, ldap_po = getMachineConnection()
         try:
-            return ldap_lo.get(dn)["sambaSID"][0]  # TODO
+            return ldap_lo.get(dn)["sambaSID"][0].decode("ASCII")
         except (IndexError, KeyError):
             raise NoSID("Group {!r} has no/empty 'sambaSID' attribute.".format(dn))
 
