@@ -270,7 +270,7 @@ class Share(UCSSchoolHelperAbstractClass):
         ou_attr_ldap_access_write = ldap_lo.get(school_dn, ["univentionLDAPAccessWrite"])
         alternative_server_dn = None
         if len(ou_attr_ldap_access_write) > 0:
-            alternative_server_dn = ou_attr_ldap_access_write["univentionLDAPAccessWrite"][0]
+            alternative_server_dn = ou_attr_ldap_access_write["univentionLDAPAccessWrite"][0].decode("UTF-8")
             if len(ou_attr_ldap_access_write) > 1:
                 self.logger.warning(
                     "more than one corresponding univentionLDAPAccessWrite found at ou=%s", self.school
@@ -280,7 +280,7 @@ class Share(UCSSchoolHelperAbstractClass):
         if alternative_server_dn:
             alternative_server_attr = ldap_lo.get(alternative_server_dn, ["uid"])
             if len(alternative_server_attr) > 0:
-                alternative_server_uid = alternative_server_attr["uid"][0]
+                alternative_server_uid = alternative_server_attr["uid"][0].decode("UTF-8")
                 alternative_server_uid = alternative_server_uid.replace("$", "")
                 if len(alternative_server_uid) > 0:
                     return "%s.%s" % (alternative_server_uid, domainname)

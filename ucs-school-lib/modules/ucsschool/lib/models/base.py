@@ -1293,7 +1293,7 @@ class RoleSupportMixin(object):
             lo_admin, po = self.get_admin_connection()
             lo_admin.modify(
                 self.dn,
-                [("ucsschoolRole", old_roles, [r.encode("utf-8") for r in self.ucsschool_roles])],
+                [("ucsschoolRole", [r.encode("utf-8") for r in old_roles], [r.encode("utf-8") for r in self.ucsschool_roles])],
             )
 
     async def validate_roles(self, lo: UDM) -> None:

@@ -639,6 +639,7 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         user_schools = lo.search(base=lo.binddn, scope="base", attr=["ucsschoolSchool"])[0][1].get(
             "ucsschoolSchool", []
         )
+        user_schools = [x.decode("UTF-8") for x in user_schools]
         if user_schools:
             schools = []
             for ou in user_schools:

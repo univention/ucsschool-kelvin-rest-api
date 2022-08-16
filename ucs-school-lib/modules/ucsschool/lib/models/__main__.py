@@ -424,7 +424,7 @@ def list_objs(
             logger.critical("Unknown school %r.", school)
             sys.exit(1)
         ou_obj = lo.get("ou={},{}".format(school, ucr["ldap/base"]))
-        return ou_obj["ou"][0]
+        return ou_obj["ou"][0].decode("UTF-8")
 
     def udm_filter_from_school_filter(filter_str: str) -> str:
         def replace_school_attr_with_udm_prop(expr: expression, arg: Dict[str, str]) -> None:
