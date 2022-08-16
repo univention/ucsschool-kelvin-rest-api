@@ -315,7 +315,7 @@ def create_passwd(length: int = 8, dn: str = None, specials: str = "$%&*-+=:.?")
         length = _pw_length_cache.get(ou, length)
 
     pw = list()
-    specials_allowed = length / 5  # 20% specials in a password is enough
+    specials_allowed = length // 5  # 20% specials in a password is enough
     specials = list(specials) if specials else []
     lowercase = list(string.ascii_lowercase)
     for char in ("i", "l", "o"):
