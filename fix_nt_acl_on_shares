@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright 2020-2022 Univention GmbH
+#
+# http://www.univention.de/
+#
+# All rights reserved.
+#
+# The source code of this program is made available
+# under the terms of the GNU Affero General Public License version 3
+# (GNU AGPL V3) as published by the Free Software Foundation.
+#
+# Binary versions of this program provided by Univention to you as
+# well as other copyrighted, protected or trademarked materials like
+# Logos, graphics, fonts, specific documentations and configurations,
+# cryptographic keys etc. are subject to a license agreement between
+# you and Univention and not subject to the GNU AGPL V3.
+#
+# In the case you use this program under the terms of the GNU AGPL V3,
+# the program is provided in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License with the Debian GNU/Linux or Univention distribution in file
+# /usr/share/common-licenses/AGPL-3; if not, see
+# <http://www.gnu.org/licenses/>.
+
+import argparse
+import logging
+import sys
+
+import univention.admin.uldap
+from ucsschool.lib.models.group import SchoolClass, WorkGroup
+from ucsschool.lib.models.school import School
+from ucsschool.lib.models.share import ClassShare, MarketplaceShare, WorkGroupShare
+from ucsschool.lib.models.utils import get_stream_handler, ucr
+
+
+def get_lo(options):
+    if ucr.get("server/role") in {"domaincontroller_master", "domaincontroller_backup"}:
+        lo, po = univention.admin.uldap.getAdminConnection()
+    else:
+        options.bindpw = open(options.bindpwdfile, "r").read()
+        try:
+            lo = univention.admin.uldap.access(
+                host=ucr["ldap/master"],
+                port=int(ucr.get("ldap/master/port", "7389")),
+                base=ucr.get("ldap/base"),
+                binddn=options.binddn,
+                bindpw=options.bindpw,
+            )
+        except univention.admin.uexceptions.authFail:
+            sys.exit(5)
+    return lo
+
+
+def main(options):
+    logger = logging.getLogger("ucsschool")
+    log_level = logging.INFO
+    logger.setLevel(log_level)
+    logger.addHandler(get_stream_handler(log_level))
+
+    lo = get_lo(options)
+    logger.info("Fixing NTACLs on marketplace, class and work group shares...")
+    logger.info("LDAP connection account: %r", lo.binddn)
+    logger.info("Please ignore warnings about 'UDM object ... does not correspond...' below.")
+    schools = sorted(School.get_all(lo), key=lambda x: x.name)
+
+    for school_num, school in enumerate(schools, start=1):
+        logger.info(
+            "%02d / %02d: Checking shares of school %r...", school_num, len(schools), school.name
+        )
+        class_shares = [
+           ClassShare.from_school_class(c) for c in SchoolClass.get_all(lo, school=school.name)
+        ]
+        class_shares = sorted([x for x in class_shares if x.exists(lo)], key=lambda x: x.name)
+        logger.info("Class shares found: %s", ", ".join(c.name for c in class_shares))
+        work_group_shares = [
+            WorkGroupShare.from_school_class(w) for w in WorkGroup.get_all(lo, school=school.name)
+        ]
+        work_group_shares = sorted([x for x in work_group_shares if x.exists(lo)], key=lambda x: x.name)
+        logger.info("Work group shares found: %s", ", ".join(c.name for c in work_group_shares))
+        all_shares = [("class share", share) for share in class_shares]
+        all_shares.extend([("work group share", share) for share in work_group_shares])
+        market_place = MarketplaceShare.get_all(lo, school.name, "name=Marktplatz")
+        logger.info("Market place shares found: %s", ", ".join(c.name for c in market_place))
+        if market_place:
+            all_shares.append(("market place", market_place[0]))
+
+        for share_num, (share_type, share) in enumerate(all_shares):
+            share_udm = share.get_udm_object(lo)
+            udm_acls = set(share_udm.get("appendACL"))
+            expected_acls = set(share.get_nt_acls(lo))
+            # Custom ACLs will not have the b' in them.
+            correct_udm_acls = {acl for acl in udm_acls if "b'" not in acl}
+            # This is also true if the sets are equal.
+            if expected_acls.issubset(correct_udm_acls):
+                logger.info(
+                    "    %02d / %02d: NTACLs on %s %r already correct.",
+                    share_num,
+                    len(all_shares),
+                    share_type,
+                    share.name,
+                )
+                continue
+            # If appendACL is not set, the expected acls are set or differ, the acls are corrected: is this ok?
+            logger.info(
+                "    %02d / %02d: Fixing NTACLs on %s %r...",
+                share_num,
+                len(all_shares),
+                share_type,
+                share.name,
+            )
+
+            share_udm["appendACL"] = list(correct_udm_acls.union(expected_acls))
+            share_udm.modify()
+
+    logger.info("Finished fixing NTACLs on marketplace, class and work group shares.")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--binddn", default=None, help="LDAP binddn")
+    parser.add_argument("--bindpwdfile", default=None, help="path to password file")
+    options = parser.parse_args()
+    main(options)
