@@ -87,6 +87,7 @@ rsync -a --delete \
    Dockerfile \
    opa.initd \
    ucsschool-kelvin-rest-api.initd \
+   ../fix_nt_acl_on_shares \
  build/
 
 echo "Create empty import configs"

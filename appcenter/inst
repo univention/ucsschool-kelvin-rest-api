@@ -33,7 +33,7 @@
 #  Join script that runs on the docker host.
 #
 
-VERSION=8
+VERSION=9
 
 APP_ID="ucsschool-kelvin-rest-api"
 ADMIN_GROUP="$APP_ID-admins"
@@ -175,6 +175,12 @@ eval $(ucr shell ldap/base appcenter/apps/ucsschool-kelvin-rest-api/hostdn appce
 
 main "$@"
 check_openapi_client_knows_ucssschool
+
+if [ $JS_LAST_EXECUTED_VERSION -lt 9 ] ; then
+  docker cp $appcenter_apps_ucsschool_kelvin_rest_api_container:/tmp/fix_nt_acl_on_shares /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/data/scripts/
+  /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/data/scripts/fix_nt_acl_on_shares "$@"
+	univention-directory-listener-ctrl resync samba-shares
+fi
 
 joinscript_save_current_version
 exit $?

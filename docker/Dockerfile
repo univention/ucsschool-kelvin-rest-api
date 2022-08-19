@@ -140,3 +140,5 @@ RUN	mv -v /tmp/ucsschool-kelvin-rest-api.initd /etc/init.d/ucsschool-kelvin-rest
 	make -C /kelvin/kelvin-api clean && \
 	find /kelvin -name .pytest_cache -exec rm -rf '{}' + && \
 	rm -rf /root/.cache/
+RUN mkdir -p /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/data/scripts
+COPY fix_nt_acl_on_shares /tmp/fix_nt_acl_on_shares
