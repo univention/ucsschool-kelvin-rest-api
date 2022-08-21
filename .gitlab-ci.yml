@@ -3,8 +3,10 @@ include:
     file: 'pipeline/sphinx.yml'
 
 stages:
+  - lint
   - prepare
   - build
+  - tests
   - merge
   - production
 
@@ -15,6 +17,18 @@ variables:
 
 prepare:
   stage: prepare
+  cache:
+    - key: "$CI_COMMIT_REF_SLUG"
+      paths:
+        - docker/build/
+  rules:
+    - changes:
+        - docker/*
+        - kelvin-api/**/*
+        - ucs-school-import/**/*
+        - ucs-school-lib/**/*
+        - univention-directory-manager-modules-slim/**/*
+        - univention-lib-slim/**/*
   image:
     name: python:3.9-bullseye
   artifacts:
@@ -26,6 +40,15 @@ prepare:
     - apt-get install git rsync
     - cd ${CI_PROJECT_DIR}/docker
     - ./gitlab_prepare_docker_image
+
+run_pre_commit:
+  stage: lint
+  image: docker-registry.knut.univention.de/knut/pre-commit-opa
+  variables:
+    opa_version: 0.45.0
+  script:
+    - pre-commit run -a
+
 
 html:
   extends: .sphinx-html-template
@@ -107,9 +130,20 @@ docs-production:
 
 build:
   stage: build
+  rules:
+    - changes:
+        - docker/*
+        - kelvin-api/**/*
+        - ucs-school-import/**/*
+        - ucs-school-lib/**/*
+        - univention-directory-manager-modules-slim/**/*
+        - univention-lib-slim/**/*
   image:
     name: docker-registry.knut.univention.de/kaniko-project/executor:debug
     entrypoint: [""]
+  variables:
+    KANIKO_ARGS: --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo "$CI_REGISTRY_IMAGE"
+
   script:
     # install KNUT CA
     - install -m 644 "$KNUT_CA" /kaniko/ssl/certs/knut.pem
@@ -128,3 +162,14 @@ build:
       --dockerfile "${CI_PROJECT_DIR}/docker/build/Dockerfile"
       --destination "${CI_REGISTRY_IMAGE}:${DOCKER_TAG}"
       ${ARG_DESTINATION_LATEST}
+
+tests:
+  stage: tests
+  rules:
+    - changes:
+        - kelvin-api/**/*
+        - ucs-school-lib/**/*
+  image: "${CI_REGISTRY_IMAGE}:branch-${CI_COMMIT_REF_SLUG}"
+  script:
+    - cd kelvin-api && make test && cd -
+    - cd ucs-school-lib/modules/ucsschool/lib && pytest -v tests

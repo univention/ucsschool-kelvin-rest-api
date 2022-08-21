@@ -271,7 +271,9 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         obj.workgroups = await cls.get_workgroups(udm_obj, obj)
         return obj
 
-    async def create(self, lo: UDM, validate: bool = True, check_password_policies: bool = False) -> bool:
+    async def create(
+        self, lo: UDM, validate: bool = True, check_password_policies: bool = False
+    ) -> bool:
         self.check_password_policies = check_password_policies
         return await super(User, self).create(lo=lo, validate=validate)
 
@@ -314,9 +316,17 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             self.password = ""  # nosec
         return success
 
-    async def modify(self, lo: UDM, validate: bool = True, move_if_necessary: bool = None, check_password_policies : bool = False) -> bool:
+    async def modify(
+        self,
+        lo: UDM,
+        validate: bool = True,
+        move_if_necessary: bool = None,
+        check_password_policies: bool = False,
+    ) -> bool:
         self.check_password_policies = check_password_policies
-        return await super(User, self).modify(lo=lo, validate=validate, move_if_necessary=move_if_necessary)
+        return await super(User, self).modify(
+            lo=lo, validate=validate, move_if_necessary=move_if_necessary
+        )
 
     async def do_modify(self, udm_obj: UdmObject, lo: UDM) -> None:
         await self.create_mail_domain(lo)

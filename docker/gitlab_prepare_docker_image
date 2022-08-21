@@ -14,25 +14,6 @@ DOCKER_REGISTRY_SERVER="docker.knut.univention.de"
 DATE="$(date -Iseconds)"
 COMMIT="$CI_COMMIT_SHA"
 
-# QUICK=0
-# [ "$1" = "-q" ] && QUICK=1
-
-# if [ "$1" = "--release" ] || [ "$2" = "--release" ] || [ "$3" = "--release" ]; then
-#   RELEASE=1
-# fi
-
-# PUSH_DEV=0
-# if [ "$1" = "--push" ] || [ "$2" = "--push" ] || [ "$3" = "--push" ]; then
-#   PUSH_DEV=1
-# fi
-# if [ "$1" = "--yes" ] || [ "$2" = "--yes" ] || [ "$3" = "--yes" ]; then
-#   PUSH_YES=1
-# fi
-# if [ "$PUSH_DEV" = 1 ] && [ "$(hostname -f)" != "$DOCKER_REGISTRY_SERVER" ]; then
-#   echo "Pushing image to docker registry only possible on $DOCKER_REGISTRY_SERVER."
-#   exit 1
-# fi
-
 if [ -n "$http_proxy" ]; then
     PROXY_ARGS="--build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_proxy"
 fi
@@ -45,14 +26,6 @@ echo "BASE_IMG=$BASE_IMG"
 echo "APP_IMG=$APP_IMG"
 echo "DOCKERFILE: $DOCKERFILE"
 echo "PROXY_ARGS: $PROXY_ARGS"
-
-# if [ "$QUICK" = "0" ] || [ "$PUSH_DEV" = "1" ]; then
-#      echo "Updating base image (use '-q' to skip)..."
-#      docker pull "$BASE_IMG"
-
-#      echo "Removing old final image (use '-q' to skip)..."
-#      docker rmi -f "$APP_IMG" || true
-# fi
 
 echo "Updating/Downloading patched UCR..."
 UCS_REPO_DIR="ucs"
@@ -115,42 +88,4 @@ echo "Collecting all Python dependencies..."
 find build/ -name 'requirements*.txt' -exec cat {} + | egrep -v 'univention|school' | sort | uniq > build/requirements_all.txt
 
 echo "Building docker image..."
-#if [ "$RELEASE" = 1 ]; then
-  BUILD_ARGS="--no-cache"
-#fi
-
-# /kaniko/executor \
-#       --force \
-#       --context "${CI_PROJECT_DIR}/docker" \
-#       --dockerfile "${CI_PROJECT_DIR}/docker/$Dockerfile" \
-#       --destination "${CI_REGISTRY_IMAGE}:${DOCKER_TAG}" \
-#       ${ARG_DESTINATION_LATEST}
-
-# docker build \
-#   $PROXY_ARGS \
-#   $BUILD_ARGS \
-#   --build-arg app_id="$APP_ID" \
-#   --build-arg date="$DATE" \
-#   --build-arg version="$APP_VERSION" \
-#   --build-arg commit="$COMMIT"\
-#   -t "$APP_IMG" \
-#   build
-
-# echo "Local Docker images:"
-# docker images "$APP_IMG_NO_VERSION"
-
-# if [ "$PUSH_DEV" = 1 ]; then
-#   if [ -z "$PUSH_YES" ]; then
-#     read -p "Push 'Y' if you are sure you want to push '$APP_IMG' to the docker registry. " -n 1 -r
-#   else
-#     REPLY="y"
-#   fi
-#   echo
-#   if [[ $REPLY =~ ^[yY]$ ]]; then
-#     echo "Removing 'test' from image tag..."
-#     docker tag "$APP_IMG" "$APP_IMG_NO_TEST"
-#     docker images "$APP_IMG_NO_TEST_NO_VERSION"
-#     echo "Pushing image to docker registry..."
-#     docker push "$APP_IMG_NO_TEST"
-#   fi
-# fi
+BUILD_ARGS="--no-cache"

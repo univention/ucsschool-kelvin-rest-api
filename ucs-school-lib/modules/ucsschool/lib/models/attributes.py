@@ -57,7 +57,7 @@ from univention.admin.syntax import (
 )
 from univention.admin.uexceptions import valueError
 
-from ..roles import all_context_types, all_roles
+from ..roles import all_roles
 from .utils import _, ucr
 
 
