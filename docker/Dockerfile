@@ -115,7 +115,6 @@ COPY opa /usr/bin
 COPY logrotate_opa_info /etc/univention/templates/info/opa.info
 COPY logrotate_opa_template /etc/univention/templates/files/etc/logrotate.d/opa
 COPY kelvin-api/ /kelvin/kelvin-api
-COPY .black .isort.cfg .flake8 /kelvin/kelvin-api/
 RUN	mv -v /tmp/ucsschool-kelvin-rest-api.initd /etc/init.d/ucsschool-kelvin-rest-api && \
     apk add --no-cache logrotate && \
 	mv -v /tmp/opa.initd /etc/init.d/opa && \
@@ -134,10 +133,5 @@ RUN	mv -v /tmp/ucsschool-kelvin-rest-api.initd /etc/init.d/ucsschool-kelvin-rest
 	cp -r /kelvin/ucs-school-import/empty_configs /var/lib/ucs-school-import/configs && \
 	python3 /kelvin/kelvin-api/setup.py build_html && \
 	python3 -m pip install --no-cache-dir --editable /kelvin/kelvin-api[development] && \
-	(cd /kelvin/ucs-school-lib/modules && python3 -m pytest) && \
-	make -C /kelvin/kelvin-api lint && \
-	make -C /kelvin/kelvin-api test && \
-	make -C /kelvin/kelvin-api clean && \
-	find /kelvin -name .pytest_cache -exec rm -rf '{}' + && \
 	rm -rf /root/.cache/
 COPY fix_nt_acl_on_shares /kelvin/fix_nt_acl_on_shares

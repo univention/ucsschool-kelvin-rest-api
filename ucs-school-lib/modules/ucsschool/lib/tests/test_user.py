@@ -321,7 +321,7 @@ async def test_create_check_password_policies(
                     f"{school}-{cls_attr2['name']}",
                 ]
             }
-        user_props["password"] = "s"
+        user_props["password"] = "s"  # nosec
         user = role.klass(**user_props)
         if check_password_policies:
             with pytest.raises(CreateError, match=r".*Password policy error.*"):
@@ -372,7 +372,7 @@ async def test_modify_check_password_policies(
     dn, attr = await new_udm_user(ou, role.name)
     async with UDM(**udm_kwargs) as udm:
         user: User = await role.klass.from_dn(dn, ou, udm)
-        user.password = "s"
+        user.password = "s"  # nosec
         if check_password_policies:
             with pytest.raises(ModifyError, match=r".*Password policy error.*"):
                 await user.modify(udm, check_password_policies=check_password_policies)
