@@ -173,7 +173,7 @@ class SchoolName(CommonName):
 
     def validate(self, value: str) -> None:
         super(SchoolName, self).validate(value)
-        regex = re.compile("^[a-zA-Z0-9](([a-zA-Z0-9-]*)([a-zA-Z0-9]$))?$")
+        regex = re.compile("^[a-zA-Z0-9](([a-zA-Z0-9-_]*)([a-zA-Z0-9]$))?$")
         if not regex.match(value):
             raise ValueError(_("Invalid school name"))
 
