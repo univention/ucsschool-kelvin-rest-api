@@ -31,7 +31,7 @@ To be more precise, let's take a look at the topology picture, starting with the
 .. _`Python client`: https://kelvin-rest-api-client.readthedocs.io/
 .. _`Open Policy Agent`: https://www.openpolicyagent.org/
 .. _`UDM REST API *client*`: https://udm-rest-client.readthedocs.io/
-.. _`UDM REST API *server*`: https://docs.software-univention.de/developer-reference-5.0.html#udm:rest_api
+.. _`UDM REST API *server*`: https://docs.software-univention.de/developer-reference/5.0/en/udm/rest-api.html#udm-rest-api
 
 
 .. rubric:: Footnotes
