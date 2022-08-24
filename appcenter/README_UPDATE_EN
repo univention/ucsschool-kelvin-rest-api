@@ -7,6 +7,23 @@
     </li>
 </ul>
 
+<h2>v1.6.0 (2022-08-24)</h2>
+<ul>
+    <li>
+        Security Issue: An error causing group shares to be created with wrong permissions has been fixed. The permissions of existing shares will be fixed during the joinscript (Bug #55103).
+    </li>
+    <li>
+        Creating schools with OU names including underscores is now allowed, if the DC name is passed, too (Bug #55125).
+    </li>
+</ul>
+
+<h2>v1.5.6 (2022-06-30)</h2>
+<ul>
+    <li>
+        Remove create_share from school class objects to avoid conflicts with Kelvin client versions older than 1.6.0 (Bug #54916).
+    </li>
+</ul>
+
 <h2>v1.5.5 (2022-06-23)</h2>
 <ul>
     <li>

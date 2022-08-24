@@ -9,6 +9,16 @@ v1.7.0 (2022-07-18)
 .........
 * Add work group support in user resource (Bug #54891).
 
+v1.6.0 (2022-08-24)
+.........
+* Security Issue: An error causing group shares to be created with wrong permissions has been fixed. The permissions of existing shares will be fixed during the joinscript (Bug #55103).
+* Creating schools with OU names including underscores is now allowed, if the DC name is passed, too (Bug #55125).
+
+
+v1.5.6 (2022-06-30)
+.........
+* Remove create_share from school class objects to avoid conflicts with older Kelvin client versions (Bug #54916).
+
 v1.5.5 (2022-06-23)
 .........
 * Add work group resource (Bug #54876).
