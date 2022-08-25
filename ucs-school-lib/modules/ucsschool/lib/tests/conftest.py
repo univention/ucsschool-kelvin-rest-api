@@ -114,6 +114,30 @@ def school_class_attrs(ldap_base):
     return _func
 
 
+@pytest.fixture
+def workgroup_attrs(ldap_base):
+    async def _func(school: str, **kwargs) -> Dict[str, str]:
+        return {
+            "name": kwargs.get("name", f"test.{fake.user_name()}"),
+            "school": school,
+            "description": kwargs.get("description", fake.text(max_nb_chars=50)),
+            "users": kwargs.get(
+                "users",
+                [
+                    f"uid={fake.user_name()},cn=users,{ldap_base}",
+                    f"uid={fake.user_name()},cn=users,{ldap_base}",
+                ],
+            ),
+            "ucsschool_roles": kwargs.get(
+                "ucsschool_roles", [create_ucsschool_role_string(role_workgroup, school)]
+            ),
+            "email": None,
+            "allowed_email_senders_users": [],
+            "allowed_email_senders_groups": [],
+        }
+
+    return _func
+
 class UserFactory(factory.Factory):
     """
     Not yet created lib User object (missing specific roles), you probably want to use
