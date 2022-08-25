@@ -69,21 +69,8 @@ sphinx-spelling:
     paths:
       - $doc_base/_build/spelling
 
-.docs-pre-production:
-  rules:
-    - changes:
-        - "docs/**/*"
-
 docs-production:
   stage: production
-  extends: .docs-pre-production
-  needs:
-    - job: sphinx-linkcheck
-      artifacts: false
-    - job: sphinx-spelling
-      artifacts: false
-    - job: sphinx-html
-    - job: sphinx-pdf
   cache:
     key: docs-$CI_COMMIT_REF_SLUG
     paths:
