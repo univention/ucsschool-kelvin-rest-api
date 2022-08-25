@@ -18,6 +18,7 @@ from ucsschool.lib.roles import (
     create_ucsschool_role_string,
     role_school_class,
     role_school_class_share,
+    role_workgroup,
     role_staff,
     role_teacher,
 )
