@@ -7,7 +7,7 @@ Changelog
 
 v1.7.0 (2022-07-18)
 .........
-* Add work group support in user resource (Bug #54891).
+* **Breaking change for UCS@school Kelvin REST API clients below ``1.7.0``**: Add work group support in user resource (Bug #54891).
 
 v1.6.0 (2022-08-24)
 .........

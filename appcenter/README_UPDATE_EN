@@ -3,7 +3,7 @@
 <h2>v1.7.0 (2022-07-18)</h2>
 <ul>
     <li>
-        Add work group support in user resource (Bug #54891).
+        <b>Breaking change for UCS@school Kelvin REST API clients below <code>1.7.0</code></b>: Add work group support in user resource (Bug #54891).
     </li>
 </ul>
 
