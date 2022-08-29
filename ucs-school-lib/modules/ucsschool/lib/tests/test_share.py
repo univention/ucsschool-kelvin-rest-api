@@ -45,6 +45,7 @@ async def test_group_share_nt_acls(
     udm_kwargs,
     ObjectClass,
     ShareClass,
+    ldap_base,
 ):
     ou = await create_ou_using_python()
     if isinstance(ObjectClass, SchoolClass):
@@ -58,15 +59,26 @@ async def test_group_share_nt_acls(
         await group1.create(udm)
         sc0 = await ObjectClass.from_dn(group1.dn, ou, udm)
         share = ShareClass.from_school_group(school_group=sc0)
-        expected_acls = share.get_aces_deny_students_change_permissions(udm)
+        expected_acls = []
+        # deny schueler to change permissions & take ownership
+        search_base = share.get_search_base(share.school)
+        student_group_dn = "cn={}{},cn=groups,{}".format(
+            search_base.group_prefix_students, share.school, search_base.schoolDN
+        )
+        samba_sid = share.get_groups_samba_sid(udm, student_group_dn)
+        expected_acls.append("(D;OICI;WOWD;;;{})".format(samba_sid))
+        # allow group-members to read/write/modify
         samba_sid = share.get_groups_samba_sid(udm, sc0.dn)
         expected_acls.append("(A;OICI;0x001f01ff;;;{})".format(samba_sid))
-        expected_acls.extend(share.get_ou_admin_full_control(udm))
+        # allow ou-admins full control
+        admin_dn = "cn=admins-{},cn=ouadmins,cn=groups,{}".format(share.school.lower(), ldap_base)
+        samba_sid = share.get_groups_samba_sid(udm, admin_dn)
+        expected_acls.append("(A;OICI;0x001f01ff;;;{})".format(samba_sid))
         await check_acls(share, udm, expected_acls)
 
 
 @pytest.mark.asyncio
-async def test_marktplatz_share_nt_acls(create_ou_using_python, udm_kwargs):
+async def test_marktplatz_share_nt_acls(create_ou_using_python, udm_kwargs, ldap_base):
     ou = await create_ou_using_python(cache=False)
     async with UDM(**udm_kwargs) as udm:
         share = MarketplaceShare(name="Marktplatz", school=ou)
@@ -75,5 +87,8 @@ async def test_marktplatz_share_nt_acls(create_ou_using_python, udm_kwargs):
         domain_users_dn = "cn=Domain Users %s,%s" % (share.school.lower(), search_base.groups)
         samba_sid = share.get_groups_samba_sid(udm, domain_users_dn)
         expected_acls.append("(A;OICI;0x001f01ff;;;{})".format(samba_sid))
-        expected_acls.extend(share.get_ou_admin_full_control(udm))
+        # allow ou-admins full control
+        admin_dn = "cn=admins-{},cn=ouadmins,cn=groups,{}".format(share.school.lower(), ldap_base)
+        samba_sid = share.get_groups_samba_sid(udm, admin_dn)
+        expected_acls.append("(A;OICI;0x001f01ff;;;{})".format(samba_sid))
         await check_acls(share, udm, expected_acls)
