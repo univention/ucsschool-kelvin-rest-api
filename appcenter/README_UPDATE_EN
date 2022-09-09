@@ -5,6 +5,9 @@
     <li>
         <b>Breaking change for UCS@school Kelvin REST API clients below <code>1.7.0</code></b>: Add work group support in user resource (Bug #54891).
     </li>
+     <li>
+        Allow the creation of school classes without share (Bug #54875).
+    </li>
 </ul>
 
 <h2>v1.6.0 (2022-08-24)</h2>
