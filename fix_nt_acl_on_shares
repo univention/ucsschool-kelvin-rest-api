@@ -74,7 +74,7 @@ def main(options):
             "%02d / %02d: Checking shares of school %r...", school_num, len(schools), school.name
         )
         class_shares = [
-           ClassShare.from_school_class(c) for c in SchoolClass.get_all(lo, school=school.name)
+            ClassShare.from_school_class(c) for c in SchoolClass.get_all(lo, school=school.name)
         ]
         class_shares = sorted([x for x in class_shares if x.exists(lo)], key=lambda x: x.name)
         logger.info("Class shares found: %s", ", ".join(c.name for c in class_shares))
@@ -106,7 +106,8 @@ def main(options):
                     share.name,
                 )
                 continue
-            # If appendACL is not set, the expected acls are set or differ, the acls are corrected: is this ok?
+            # If appendACL is not set, the expected acls are set or differ, the acls are corrected: is
+            # this ok?
             logger.info(
                 "    %02d / %02d: Fixing NTACLs on %s %r...",
                 share_num,

@@ -270,7 +270,9 @@ class Share(UCSSchoolHelperAbstractClass):
         ou_attr_ldap_access_write = ldap_lo.get(school_dn, ["univentionLDAPAccessWrite"])
         alternative_server_dn = None
         if len(ou_attr_ldap_access_write) > 0:
-            alternative_server_dn = ou_attr_ldap_access_write["univentionLDAPAccessWrite"][0].decode("UTF-8")
+            alternative_server_dn = ou_attr_ldap_access_write["univentionLDAPAccessWrite"][0].decode(
+                "UTF-8"
+            )
             if len(ou_attr_ldap_access_write) > 1:
                 self.logger.warning(
                     "more than one corresponding univentionLDAPAccessWrite found at ou=%s", self.school
