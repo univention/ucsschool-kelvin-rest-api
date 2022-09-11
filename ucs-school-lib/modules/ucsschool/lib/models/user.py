@@ -226,7 +226,9 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         if not obj:
             raise noObject("Could not read %r" % (self.dn,))
         if "ucsschoolSchool" in obj.oldattr:  # TODO: HTTP UdmObject does not have "oldattr"!
-            return object_class.encode("UTF-8") in obj.oldattr.get("objectClass", [])  # TODO: see line above
+            return object_class.encode("UTF-8") in obj.oldattr.get(
+                "objectClass", []
+            )  # TODO: see line above
         return fallback(self.school, self.dn)
 
     @classmethod
