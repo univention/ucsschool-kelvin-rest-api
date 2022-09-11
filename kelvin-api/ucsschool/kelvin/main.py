@@ -31,8 +31,11 @@ from functools import lru_cache
 
 import aiofiles
 import lazy_object_proxy
+from asgi_correlation_id import CorrelationIdMiddleware
+from asgi_correlation_id.context import correlation_id
 from fastapi import Depends, FastAPI, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, UJSONResponse
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import HTMLResponse, JSONResponse, UJSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 
@@ -70,6 +73,7 @@ app = FastAPI(
     openapi_url=f"{URL_API_PREFIX}/openapi.json",
     default_response_class=UJSONResponse,
 )
+app.add_middleware(CorrelationIdMiddleware)
 
 
 class ValidationDataFilter(logging.Filter):
@@ -106,6 +110,22 @@ def setup_logging() -> None:
     logger = logging.getLogger()
     logger.setLevel(abs_min_level)
     logger.addHandler(file_handler)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Add Correlation-ID to HTTP 500."""
+    return await http_exception_handler(
+        request,
+        HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "Internal server error",
+            headers={
+                CorrelationIdMiddleware.header_name: correlation_id.get() or "",
+                "Access-Control-Expose-Headers": CorrelationIdMiddleware.header_name,
+            },
+        ),
+    )
 
 
 @app.on_event("startup")
@@ -210,3 +230,9 @@ app.mount(
     StaticFiles(directory=str(STATIC_FILES_PATH)),
     name="static",
 )
+
+
+@app.on_event("startup")
+def log_version():  # should be the last 'startup' event function
+    logger = logging.getLogger(__name__)
+    logger.info(f"Started {app.title} version {app.version}.")

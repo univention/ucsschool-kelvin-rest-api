@@ -47,6 +47,8 @@ from typing import IO, Any, Dict, List, Sequence, Tuple, Union
 import colorlog
 import lazy_object_proxy
 import ruamel.yaml
+from asgi_correlation_id import CorrelationIdFilter
+from asgi_correlation_id.context import correlation_id
 from pkg_resources import resource_stream
 from six import string_types
 
@@ -424,6 +426,7 @@ def get_stream_handler(
     fmt = "%(log_color)s{}".format(
         fmt or CMDLINE_LOG_FORMATS[loglevel_int2str(nearest_known_loglevel(level))]
     )
+    fmt = fmt.format(pid=os.getpid())
     datefmt = datefmt or str(LOG_DATETIME_FORMAT)
     formatter_kwargs = {"fmt": fmt, "datefmt": datefmt}
     fmt_cls = fmt_cls or UCSTTYColoredFormatter
@@ -434,6 +437,8 @@ def get_stream_handler(
     formatter = fmt_cls(**formatter_kwargs)
     handler = UniStreamHandler(stream=stream)
     handler.setFormatter(formatter)
+    cid_filter = CorrelationIdFilter(uuid_length=10)
+    handler.addFilter(cid_filter)
     handler.setLevel(level)
     return handler
 
@@ -446,7 +451,7 @@ def get_file_handler(
     uid: int = None,
     gid: int = None,
     mode: int = None,
-    backupCount: int = 10000,
+    backupCount: int = 30,
     when: str = "D",
 ) -> logging.Handler:
     # noqa: E501
@@ -470,12 +475,15 @@ def get_file_handler(
     :rtype: logging.Handler
     """
     fmt = fmt or FILE_LOG_FORMATS[loglevel_int2str(nearest_known_loglevel(level))]
+    fmt = fmt.format(pid=os.getpid())
     datefmt = datefmt or str(LOG_DATETIME_FORMAT)
     formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
     handler = UniFileHandler(
         filename, when=when, backupCount=backupCount, fuid=uid, fgid=gid, fmode=mode
     )
     handler.setFormatter(formatter)
+    cid_filter = CorrelationIdFilter(uuid_length=10)
+    handler.addFilter(cid_filter)
     handler.setLevel(level)
     return handler
 
@@ -553,7 +561,7 @@ def udm_rest_client_cn_admin_kwargs() -> Dict[str, str]:
             "password": cn_admin_password,
             "url": f"https://{host}/univention/udm/",
         }
-    return _udm_kwargs
+    return {**_udm_kwargs, "request_id": correlation_id.get()}
 
 
 def add_or_remove_ucrv_value(ucrv, action, value, delimiter):

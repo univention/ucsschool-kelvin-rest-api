@@ -8,6 +8,9 @@
      <li>
         Allow the creation of school classes without share (Bug #54875).
     </li>
+     <li>
+        Add a correlation ID the headers of requests and responses. Write the ID to the log (Issue #25).
+    </li>
 </ul>
 
 <h2>v1.6.0 (2022-08-24)</h2>

@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import aiofiles
+from asgi_correlation_id.context import correlation_id
 from async_property import async_cached_property
 from ldap3 import AUTO_BIND_TLS_BEFORE_BIND, MODIFY_REPLACE, SIMPLE, Connection, Entry, Server
 from ldap3.core.exceptions import LDAPBindError, LDAPExceptionError
@@ -56,7 +57,7 @@ async def udm_kwargs():
                 "url": f"https://{ldap_access.host}/univention/udm/",
             }
         )
-    return _udm_kwargs
+    return {**_udm_kwargs, "request_id": correlation_id.get()}
 
 
 class LdapUser(BaseModel):
