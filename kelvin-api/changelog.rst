@@ -13,6 +13,7 @@ v1.7.0 (2022-07-18)
 * App Center scripts were added to keep the state of UCR variables, which are set manually inside the docker container (Bug #54959).
 * The request time is now added to the log file (Issue #28).
 * Validation errors are logged as warnings to make filtering the log easier (Issue #895).
+* Add HEAD /schools/{school_name} endpoint (Issue #24).
 
 v1.6.0 (2022-08-24)
 .........

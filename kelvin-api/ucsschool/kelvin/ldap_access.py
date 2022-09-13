@@ -29,6 +29,7 @@
 
 import logging
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -286,3 +287,9 @@ class LDAPAccess:
         else:
             self.logger.error("Reading group %r from LDAP: results=%r", API_USERS_GROUP_NAME, results)
             return []
+
+
+@lru_cache(maxsize=1)
+def ldap_access_obj() -> LDAPAccess:
+    """Cached LDAPAccess object (singleton)."""
+    return LDAPAccess()

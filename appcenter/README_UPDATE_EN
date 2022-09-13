@@ -20,6 +20,9 @@
      <li>
         Validation errors are logged as warnings to make filtering the log easier (Issue #895).
     <li>
+    <li>
+    	Add HEAD /schools/{school_name} endpoint (Issue #24).
+    </li>
 </ul>
 
 <h2>v1.6.0 (2022-08-24)</h2>

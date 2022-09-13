@@ -29,7 +29,7 @@ import logging
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from ldap.dn import explode_dn
 from ldap.filter import escape_filter_chars, filter_format
 from pydantic import validator
@@ -41,6 +41,7 @@ from ucsschool.lib.models.utils import env_or_ucr
 from udm_rest_client import UDM
 
 from ...lib.models.base import UDMPropertiesError
+from ..ldap_access import ldap_access_obj
 from ..opa import OPAClient
 from ..token_auth import get_token
 from .base import APIAttributesMixin, LibModelHelperMixin, udm_ctx
@@ -357,3 +358,37 @@ async def create(
         logger.exception(error_msg)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg)
     return await SchoolModel.from_lib_model(school_obj_to_fix, request, udm)
+
+
+@router.head("/{school_name}")
+async def exists(
+    school_name: str = Query(
+        None,
+        alias="name",
+        description="School (OU) with this name.",
+        title="name",
+    ),
+    token: str = Depends(get_token),
+):
+    """
+    Check if school (OU) with a provided name exists.
+
+    - **name**: name of the school (**required**)
+    """
+    if not await OPAClient.instance().check_policy_true(
+        policy="schools",
+        token=token,
+        request=dict(method="HEAD", path=["schools", school_name]),
+        target={},
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authorized to see schools.",
+        )
+    ldap_access = ldap_access_obj()
+    results = await ldap_access.search(
+        filter_format("(&(objectClass=ucsschoolOrganizationalUnit)(ou=%s))", (school_name,)),
+        attributes=["ou"],
+    )
+    status_code = status.HTTP_200_OK if results else status.HTTP_404_NOT_FOUND
+    return Response(status_code=status_code)

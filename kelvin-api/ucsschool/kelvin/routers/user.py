@@ -61,7 +61,7 @@ from univention.admin.filter import conjunction, expression
 
 from ..config import UDM_MAPPING_CONFIG
 from ..import_config import get_import_config, init_ucs_school_import_framework
-from ..ldap_access import LDAPAccess
+from ..ldap_access import ldap_access_obj
 from ..opa import OPAClient, import_user_to_opa
 from ..token_auth import get_token
 from ..urls import url_to_name
@@ -96,11 +96,6 @@ def get_factory() -> DefaultUserImportFactory:
 def get_user_importer() -> UserImport:
     factory = get_factory()
     return factory.make_user_importer(False)
-
-
-@lru_cache(maxsize=1)
-def ldap_access_obj() -> LDAPAccess:
-    return LDAPAccess()
 
 
 async def get_import_user(udm: UDM, dn: str) -> ImportUser:

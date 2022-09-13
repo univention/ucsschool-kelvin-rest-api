@@ -122,6 +122,30 @@ resource. The search is case-insensitive. The URL would be: ``https://<fqdn>/ucs
 ``name`` is the only attribute that can be used to search for OUs.
 
 
+Schools exist
+-------------
+
+Example ``curl`` command to check for the existence of a single school (OU):
+
+.. code-block:: console
+
+    $ curl -i --head "https://<fqdn>/ucsschool/kelvin/v1/schools/demoschool" \
+        -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJh...."
+
+The response headers will be::
+
+    HTTP/1.1 200 OK
+    Date: Tue, 13 Sep 2022 20:28:27 GMT
+    Server: uvicorn
+    x-request-id: fd07836e6564438287efe1f2de0772d8
+    access-control-expose-headers: X-Request-ID
+    Via: 1.1 <fqdn>
+
+With the search being case-insensitive, this matches an OU named ``DEMOSCHOOL``.
+The response body will be *empty*.
+
+A response status code of ``200`` means, that the school object exists, ``404`` means that it does not.
+
 Schools retrieve
 ----------------
 
