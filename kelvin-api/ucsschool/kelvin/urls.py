@@ -61,7 +61,7 @@ def url_to_name(request: Request, obj_type: str, url: Union[str, HttpUrl]) -> st
     no_object_exception = NoObject(f"Could not find object of type {obj_type!r} with URL {url!r}.")
     if obj_type == "school":
         name = URL(url).path.rstrip("/").split("/")[-1]
-        calc_url = request.url_for("get", school_name=name)
+        calc_url = request.url_for("school_get", school_name=name)
         if url != calc_url:
             raise no_object_exception
     elif obj_type == "user":

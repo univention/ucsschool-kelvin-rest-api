@@ -85,7 +85,7 @@ class SchoolModel(SchoolCreateModel, APIAttributesMixin):
     @classmethod
     async def _from_lib_model_kwargs(cls, obj: School, request: Request, udm: UDM) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
-        kwargs["url"] = cls.scheme_and_quote(request.url_for("get", school_name=kwargs["name"]))
+        kwargs["url"] = cls.scheme_and_quote(request.url_for("school_get", school_name=kwargs["name"]))
         kwargs["administrative_servers"] = [
             await cls.computer_dn2name(udm, dn) for dn in obj.administrative_servers
         ]
@@ -197,7 +197,7 @@ async def validate_create_request_params(school: SchoolCreateModel, logger: logg
 
 
 @router.get("/", response_model=List[SchoolModel])
-async def search(
+async def school_search(
     request: Request,
     name_filter: str = Query(
         None,
@@ -235,7 +235,7 @@ async def search(
 
 
 @router.get("/{school_name}", response_model=SchoolModel)
-async def get(
+async def school_get(
     request: Request,
     school_name: str = Query(
         None,
@@ -266,7 +266,7 @@ async def get(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=SchoolModel)
-async def create(
+async def school_create(
     school: SchoolCreateModel,
     request: Request,
     alter_dhcpd_base: Optional[bool] = None,
@@ -361,7 +361,7 @@ async def create(
 
 
 @router.head("/{school_name}")
-async def exists(
+async def school_exists(
     school_name: str = Query(
         None,
         alias="name",
