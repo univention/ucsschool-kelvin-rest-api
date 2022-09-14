@@ -52,13 +52,14 @@ from .constants import (
     STATIC_FILE_CHANGELOG,
     STATIC_FILE_README,
     STATIC_FILES_PATH,
+    STATS_CACHE_DIR,
     URL_API_PREFIX,
     URL_TOKEN_BASE,
 )
 from .import_config import get_import_config
 from .ldap_access import LDAPAccess
 from .opa import OPAClient
-from .routers import role, school, school_class, user, workgroup
+from .routers import role, school, school_class, status as status_router, user, workgroup
 from .token_auth import Token, create_access_token, get_token_ttl
 
 ldap_auth_instance: LDAPAccess = lazy_object_proxy.Proxy(LDAPAccess)
@@ -115,6 +116,7 @@ def setup_logging() -> None:
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Add Correlation-ID to HTTP 500."""
+    status_router.add_error(exc)
     return await http_exception_handler(
         request,
         HTTPException(
@@ -138,6 +140,14 @@ def load_configs():
 @app.on_event("startup")
 def configure_import():
     get_import_config()
+
+
+@app.on_event("startup")
+def clear_stats_cache():
+    if STATS_CACHE_DIR.exists():
+        status_router.get_stats_cache().clear()
+    else:
+        STATS_CACHE_DIR.mkdir(mode=0o750, parents=True)
 
 
 @app.exception_handler(NoObject)
@@ -220,6 +230,11 @@ app.include_router(
 #     tags=["servers"],
 #     dependencies=[Depends(get_current_active_user)],
 # )
+app.include_router(
+    status_router.router,
+    prefix=f"{URL_API_PREFIX}/status",
+    tags=["status"],
+)
 app.include_router(
     user.router,
     prefix=f"{URL_API_PREFIX}/users",

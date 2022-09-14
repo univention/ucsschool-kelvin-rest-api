@@ -11,6 +11,10 @@
      <li>
         Add a correlation ID the headers of requests and responses. Write the ID to the log (Issue #25).
     </li>
+     <li>
+        A new endpoint <code>/status</code> allows retrieving the servers version and the number of internal errors that happened in the last minute.
+        This can be used for monitoring / load balancing purposes (Issue #26).
+    </li>
 </ul>
 
 <h2>v1.6.0 (2022-08-24)</h2>
