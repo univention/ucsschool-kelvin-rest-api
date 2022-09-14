@@ -53,7 +53,7 @@ def add_error(exc: Exception) -> None:
 
 
 @router.get("", response_model=StatusModel)
-async def get() -> StatusModel:  # no authentication needed, so this can be used by load balancers
+async def get_status() -> StatusModel:  # no authentication needed, so this can be used by load balancers
     cache = get_stats_cache()
     cache.expire()
     return StatusModel(internal_errors_last_minute=len(cache), version=str(APP_VERSION))

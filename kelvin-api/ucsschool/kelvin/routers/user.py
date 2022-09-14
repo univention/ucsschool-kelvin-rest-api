@@ -296,7 +296,8 @@ class UserModel(UserBaseModel, APIAttributesMixin):
     async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
         kwargs["schools"] = sorted(
-            cls.scheme_and_quote(request.url_for("get", school_name=school)) for school in obj.schools
+            cls.scheme_and_quote(request.url_for("school_get", school_name=school))
+            for school in obj.schools
         )
         kwargs["url"] = cls.scheme_and_quote(request.url_for("get", username=kwargs["name"]))
         udm_obj = await obj.get_udm_object(udm)

@@ -84,7 +84,7 @@ class SchoolModel(SchoolCreateModel, APIAttributesMixin):
     @classmethod
     async def _from_lib_model_kwargs(cls, obj: School, request: Request, udm: UDM) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
-        kwargs["url"] = cls.scheme_and_quote(request.url_for("get", school_name=kwargs["name"]))
+        kwargs["url"] = cls.scheme_and_quote(request.url_for("school_get", school_name=kwargs["name"]))
         kwargs["administrative_servers"] = [
             await cls.computer_dn2name(udm, dn) for dn in obj.administrative_servers
         ]

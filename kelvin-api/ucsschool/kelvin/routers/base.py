@@ -183,7 +183,9 @@ class LibModelHelperMixin(BaseModel):
             del kwargs["objectType"]
         kwargs["dn"] = kwargs.pop("$dn$")
         if obj.supports_school():
-            kwargs["school"] = cls.scheme_and_quote(request.url_for("get", school_name=obj.school))
+            kwargs["school"] = cls.scheme_and_quote(
+                request.url_for("school_get", school_name=obj.school)
+            )
         udm_obj = await obj.get_udm_object(udm)
         kwargs["udm_properties"] = cls.get_mapped_udm_properties(udm_obj)
         return kwargs
