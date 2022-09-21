@@ -26,6 +26,9 @@
      <li>
         Allow mapping UDM properties to work groups (Bug #55259).
     <li>
+     <li>
+        The <code>multipart</code> library output is not logged anymore (at <code>DEBUG</code> level), when retrieving a token (Issue #27).
+    </li>
 </ul>
 
 <h2>v1.6.0 (2022-08-24)</h2>

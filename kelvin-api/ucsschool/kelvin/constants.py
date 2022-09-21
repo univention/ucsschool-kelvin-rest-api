@@ -55,6 +55,7 @@ CN_ADMIN_PASSWORD_FILE = APP_CONFIG_BASE_PATH / "cn_admin.secret"
 DEFAULT_LOG_LEVELS = {
     None: logging.INFO,
     "fastapi": logging.INFO,
+    "multipart": logging.WARNING,
     "requests": logging.INFO,
     "udm_rest_client": logging.INFO,
     "univention": logging.INFO,
