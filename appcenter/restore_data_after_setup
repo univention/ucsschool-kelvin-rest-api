@@ -28,7 +28,7 @@
 # <http://www.gnu.org/licenses/>.
 
 # restore ucr values from previous app version
-bak_files="/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/data/base*.conf"
+bak_files="/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/data/backup/base*.conf"
 for bak_files in $bak_files
 do
  filename=$(basename "$bak_files")

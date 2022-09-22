@@ -28,4 +28,5 @@
 # <http://www.gnu.org/licenses/>.
 
 # store ucr values for next app version
-cp -v /etc/univention/base*.conf /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/data/
+mkdir -p "/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/data/backup"
+cp -v /etc/univention/base*.conf /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/data/backup/
