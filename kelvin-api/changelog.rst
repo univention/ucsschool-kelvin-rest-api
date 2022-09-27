@@ -10,7 +10,7 @@ v1.7.0 (2022-07-18)
 * **Breaking change for UCS@school Kelvin REST API clients below ``1.7.0``**: Add work group support in user resource (Bug #54891).
 * Allow the creation of school classes without share (Bug #54875).
 * Add a correlation ID to the headers of requests and responses. Write the ID to the log (Issue #25).
-* App Center scripts were added to keep the state of UCR variables, which are set manually inside the docker container (Issue #22).
+* App Center scripts were added to keep the state of UCR variables, which are set manually inside the docker container (Bug #54959).
 
 v1.6.0 (2022-08-24)
 .........

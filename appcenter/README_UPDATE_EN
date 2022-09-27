@@ -12,7 +12,7 @@
         Add a correlation ID the headers of requests and responses. Write the ID to the log (Issue #25).
     </li>
     <li>
-        App Center scripts were added to keep the state of UCR variables, which are set manually inside the docker container.
+        App Center scripts were added to keep the state of UCR variables, which are set manually inside the docker container (Bug #54959).
     <li>
 </ul>
 
