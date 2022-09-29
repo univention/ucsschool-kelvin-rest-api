@@ -38,6 +38,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import HTMLResponse, JSONResponse, UJSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
+from fastapi_utils.timing import add_timing_middleware
 
 from ucsschool.lib.models.attributes import ValidationError as SchooLibValidationError
 from ucsschool.lib.models.base import NoObject
@@ -61,9 +62,13 @@ from .opa import OPAClient
 from .routers import role, school, school_class, user, workgroup
 from .token_auth import Token, create_access_token, get_token_ttl
 
+
+@lru_cache(maxsize=1)
+def get_logger() -> logging.Logger:
+    return logging.getLogger(__name__)
+
+
 ldap_auth_instance: LDAPAccess = lazy_object_proxy.Proxy(LDAPAccess)
-
-
 app = FastAPI(
     title="Kelvin API",
     description="UCS@school Kelvin REST API",
@@ -74,16 +79,13 @@ app = FastAPI(
     default_response_class=UJSONResponse,
 )
 app.add_middleware(CorrelationIdMiddleware)
+logger = get_logger()
+add_timing_middleware(app, record=logger.info)
 
 
 class ValidationDataFilter(logging.Filter):
     def filter(self, record):
         return record.name != VALIDATION_LOGGER
-
-
-@lru_cache(maxsize=1)
-def get_logger() -> logging.Logger:
-    return logging.getLogger(__name__)
 
 
 @app.on_event("shutdown")
