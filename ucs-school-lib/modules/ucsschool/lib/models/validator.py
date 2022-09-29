@@ -504,11 +504,11 @@ def validate(obj: Union[UdmObject, Dict[str, Any]], logger: logging.Logger = Non
         errors = list(filter(None, errors))
         if errors:
             validation_uuid = str(uuid.uuid4())
-            errors_str = "{} UCS@school Object {} with options {} has validation errors:\n\t- {}".format(
+            errors_str = "{} UCS@school Object {} with options {} has validation errors: {}".format(
                 validation_uuid,
                 dict_obj.get("dn", ""),
                 "{!r}".format(options),
-                "\n\t- ".join(errors),
+                ", ".join(errors),
             )
             # ucrvs get copied from the host. In this process variables that are not
             # set on the host get set as empty strings in the container (instead of being not set).
@@ -520,9 +520,7 @@ def validate(obj: Union[UdmObject, Dict[str, Any]], logger: logging.Logger = Non
                 None,
             ):  # tests: 00_validation_log_enabled
                 if logger:
-                    logger.error(errors_str)
+                    logger.warning(errors_str)
                 if private_data_logger:
-                    private_data_logger.error(errors_str)
-                    private_data_logger.error(dict_obj)
                     stack_trace = " ".join(traceback.format_stack()[:-2]).replace("\n", " ")
-                    private_data_logger.error(stack_trace)
+                    private_data_logger.warning("\t".join([errors_str, str(dict_obj), stack_trace]))
