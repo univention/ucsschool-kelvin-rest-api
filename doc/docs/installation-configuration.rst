@@ -202,14 +202,9 @@ To activate a hook, or or a change to a hook, restart the *UCS\@school Kelvin RE
     $ /etc/init.d/docker-app-ucsschool-kelvin-rest-api restart
 
 
-Further reading about the UCS\@school hooks is available for German readers in `Handbuch zur CLI-Import-Schnittstelle`_ chapter "12. Pre- und Post-Hook-Skripte für den Import".
+Further reading about the UCS\@school hooks is available for German readers in `Handbuch zur CLI-Import-Schnittstelle`_ chapter "12. Pre- :spelling:word:`und` Post-Hook-\ :spelling:word:`Skripte` :spelling:word:`für` den Import".
 Please note that the example in that text is for the synchronous variant, missing the ``async/await`` keywords and not using the UDM REST API client. Compare with the examples linked in this chapter.
 
-.. spelling::
-
-   und
-   Skripte
-   für
 
 File locations
 --------------
