@@ -600,7 +600,7 @@ def mapped_udm_properties_test_config(restart_kelvin_api_server_session):
         if MAPPED_UDM_PROPERTIES_CONFIG["active"].exists():
             shutil.move(MAPPED_UDM_PROPERTIES_CONFIG["active"], MAPPED_UDM_PROPERTIES_CONFIG["bak"])
 
-        config = {"school": ["description"], "school_class": ["mailAddress"]}
+        config = {"school": ["description"], "school_class": ["mailAddress"], "workgroup": ["gidNumber"]}
 
         with open(MAPPED_UDM_PROPERTIES_CONFIG["active"], "w") as fd:
             json.dump(config, fd, indent=4)

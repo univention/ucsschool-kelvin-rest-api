@@ -160,6 +160,9 @@ async def test_get(
     api_obj = WorkGroupModel(**json_resp)
     await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
     compare_ldap_json_obj(json_resp["dn"], json_resp, url_fragment)
+    assert "gidNumber" in api_obj.udm_properties
+    assert api_obj.udm_properties["gidNumber"]
+    assert isinstance(api_obj.udm_properties["gidNumber"], int)
 
 
 @pytest.mark.asyncio
