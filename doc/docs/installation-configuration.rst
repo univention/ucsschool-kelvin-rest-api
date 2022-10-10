@@ -75,7 +75,7 @@ Configuration of user object management (import configuration)
 The directory :file:`/var/lib/ucs-school-import/configs` is mounted as a *volume* into the Docker container where the *UCS\@school Kelvin REST API* runs. This makes it accessible from the host as well as from inside the container.
 
 The directory contains the file ``kelvin.json``, which is the top level configuration file for the UCS\@school import code, executed when ``user`` objects are managed.
-Documentation for the UCS\@school import configuration is available only in German in the `Handbuch zur CLI-Import-Schnittstelle`_.
+Documentation for the UCS\@school import configuration is available only in German in :cite:t:`uv-ucsschool-import`.
 
 .. _configuration-udm-properties:
 
@@ -123,7 +123,7 @@ Python hooks for user object management (import hooks)
 
 The directory :file:`/var/lib/ucs-school-import/kelvin-hooks` is mounted as a *volume* into the Docker container, so it can be accessed from the host. The directory content is scanned when the Kelvin API server starts.
 If it contains classes that inherit from ``ucsschool.importer.utils.import_pyhook.ImportPyHook``, they are executed when users are managed through the Kelvin API.
-The hooks are very similar to the Python hooks for the UCS\@school import (see `Handbuch zur CLI-Import-Schnittstelle`_).
+The hooks are very similar to the Python hooks for the UCS\@school import (see :cite:t:`uv-ucsschool-import`).
 The differences are:
 
 * Python 3.7 only
@@ -202,7 +202,7 @@ To activate a hook, or or a change to a hook, restart the *UCS\@school Kelvin RE
     $ /etc/init.d/docker-app-ucsschool-kelvin-rest-api restart
 
 
-Further reading about the UCS\@school hooks is available for German readers in `Handbuch zur CLI-Import-Schnittstelle`_ chapter "12. Pre- :spelling:word:`und` Post-Hook-\ :spelling:word:`Skripte` :spelling:word:`für` den Import".
+Further reading about the UCS\@school hooks is available for German readers in :ref:`pyhooks` in :cite:t:`uv-ucsschool-manual`.
 Please note that the example in that text is for the synchronous variant, missing the ``async/await`` keywords and not using the UDM REST API client. Compare with the examples linked in this chapter.
 
 
@@ -230,6 +230,4 @@ Python hooks
 Their purpose is explained above in chapters `Python hooks for user object management (import hooks)`_ and `Python hooks for pre- and post-object-modification actions`_.
 
 
-.. _`Handbuch zur CLI-Import-Schnittstelle`: https://docs.software-univention.de/ucsschool-import-handbuch-4.4.html
 .. _`Python UDM REST Client`: https://udm-rest-client.readthedocs.io/en/latest/
-.. _`Handbuch für Administratoren`: https://docs.software-univention.de/ucsschool-handbuch-4.4.html

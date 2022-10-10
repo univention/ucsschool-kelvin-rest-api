@@ -9,7 +9,7 @@ To list those LDAP objects run:
 
     $ univention-ldapsearch -LLL "objectClass=ucsschoolOrganizationalUnit"
 
-UCS\@school uses the `UDM REST API`_ which in turn uses UDM to access LDAP.
+UCS\@school uses the :ref:`UDM REST API <udm-rest-api>` in :cite:t:`uv-developer-reference` which in turn uses UDM to access LDAP.
 UDM properties have different names than their associated LDAP attributes.
 Their values may also differ.
 To list the same UDM objects run:
@@ -202,5 +202,3 @@ Schools delete
 --------------
 
 Not supported.
-
-.. _`UDM REST API`: https://docs.software-univention.de/developer-reference-4.4.html#udm:rest_api

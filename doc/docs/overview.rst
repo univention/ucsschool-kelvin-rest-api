@@ -10,8 +10,8 @@ The components participating in the *UCS\@school Kelvin REST API* are:
 * clients of the *UCS\@school Kelvin REST API* (for example the `Python client`_)
 * the *UCS\@school Kelvin REST API* server on the DC master / DC backup [#dcmasterbackup]_
 * the `Open Policy Agent`_ used for authorization
-* the `UDM REST API *client*`_ component of the *UCS\@school Kelvin REST API*
-* the `UDM REST API *server*`_ on the DC master
+* the `UDM REST API client`_ component of the *UCS\@school Kelvin REST API*
+* the :ref:`UDM REST API server <udm-rest-api>` on the DC master
 * the LDAP server on the DC master
 
 Components
@@ -28,10 +28,9 @@ To be more precise, let's take a look at the topology picture, starting with the
 #. When the client requests a resource (including a valid token in the transmission), the *UCS\@school Kelvin REST API* server will use its *UDM REST API client* component to access the UDM REST API on the DC master.
 #. The UDM REST API will then query the OpenLDAP server to retrieve the required information or make the requested changes.
 
-.. _`Python client`: https://kelvin-rest-api-client.readthedocs.io/
+.. _`Python client`: https://kelvin-rest-api-client.readthedocs.io/en/latest/
 .. _`Open Policy Agent`: https://www.openpolicyagent.org/
-.. _`UDM REST API *client*`: https://udm-rest-client.readthedocs.io/
-.. _`UDM REST API *server*`: https://docs.software-univention.de/developer-reference/5.0/en/udm/rest-api.html#udm-rest-api
+.. _`UDM REST API client`: https://udm-rest-client.readthedocs.io/en/latest/
 
 
 .. rubric:: Footnotes

@@ -46,10 +46,17 @@ extensions = [
     "sphinxcontrib.spelling",
     "sphinx_sitemap",
     "sphinx_last_updated_by_git",
+    "sphinx.ext.intersphinx",
     "sphinxcontrib.bibtex",
 ]
 
 suppress_warnings = ["git.too_shallow"]
+
+intersphinx_mapping = {
+    "uv-ucsschool-manual": ("https://docs.software-univention.de/ucsschool-manual/5.0/de/", None),
+    "uv-developer-reference": ("https://docs.software-univention.de/developer-reference/5.0/en/", None),
+    "uv-ucsschool-import": ("https://docs.software-univention.de/ucsschool-import/5.0/de/", None),
+}
 
 bibtex_bibfiles = ["bibliography.bib"]
 bibtex_encoding = "utf-8"
@@ -185,6 +192,10 @@ if "spelling" in sys.argv:
     spelling_show_suggestions = True
     spelling_word_list_filename = list()
     spelling_word_list_filename = ["spelling_wordlist"]
+
+linkcheck_allowed_redirects = {
+    r"https://help\.univention\.com/t/\d+": r"https://help\.univention\.com/t/[\w-]+/\d+",
+}
 
 # Sitemap, see https://github.com/jdillard/sphinx-sitemap
 html_baseurl = "https://docs.software-univention.de/ucsschool-kelvin-rest-api/"

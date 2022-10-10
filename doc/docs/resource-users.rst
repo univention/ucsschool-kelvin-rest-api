@@ -10,7 +10,7 @@ To list those LDAP objects run:
     $ FILTER='(|(objectClass=ucsschoolStaff)(objectClass=ucsschoolStudent)(objectClass=ucsschoolTeacher))'
     $ univention-ldapsearch -LLL "$FILTER"
 
-UCS\@school uses the `UDM REST API`_ which in turn uses UDM to access LDAP.
+UCS\@school uses the :ref:`UDM REST API <udm-rest-api>` which in turn uses UDM to access LDAP.
 UDM properties have different names than their associated LDAP attributes.
 Their values may also differ.
 To list the same UDM objects run:
@@ -282,7 +282,7 @@ The response body will be similar to the following (shortened):
 Users create
 ------------
 
-When creating a user, a number of attributes must be set, unless formatted from a template (see *Handbuch zur CLI-Import-Schnittstelle*, section `Formatierungsschema`_):
+When creating a user, a number of attributes must be set, unless formatted from a template (see :ref:`configuration-scheme-formatting` in :cite:t:`uv-ucsschool-import`):
 
 * ``name``
 * ``firstname``
@@ -512,7 +512,7 @@ any            student        The transition is not allowed if the user is also 
 =============  =============  =========
 
 UCS\@school user objects have a few attributes and group memberships that must be set correctly.
-The online article `How a UCS@school user should look like <https://help.univention.com/t/how-a-ucs-school-user-should-look-like/15630>`_ describes those.
+The online article :uv:kb:`How a UCS@school user should look like <15630>` describes those.
 The Kelvin API will take care of those settings, when changing user roles.
 
 Please be aware that changing a users role can have serious side effects.
@@ -545,7 +545,3 @@ Response headers::
     Via: 1.1 <fqdn>
 
 No response body.
-
-
-.. _`Formatierungsschema`: https://docs.software-univention.de/ucsschool-import-handbuch-4.4.html#configuration:scheme_formatting
-.. _`UDM REST API`: https://docs.software-univention.de/developer-reference-4.4.html#udm:rest_api
