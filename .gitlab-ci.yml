@@ -1,7 +1,17 @@
+include:
+  - project: 'univention/documentation/sphinx-docker'
+    file: 'pipeline/sphinx.yml'
+
 stages:
   - prepare
   - build
+  - merge
   - production
+
+variables:
+  DOCS_DIR: "doc/docs"
+  DOC_TARGET_NAME: "ucsschool-kelvin-rest-api"
+  DOC_TARGET_PATH: $DOC_TARGET_NAME
 
 prepare:
   stage: prepare
@@ -19,55 +29,46 @@ prepare:
     - cd ${CI_PROJECT_DIR}/docker
     - ./gitlab_prepare_docker_image
 
-.doc-base:
-  variables:
-    doc_base: doc/docs
-  image: docker-registry.knut.univention.de/sphinx
+html:
+  extends: .sphinx-html-template
   rules:
     - changes:
-      - $doc_base/**/*
+      - $DOCS_DIR/**/*
 
-.sphinx-doc:
-  stage: build
-  extends: .doc-base
-  artifacts:
-    paths:
-    - $CI_PROJECT_DIR/public
-    expire_in: 1 week
+pdf:
+  extends: .sphinx-pdf-template
+  variables:
+    DOC_TARGET_NAME: "UCSschoolKelvinRESTAPI"
   rules:
-    - if: "$pipeline =~ /skip-doc/"
-      when: never
-    - if: "$pipeline =~ /force-doc/"
+    - changes:
+      - $DOCS_DIR/**/*
 
-sphinx-html:
-  extends: .sphinx-doc
-  script:
-    - make -C "$doc_base" html
-    - mkdir -p "$CI_PROJECT_DIR"/public
-    - rsync -av --delete --exclude "*webpack-macros.html" --exclude ".buildinfo" --exclude "*.py" --exclude "__pycache__" --exclude ".doctrees" "$doc_base"/_build/html/ "$CI_PROJECT_DIR"/public/
+linkcheck:
+  extends: .sphinx-linkcheck-template
+  rules:
+    - changes:
+      - $DOCS_DIR/**/*
 
-sphinx-pdf:
-  extends: .sphinx-doc
-  script:
-    - make -C "$doc_base" latexpdf
-    - mkdir -p "$CI_PROJECT_DIR"/public
-    - cp "$doc_base"/_build/latex/UCSschoolKelvinRESTAPI.pdf "$CI_PROJECT_DIR"/public
+spelling:
+  extends: .sphinx-spelling-template
+  rules:
+    - changes:
+      - $DOCS_DIR/**/*
 
-sphinx-linkcheck:
-  extends: .sphinx-doc
-  script:
-    - make -C "$doc_base" -e SPHINXOPTS="-W --keep-going" linkcheck
-  artifacts:
-    paths:
-      - $doc_base/_build/linkcheck
-
-sphinx-spelling:
-  extends: .sphinx-doc
-  script:
-    - make -C "$doc_base" -e SPHINXOPTS="-W --keep-going" spelling
-  artifacts:
-    paths:
-      - $doc_base/_build/spelling
+docs-merge:
+  extends: .sphinx-merge-template
+  needs:
+    - job: html
+      artifacts: true
+    - job: pdf
+      artifacts: true
+    - job: spelling
+      artifacts: false
+    - job: linkcheck
+      artifacts: false
+  rules:
+    - changes:
+      - $DOCS_DIR/**/*
 
 docs-production:
   stage: production
@@ -82,11 +83,14 @@ docs-production:
     GIT_AUTHOR_EMAIL: $GITLAB_USER_EMAIL
     GIT_COMMITTER_NAME: $GITLAB_USER_NAME
     GIT_COMMITTER_EMAIL: $GITLAB_USER_EMAIL
+  needs:
+    - job: docs-merge
+      artifacts: true
   resource_group: prod
-  image: docker-registry.knut.univention.de/sphinx
+  image: docker-registry.knut.univention.de/knut/git-sync
   rules:
     - changes:
-      - "doc/docs/**/*"
+      - $DOCS_DIR/**/*
       if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: manual
   script:
@@ -97,13 +101,13 @@ docs-production:
     - git clean --force -d
     - git fetch --no-tags origin
     - git reset --hard origin/master
-    - rsync -av --delete "$CI_PROJECT_DIR"/public/ ./ucsschool-kelvin-rest-api/
+    - rsync -av --delete "$CI_PROJECT_DIR"/out/ ./"$DOC_TARGET_NAME"/
     - git add -- .
     - git commit -m "Automatic doc deployment from $CI_PROJECT_PATH by GitLab commit $CI_COMMIT_SHA"
     - git push
   environment:
     name: production
-    url: http://updates.knut.univention.de/download/docs/ucsscchool-kelvin-rest-api
+    url: http://updates.knut.univention.de/download/docs/$DOC_TARGET_NAME
 
 build:
   stage: build
