@@ -46,9 +46,15 @@ extensions = [
     "sphinxcontrib.spelling",
     "sphinx_sitemap",
     "sphinx_last_updated_by_git",
+    "sphinxcontrib.bibtex",
 ]
 
 suppress_warnings = ["git.too_shallow"]
+
+bibtex_bibfiles = ["bibliography.bib"]
+bibtex_encoding = "utf-8"
+bibtex_default_style = "unsrt"
+bibtex_reference_style = "label"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

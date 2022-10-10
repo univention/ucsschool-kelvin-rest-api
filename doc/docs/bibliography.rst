@@ -1,0 +1,7 @@
+.. _biblio:
+
+************
+Bibliography
+************
+
+.. bibliography::
