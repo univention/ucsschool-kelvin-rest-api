@@ -48,6 +48,8 @@ extensions = [
     "sphinx_last_updated_by_git",
 ]
 
+suppress_warnings = ["git.too_shallow"]
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -170,10 +172,6 @@ if "spelling" in sys.argv:
     spelling_show_suggestions = True
     spelling_word_list_filename = list()
     spelling_word_list_filename = ["spelling_wordlist"]
-    suppress_warnings = ["git.too_shallow"]
-
-if "linkcheck" in sys.argv:
-    suppress_warnings = ["git.too_shallow"]
 
 # Sitemap, see https://github.com/jdillard/sphinx-sitemap
 html_baseurl = "https://docs.software-univention.de/ucsschool-kelvin-rest-api/"
