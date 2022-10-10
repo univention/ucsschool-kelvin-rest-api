@@ -37,8 +37,6 @@ html:
 
 pdf:
   extends: .sphinx-pdf-template
-  variables:
-    DOC_TARGET_NAME: "UCSschoolKelvinRESTAPI"
   rules:
     - changes:
       - $DOCS_DIR/**/*

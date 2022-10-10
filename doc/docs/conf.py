@@ -83,6 +83,13 @@ pygments_style = "sphinx"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
+
+doc_basename = "ucsschool-kelvin-rest-api"
+
+html_context = {
+    "pdf_download_filename" : f"{doc_basename}.pdf",
+}
+
 html_theme = "univention_sphinx_book_theme"
 html_last_updated_fmt = "%d. %b %Y at %H:%M (UTC%z)"
 html_show_copyright = False
@@ -132,7 +139,7 @@ latex_engine = "lualatex"
 latex_documents = [
     (
         root_doc,
-        "UCSschoolKelvinRESTAPI.tex",
+        f"{doc_basename}.tex",
         "UCS@school Kelvin REST API Documentation",
         "Univention GmbH",
         "manual",
@@ -146,7 +153,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (root_doc, "ucsschoolkelvinrestapi", "UCS@school Kelvin REST API Documentation", [author], 1)
+    (root_doc, f"{doc_basename}", "UCS@school Kelvin REST API Documentation", [author], 1)
 ]
 
 
@@ -158,10 +165,10 @@ man_pages = [
 texinfo_documents = [
     (
         root_doc,
-        "UCSschoolKelvinRESTAPI",
+        f"{doc_basename}",
         "UCS@school Kelvin REST API Documentation",
         author,
-        "UCSschoolKelvinRESTAPI",
+        f"{doc_basename}",
         "One line description of project.",
         "Miscellaneous",
     ),
