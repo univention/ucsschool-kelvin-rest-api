@@ -15,8 +15,6 @@ variables:
 
 prepare:
   stage: prepare
-  tags:
-    - dm-s
   image:
     name: python:3.9-bullseye
   artifacts:
@@ -109,8 +107,6 @@ docs-production:
 
 build:
   stage: build
-  tags:
-    - dm-s
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
