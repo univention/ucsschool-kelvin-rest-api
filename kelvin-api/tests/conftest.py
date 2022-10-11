@@ -43,6 +43,7 @@ from unittest.mock import patch
 
 import factory
 import pytest
+import pytest_asyncio
 import requests
 from faker import Faker
 
@@ -492,7 +493,7 @@ def new_school_class_using_lib_obj():
     return _func
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def new_school_class_using_lib(ldap_base, new_school_class_using_lib_obj, udm_kwargs):
     """Create a new school class"""
     created_school_classes = []
@@ -530,7 +531,7 @@ def new_workgroup_using_lib_obj():
     return _func
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kwargs):
     """Create a new school workgroup"""
     created_workgroups = []

@@ -30,4 +30,4 @@ format-all: ## This formats all python files in the repository
 	-pre-commit run -a --hook-stage manual black-edit
 
 tests: ## run tests in ucs-school-lib and kelvin-api
-	python3 -m pytest -l -v ucs-school-lib/modules/ucsschool/lib/tests/ kelvin-api/tests/
+	python3 -m pytest -l -vv --asyncio-mode=auto ucs-school-lib/modules/ucsschool/lib/tests/ kelvin-api/tests/
