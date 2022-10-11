@@ -283,7 +283,8 @@ async def test_search_no_filter(
         "source_uid",
         "birthday",
         "expiration_date",
-        "disabled",
+        "disabled-true",
+        "disabled-false",
         "firstname",
         "lastname",
         "roles_staff",
@@ -312,8 +313,12 @@ async def test_search_filter(  # noqa: C901
         role = random.choice(("staff", "student", "teacher", "teacher_and_staff"))
     if filter_param == "source_uid":
         create_kwargs = {"source_uid": random_name()}
-    elif filter_param == "disabled":
-        create_kwargs = {"disabled": random.choice((True, False))}
+    elif filter_param == "disabled-true":
+        filter_param = "disabled"
+        create_kwargs = {"disabled": True}
+    elif filter_param == "disabled-false":
+        filter_param = "disabled"
+        create_kwargs = {"disabled": False}
     elif filter_param == "school":
         # use 2nd OU from cache, create_ou_using_python() returns a random OU from the cache
         while True:
@@ -328,7 +333,7 @@ async def test_search_filter(  # noqa: C901
     user: ImportUser = await new_import_user(ou_name, role, **create_kwargs)
     if filter_param == "disabled":
         # No idea why this is needed, but w/o it >50% of the "disabled" tests fail.
-        await asyncio.sleep(5)
+        await asyncio.sleep(10)
     assert ou_name == user.school
     assert user.role_sting == role  # TODO: add 'r' when #47210 is fixed
     if filter_param == "school":
@@ -338,6 +343,8 @@ async def test_search_filter(  # noqa: C901
     param_value = getattr(user, filter_param)
     if filter_param in ("source_uid", "disabled"):
         assert param_value == create_kwargs[filter_param]
+        if filter_param == "disabled":
+            param_value = str(param_value).lower()  # True/False -> "true"/"false"
     elif filter_param == "roles":
         param_value = ["student" if p == "pupil" else p for p in param_value]
     elif filter_param == "school":
