@@ -55,6 +55,7 @@ import ucsschool.lib.models.user
 from ucsschool.importer.configuration import Configuration, ReadOnlyDict
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.kelvin.import_config import get_import_config
+from ucsschool.kelvin.opa import OPAClient
 from ucsschool.kelvin.routers.school import SchoolCreateModel
 from ucsschool.kelvin.routers.user import PasswordsHashes, UserCreateModel
 from ucsschool.kelvin.token_auth import create_access_token
@@ -113,6 +114,12 @@ logger = logging.getLogger("udm_rest_client")
 logger.setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def opa_instance_no_singleton():
+    with patch.object(OPAClient, "instance", lambda: OPAClient()):
+        yield
 
 
 @lru_cache(maxsize=1)
