@@ -14,6 +14,7 @@ v1.7.0 (2022-07-18)
 * The request time is now added to the log file (Issue #28).
 * Validation errors are logged as warnings to make filtering the log easier (Issue #895).
 * Add HEAD /schools/{school_name} endpoint (Issue #24).
+* Allow mapping UDM properties to work groups (Bug #55259).
 
 v1.6.0 (2022-08-24)
 .........
