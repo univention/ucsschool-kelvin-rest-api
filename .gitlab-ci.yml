@@ -108,7 +108,7 @@ docs-production:
 build:
   stage: build
   image:
-    name: gcr.io/kaniko-project/executor:debug
+    name: docker-registry.knut.univention.de/kaniko-project/executor:debug
     entrypoint: [""]
   script:
     # install KNUT CA
