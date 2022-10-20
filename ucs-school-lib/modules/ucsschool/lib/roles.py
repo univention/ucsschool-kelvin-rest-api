@@ -165,10 +165,5 @@ def get_role_info(ucsschool_role_string):
         raise UnknownRole(
             "The role string {!r} includes the unknown role {!r}.".format(ucsschool_role_string, role)
         )
-    if context_type not in all_context_types:
-        raise UnknownContextType(
-            "The role string {!r} includes the unknown context type {!r}.".format(
-                ucsschool_role_string, context_type
-            )
-        )
+
     return role, context_type, context
