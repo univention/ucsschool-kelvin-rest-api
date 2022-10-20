@@ -139,10 +139,11 @@ def create_ucsschool_role_string(
     :param school: Old variable name for context. DEPRECATED! TODO: Should be removed in 4.4v5
     :return: The valid ucsschoolRole string
     """
-    if role not in all_roles:
-        raise UnknownRole("Unknown role {!r}.".format(role))
-    if school:
-        context = school
+    if context_type in all_context_types:
+        if role not in all_roles:
+            raise UnknownRole("Unknown role {!r}.".format(role))
+        if school:
+            context = school
     return "{}:{}:{}".format(role, context_type, context)
 
 
@@ -161,9 +162,13 @@ def get_role_info(ucsschool_role_string):
         raise InvalidUcsschoolRoleString(
             "Invalid UCS@school role string: {!r}.".format(ucsschool_role_string)
         )
-    if role not in all_roles:
-        raise UnknownRole(
-            "The role string {!r} includes the unknown role {!r}.".format(ucsschool_role_string, role)
-        )
+
+    if context_type in all_context_types:
+        if role not in all_roles:
+            raise UnknownRole(
+                "The role string {!r} includes the unknown role {!r}.".format(
+                    ucsschool_role_string, role
+                )
+            )
 
     return role, context_type, context

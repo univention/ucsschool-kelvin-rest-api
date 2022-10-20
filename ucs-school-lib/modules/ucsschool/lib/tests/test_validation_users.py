@@ -811,19 +811,6 @@ def test_unkown_role_name(validator, user_generator):
     "validator, user_generator, rolestr_role",
     zip(all_validator_classes, all_user_role_generators, all_user_roles_names),
 )
-def test_unkown_context_detection(validator, user_generator, rolestr_role):
-    rolestr_context = fake.user_name()
-    rolestr_role = role_teacher if rolestr_role == "teacher_and_staff" else rolestr_role
-    school_role = f"{rolestr_role}:{rolestr_context}:{fake.user_name()}"
-    user = user_generator()
-    user["props"]["ucsschoolRole"] = [school_role]
-    assert get_invalid_context_error(school_role, rolestr_context) in validator.validate(user)
-
-
-@pytest.mark.parametrize(
-    "validator, user_generator, rolestr_role",
-    zip(all_validator_classes, all_user_role_generators, all_user_roles_names),
-)
 @pytest.mark.parametrize("rolestr_context", all_context_types)
 def test_valid_role_str(validator, user_generator, rolestr_role, rolestr_context):
     rolestr_role = role_teacher if rolestr_role == "teacher_and_staff" else rolestr_role
