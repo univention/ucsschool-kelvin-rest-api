@@ -802,7 +802,7 @@ def test_unsplittable_role_detection(validator, user_generator, school_role):
 def test_unkown_role_name(validator, user_generator):
     user = user_generator()
     rolestr_role = fake.user_name()
-    school_role = rolestr_role + f":{fake.user_name()}:{fake.user_name()}"
+    school_role = rolestr_role + f":school:{fake.user_name()}"
     user["props"]["ucsschoolRole"] = [school_role]
     assert get_invalid_role_error(school_role, rolestr_role) in validator.validate(user)
 
