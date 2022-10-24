@@ -15,8 +15,10 @@ For more details about the changes, please visit read the  `Python client versio
    :escape: '
 
     "1.7.0", "1.7.0"
-    "1.5.6", "1.5.1"
     "1.5.5", "1.6.0"
+
+.. Also supported, but commented out to make the table easier to read.
+..  "1.5.6", "1.5.1"
 
 
 .. _`Python client version history`: https://kelvin-rest-api-client.readthedocs.io/en/latest/history.html
