@@ -11,12 +11,12 @@ For more details about the changes, please visit read the  `Python client versio
 .. New lines are added, if breaking changes are introduced by either a server or client version.
 
 .. csv-table:: *UCS\@school Kelvin REST API* Client Compatibility
-   :header: "Server Version", "Client Version"
+   :header: "Server Version", "Minimal Client Version"
    :escape: '
 
-    "1.7.0", ">= 1.7.0"
-    "1.5.6", ">= 1.5.1"
-    "1.5.5", ">= 1.6.0"
+    "1.7.0", "1.7.0"
+    "1.5.6", "1.5.1"
+    "1.5.5", "1.6.0"
 
 
 .. _`Python client version history`: https://kelvin-rest-api-client.readthedocs.io/en/latest/history.html
