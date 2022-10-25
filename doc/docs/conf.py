@@ -199,3 +199,9 @@ linkcheck_allowed_redirects = {
 
 # Sitemap, see https://github.com/jdillard/sphinx-sitemap
 html_baseurl = "https://docs.software-univention.de/ucsschool-kelvin-rest-api/"
+
+# See Univention Sphinx Extension for its options and information about the
+# feedback link.
+# https://git.knut.univention.de/univention/documentation/univention_sphinx_extension
+univention_feedback = True
+univention_doc_basename = "ucsschool-kelvin-rest-api"
