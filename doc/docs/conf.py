@@ -204,4 +204,4 @@ html_baseurl = "https://docs.software-univention.de/ucsschool-kelvin-rest-api/"
 # feedback link.
 # https://git.knut.univention.de/univention/documentation/univention_sphinx_extension
 univention_feedback = True
-univention_doc_basename = "ucsschool-kelvin-rest-api"
+univention_doc_basename = doc_basename

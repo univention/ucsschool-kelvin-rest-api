@@ -97,7 +97,7 @@ docs-production:
     - git clean --force -d
     - git fetch --no-tags origin
     - git reset --hard origin/master
-    - rsync -av --delete "$CI_PROJECT_DIR"/out/ ./"$DOC_TARGET_NAME"/
+    - rsync -av --delete "$CI_PROJECT_DIR"/out/ .
     - git add -- .
     - git commit -m "Automatic doc deployment from $CI_PROJECT_PATH by GitLab commit $CI_COMMIT_SHA"
     - git push
