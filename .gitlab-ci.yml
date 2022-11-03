@@ -89,25 +89,25 @@ prepare:
     - ./gitlab_prepare_docker_image
 
 
-html:
+docs-html:
   extends: .sphinx-html-template
   rules:
     - changes:
       - $DOCS_DIR/**/*
 
-pdf:
+docs-pdf:
   extends: .sphinx-pdf-template
   rules:
     - changes:
       - $DOCS_DIR/**/*
 
-linkcheck:
+docs-linkcheck:
   extends: .sphinx-linkcheck-template
   rules:
     - changes:
       - $DOCS_DIR/**/*
 
-spelling:
+docs-spelling:
   extends: .sphinx-spelling-template
   rules:
     - changes:
@@ -116,56 +116,28 @@ spelling:
 docs-merge:
   extends: .sphinx-merge-template
   needs:
-    - job: html
+    - job: docs-html
       artifacts: true
-    - job: pdf
+    - job: docs-pdf
       artifacts: true
-    - job: spelling
+    - job: docs-spelling
       artifacts: false
-    - job: linkcheck
+    - job: docs-linkcheck
       artifacts: false
   rules:
     - changes:
       - $DOCS_DIR/**/*
 
-docs-production:
-  stage: production
-  cache:
-    key: docs-$CI_COMMIT_REF_SLUG
-    paths:
-      - univention-docs
-  interruptible: false
-  variables:
-    GIT_STRATEGY: none
-    GIT_AUTHOR_NAME: $GITLAB_USER_NAME
-    GIT_AUTHOR_EMAIL: $GITLAB_USER_EMAIL
-    GIT_COMMITTER_NAME: $GITLAB_USER_NAME
-    GIT_COMMITTER_EMAIL: $GITLAB_USER_EMAIL
+docs-merge-request:
+  extends: .sphinx-docs-merge-request-template
   needs:
     - job: docs-merge
       artifacts: true
-  resource_group: prod
-  image: docker-registry.knut.univention.de/knut/git-sync
   rules:
     - changes:
       - $DOCS_DIR/**/*
       if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: manual
-  script:
-    - git config --global credential.$CI_SERVER_URL.username ucs-docs-deployment
-    - git config --global credential.$CI_SERVER_URL.helper '!f() { [ "$1" = get ] && echo password="$DOCS_TOKEN"; }; f'
-    - '[ -d univention-docs ] || git clone --branch master --depth 1 --single-branch $CI_SERVER_URL/univention/docs.univention.de.git univention-docs'
-    - cd univention-docs
-    - git clean --force -d
-    - git fetch --no-tags origin
-    - git reset --hard origin/master
-    - rsync -av --delete "$CI_PROJECT_DIR"/out/"$DOC_TARGET_NAME"/ ./"$DOC_TARGET_NAME"/
-    - git add -- .
-    - git commit -m "Automatic doc deployment from $CI_PROJECT_PATH by GitLab commit $CI_COMMIT_SHA"
-    - git push
-  environment:
-    name: production
-    url: http://updates.knut.univention.de/download/docs/$DOC_TARGET_NAME
 
 
 build_docker_image:
