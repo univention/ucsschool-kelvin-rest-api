@@ -1,9 +1,10 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # UCS@school lib
 #  module: UCS@school specific roles
 #
-# Copyright 2014-2021 Univention GmbH
+# Copyright 2014-2022 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -30,6 +31,8 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+from typing import Optional, Tuple
+
 
 class UcsschoolRoleStringError(Exception):
     pass
@@ -47,7 +50,7 @@ class InvalidUcsschoolRoleString(UcsschoolRoleStringError):
     pass
 
 
-role_pupil = "pupil"  # attention: there is also "role_student" below
+role_pupil = "pupil"  # attention: there is also "role_student"
 role_teacher = "teacher"
 role_staff = "staff"
 
@@ -129,8 +132,8 @@ all_context_types = (context_type_school, context_type_exam)
 
 
 def create_ucsschool_role_string(
-    role: str, context: str, context_type: str = "school", school: str = ""
-) -> str:
+    role, context, context_type="school", school=""
+):  # type: (str, str, Optional[str], Optional[str]) -> str
     """
     This function takes a role, a context_type and a context to create a valid ucsschoolRole string.
     :param role: The role
@@ -144,10 +147,11 @@ def create_ucsschool_role_string(
             raise UnknownRole("Unknown role {!r}.".format(role))
         if school:
             context = school
+
     return "{}:{}:{}".format(role, context_type, context)
 
 
-def get_role_info(ucsschool_role_string):
+def get_role_info(ucsschool_role_string):  # type: (str) -> Tuple[str, str, str]
     """
     This function separates the individual elements of an ucsschool role string.
     Raises InvalidUcsschoolRoleString if the string provided is no valid role string.
@@ -162,7 +166,6 @@ def get_role_info(ucsschool_role_string):
         raise InvalidUcsschoolRoleString(
             "Invalid UCS@school role string: {!r}.".format(ucsschool_role_string)
         )
-
     if context_type in all_context_types:
         if role not in all_roles:
             raise UnknownRole(
