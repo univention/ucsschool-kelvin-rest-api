@@ -825,3 +825,51 @@ def test_valid_role_str(validator, user_generator, rolestr_role, rolestr_context
     ]
     for msg in result:
         assert msg not in expected_errstrs
+
+
+@pytest.mark.parametrize(
+    "validator, user_generator, role",
+    zip(
+        all_validator_classes,
+        all_user_role_generators,
+        [
+            role_teacher + ":" + fake.user_name() + ":x",
+            "teacher:school:x",
+        ],
+    ),
+)
+def test_unknown_context_type_is_valid(validator, user_generator, role):
+    """
+    correct number of elements, but the context_type is not in roles.py all_context_types
+    """
+    user = user_generator()
+    user["props"]["ucsschoolRole"] = [
+        role,
+    ]
+    validator_result = [result for result in validator.validate(user) if result is not None]
+    assert get_invalid_context_error(role, role.split(":")[1]) not in validator_result
+
+
+@pytest.mark.parametrize(
+    "validator, user_generator",
+    zip(
+        all_validator_classes,
+        all_user_role_generators,
+    ),
+)
+def test_role_and_context_variations(validator, user_generator):
+    user = user_generator()
+
+    extra_roles = [
+        user["props"]["firstname"] + ":school:" + user["props"]["school"][0],
+        fake.first_name() + ":" + fake.last_name() + ":" + user["props"]["school"][0],
+    ]
+
+    [user["props"]["ucsschoolRole"].append(extra_role) for extra_role in extra_roles]
+
+    expected_errstr = [get_invalid_role_error(extra_roles[0], user["props"]["firstname"])]
+    validator_result = [result for result in validator.validate(user) if result is not None]
+
+    # conversion for the validator result is needed here, as the validator creates duplicate
+    # error strings
+    assert expected_errstr == [*set(validator_result)]

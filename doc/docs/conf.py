@@ -100,7 +100,7 @@ pygments_style = "sphinx"
 doc_basename = "ucsschool-kelvin-rest-api"
 
 html_context = {
-    "pdf_download_filename" : f"{doc_basename}.pdf",
+    "pdf_download_filename": f"{doc_basename}.pdf",
 }
 
 html_theme = "univention_sphinx_book_theme"
@@ -165,9 +165,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (root_doc, f"{doc_basename}", "UCS@school Kelvin REST API Documentation", [author], 1)
-]
+man_pages = [(root_doc, f"{doc_basename}", "UCS@school Kelvin REST API Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------------
