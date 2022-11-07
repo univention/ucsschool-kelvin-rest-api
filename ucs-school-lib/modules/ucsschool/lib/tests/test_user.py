@@ -22,6 +22,7 @@ from ucsschool.lib.models.user import (
     convert_to_teacher_and_staff,
 )
 from udm_rest_client import UDM
+from udm_rest_client.exceptions import CreateError, ModifyError
 
 UserType = Union[Type[Staff], Type[Student], Type[Teacher], Type[TeachersAndStaff], Type[User]]
 Role = NamedTuple("Role", [("name", str), ("klass", UserType)])
@@ -207,6 +208,42 @@ async def test_create(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+@pytest.mark.parametrize("check_password_policies", [True, False])
+async def test_create_check_password_policies(
+    create_ou_using_python,
+    new_school_class_using_udm,
+    udm_users_user_props,
+    udm_kwargs,
+    role: Role,
+    check_password_policies,
+):
+    school = await create_ou_using_python()
+    async with UDM(**udm_kwargs) as udm:
+        user_props = await udm_users_user_props(school)
+        user_props["name"] = user_props["username"]
+        user_props["school"] = school
+        del user_props["e-mail"]
+        del user_props["userexpiry"]
+        if role.klass != Staff:
+            cls_dn1, cls_attr1 = await new_school_class_using_udm(school=school)
+            cls_dn2, cls_attr2 = await new_school_class_using_udm(school=school)
+            user_props["school_classes"] = {
+                school: [
+                    f"{school}-{cls_attr1['name']}",
+                    f"{school}-{cls_attr2['name']}",
+                ]
+            }
+        user_props["password"] = "s"
+        user = role.klass(**user_props)
+        if check_password_policies:
+            with pytest.raises(CreateError, match=r".*Password policy error.*"):
+                await user.create(udm, check_password_policies=check_password_policies)
+        else:
+            await user.create(udm, check_password_policies=check_password_policies)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 async def test_modify(create_ou_using_python, new_udm_user, udm_kwargs, role: Role):
     ou = await create_ou_using_python()
     dn, attr = await new_udm_user(ou, role.name)
@@ -235,6 +272,24 @@ async def test_modify(create_ou_using_python, new_udm_user, udm_kwargs, role: Ro
         }
     )
     compare_attr_and_lib_user(attr, user)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+@pytest.mark.parametrize("check_password_policies", [True, False])
+async def test_modify_check_password_policies(
+    create_ou_using_python, new_udm_user, udm_kwargs, role: Role, check_password_policies
+):
+    ou = await create_ou_using_python()
+    dn, attr = await new_udm_user(ou, role.name)
+    async with UDM(**udm_kwargs) as udm:
+        user: User = await role.klass.from_dn(dn, ou, udm)
+        user.password = "s"
+        if check_password_policies:
+            with pytest.raises(ModifyError, match=r".*Password policy error.*"):
+                await user.modify(udm, check_password_policies=check_password_policies)
+        else:
+            await user.modify(udm, check_password_policies=check_password_policies)
 
 
 @pytest.mark.asyncio
