@@ -292,7 +292,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         if password_created or not self.check_password_policies:
             udm_obj.props.overridePWHistory = True
             udm_obj.props.overridePWLength = True
-        elif self.check_password_policies:
+        else:
             udm_obj.props.overridePWHistory = False
             udm_obj.props.overridePWLength = False
         if self.disabled is None:
