@@ -221,3 +221,24 @@ async def test_create_unmapped_udm_prop(
         json=attrs,
     )
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language", [None, "de", "en", "de-DE", "en-US;q=0.95"])
+async def test_get_school_language(auth_header, monkeypatch, language):
+    async def from_lib_model_mock(obj, request, udm) -> SchoolModel:
+        kwargs = await SchoolModel._from_lib_model_kwargs(obj, request, udm)
+        kwargs["display_name"] = udm.session.language
+        return SchoolModel(**kwargs)
+
+    monkeypatch.setattr(
+        ucsschool.kelvin.routers.school.SchoolModel, "from_lib_model", from_lib_model_mock
+    )
+
+    client = TestClient(app, base_url="http://test.server")
+    response = client.get(
+        app.url_path_for("school_get", school_name="DEMOSCHOOL"),
+        headers={"Accept-Language": language, **auth_header},
+    ).json()
+
+    assert response["display_name"] == language
