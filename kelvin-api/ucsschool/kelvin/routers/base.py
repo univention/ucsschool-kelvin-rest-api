@@ -281,6 +281,13 @@ class BasePatchModel(BaseModel):
         }
 
 
-async def udm_ctx():
-    async with UDM(**await udm_kwargs()) as udm:
+def get_language_from_header(request: Request) -> str:
+    language = request.headers.get("Accept-Language")
+    language = language if language else request.headers.get("accept-language")
+    return language
+
+
+async def udm_ctx(request: Request):
+    language = get_language_from_header(request)
+    async with UDM(**await udm_kwargs(), language=language) as udm:
         yield udm
