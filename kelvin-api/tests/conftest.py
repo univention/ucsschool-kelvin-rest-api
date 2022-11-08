@@ -625,22 +625,24 @@ def add_to_import_config(restart_kelvin_api_server_session):  # noqa: C901
             # not in Docker container
             return
         if IMPORT_CONFIG["active"].exists():
-            no_restart = False
+            restart = False
             with open(IMPORT_CONFIG["active"], "r") as fp:
                 config = json.load(fp)
             for k, v in kwargs.items():
                 if isinstance(v, list):
                     new_value = set(v)
                     old_value = set(config.get(k, []))
-                    if new_value.issubset(old_value):
-                        no_restart = True
+                    if not new_value.issubset(old_value):
+                        restart = True
+                        break
                 else:
                     new_value = v
                     old_value = config.get(k)
-                    if old_value == new_value:
-                        no_restart = True
-            if no_restart:
-                logger.debug("Import config contains %r -> not restarting server.", kwargs)
+                    if old_value != new_value:
+                        restart = True
+                        break
+            if not restart:
+                logger.debug("Import config already contains %r -> not restarting server.", kwargs)
                 return
 
         if IMPORT_CONFIG["active"].exists():

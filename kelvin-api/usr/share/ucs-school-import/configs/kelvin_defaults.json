@@ -11,5 +11,6 @@
   "skip_tests": [
     "global_source_uid",
     "uniqueness"
-  ]
+  ],
+  "evaluate_password_policies": false
 }

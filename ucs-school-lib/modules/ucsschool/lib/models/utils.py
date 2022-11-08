@@ -4,7 +4,7 @@
 #
 # Copyright 2014-2021 Univention GmbH
 #
-# http://www.univention.de/
+# http://www.u_remove_password_from_log_recordnivention.de/
 #
 # All rights reserved.
 #
