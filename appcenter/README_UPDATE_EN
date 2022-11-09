@@ -3,7 +3,7 @@
 <h2>v1.8.0 (2022-11-09)</h2>
 <ul>
     <li>
-        <b>Add support for arbitrary context types for users (Bug #55355).
+        Add support for arbitrary context types in UCS@school roles for users (Bug #55355).
     </li>
 </ul>
 
