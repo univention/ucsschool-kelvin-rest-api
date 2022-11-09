@@ -3,7 +3,7 @@
 <h2>v1.8.0 (2022-11-09)</h2>
 <ul>
     <li>
-        <b>Breaking change for UCS@school Kelvin REST API clients below <code>1.8.0</code></b>: Add support for arbitrary context types for users (Bug #55355).
+        <b>Add support for arbitrary context types for users (Bug #55355).
     </li>
 </ul>
 
