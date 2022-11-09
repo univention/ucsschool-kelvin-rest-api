@@ -1,5 +1,12 @@
 <h1>Changelog</h1>
 
+<h2>v1.8.0 (2022-11-09)</h2>
+<ul>
+    <li>
+        Add support for arbitrary context types in UCS@school roles for users (Bug #55355).
+    </li>
+</ul>
+
 <h2>v1.7.0 (2022-07-18)</h2>
 <ul>
     <li>
