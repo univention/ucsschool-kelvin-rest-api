@@ -14,7 +14,7 @@ pydantic[email,dotenv]
 pyjwt
 python-multipart
 ucs-school-lib
-udm-rest-client>=1.0.8
+udm-rest-client>=1.0.12
 ujson>=2.0,<3.0
 univention-config-registry
 uvicorn
