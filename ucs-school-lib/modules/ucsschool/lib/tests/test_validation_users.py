@@ -860,12 +860,15 @@ def test_unknown_context_type_is_valid(validator, user_generator, role):
 def test_role_and_context_variations(validator, user_generator):
     user = user_generator()
 
+    unknown_role = fake.first_name()
+    unknown_context_type = fake.last_name()
+    school = user["props"]["school"][0]
     extra_roles = [
-        user["props"]["firstname"] + ":school:" + user["props"]["school"][0],
-        fake.first_name() + ":" + fake.last_name() + ":" + user["props"]["school"][0],
+        ":".join([unknown_role, "school", school]),
+        ":".join([unknown_role, unknown_context_type, school])
     ]
 
-    [user["props"]["ucsschoolRole"].append(extra_role) for extra_role in extra_roles]
+user["props"]["ucsschoolRole"].extend(extra_roles)
 
     expected_errstr = [get_invalid_role_error(extra_roles[0], user["props"]["firstname"])]
     validator_result = [result for result in validator.validate(user) if result is not None]
