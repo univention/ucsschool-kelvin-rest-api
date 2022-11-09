@@ -5,6 +5,9 @@
     <li>
         Add support for arbitrary context types in UCS@school roles for users (Bug #55355).
     </li>
+    <li>
+        Internal: Added option to check password policies when creating or modifying UCS@school users (Bug #55393).
+    </li>
 </ul>
 
 <h2>v1.7.0 (2022-07-18)</h2>

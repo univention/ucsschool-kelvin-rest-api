@@ -113,6 +113,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     def __init__(self, *args, **kwargs):
         super(User, self).__init__(*args, **kwargs)
+        self.check_password_policies = False
         if self.school_classes is None:
             self.school_classes = {}  # set a dict for Staff
         if self.school and not self.schools:
@@ -270,6 +271,10 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         obj.workgroups = await cls.get_workgroups(udm_obj, obj)
         return obj
 
+    async def create(self, lo: UDM, validate: bool = True, check_password_policies: bool = False) -> bool:
+        self.check_password_policies = check_password_policies
+        return await super(User, self).create(lo=lo, validate=validate)
+
     async def do_create(self, udm_obj: UdmObject, lo: UDM) -> None:
         if not self.schools:
             self.schools = [self.school]
@@ -284,8 +289,12 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         udm_obj.props.groups = await self.groups_used(lo)
         subdir = self.get_roleshare_home_subdir()
         udm_obj.props.unixhome = "/home/" + os.path.join(subdir, self.name)
-        udm_obj.props.overridePWHistory = True
-        udm_obj.props.overridePWLength = True
+        if password_created or not self.check_password_policies:
+            udm_obj.props.overridePWHistory = True
+            udm_obj.props.overridePWLength = True
+        else:
+            udm_obj.props.overridePWHistory = False
+            udm_obj.props.overridePWLength = False
         if self.disabled is None:
             udm_obj.props.disabled = False
         if hasattr(udm_obj.props, "mailbox"):
@@ -304,6 +313,10 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             # (it has already been saved to LDAP in super().do_create() above)
             self.password = ""  # nosec
         return success
+
+    async def modify(self, lo: UDM, validate: bool = True, move_if_necessary: bool = None, check_password_policies : bool = False) -> bool:
+        self.check_password_policies = check_password_policies
+        return await super(User, self).modify(lo=lo, validate=validate, move_if_necessary=move_if_necessary)
 
     async def do_modify(self, udm_obj: UdmObject, lo: UDM) -> None:
         await self.create_mail_domain(lo)
@@ -351,6 +364,12 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         if groups_to_add:
             self.logger.debug("Adding %r to groups %r.", self, groups_to_add)
             udm_obj.props.groups.extend(groups_to_add)
+        if not self.check_password_policies:
+            udm_obj.props.overridePWHistory = True
+            udm_obj.props.overridePWLength = True
+        elif self.check_password_policies:
+            udm_obj.props.overridePWHistory = False
+            udm_obj.props.overridePWLength = False
         return await super(User, self).do_modify(udm_obj, lo)
 
     async def do_school_change(self, udm_obj, lo, old_school) -> None:
