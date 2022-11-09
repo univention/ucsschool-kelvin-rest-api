@@ -870,9 +870,9 @@ def test_role_and_context_variations(validator, user_generator):
 
     user["props"]["ucsschoolRole"].extend(extra_roles)
 
-    expected_errstr = [get_invalid_role_error(extra_roles[0], user["props"]["firstname"])]
+    expected_errstr = [get_invalid_role_error(extra_roles[0], unknown_role)]
     validator_result = [result for result in validator.validate(user) if result is not None]
 
     # conversion for the validator result is needed here, as the validator creates duplicate
-    # error strings
+    # error strings --> Bug #55401
     assert expected_errstr == [*set(validator_result)]
