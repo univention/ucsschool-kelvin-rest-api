@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.8.0 (2022-11-09)
+.........
+* Add support for arbitrary context types for users (Bug #55355).
+
 v1.7.0 (2022-07-18)
 .........
 * **Breaking change for UCS@school Kelvin REST API clients below ``1.7.0``**: Add work group support in user resource (Bug #54891).
