@@ -11,6 +11,7 @@ import pytest
 from faker import Faker
 
 from ucsschool.lib.models import validator as validator
+from ucsschool.lib.models.school import School
 from ucsschool.lib.models.utils import ucr as lib_ucr  # 'ucr' already exists as fixture
 from ucsschool.lib.models.validator import (
     VALIDATION_LOGGER,
@@ -36,6 +37,9 @@ from univention.config_registry import handler_set, handler_unset
 
 fake = Faker()
 ldap_base = lib_ucr["ldap/base"]
+
+
+
 SchoolSearchBase._load_containers_and_prefixes()
 staff_group_regex = SchoolSearchBase.get_is_staff_group_regex()
 student_group_regex = SchoolSearchBase.get_is_student_group_regex()
@@ -56,6 +60,8 @@ must_run_in_container = pytest.mark.skipif(
 )
 
 ou = fake.user_name()[:10]
+School.get_search_base(ou)
+School._search_base_cache[ou]._schoolDN = "ou={},{}".format(ou, ldap_base)
 
 
 def base_user(firstname: str, lastname: str) -> Dict[str, Any]:
