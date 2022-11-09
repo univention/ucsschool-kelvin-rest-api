@@ -8,6 +8,9 @@
     <li>
         Internal: Added option to check password policies when creating or modifying UCS@school users (Bug #55393).
     </li>
+    <li>
+        Added the possibility to send an Accept-Language header with each request.
+    </li>
 </ul>
 
 <h2>v1.7.0 (2022-07-18)</h2>
