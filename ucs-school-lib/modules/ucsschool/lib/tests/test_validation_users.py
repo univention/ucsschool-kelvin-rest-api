@@ -865,10 +865,10 @@ def test_role_and_context_variations(validator, user_generator):
     school = user["props"]["school"][0]
     extra_roles = [
         ":".join([unknown_role, "school", school]),
-        ":".join([unknown_role, unknown_context_type, school])
+        ":".join([unknown_role, unknown_context_type, school]),
     ]
 
-user["props"]["ucsschoolRole"].extend(extra_roles)
+    user["props"]["ucsschoolRole"].extend(extra_roles)
 
     expected_errstr = [get_invalid_role_error(extra_roles[0], user["props"]["firstname"])]
     validator_result = [result for result in validator.validate(user) if result is not None]
