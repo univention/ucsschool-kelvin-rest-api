@@ -2738,3 +2738,178 @@ async def test_complete_update_does_not_change_workgroups_if_not_passed(
     assert lib_users[0].workgroups == {
         k: [f"{school}-{wg}" for wg in v] for k, v in old_user_data["workgroups"].items()
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+async def test_create_custom_ucsschool_roles(
+    create_ou_using_python,
+    random_user_create_model,
+    url_fragment,
+    retry_http_502,
+    auth_header,
+    schedule_delete_user_name_using_udm,
+    role,
+):
+    school = await create_ou_using_python()
+    ucsschool_roles = ["student:school:school1", "test_1:mycon:where", "test_2:foo:bar"]
+    expected_ucsschool_roles = [f"{role.name}:school:{school}", "test_1:mycon:where", "test_2:foo:bar"]
+    roles = [f"{url_fragment}/roles/{role.name}"]
+    if role.name == "teacher_and_staff":
+        roles = [f"{url_fragment}/roles/staff", f"{url_fragment}/roles/teacher"]
+        expected_ucsschool_roles = [
+            f"staff:school:{school}",
+            f"teacher:school:{school}",
+            "test_1:mycon:where",
+            "test_2:foo:bar",
+        ]
+    r_user = await random_user_create_model(school, roles=roles, ucsschool_roles=ucsschool_roles)
+    data = r_user.json()
+    logger.debug("POST data=%r", data)
+    schedule_delete_user_name_using_udm(r_user.name)
+    response = retry_http_502(
+        requests.post,
+        f"{url_fragment}/users/",
+        headers={"Content-Type": "application/json", **auth_header},
+        data=data,
+    )
+    assert response.status_code == 201, f"{response.__dict__!r}"
+    response_json = response.json()
+    assert set(response_json["ucsschool_roles"]) == set(expected_ucsschool_roles)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+@pytest.mark.parametrize("method", ("patch", "put"))
+async def test_modify_custom_ucsschool_roles(
+    create_ou_using_python,
+    new_import_user,
+    url_fragment_https,
+    retry_http_502,
+    auth_header,
+    schedule_delete_user_name_using_udm,
+    import_config,
+    import_user_to_create_model_kwargs,
+    method,
+    role,
+):
+    roles = [role.name]
+    if role.name == "teacher_and_staff":
+        roles = ["staff", "teacher"]
+    school = await create_ou_using_python()
+    school2 = await create_ou_using_python()
+    create_kwargs = {}
+    user: ImportUser = await new_import_user(school, role.name, **create_kwargs)
+    schedule_delete_user_name_using_udm(user.name)
+    user_data = import_user_to_create_model_kwargs(user)
+    modified_user = UserCreateModel(**user_data)
+    ucsschool_roles_to_set = ["test_1:mycon:where", "test-2:foo:bar", f"teacher:school:{school}"]
+    ucsschool_roles_expected = ["test_1:mycon:where", "test-2:foo:bar"] + [
+        f"{role_}:school:{school}" for role_ in roles
+    ]
+    modified_user.ucsschool_roles = ucsschool_roles_to_set
+    logger.debug(f"{method.upper()} data=%r", modified_user)
+    if method == "put":
+        response = retry_http_502(
+            requests.put,
+            f"{url_fragment_https}/users/{user.name}",
+            headers=auth_header,
+            data=modified_user.json(),
+        )
+    else:
+        patch_data = {"ucsschool_roles": ucsschool_roles_to_set}
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment_https}/users/{user.name}",
+            headers=auth_header,
+            json=patch_data,
+        )
+    assert response.status_code == 200, f"{response.__dict__!r}"
+    response_json = response.json()
+    assert set(response_json["ucsschool_roles"]) == set(ucsschool_roles_expected)
+    assert set(response_json["roles"]) == set([f"{url_fragment_https}/roles/{role_}" for role_ in roles])
+    # one more with school change
+    ucsschool_roles_to_set = ["test_1:nextcon:where", f"student:school:{school}"]
+    ucsschool_roles_expected = ["test_1:nextcon:where"] + [
+        f"{role_}:school:{school2}" for role_ in roles
+    ]
+    response_json["ucsschool_roles"] = ucsschool_roles_to_set
+    response_json["school"] = f"{url_fragment_https}/schools/{school2}"
+    response_json["schools"] = [f"{url_fragment_https}/schools/{school2}"]
+    response_json["school_classes"] = {school2: ["1a"]}
+    response_json["workgroups"] = {}
+    response_json["udm_properties"] = {}
+    logger.debug(f"{method.upper()} data=%r", response_json)
+    if method == "put":
+        response = retry_http_502(
+            requests.put,
+            f"{url_fragment_https}/users/{user.name}",
+            headers=auth_header,
+            data=json.dumps(response_json),
+        )
+    else:
+        patch_data = {
+            "ucsschool_roles": ucsschool_roles_to_set,
+            "school": f"{url_fragment_https}/schools/{school2}",
+        }
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment_https}/users/{user.name}",
+            headers=auth_header,
+            json=patch_data,
+        )
+    assert response.status_code == 200, f"{response.__dict__!r}"
+    response_json = response.json()
+    assert set(response_json["ucsschool_roles"]) == set(ucsschool_roles_expected)
+    assert set(response_json["roles"]) == set([f"{url_fragment_https}/roles/{role_}" for role_ in roles])
+    assert response_json["school"] == f"{url_fragment_https}/schools/{school2}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ("patch", "put"))
+async def test_modify_custom_ucsschool_roles_with_role_change(
+    create_ou_using_python,
+    new_import_user,
+    url_fragment_https,
+    retry_http_502,
+    auth_header,
+    schedule_delete_user_name_using_udm,
+    import_config,
+    import_user_to_create_model_kwargs,
+    method,
+):
+    school = await create_ou_using_python()
+    role_create = "student"
+    role_change = "teacher"
+    ucsschool_roles_to_set = ["test_1:mycon:where", "test-2:foo:bar", f"staff:school:{school}"]
+    ucsschool_roles_expected = ["test_1:mycon:where", "test-2:foo:bar", f"{role_change}:school:{school}"]
+    create_kwargs = {}
+    user: ImportUser = await new_import_user(school, role_create, **create_kwargs)
+    schedule_delete_user_name_using_udm(user.name)
+    user_data = import_user_to_create_model_kwargs(user)
+    modified_user = UserCreateModel(**user_data)
+    modified_user.ucsschool_roles = ucsschool_roles_to_set
+    modified_user.roles = [f"{url_fragment_https}/roles/{role_change}"]
+    logger.debug(f"{method.upper()} data=%r", modified_user)
+    if method == "put":
+        response = retry_http_502(
+            requests.put,
+            f"{url_fragment_https}/users/{user.name}",
+            headers=auth_header,
+            data=modified_user.json(),
+        )
+    else:
+        patch_data = {
+            "ucsschool_roles": ucsschool_roles_to_set,
+            "roles": [f"{url_fragment_https}/roles/{role_change}"],
+        }
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment_https}/users/{user.name}",
+            headers=auth_header,
+            json=patch_data,
+        )
+    assert response.status_code == 200, f"{response.__dict__!r}"
+    response_json = response.json()
+    assert set(response_json["ucsschool_roles"]) == set(ucsschool_roles_expected)
+    assert response_json["roles"] == [f"{url_fragment_https}/roles/{role_change}"]

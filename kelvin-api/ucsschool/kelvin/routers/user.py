@@ -37,7 +37,16 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Typ
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response, status
 from ldap.filter import escape_filter_chars
-from pydantic import BaseModel, Field, HttpUrl, SecretStr, ValidationError, root_validator, validator
+from pydantic import (
+    BaseModel,
+    Field,
+    HttpUrl,
+    SecretStr,
+    ValidationError,
+    constr,
+    root_validator,
+    validator,
+)
 
 from ucsschool.importer.default_user_import_factory import DefaultUserImportFactory
 from ucsschool.importer.exceptions import UcsSchoolImportError
@@ -187,6 +196,13 @@ def _validate_date_range(date: str) -> None:
         raise ValueError("Year must be between 1961 and 2099.")
 
 
+def _is_school_role_string(role_string: str) -> bool:
+    return role_string.split(":")[1] == "school"
+
+
+UCSSCHOOL_ROLES_TYPE = constr(regex="^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$")
+
+
 class UserBaseModel(UcsSchoolBaseModel):
     firstname: str
     lastname: str
@@ -235,6 +251,7 @@ class UserCreateModel(UserBaseModel):
     school: HttpUrl = None
     schools: List[HttpUrl] = []
     kelvin_password_hashes: PasswordsHashes = None
+    ucsschool_roles: List[UCSSCHOOL_ROLES_TYPE] = []
 
     class Config(UserBaseModel.Config):
         ...
@@ -264,13 +281,20 @@ class UserCreateModel(UserBaseModel):
             if self.schools
             else self.schools
         )
-        kwargs["ucsschool_roles"] = [
+        # get all ucsschool_role_strings from role
+        ucsschool_role_strings = [
             SchoolUserRole(url_to_name(request, "role", self.unscheme_and_unquote(role))).as_lib_role(
                 school
             )
             for role in self.roles
             for school in kwargs["schools"]
         ]
+        # add all ucsschool_role_strings with context_type != school from ucsschool_roles
+        for role_string in kwargs["ucsschool_roles"]:
+            if not _is_school_role_string(role_string) and role_string not in ucsschool_role_strings:
+                ucsschool_role_strings.append(role_string)
+        kwargs["ucsschool_roles"] = ucsschool_role_strings
+
         kwargs["birthday"] = str(self.birthday) if self.birthday else self.birthday
         kwargs["expiration_date"] = (
             str(self.expiration_date) if self.expiration_date else self.expiration_date
@@ -296,7 +320,14 @@ class UserModel(UserBaseModel, APIAttributesMixin):
         )
         kwargs["url"] = cls.scheme_and_quote(request.url_for("get", username=kwargs["name"]))
         udm_obj = await obj.get_udm_object(udm)
-        roles = sorted({SchoolUserRole.from_lib_role(role) for role in obj.ucsschool_roles})
+        # filter out all non school role strings
+        roles = sorted(
+            {
+                SchoolUserRole.from_lib_role(role)
+                for role in obj.ucsschool_roles
+                if _is_school_role_string(role)
+            }
+        )
         kwargs["roles"] = [cls.scheme_and_quote(role.to_url(request)) for role in roles]
         kwargs["source_uid"] = udm_obj.props.ucsschoolSourceUID
         kwargs["record_uid"] = udm_obj.props.ucsschoolRecordUID
@@ -337,6 +368,7 @@ class UserPatchModel(BasePatchModel):
     source_uid: str = None
     udm_properties: Dict[str, Any] = None
     kelvin_password_hashes: PasswordsHashes = None
+    ucsschool_roles: List[UCSSCHOOL_ROLES_TYPE] = []
 
     _not_both_password_and_hashes = root_validator(allow_reuse=True)(not_both_password_and_hashes)
 
@@ -417,6 +449,7 @@ class UserPatchModel(BasePatchModel):
                     url_to_name(request, "role", UserCreateModel.unscheme_and_unquote(role))
                     for role in value
                 ]
+
         return kwargs
 
 
@@ -1062,6 +1095,13 @@ async def partial_update(  # noqa: C901
         user_current = await change_roles(
             udm, logger, user_current, new_roles, new_school_classes, new_workgroups
         )
+    if "ucsschool_roles" in to_change:
+        # add all ucsschool_role_strings with context_type != school from ucsschool_roles
+        ucsschool_role_strings = []
+        for role_string in to_change["ucsschool_roles"]:
+            if not _is_school_role_string(role_string) and role_string not in ucsschool_role_strings:
+                ucsschool_role_strings.append(role_string)
+        to_change["ucsschool_roles"] = ucsschool_role_strings
 
     # 4. modify
     changed = False
