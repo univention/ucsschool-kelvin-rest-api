@@ -765,7 +765,8 @@ async def test_user_modify_password_policies(
     method,
 ):
     """
-    modifying users with should always fail (for the default password policy)
+    modifying users with activated password policy evaluation
+    should always fail (for the default password policy)
     if the length of the password is higher than the value of password_length but
     lower than 8 (value in the default password policy).
     """
