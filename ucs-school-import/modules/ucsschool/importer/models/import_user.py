@@ -373,22 +373,30 @@ class ImportUser(User):
                     import_user=self,
                 )
 
-    async def create(self, lo, validate=True):  # type: (UDM, Optional[bool]) -> bool
+    async def create(
+        self, lo, validate=True, check_password_policies=False
+    ):  # type: (UDM, Optional[bool], Optional[bool]) -> bool
         """
         Create user object.
 
         :param univention.admin.uldap.access connection lo: LDAP connection object
         :param bool validate: if the users attributes should be checked by UDM
+        :para bool check_password_policies: if password policies should be evaluated
         :return: whether the object created succeeded
         :rtype: bool
         """
         self.lo = lo
+        check_password_policies = check_password_policies or self.config.get(
+            "evaluate_password_policies", False
+        )
         if self.in_hook:
             # prevent recursion
             self.logger.warning("Running create() from within a hook.")
             res = await self.create_without_hooks(lo, validate)
         else:
-            res = await super(ImportUser, self).create(lo, validate)
+            res = await super(ImportUser, self).create(
+                lo, validate, check_password_policies=check_password_policies
+            )
         if UNIQUENESS not in self.config.get("skip_tests", []):
             self._all_usernames[self.name] = UsernameUniquenessTuple(
                 self.record_uid, self.source_uid, self.dn
@@ -606,9 +614,6 @@ class ImportUser(User):
         self.make_username()
         if new_user:
             self.make_password()
-        if self.password:
-            self.udm_properties["overridePWHistory"] = True
-            self.udm_properties["overridePWLength"] = True
         self.make_classes()
         self.make_workgroups()
         self.make_birthday()
@@ -1104,15 +1109,17 @@ class ImportUser(User):
             self.name = self.old_user.name  # type: str
         return self.name or ""
 
-    async def modify(self, lo, validate=True, move_if_necessary=None):
-        # type: (UDM, Optional[bool], Optional[bool]) -> bool
+    async def modify(self, lo, validate=True, move_if_necessary=None, check_password_policies=True):
+        # type: (UDM, Optional[bool], Optional[bool], Optional[bool]) -> bool
         self.lo = lo
         if self.in_hook:
             # prevent recursion
             self.logger.warning("Running modify() from within a hook.")
             res = await self.modify_without_hooks(lo, validate, move_if_necessary)
         else:
-            res = await super(ImportUser, self).modify(lo, validate, move_if_necessary)
+            res = await super(ImportUser, self).modify(
+                lo, validate, move_if_necessary, check_password_policies=check_password_policies
+            )
         if (
             self.old_user
             and self.old_user.name != self.name

@@ -696,6 +696,121 @@ async def test_create(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+@pytest.mark.parametrize("evaluate_password_policies", [True, False])
+async def test_user_create_password_policies(
+    auth_header,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    random_user_create_model,
+    schedule_delete_user_name_using_udm,
+    role: Role,
+    add_to_import_config,
+    evaluate_password_policies,
+):
+    """
+    creating users with activated password policy evaluation
+    should fail (for the default password policy) if the length of the
+    password is higher than the value of password_length but
+    lower than 8 (value in the default password policy).
+    """
+    password_length = 3
+    add_to_import_config(
+        evaluate_password_policies=evaluate_password_policies, password_length=password_length
+    )
+    if role.name == "teacher_and_staff":
+        roles = ["staff", "teacher"]
+    else:
+        roles = [role.name]
+    school = await create_ou_using_python()
+    r_user = await random_user_create_model(
+        school,
+        roles=[f"{url_fragment}/roles/{role_}" for role_ in roles],
+    )
+    r_user.password = fake.password(length=password_length + 1)
+    data = r_user.json()
+    logger.debug("POST data=%r", data)
+    schedule_delete_user_name_using_udm(r_user.name)
+    response = retry_http_502(
+        requests.post,
+        f"{url_fragment}/users/",
+        headers={"Content-Type": "application/json", **auth_header},
+        data=data,
+    )
+    response_text = response.json().get("detail", "")
+    if evaluate_password_policies:
+        assert response.status_code == 400, f"{response.__dict__!r}"
+        assert "Password policy error" in response_text, response_text
+    else:
+        # todo this is failing again
+        assert response.status_code == 201, f"{response.__dict__!r}"
+        assert "Password policy error" not in response_text, response_text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("evaluate_password_policies", [True, False])
+@pytest.mark.parametrize("method", ("patch", "put"))
+async def test_user_modify_password_policies(
+    evaluate_password_policies,
+    add_to_import_config,
+    auth_header,
+    retry_http_502,
+    import_user_to_create_model_kwargs,
+    url_fragment,
+    create_ou_using_python,
+    new_import_user,
+    random_user_create_model,
+    import_config,
+    method,
+):
+    """
+    modifying users with activated password policy evaluation
+    should always fail (for the default password policy)
+    if the length of the password is higher than the value of password_length but
+    lower than 8 (value in the default password policy).
+    """
+    password_length = 3
+    add_to_import_config(
+        evaluate_password_policies=evaluate_password_policies, password_length=password_length
+    )
+    role: Role = Role("student", Student)
+    school = await create_ou_using_python()
+    user: ImportUser = await new_import_user(school, role.name, disabled=False)
+    old_user_data = import_user_to_create_model_kwargs(user)
+    user_create_model = await random_user_create_model(
+        school,
+        roles=old_user_data["roles"],
+        disabled=False,
+        school=old_user_data["school"],
+        schools=old_user_data["schools"],
+    )
+    user_create_model.password = fake.password(length=password_length + 1)
+    new_user_data = user_create_model.dict(exclude={"name", "record_uid", "source_uid"})
+    modified_user = UserCreateModel(**{**old_user_data, **new_user_data})
+    modified_user.password = modified_user.password.get_secret_value()
+    logger.debug(f"{method.upper()} modified_user=%r.", modified_user.dict())
+    response = None
+    if method == "patch":
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment}/users/{user.name}",
+            headers=auth_header,
+            data=json.dumps({"password": modified_user.password}),
+        )
+    elif method == "put":
+        response = retry_http_502(
+            requests.put,
+            f"{url_fragment}/users/{user.name}",
+            headers=auth_header,
+            data=modified_user.json(),
+        )
+    response_text = response.json().get("detail", "")
+    assert response.status_code == 400, f"{response.__dict__!r}"
+    assert "Password policy error" in response_text, response_text
+
+
+@pytest.mark.asyncio
 async def test_create_unmapped_udm_prop(
     create_ou_using_python,
     random_user_create_model,
