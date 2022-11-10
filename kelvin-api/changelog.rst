@@ -8,6 +8,7 @@ Changelog
 v1.8.0 (2022-11-09)
 .........
 * Add support for arbitrary context types for users (Bug #55355).
+* Added a configuration option to enable the evaluation of password policies when creating UCS@school users (Bug #55408).
 * Internal: Added option to check password policies when creating or modifying users (Bug #55393).
 * Added the possibility to send an Accept-Language header with each request.
 
