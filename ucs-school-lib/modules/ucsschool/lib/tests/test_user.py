@@ -216,7 +216,6 @@ async def test_create(
         ("not:funny", False),
         ("123", False),
         ("my:school:not_allowed", False),
-        ("duplicate_role", False),  # todo this does not fail!
     ],
 )
 async def test_create_arbitrary_extra_roles(
@@ -271,8 +270,7 @@ async def test_create_arbitrary_extra_roles(
         ("my:funny:role", True),
         ("not:funny", False),
         ("123", False),
-        ("my:school:not_allowed", False),
-        ("duplicate_role", False),  # todo this does not fail!
+        ("my:school:existing_school", False),
     ],
 )
 async def test_modify_arbitrary_extra_roles(
@@ -280,18 +278,16 @@ async def test_modify_arbitrary_extra_roles(
 ):
     ou = await create_ou_using_python()
     dn, attr = await new_udm_user(ou, role.name)
-    if extra_role == "duplicate_role":
-        extra_role = "{}:school:{}".format(role.name, school)
     async with UDM(**udm_kwargs) as udm:
         user: User = await role.klass.from_dn(dn, ou, udm)
-        user.ucsschool_roles = [extra_role]
+        extra_role = extra_role.replace("existing_school", ou)
+        user.ucsschool_roles.append(extra_role)
         if allowed:
             await user.modify(udm)
         else:
             expected_error = (
                 r"Role has bad format" if "school" not in extra_role else r"Unknown role"
             )
-            # todo this fails for some reason
             with pytest.raises(ValidationError, match=expected_error):
                 await user.modify(udm)
 

@@ -1275,6 +1275,7 @@ class RoleSupportMixin(object):
 
     async def do_move_roles(self, udm_obj: UdmObject, lo: UDM, old_school: str, new_school: str) -> None:
         old_roles = list(self.ucsschool_roles)
+        # todo check if needed for school change
         # remove all roles of old school
         roles = [role for role in self.roles_as_dicts if role["context"] != old_school]
         # only add role(s) if object has no roles in new school
