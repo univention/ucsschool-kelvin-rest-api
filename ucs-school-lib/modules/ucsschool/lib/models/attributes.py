@@ -375,7 +375,7 @@ class RolesSyntax(string):
         if not text:
             return text
         reg = cls.regex.match(text)
-        school_context_type = reg.groupdict()["context_type"] == "school"
+        school_context_type = True if reg and reg.groupdict()["context_type"] == "school" else False
         if not reg:
             raise ValueError(_("Role has bad format"))
         if school_context_type and reg.groupdict()["role"] not in all_roles:
