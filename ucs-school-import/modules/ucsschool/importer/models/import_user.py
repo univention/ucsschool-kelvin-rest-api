@@ -373,17 +373,22 @@ class ImportUser(User):
                     import_user=self,
                 )
 
-    async def create(self, lo, validate=True):  # type: (UDM, Optional[bool]) -> bool
+    async def create(
+        self, lo, validate=True, check_password_policies=False
+    ):  # type: (UDM, Optional[bool], Optional[bool]) -> bool
         """
         Create user object.
 
         :param univention.admin.uldap.access connection lo: LDAP connection object
         :param bool validate: if the users attributes should be checked by UDM
+        :para bool check_password_policies: if password policies should be evaluated
         :return: whether the object created succeeded
         :rtype: bool
         """
         self.lo = lo
-        check_password_policies = self.config.get("evaluate_password_policies", False)
+        check_password_policies = check_password_policies or self.config.get(
+            "evaluate_password_policies", False
+        )
         if self.in_hook:
             # prevent recursion
             self.logger.warning("Running create() from within a hook.")
@@ -1104,8 +1109,8 @@ class ImportUser(User):
             self.name = self.old_user.name  # type: str
         return self.name or ""
 
-    async def modify(self, lo, validate=True, move_if_necessary=None):
-        # type: (UDM, Optional[bool], Optional[bool]) -> bool
+    async def modify(self, lo, validate=True, move_if_necessary=None, check_password_policies=True):
+        # type: (UDM, Optional[bool], Optional[bool], Optional[bool]) -> bool
         self.lo = lo
         if self.in_hook:
             # prevent recursion
@@ -1113,7 +1118,7 @@ class ImportUser(User):
             res = await self.modify_without_hooks(lo, validate, move_if_necessary)
         else:
             res = await super(ImportUser, self).modify(
-                lo, validate, move_if_necessary, check_password_policies=True
+                lo, validate, move_if_necessary, check_password_policies=check_password_policies
             )
         if (
             self.old_user
