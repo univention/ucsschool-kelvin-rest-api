@@ -1062,7 +1062,6 @@ class UserTypeConverter:
             assert issubclass(new_cls, Teacher)
             _add_roles = cls.roles_add["teacher"]
             _rm_roles = cls.roles_rm["teacher"]
-        # todo check if change is needed
         ucsschool_roles = {
             role
             for role in user.ucsschool_roles
