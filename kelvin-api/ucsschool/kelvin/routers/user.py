@@ -37,15 +37,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Typ
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response, status
 from ldap.filter import escape_filter_chars
-from pydantic import (
-    BaseModel,
-    Field,
-    HttpUrl,
-    SecretStr,
-    ValidationError,
-    root_validator,
-    validator,
-)
+from pydantic import BaseModel, Field, HttpUrl, SecretStr, ValidationError, root_validator, validator
 
 from ucsschool.importer.default_user_import_factory import DefaultUserImportFactory
 from ucsschool.importer.exceptions import UcsSchoolImportError
