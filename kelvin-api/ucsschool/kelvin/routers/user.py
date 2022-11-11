@@ -65,6 +65,7 @@ from ucsschool.importer.models.import_user import (
     convert_to_teacher_and_staff,
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
+from ucsschool.lib.roles import InvalidUcsschoolRoleString, get_role_info
 from udm_rest_client import UDM, APICommunicationError, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
@@ -197,10 +198,8 @@ def _validate_date_range(date: str) -> None:
 
 
 def _is_school_role_string(role_string: str) -> bool:
-    return role_string.split(":")[1] == "school"
-
-
-UCSSCHOOL_ROLES_TYPE = constr(regex="^[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+$")
+    role, context_type, context = get_role_info(role_string)
+    return context_type == "school"
 
 
 class UserBaseModel(UcsSchoolBaseModel):
@@ -234,6 +233,15 @@ class UserBaseModel(UcsSchoolBaseModel):
         _validate_date_range(v)
         return v
 
+    @validator("ucsschool_roles", pre=True)
+    def validate_ucsschool_roles(cls, value: List[str]) -> List[str]:
+        try:
+            for v in value:
+                _ = get_role_info(v)
+        except InvalidUcsschoolRoleString as exc:
+            raise ValueError(exc)
+        return value
+
     class Config(UcsSchoolBaseModel.Config):
         lib_class = ImportUser
         config_id = "user"
@@ -251,7 +259,7 @@ class UserCreateModel(UserBaseModel):
     school: HttpUrl = None
     schools: List[HttpUrl] = []
     kelvin_password_hashes: PasswordsHashes = None
-    ucsschool_roles: List[UCSSCHOOL_ROLES_TYPE] = []
+    ucsschool_roles: List[str] = []
 
     class Config(UserBaseModel.Config):
         ...
@@ -368,7 +376,7 @@ class UserPatchModel(BasePatchModel):
     source_uid: str = None
     udm_properties: Dict[str, Any] = None
     kelvin_password_hashes: PasswordsHashes = None
-    ucsschool_roles: List[UCSSCHOOL_ROLES_TYPE] = []
+    ucsschool_roles: List[str] = []
 
     _not_both_password_and_hashes = root_validator(allow_reuse=True)(not_both_password_and_hashes)
 
