@@ -1282,7 +1282,7 @@ class RoleSupportMixin(object):
             for role in self.roles_as_dicts
             if role["context"] != old_school and role["context_type"] == "school"
         ]
-        # todo: not a good solution: this simply does not apply faulty roles
+        # do not apply faulty roles with context_type = school
         school_roles = [role for role in school_roles if role in all_roles]
         non_school_roles = [
             role
