@@ -43,7 +43,6 @@ from pydantic import (
     HttpUrl,
     SecretStr,
     ValidationError,
-    constr,
     root_validator,
     validator,
 )
