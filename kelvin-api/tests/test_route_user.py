@@ -2752,6 +2752,8 @@ async def test_create_custom_ucsschool_roles(
     role,
 ):
     school = await create_ou_using_python()
+    # we also add "student:school:school1", but this should be ignored by KELVIN
+    # all ucsschool role strings with context == school are ignored in post
     ucsschool_roles = ["student:school:school1", "test_1:mycon:where", "test_2:foo:bar"]
     expected_ucsschool_roles = [f"{role.name}:school:{school}", "test_1:mycon:where", "test_2:foo:bar"]
     roles = [f"{url_fragment}/roles/{role.name}"]
@@ -2820,6 +2822,8 @@ async def test_modify_custom_ucsschool_roles(
     schedule_delete_user_name_using_udm(user.name)
     user_data = import_user_to_create_model_kwargs(user)
     modified_user = UserCreateModel(**user_data)
+    # we also add "teacher:school:{school}", but this should be ignored by KELVIN
+    # all ucsschool role strings with context == school are ignored in patch/put
     ucsschool_roles_to_set = ["test_1:mycon:where", "test-2:foo:bar", f"teacher:school:{school}"]
     ucsschool_roles_expected = ["test_1:mycon:where", "test-2:foo:bar"] + [
         f"{role_}:school:{school}" for role_ in roles
@@ -2898,6 +2902,8 @@ async def test_modify_custom_ucsschool_roles_with_role_change(
     school = await create_ou_using_python()
     role_create = "student"
     role_change = "teacher"
+    # we also add "staff:school:{school}", but this should be ignored by KELVIN
+    # all ucsschool role strings with context == school are ignored in patch/put
     ucsschool_roles_to_set = ["test_1:mycon:where", "test-2:foo:bar", f"staff:school:{school}"]
     ucsschool_roles_expected = ["test_1:mycon:where", "test-2:foo:bar", f"{role_change}:school:{school}"]
     create_kwargs = {}
