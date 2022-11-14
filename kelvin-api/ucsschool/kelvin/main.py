@@ -28,18 +28,21 @@
 import logging
 from datetime import timedelta
 from functools import lru_cache
+from typing import Any, Dict, List
 
 import aiofiles
 import lazy_object_proxy
 from asgi_correlation_id import CorrelationIdMiddleware
 from asgi_correlation_id.context import correlation_id
 from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import HTMLResponse, JSONResponse, UJSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi_utils.timing import add_timing_middleware
 
+from ucsschool.importer.exceptions import UcsSchoolImportError
 from ucsschool.lib.models.attributes import ValidationError as SchooLibValidationError
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.utils import env_or_ucr, get_file_handler
@@ -112,6 +115,25 @@ def setup_logging() -> None:
     logger = logging.getLogger()
     logger.setLevel(abs_min_level)
     logger.addHandler(file_handler)
+
+
+@app.exception_handler(UcsSchoolImportError)
+async def ucsschool_import_exception_handler(request: Request, exc: UcsSchoolImportError):
+    """Format unhandled UCS@School ImportError exceptions and return in a standard JSON format"""
+    error_type = f"{UcsSchoolImportError.__name__}:{exc.__class__.__name__}"
+    errors: List[Dict[str, Any]]
+    errors = [{"loc": (), "msg": str(exc), "type": error_type}]
+
+    logger.error(f"Encountered exception {exc} responding with {errors}")
+
+    return JSONResponse(
+        content=jsonable_encoder({"detail": errors}),
+        status_code=400,
+        headers={
+            CorrelationIdMiddleware.header_name: correlation_id.get() or "",
+            "Access-Control-Expose-Headers": CorrelationIdMiddleware.header_name,
+        },
+    )
 
 
 @app.exception_handler(Exception)

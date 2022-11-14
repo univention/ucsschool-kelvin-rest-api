@@ -800,6 +800,8 @@ async def create(
     except (CreateError, LibValidationError, UcsSchoolImportError, WorkgroupDoesNotExistError) as exc:
         error_msg = f"Failed to create {user!r}: {exc}"
         logger.exception(error_msg)
+        if isinstance(exc, UcsSchoolImportError):
+            raise
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
 
     if res:
