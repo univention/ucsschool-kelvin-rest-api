@@ -56,7 +56,7 @@ from ucsschool.importer.models.import_user import (
     convert_to_teacher_and_staff,
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
-from ucsschool.lib.roles import InvalidUcsschoolRoleString, get_role_info
+from ucsschool.lib.roles import InvalidUcsschoolRoleString, UnknownRole, get_role_info
 from udm_rest_client import UDM, APICommunicationError, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
@@ -231,6 +231,8 @@ class UserBaseModel(UcsSchoolBaseModel):
                 get_role_info(v)
         except InvalidUcsschoolRoleString as exc:
             raise ValueError(exc)
+        except UnknownRole:
+            pass
         return value
 
     class Config(UcsSchoolBaseModel.Config):
@@ -749,8 +751,9 @@ async def create(
         valid range: 1961-01-01 to 2099-12-31)
     - **disabled**: whether the user should be created deactivated (optional,
         default: **false**)
-    - **ucsschool_roles**: list of roles the user has in to each school
-        (optional, auto-managed by system, setting and changing discouraged)
+    - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to
+        ucsschool_roles with context_type school which are auto-managed by the system. Format is
+        **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
     - **udm_properties**: object with UDM properties (optional, e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
@@ -980,8 +983,9 @@ async def partial_update(  # noqa: C901
         "workgroup2"], "school2": ["workgroup3"]}**)
     - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **disabled**: whether the user should be created deactivated (default: **false**)
-    - **ucsschool_roles**: list of roles the user has in to each school (auto-managed by system,
-        setting and changing discouraged)
+    - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to
+        ucsschool_roles with context_type school which are auto-managed by the system. Format is
+        **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
     - **udm_properties**: object with UDM properties (optional, e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
@@ -1187,6 +1191,9 @@ async def complete_update(  # noqa: C901
         creation on singleserver environments. (optional, **currently non-functional!**)
     - **kelvin_password_hashes**: Password hashes to be stored unchanged in
         OpenLDAP (optional)
+    - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to ucsschool_roles
+        with context_type school which are auto-managed by the system. Format is
+        **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
 
     **JSON-example**:
 
