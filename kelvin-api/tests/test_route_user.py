@@ -39,7 +39,7 @@ from conftest import MAPPED_UDM_PROPERTIES
 from faker import Faker
 from ldap3.core.exceptions import LDAPBindError
 from ldap.filter import filter_format
-from pydantic import HttpUrl
+from pydantic import HttpUrl, error_wrappers
 
 import ucsschool.kelvin.constants
 import ucsschool.kelvin.ldap_access
@@ -2776,6 +2776,23 @@ async def test_create_custom_ucsschool_roles(
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
     assert set(response_json["ucsschool_roles"]) == set(expected_ucsschool_roles)
+
+
+@pytest.mark.asyncio
+async def test_create_invalid_custom_ucsschool_roles(
+    create_ou_using_python,
+    random_user_create_model,
+    url_fragment,
+    retry_http_502,
+    auth_header,
+    schedule_delete_user_name_using_udm,
+):
+    school = await create_ou_using_python()
+    roles = [f"{url_fragment}/roles/student"]
+
+    for ucsschool_role in ["test_1mycon:where", "test_2:foobar", "foo", ""]:
+        with pytest.raises(error_wrappers.ValidationError):
+            await random_user_create_model(school, roles=roles, ucsschool_roles=ucsschool_role)
 
 
 @pytest.mark.asyncio
