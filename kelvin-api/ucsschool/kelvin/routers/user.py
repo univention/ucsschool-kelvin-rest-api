@@ -228,7 +228,7 @@ class UserBaseModel(UcsSchoolBaseModel):
     def validate_ucsschool_roles(cls, value: List[str]) -> List[str]:
         try:
             for v in value:
-                 get_role_info(v)
+                get_role_info(v)
         except InvalidUcsschoolRoleString as exc:
             raise ValueError(exc)
         return value
