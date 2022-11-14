@@ -756,7 +756,8 @@ async def create(
     - **disabled**: whether the user should be created deactivated (optional,
         default: **false**)
     - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to
-        ucsschool_roles with context_type school which are auto-managed by the system. ucsschool_role strings with context type school are ignored. Format is
+        ucsschool_roles with context_type school which are auto-managed by the system.
+        ucsschool_role strings with context type school are ignored. Format is
         **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
     - **udm_properties**: object with UDM properties (optional, e.g.
         **{"udm_prop1": "value1"}**, must be configured in
@@ -988,7 +989,8 @@ async def partial_update(  # noqa: C901
     - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **disabled**: whether the user should be created deactivated (default: **false**)
     - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to
-        ucsschool_roles with context_type school which are auto-managed by the system. ucsschool_role strings with context type school are ignored. Format is
+        ucsschool_roles with context_type school which are auto-managed by the system.
+        ucsschool_role strings with context type school are ignored. Format is
         **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
     - **udm_properties**: object with UDM properties (optional, e.g.
         **{"udm_prop1": "value1"}**, must be configured in
@@ -1195,8 +1197,9 @@ async def complete_update(  # noqa: C901
         creation on singleserver environments. (optional, **currently non-functional!**)
     - **kelvin_password_hashes**: Password hashes to be stored unchanged in
         OpenLDAP (optional)
-    - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to ucsschool_roles
-        with context_type school which are auto-managed by the system. ucsschool_role strings with context type school are ignored. Format is
+    - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to
+        ucsschool_roles with context_type school which are auto-managed by the system.
+        ucsschool_role strings with context type school are ignored. Format is
         **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
 
     **JSON-example**:
