@@ -193,7 +193,9 @@ def _is_school_role_string(role_string: str) -> bool:
     try:
         _, context_type, _ = get_role_info(role_string)
     except UnknownRole:
-        pass
+        # unknown role means context_type is school but
+        # role is not a school role -> true
+        return True
     return context_type == "school"
 
 
