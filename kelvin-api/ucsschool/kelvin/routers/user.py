@@ -228,7 +228,7 @@ class UserBaseModel(UcsSchoolBaseModel):
     def validate_ucsschool_roles(cls, value: List[str]) -> List[str]:
         try:
             for v in value:
-                _ = get_role_info(v)
+                 get_role_info(v)
         except InvalidUcsschoolRoleString as exc:
             raise ValueError(exc)
         return value
@@ -448,7 +448,6 @@ class UserPatchModel(BasePatchModel):
                     url_to_name(request, "role", UserCreateModel.unscheme_and_unquote(role))
                     for role in value
                 ]
-
         return kwargs
 
 
