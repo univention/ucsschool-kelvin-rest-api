@@ -2754,7 +2754,12 @@ async def test_create_custom_ucsschool_roles(
     school = await create_ou_using_python()
     # we also add "student:school:school1", but this should be ignored by KELVIN
     # all ucsschool role strings with context == school are ignored in post
-    ucsschool_roles = ["student:school:school1", "test_1:mycon:where", "test_2:foo:bar"]
+    ucsschool_roles = [
+        "student:school:school1",
+        "foo:school:school1",
+        "test_1:mycon:where",
+        "test_2:foo:bar",
+    ]
     expected_ucsschool_roles = [f"{role.name}:school:{school}", "test_1:mycon:where", "test_2:foo:bar"]
     roles = [f"{url_fragment}/roles/{role.name}"]
     if role.name == "teacher_and_staff":
@@ -2794,7 +2799,7 @@ async def test_create_invalid_custom_ucsschool_roles(
 
     for ucsschool_role in ["test_1mycon:where", "test_2:foobar", "foo", ""]:
         with pytest.raises(error_wrappers.ValidationError):
-            await random_user_create_model(school, roles=roles, ucsschool_roles=ucsschool_role)
+            await random_user_create_model(school, roles=roles, ucsschool_roles=[ucsschool_role])
 
 
 @pytest.mark.asyncio
@@ -2824,7 +2829,12 @@ async def test_modify_custom_ucsschool_roles(
     modified_user = UserCreateModel(**user_data)
     # we also add "teacher:school:{school}", but this should be ignored by KELVIN
     # all ucsschool role strings with context == school are ignored in patch/put
-    ucsschool_roles_to_set = ["test_1:mycon:where", "test-2:foo:bar", f"teacher:school:{school}"]
+    ucsschool_roles_to_set = [
+        "test_1:mycon:where",
+        "test-2:foo:bar",
+        f"teacher:school:{school}",
+        f"foo:school:{school}",
+    ]
     ucsschool_roles_expected = ["test_1:mycon:where", "test-2:foo:bar"] + [
         f"{role_}:school:{school}" for role_ in roles
     ]
@@ -2904,7 +2914,12 @@ async def test_modify_custom_ucsschool_roles_with_role_change(
     role_change = "teacher"
     # we also add "staff:school:{school}", but this should be ignored by KELVIN
     # all ucsschool role strings with context == school are ignored in patch/put
-    ucsschool_roles_to_set = ["test_1:mycon:where", "test-2:foo:bar", f"staff:school:{school}"]
+    ucsschool_roles_to_set = [
+        "test_1:mycon:where",
+        "test-2:foo:bar",
+        f"staff:school:{school}",
+        "foo:school:bar",
+    ]
     ucsschool_roles_expected = ["test_1:mycon:where", "test-2:foo:bar", f"{role_change}:school:{school}"]
     create_kwargs = {}
     user: ImportUser = await new_import_user(school, role_create, **create_kwargs)

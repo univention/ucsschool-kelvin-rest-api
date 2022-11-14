@@ -189,7 +189,11 @@ def _validate_date_range(date: str) -> None:
 
 
 def _is_school_role_string(role_string: str) -> bool:
-    role, context_type, context = get_role_info(role_string)
+    context_type = ""
+    try:
+        _, context_type, _ = get_role_info(role_string)
+    except UnknownRole:
+        pass
     return context_type == "school"
 
 
