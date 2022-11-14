@@ -89,7 +89,7 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
     "workgroups", "nested object", "Workgroups the user is a member of. A mapping from school names to workgroup names, for example: ``{'"'school1'"': ['"'wg1'"', '"'wg2'"'], '"'school2'"': ['"'wg3'"']}``.", "The schools must also be listed (as URLs) in the ``schools`` attribute."
     "record_uid", "string", "Unique identifier of the user in the upstream database the user was imported from. Used in combination with ``source_uid`` by the UCS\@school import to uniquely identify users in both LDAP and upstream databases.", "changing is strongly discouraged"
     "source_uid", "string", "Identifier of the upstream database the user was imported from. Defaults to ``Kelvin`` if unset.", "changing is strongly discouraged"
-    "ucsschool_roles", "list", "List of ucsschool roles strings the user has in addition to ucsschool roles which are auto-managed by the system. Format is ``ROLE:CONTEXT_TYPE:CONTEXT``, for example: ``['"'myrole:mycontext:gym1'"', '"'foo:bar:school2'"']``."
+    "ucsschool_roles", "list", "List of ucsschool_roles strings auto-managed by the system and custom addition ucsschool_roles strings . ucsschool_role strings with context type school are ignored. Format is ``ROLE:CONTEXT_TYPE:CONTEXT``, for example: ``['"'myrole:mycontext:gym1'"', '"'student:school:gym1'"']``."
     "udm_properties", "nested object", "Object with UDM properties. For example: ``{'"'street'"': '"'Luise Av.'"', '"'phone'"': ['"'+49 30 321654987'"', '"'123 456 789'"']}``", "Must be configured, see below."
 
 The ``password`` and ``kelvin_password_hashes`` attributes are not listed, because they cannot be retrieved, they can only be *set* when creating or modifying a user.
