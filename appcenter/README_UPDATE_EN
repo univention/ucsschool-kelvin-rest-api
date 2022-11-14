@@ -6,7 +6,7 @@
         Add support for arbitrary context types in UCS@school roles for users (Bug #55355).
     </li>
     <li>
-        Added a configuration option to enable the evaluation of password policies when creating UCS@school users (Bug #55408).
+        Add configuration option `evaluate_password_policies` (default `false`) to enable the evaluation of password policies when creating UCS@school users, see <a href="https://docs.software-univention.de/ucsschool-import/5.0/de/configuration/format.html#konfiguration-des-benutzerimports">configuration options in UCS@school import manual</a> (Bug #55408).
     </li>
     <li>
         Internal: Added option to check password policies when creating or modifying UCS@school users (Bug #55393).
