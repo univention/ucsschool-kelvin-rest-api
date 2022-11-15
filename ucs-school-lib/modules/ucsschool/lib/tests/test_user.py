@@ -7,6 +7,7 @@ import pytest
 from faker import Faker
 from ldap.filter import filter_format
 
+from ucsschool.lib.models.attributes import ValidationError
 from ucsschool.lib.models.group import SchoolClass
 from ucsschool.lib.models.user import (
     ExamStudent,
@@ -204,6 +205,93 @@ async def test_create(
         user = await role.klass.from_dn(user.dn, school, udm)
         user_props["school"] = [school]
         compare_attr_and_lib_user(user_props, user)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+@pytest.mark.parametrize(
+    "extra_role,allowed",
+    [
+        ("my:funny:role", True),
+        ("not:funny", False),
+        ("123", False),
+        ("my:school:not_allowed", False),
+    ],
+)
+async def test_create_arbitrary_extra_roles(
+    create_ou_using_python,
+    new_school_class_using_udm,
+    udm_users_user_props,
+    udm_kwargs,
+    role: Role,
+    extra_role,
+    allowed,
+):
+    """
+    00_ucsschool_roles
+    """
+    school = await create_ou_using_python()
+    async with UDM(**udm_kwargs) as udm:
+        user_props = await udm_users_user_props(school)
+        user_props["name"] = user_props["username"]
+        user_props["email"] = user_props["mailPrimaryAddress"]
+        user_props["school"] = school
+        if extra_role == "duplicate_role":
+            extra_role = "{}:school:{}".format(role.name, school)
+        user_props["ucsschool_roles"] = [extra_role]
+        del user_props["e-mail"]
+        del user_props["userexpiry"]
+        if role.klass != Staff:
+            cls_dn1, cls_attr1 = await new_school_class_using_udm(school=school)
+            cls_dn2, cls_attr2 = await new_school_class_using_udm(school=school)
+            user_props["school_classes"] = {
+                school: [
+                    f"{school}-{cls_attr1['name']}",
+                    f"{school}-{cls_attr2['name']}",
+                ]
+            }
+        user = role.klass(**user_props)
+        if allowed:
+            success = await user.create(udm)
+            assert success is True
+            user = await role.klass.from_dn(user.dn, school, udm)
+            user_props["school"] = [school]
+            compare_attr_and_lib_user(user_props, user)
+        else:
+            expected_error = r"Role has bad format" if "school" not in extra_role else r"Unknown role"
+            with pytest.raises(ValidationError, match=expected_error):
+                await user.create(udm)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+@pytest.mark.parametrize(
+    "extra_role,allowed",
+    [
+        ("my:funny:role", True),
+        ("not:funny", False),
+        ("123", False),
+        ("my:school:existing_school", False),
+    ],
+)
+async def test_modify_arbitrary_extra_roles(
+    create_ou_using_python, new_udm_user, udm_kwargs, role: Role, extra_role, allowed
+):
+    """
+    00_ucsschool_roles
+    """
+    ou = await create_ou_using_python()
+    dn, attr = await new_udm_user(ou, role.name)
+    async with UDM(**udm_kwargs) as udm:
+        user: User = await role.klass.from_dn(dn, ou, udm)
+        extra_role = extra_role.replace("existing_school", ou)
+        user.ucsschool_roles.append(extra_role)
+        if allowed:
+            await user.modify(udm)
+        else:
+            expected_error = r"Role has bad format" if "school" not in extra_role else r"Unknown role"
+            with pytest.raises(ValidationError, match=expected_error):
+                await user.modify(udm)
 
 
 @pytest.mark.asyncio
@@ -670,6 +758,43 @@ async def test_move(create_multiple_ous, new_udm_user, role: Role, udm_kwargs):
     assert user.schools == [ou2]
     assert f"ou={ou1}" not in user.dn
     assert f"ou={ou2}" in user.dn
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+@pytest.mark.parametrize(
+    "extra_role,allowed",
+    [
+        ("my:funny:role", True),
+        ("not:funny", False),
+        ("123", False),
+        ("my:school:existing_school", False),
+    ],
+)
+async def test_move_keep_arbitrary_extra_roles(
+    create_multiple_ous, new_udm_user, role: Role, udm_kwargs, extra_role, allowed
+):
+    """
+    00_ucsschool_roles
+    """
+    ou1, ou2 = await create_multiple_ous(2)
+    extra_role = extra_role.replace("existing_school", ou2)
+    dn, attr = await new_udm_user(ou1, role.name, ucsschool_roles=[extra_role])
+    assert attr["school"][0] == ou1
+    async with UDM(**udm_kwargs) as udm:
+        user = await role.klass.from_dn(dn, ou1, udm)
+        assert extra_role in user.ucsschool_roles
+        user.school = ou2
+        user.schools = [ou2]
+        success = await user.change_school(ou2, udm)
+        assert success
+        users = await role.klass.get_all(udm, ou2, f"uid={user.name}")
+    assert len(users) == 1
+    user = users[0]
+    if allowed:
+        assert extra_role in user.ucsschool_roles
+    else:
+        assert extra_role not in user.ucsschool_roles
 
 
 @pytest.mark.asyncio

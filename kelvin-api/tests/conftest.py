@@ -185,6 +185,11 @@ def url_fragment():
     return f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/v1"
 
 
+@pytest.fixture(scope="session")
+def url_fragment_https():
+    return f"https://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/v1"
+
+
 def get_access_token(username: str = "Administrator", password: str = "univention") -> str:
     response = requests.post(
         url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/token",

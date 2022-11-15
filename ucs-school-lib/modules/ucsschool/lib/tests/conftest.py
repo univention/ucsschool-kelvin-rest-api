@@ -393,6 +393,8 @@ def new_udm_user(
             ]
         else:
             user_props["ucsschoolRole"] = [create_ucsschool_role_string(role, school)]
+        extra_roles = school_user_kwargs.get("ucsschool_roles", [])
+        user_props["ucsschoolRole"].extend(extra_roles)
         school_search_base = SchoolSearchBase([school])
         options = {
             "staff": ("ucsschoolStaff",),
@@ -425,6 +427,7 @@ def new_udm_user(
             user_obj.props.ucsschoolRecordUID = school_user_kwargs.get(
                 "record_uid", user_props["username"]
             )
+
             user_obj.props.ucsschoolSourceUID = school_user_kwargs.get("source_uid", "Kelvin")
             user_obj.props.groups = [user_obj.props.primaryGroup]
             user_obj.props.groups.extend(role_groups)

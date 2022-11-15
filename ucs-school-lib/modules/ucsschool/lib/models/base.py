@@ -59,7 +59,7 @@ from univention.admin.uexceptions import noObject, noProperty, valueError, value
 from univention.admin.uldap import LoType, PoType, getAdminConnection, getMachineConnection
 
 from ..pyhooks.pyhooks_loader import PyHooksLoader
-from ..roles import create_ucsschool_role_string
+from ..roles import all_roles, create_ucsschool_role_string
 from ..schoolldap import SchoolSearchBase
 from .attributes import CommonName, Roles, SchoolAttribute, ValidationError
 from .hook import KelvinHook
@@ -353,6 +353,7 @@ class UCSSchoolHelperAbstractClass(object):
 
         :param kwargs: The attributes to set.
         """
+        existing_attributes = self._attributes.keys()
         existing_attributes = self._attributes.keys()
         for key, value in kwargs.items():
             if key in existing_attributes:
@@ -1276,17 +1277,28 @@ class RoleSupportMixin(object):
     async def do_move_roles(self, udm_obj: UdmObject, lo: UDM, old_school: str, new_school: str) -> None:
         old_roles = list(self.ucsschool_roles)
         # remove all roles of old school
-        roles = [role for role in self.roles_as_dicts if role["context"] != old_school]
+        school_roles = [
+            role
+            for role in self.roles_as_dicts
+            if role["context"] != old_school and role["context_type"] == "school"
+        ]
+        # do not apply faulty roles with context_type = school
+        school_roles = [role for role in school_roles if role in all_roles]
+        non_school_roles = [
+            role
+            for role in self.roles_as_dicts
+            if role["context"] != old_school and role["context_type"] != "school"
+        ]
         # only add role(s) if object has no roles in new school
-        if all(role["context"] != new_school for role in roles):
+        if all(role["context"] != new_school for role in school_roles):
             # add only role(s) of current Python class in new school
-            roles.extend(
+            school_roles.extend(
                 [
                     {"context": new_school, "context_type": "school", "role": role}
                     for role in self.default_roles
                 ]
             )
-        self.roles_as_dicts = roles
+        self.roles_as_dicts = school_roles + non_school_roles
         if old_roles != self.ucsschool_roles:
             self.logger.info("Updating roles: %r -> %r...", old_roles, self.ucsschool_roles)
             # cannot use do_modify() here, as it would delete the old object

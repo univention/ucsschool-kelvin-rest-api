@@ -56,6 +56,7 @@ from ucsschool.importer.models.import_user import (
     convert_to_teacher_and_staff,
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
+from ucsschool.lib.roles import InvalidUcsschoolRoleString, UnknownRole, get_role_info
 from udm_rest_client import UDM, APICommunicationError, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
@@ -187,6 +188,17 @@ def _validate_date_range(date: str) -> None:
         raise ValueError("Year must be between 1961 and 2099.")
 
 
+def _is_school_role_string(role_string: str) -> bool:
+    context_type = ""
+    try:
+        _, context_type, _ = get_role_info(role_string)
+    except UnknownRole:
+        # unknown role means context_type is school but
+        # role is not a school role -> true
+        return True
+    return context_type == "school"
+
+
 class UserBaseModel(UcsSchoolBaseModel):
     firstname: str
     lastname: str
@@ -218,6 +230,17 @@ class UserBaseModel(UcsSchoolBaseModel):
         _validate_date_range(v)
         return v
 
+    @validator("ucsschool_roles", pre=True)
+    def validate_ucsschool_roles(cls, value: List[str]) -> List[str]:
+        try:
+            for v in value:
+                get_role_info(v)
+        except InvalidUcsschoolRoleString as exc:
+            raise ValueError(exc)
+        except UnknownRole:
+            pass
+        return value
+
     class Config(UcsSchoolBaseModel.Config):
         lib_class = ImportUser
         config_id = "user"
@@ -235,6 +258,7 @@ class UserCreateModel(UserBaseModel):
     school: HttpUrl = None
     schools: List[HttpUrl] = []
     kelvin_password_hashes: PasswordsHashes = None
+    ucsschool_roles: List[str] = []
 
     class Config(UserBaseModel.Config):
         ...
@@ -264,13 +288,20 @@ class UserCreateModel(UserBaseModel):
             if self.schools
             else self.schools
         )
-        kwargs["ucsschool_roles"] = [
+        # get all ucsschool_role_strings from role
+        ucsschool_role_strings = [
             SchoolUserRole(url_to_name(request, "role", self.unscheme_and_unquote(role))).as_lib_role(
                 school
             )
             for role in self.roles
             for school in kwargs["schools"]
         ]
+        # add all ucsschool_role_strings with context_type != school from ucsschool_roles
+        for role_string in kwargs["ucsschool_roles"]:
+            if not _is_school_role_string(role_string) and role_string not in ucsschool_role_strings:
+                ucsschool_role_strings.append(role_string)
+        kwargs["ucsschool_roles"] = ucsschool_role_strings
+
         kwargs["birthday"] = str(self.birthday) if self.birthday else self.birthday
         kwargs["expiration_date"] = (
             str(self.expiration_date) if self.expiration_date else self.expiration_date
@@ -296,7 +327,14 @@ class UserModel(UserBaseModel, APIAttributesMixin):
         )
         kwargs["url"] = cls.scheme_and_quote(request.url_for("get", username=kwargs["name"]))
         udm_obj = await obj.get_udm_object(udm)
-        roles = sorted({SchoolUserRole.from_lib_role(role) for role in obj.ucsschool_roles})
+        # filter out all non school role strings
+        roles = sorted(
+            {
+                SchoolUserRole.from_lib_role(role)
+                for role in obj.ucsschool_roles
+                if _is_school_role_string(role)
+            }
+        )
         kwargs["roles"] = [cls.scheme_and_quote(role.to_url(request)) for role in roles]
         kwargs["source_uid"] = udm_obj.props.ucsschoolSourceUID
         kwargs["record_uid"] = udm_obj.props.ucsschoolRecordUID
@@ -337,6 +375,7 @@ class UserPatchModel(BasePatchModel):
     source_uid: str = None
     udm_properties: Dict[str, Any] = None
     kelvin_password_hashes: PasswordsHashes = None
+    ucsschool_roles: List[str] = []
 
     _not_both_password_and_hashes = root_validator(allow_reuse=True)(not_both_password_and_hashes)
 
@@ -718,8 +757,10 @@ async def create(
         valid range: 1961-01-01 to 2099-12-31)
     - **disabled**: whether the user should be created deactivated (optional,
         default: **false**)
-    - **ucsschool_roles**: list of roles the user has in to each school
-        (optional, auto-managed by system, setting and changing discouraged)
+    - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to
+        ucsschool_roles with context_type school which are auto-managed by the system.
+        ucsschool_role strings with context type school are ignored. Format is
+        **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
     - **udm_properties**: object with UDM properties (optional, e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
@@ -949,8 +990,10 @@ async def partial_update(  # noqa: C901
         "workgroup2"], "school2": ["workgroup3"]}**)
     - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **disabled**: whether the user should be created deactivated (default: **false**)
-    - **ucsschool_roles**: list of roles the user has in to each school (auto-managed by system,
-        setting and changing discouraged)
+    - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to
+        ucsschool_roles with context_type school which are auto-managed by the system.
+        ucsschool_role strings with context type school are ignored. Format is
+        **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
     - **udm_properties**: object with UDM properties (optional, e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
@@ -1062,6 +1105,13 @@ async def partial_update(  # noqa: C901
         user_current = await change_roles(
             udm, logger, user_current, new_roles, new_school_classes, new_workgroups
         )
+    if "ucsschool_roles" in to_change:
+        # add all ucsschool_role_strings with context_type != school from ucsschool_roles
+        ucsschool_role_strings = []
+        for role_string in to_change["ucsschool_roles"]:
+            if not _is_school_role_string(role_string) and role_string not in ucsschool_role_strings:
+                ucsschool_role_strings.append(role_string)
+        to_change["ucsschool_roles"] = ucsschool_role_strings
 
     # 4. modify
     changed = False
@@ -1149,6 +1199,10 @@ async def complete_update(  # noqa: C901
         creation on singleserver environments. (optional, **currently non-functional!**)
     - **kelvin_password_hashes**: Password hashes to be stored unchanged in
         OpenLDAP (optional)
+    - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to
+        ucsschool_roles with context_type school which are auto-managed by the system.
+        ucsschool_role strings with context type school are ignored. Format is
+        **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
 
     **JSON-example**:
 

@@ -14,6 +14,9 @@
     <li>
         Added the possibility to send an Accept-Language header with each request.
     </li>
+    <li>
+        Added the possibility to set additional <code>ucsschool_roles</code> strings via PATCH, PUT and POST for user objects. All role strings with context type ``school`` are ignored.
+    </li>
 </ul>
 
 <h2>v1.7.0 (2022-07-18)</h2>
