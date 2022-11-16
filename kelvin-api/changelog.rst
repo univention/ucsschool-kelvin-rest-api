@@ -5,12 +5,13 @@
 Changelog
 ---------
 
-v1.8.0 (2022-11-09)
+v1.8.0 (2022-11-11)
 .........
 * Add support for arbitrary context types for users (Bug #55355).
 * Added a configuration option to enable the evaluation of password policies when creating UCS@school users (Bug #55408).
 * Internal: Added option to check password policies when creating or modifying users (Bug #55393).
 * Added the possibility to send an Accept-Language header with each request.
+* All forwarded UDM errors are now structured the same way as FastAPI validation errors (Issue #30).
 
 v1.7.0 (2022-07-18)
 .........
