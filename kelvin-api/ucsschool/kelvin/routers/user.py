@@ -57,7 +57,6 @@ from ucsschool.importer.models.import_user import (
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
 from ucsschool.lib.roles import InvalidUcsschoolRoleString, UnknownRole, get_role_info
-from udm_rest_client import UDM, APICommunicationError, CreateError, ModifyError, MoveError
 from udm_rest_client import UDM, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
