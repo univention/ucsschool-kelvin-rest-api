@@ -117,9 +117,26 @@ def setup_logging() -> None:
     logger.addHandler(file_handler)
 
 
-@app.exception_handler(ReraisedUdmException)
-async def reraised_udm_exception_handler(request: Request, exc: ReraisedUdmException) -> JSONResponse:
-    """Handle reraised udm exceptions"""
+@app.exception_handler(UdmError)
+async def udm_exception_handler(request: Request, exc: UdmError) -> JSONResponse:
+    """Format unhandled udm exceptions and return in a standard JSON format"""
+
+    error_type = f"UdmError:{exc.__class__.__name__}"
+    errors: List[Dict[str, Any]]
+    if exc.error is not None:
+        errors = [
+            {"loc": (location,), "msg": message, "type": error_type}
+            for (location, message) in exc.error.items()
+        ]
+    elif exc.reason is not None:
+        errors = [{"loc": (), "msg": exc.reason, "type": error_type}]
+    else:
+        errors = [{"loc": (), "msg": str(exc), "type": error_type}]
+
+    status_code = exc.status or 500
+
+    logger.error(f"Encountered exception {exc} responding with {errors}")
+
     return JSONResponse(
         content=jsonable_encoder({"detail": errors}),
         status_code=status_code,

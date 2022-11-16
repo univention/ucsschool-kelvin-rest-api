@@ -224,6 +224,39 @@ async def test_create_unmapped_udm_prop(
 
 
 @pytest.mark.asyncio
+async def test_create_udm_error_forwarding(
+    auth_header,
+    udm_kwargs,
+    docker_host_name,
+    ldap_base,
+    random_school_create_model,
+    schedule_delete_ou_using_ssh,
+):
+    school_create_model: SchoolCreateModel = random_school_create_model()
+    attrs = school_create_model.dict()
+    attrs["udm_properties"] = {"description": "DESCRIPTION", "userPath": "_xxx"}
+    schedule_delete_ou_using_ssh(school_create_model.name, docker_host_name)
+    client = TestClient(app, base_url="http://test.server")
+    response = client.post(
+        app.url_path_for("school_create"),
+        headers={"Content-Type": "application/json", **auth_header},
+        json=attrs,
+    )
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": [
+            {
+                "loc": ["userPath"],
+                "msg": "The property userPath has an invalid value:"
+                " Value must be of type boolean not str.",
+                # raises a ModifyError as school_create creates the school ou and modifies it afterwards
+                "type": "UdmError:ModifyError",
+            }
+        ]
+    }
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("language", [None, "de", "en", "de-DE", "en-US;q=0.95"])
 async def test_get_school_language(auth_header, monkeypatch, language):
     async def from_lib_model_mock(obj, request, udm) -> SchoolModel:

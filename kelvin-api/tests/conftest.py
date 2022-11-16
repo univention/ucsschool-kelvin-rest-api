@@ -72,6 +72,16 @@ APP_ID = "ucsschool-kelvin-rest-api"
 APP_BASE_PATH = Path("/var/lib/univention-appcenter/apps", APP_ID)
 APP_CONFIG_BASE_PATH = APP_BASE_PATH / "conf"
 CN_ADMIN_PASSWORD_FILE = APP_CONFIG_BASE_PATH / "cn_admin.secret"
+
+KELVIN_CONFIG = {
+    "active": Path("/var/lib/ucs-school-import/configs/kelvin.json"),
+    "bak": Path(
+        "/var/lib/ucs-school-import/configs/kelvin.json.bak.{}".format(
+            datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        )
+    ),
+}
+
 IMPORT_CONFIG = {
     "active": Path("/var/lib/ucs-school-import/configs/user_import.json"),
     "bak": Path(
@@ -605,7 +615,11 @@ def mapped_udm_properties_test_config(restart_kelvin_api_server_session):
         if MAPPED_UDM_PROPERTIES_CONFIG["active"].exists():
             shutil.move(MAPPED_UDM_PROPERTIES_CONFIG["active"], MAPPED_UDM_PROPERTIES_CONFIG["bak"])
 
-        config = {"school": ["description"], "school_class": ["mailAddress"], "workgroup": ["gidNumber"]}
+        config = {
+            "school": ["description", "userPath"],
+            "school_class": ["mailAddress", "gidNumber"],
+            "workgroup": ["gidNumber"],
+        }
 
         with open(MAPPED_UDM_PROPERTIES_CONFIG["active"], "w") as fd:
             json.dump(config, fd, indent=4)
@@ -624,14 +638,25 @@ def setup_mapped_udm_properties_config(mapped_udm_properties_test_config):
 
 
 @pytest.fixture(scope="session")
-def add_to_import_config(restart_kelvin_api_server_session):  # noqa: C901
-    def _func(**kwargs) -> None:
+def add_to_import_config(add_to_config):  # noqa: C901
+    def _func(**kwargs):
+        add_to_config("user_import", **kwargs)
+
+    yield _func
+
+
+@pytest.fixture(scope="session")
+def add_to_config(restart_kelvin_api_server_session):  # noqa: C901
+    def _func(config_type, **kwargs) -> None:
+
+        target_configuration = {"user_import": IMPORT_CONFIG, "kelvin": KELVIN_CONFIG}[config_type]
+
         if not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists():
             # not in Docker container
             return
-        if IMPORT_CONFIG["active"].exists():
+        if target_configuration["active"].exists():
             restart = False
-            with open(IMPORT_CONFIG["active"], "r") as fp:
+            with open(target_configuration["active"], "r") as fp:
                 config = json.load(fp)
             for k, v in kwargs.items():
                 if isinstance(v, list):
@@ -650,26 +675,37 @@ def add_to_import_config(restart_kelvin_api_server_session):  # noqa: C901
                 logger.debug("Import config already contains %r -> not restarting server.", kwargs)
                 return
 
-        if IMPORT_CONFIG["active"].exists():
-            with open(IMPORT_CONFIG["active"], "r") as fp:
+        if target_configuration["active"].exists():
+            with open(target_configuration["active"], "r") as fp:
                 config = json.load(fp)
-            if not IMPORT_CONFIG["bak"].exists():
-                logger.debug("Moving %s to %s.", IMPORT_CONFIG["active"], IMPORT_CONFIG["bak"])
-                shutil.move(IMPORT_CONFIG["active"], IMPORT_CONFIG["bak"])
+            if not target_configuration["bak"].exists():
+                logger.debug(
+                    "Moving %s to %s.", target_configuration["active"], target_configuration["bak"]
+                )
+                shutil.move(target_configuration["active"], target_configuration["bak"])
             config.update(kwargs)
         else:
             config = kwargs
-        with open(IMPORT_CONFIG["active"], "w") as fp:
+        with open(target_configuration["active"], "w") as fp:
             json.dump(config, fp, indent=4)
-        logger.debug("Wrote config to %s: %r", IMPORT_CONFIG["active"], config)
+        logger.debug("Wrote config to %s: %r", target_configuration["active"], config)
         restart_kelvin_api_server_session()
 
     yield _func
 
-    if IMPORT_CONFIG["bak"].exists():
-        logger.debug("Moving %r to %r.", IMPORT_CONFIG["bak"], IMPORT_CONFIG["active"])
-        shutil.move(IMPORT_CONFIG["bak"], IMPORT_CONFIG["active"])
-        restart_kelvin_api_server_session()
+    for configuration in [IMPORT_CONFIG, KELVIN_CONFIG]:
+        if configuration["bak"].exists():
+            logger.debug("Moving %r to %r.", configuration["bak"], configuration["active"])
+            shutil.move(configuration["bak"], configuration["active"])
+            restart_kelvin_api_server_session()
+
+
+@pytest.fixture(scope="session")
+def add_to_kelvin_config(add_to_config):  # noqa: C901
+    def _func(**kwargs):
+        add_to_config("kelvin", **kwargs)
+
+    yield _func
 
 
 @pytest.fixture(scope="session")

@@ -438,3 +438,108 @@ async def test_school_class_does_not_create_share_if_disabled(
             json=attrs,
         )
         assert await ClassShare.from_school_group(lib_obj).exists(udm) is False
+
+
+@pytest.mark.asyncio
+async def test_create_udm_error_forwarding(
+    create_ou_using_python,
+    new_school_class_using_lib_obj,
+    url_fragment,
+    udm_kwargs,
+    retry_http_502,
+    auth_header,
+):
+    school = await create_ou_using_python()
+    lib_obj: SchoolClass = new_school_class_using_lib_obj(school)
+    name = lib_obj.name[len(lib_obj.school) + 1 :]  # noqa: E203
+    attrs = {
+        "name": name,
+        "school": f"{url_fragment}/schools/{lib_obj.school}",
+        "description": lib_obj.description,
+        "users": lib_obj.users,
+        "udm_properties": {"gidNumber": "some value"},
+    }
+    async with UDM(**udm_kwargs) as udm:
+        assert await lib_obj.exists(udm) is False
+        response = retry_http_502(
+            requests.post,
+            f"{url_fragment}/classes/",
+            headers={"Content-Type": "application/json", **auth_header},
+            json=attrs,
+        )
+        assert response.status_code == 422, f"{response.__dict__!r}"
+        assert response.json() == {
+            "detail": [
+                {
+                    "loc": ["gidNumber"],
+                    "msg": "The property gidNumber has an invalid value:"
+                    " Value must be of type integer not str.",
+                    "type": "UdmError:CreateError",
+                }
+            ]
+        }
+
+
+@pytest.mark.parametrize("operation", ["put", "patch"])
+@pytest.mark.asyncio
+async def test_modify_udm_error_forwarding(
+    new_school_class_using_lib,
+    create_ou_using_python,
+    url_fragment,
+    retry_http_502,
+    auth_header,
+    operation,
+):
+    school = await create_ou_using_python()
+    sc1_dn, sc1_attr = await new_school_class_using_lib(school, users=[])
+    change_data = {
+        "description": fake.text(max_nb_chars=50),
+        "users": [],
+        "udm_properties": {"gidNumber": "some value"},
+    }
+    if operation == "put":
+        change_data["name"] = sc1_attr["name"]
+        change_data["school"] = f"{url_fragment}/schools/{school}"
+    url = f"{url_fragment}/classes/{school}/{sc1_attr['name']}"
+    requests_method = getattr(requests, operation)
+    response = retry_http_502(
+        requests_method,
+        url,
+        headers=auth_header,
+        json=change_data,
+    )
+    assert response.status_code == 422, response.__dict__
+    assert response.json() == {
+        "detail": [
+            {
+                "loc": ["gidNumber"],
+                "msg": "The property gidNumber has an invalid value:"
+                " Value must be of type integer not str.",
+                "type": "UdmError:ModifyError",
+            }
+        ]
+    }
+
+
+async def test_search_udm_error_forwarding(
+    auth_header,
+    retry_http_502,
+    url_fragment,
+    udm_kwargs,
+):
+    response = retry_http_502(
+        requests.get,
+        f"{url_fragment}/classes",
+        headers=auth_header,
+        params={"school": "an_unkown_ou"},
+    )
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": [
+            {
+                "loc": [],
+                "msg": "Unprocessable Entity",
+                "type": "UdmError:APICommunicationError",
+            }
+        ]
+    }
