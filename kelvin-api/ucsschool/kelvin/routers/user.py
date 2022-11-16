@@ -58,6 +58,7 @@ from ucsschool.importer.models.import_user import (
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
 from ucsschool.lib.roles import InvalidUcsschoolRoleString, UnknownRole, get_role_info
 from udm_rest_client import UDM, APICommunicationError, CreateError, ModifyError, MoveError
+from udm_rest_client import UDM, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
 from ..config import UDM_MAPPING_CONFIG
@@ -653,11 +654,8 @@ async def search(  # noqa: C901
 
     logger.debug("Looking for %r with filter %r...", user_class.__name__, udm_filter)
     users: List[ImportUser] = []
-    try:
-        async for udm_obj in udm.get("users/user").search(udm_filter):
-            users.append(await user_class.from_udm_obj(udm_obj, None, udm))
-    except APICommunicationError as exc:
-        raise HTTPException(status_code=exc.status, detail=exc.reason)
+    async for udm_obj in udm.get("users/user").search(udm_filter):
+        users.append(await user_class.from_udm_obj(udm_obj, None, udm))
     users.sort(key=attrgetter("name"))
     allowed_users = await OPAClient.instance().check_policy(
         policy="allowed_users_list",
@@ -800,7 +798,7 @@ async def create(
             "udm_properties": {}
         }
 
-    **Note:** Eventhough only **school** or **schools** needs to be set,
+    **Note:** Even though only **school** or **schools** needs to be set,
         its advised to set both as best practice.
     """
     request_user.Config.lib_class = SchoolUserRole.get_lib_class(
@@ -841,6 +839,8 @@ async def create(
     except (CreateError, LibValidationError, UcsSchoolImportError, WorkgroupDoesNotExistError) as exc:
         error_msg = f"Failed to create {user!r}: {exc}"
         logger.exception(error_msg)
+        if isinstance(exc, CreateError):
+            raise
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
 
     if res:
@@ -881,6 +881,8 @@ async def change_school(
     except (LibValidationError, MoveError) as exc:
         error_msg = f"Moving {user!r} from OU {user.school!r} to OU {new_school!r}: {exc}"
         logger.exception(error_msg)
+        if isinstance(exc, MoveError):
+            raise
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=error_msg,
@@ -899,6 +901,8 @@ async def rename_user(udm: UDM, logger: logging.Logger, user: ImportUser, new_na
     except (LibValidationError, ModifyError, MoveError) as exc:
         error_msg = f"Renaming {user!r} from {old_name!r} to {user.name!r}: {exc}"
         logger.exception(error_msg)
+        if isinstance(exc, ModifyError) or isinstance(exc, MoveError):
+            raise
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=error_msg,
@@ -1138,6 +1142,8 @@ async def partial_update(  # noqa: C901
                 await request.json(),
                 exc,
             )
+            if isinstance(exc, ModifyError):
+                raise
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(exc),
@@ -1325,6 +1331,8 @@ async def complete_update(  # noqa: C901
                 await request.json(),
                 exc,
             )
+            if isinstance(exc, ModifyError):
+                raise
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(exc),

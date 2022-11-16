@@ -28,12 +28,14 @@
 import logging
 from datetime import timedelta
 from functools import lru_cache
+from typing import Any, Dict, List
 
 import aiofiles
 import lazy_object_proxy
 from asgi_correlation_id import CorrelationIdMiddleware
 from asgi_correlation_id.context import correlation_id
 from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import HTMLResponse, JSONResponse, UJSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -44,6 +46,7 @@ from ucsschool.lib.models.attributes import ValidationError as SchooLibValidatio
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.utils import env_or_ucr, get_file_handler
 from ucsschool.lib.models.validator import VALIDATION_LOGGER
+from udm_rest_client import UdmError
 
 from .config import UDM_MAPPING_CONFIG, load_configurations
 from .constants import (
@@ -112,6 +115,19 @@ def setup_logging() -> None:
     logger = logging.getLogger()
     logger.setLevel(abs_min_level)
     logger.addHandler(file_handler)
+
+
+@app.exception_handler(ReraisedUdmException)
+async def reraised_udm_exception_handler(request: Request, exc: ReraisedUdmException) -> JSONResponse:
+    """Handle reraised udm exceptions"""
+    return JSONResponse(
+        content=jsonable_encoder({"detail": errors}),
+        status_code=status_code,
+        headers={
+            CorrelationIdMiddleware.header_name: correlation_id.get() or "",
+            "Access-Control-Expose-Headers": CorrelationIdMiddleware.header_name,
+        },
+    )
 
 
 @app.exception_handler(Exception)
