@@ -706,7 +706,7 @@ async def test_user_create_password_policies(
     random_user_create_model,
     schedule_delete_user_name_using_udm,
     role: Role,
-    add_to_import_config,
+    add_to_kelvin_config,
     evaluate_password_policies,
 ):
     """
@@ -716,7 +716,7 @@ async def test_user_create_password_policies(
     lower than 8 (value in the default password policy).
     """
     password_length = 3
-    add_to_import_config(
+    add_to_kelvin_config(
         evaluate_password_policies=evaluate_password_policies, password_length=password_length
     )
     if role.name == "teacher_and_staff":
@@ -738,14 +738,21 @@ async def test_user_create_password_policies(
         headers={"Content-Type": "application/json", **auth_header},
         data=data,
     )
-    response_text = response.json().get("detail", "")
+
+    response_json = response.json()
+
     if evaluate_password_policies:
-        assert response.status_code == 400, f"{response.__dict__!r}"
-        assert "Password policy error" in response_text, response_text
+        assert response.status_code == 422, f"{response.__dict__!r}"
+
+        assert "detail" in response_json
+        assert len(response_json["detail"]) > 0
+        assert "msg" in response_json["detail"][0]
+        response_msg: str = response.json()["detail"][0]["msg"]
+        assert "Password policy error" in response_msg, response_msg
     else:
         # todo this is failing again
         assert response.status_code == 201, f"{response.__dict__!r}"
-        assert "Password policy error" not in response_text, response_text
+        assert "detail" not in response_json
 
 
 @pytest.mark.asyncio
@@ -753,7 +760,7 @@ async def test_user_create_password_policies(
 @pytest.mark.parametrize("method", ("patch", "put"))
 async def test_user_modify_password_policies(
     evaluate_password_policies,
-    add_to_import_config,
+    add_to_kelvin_config,
     auth_header,
     retry_http_502,
     import_user_to_create_model_kwargs,
@@ -771,7 +778,7 @@ async def test_user_modify_password_policies(
     lower than 8 (value in the default password policy).
     """
     password_length = 3
-    add_to_import_config(
+    add_to_kelvin_config(
         evaluate_password_policies=evaluate_password_policies, password_length=password_length
     )
     role: Role = Role("student", Student)
@@ -805,9 +812,16 @@ async def test_user_modify_password_policies(
             headers=auth_header,
             data=modified_user.json(),
         )
-    response_text = response.json().get("detail", "")
-    assert response.status_code == 400, f"{response.__dict__!r}"
-    assert "Password policy error" in response_text, response_text
+
+    response_json = response.json()
+
+    assert "detail" in response_json
+    assert len(response_json["detail"]) > 0
+    assert "msg" in response_json["detail"][0]
+    response_msg: str = response.json()["detail"][0]["msg"]
+
+    assert response.status_code == 422, f"{response.__dict__!r}"
+    assert "Password policy error" in response_msg, response_msg
 
 
 @pytest.mark.asyncio
@@ -2951,3 +2965,99 @@ async def test_modify_custom_ucsschool_roles_with_role_change(
     response_json = response.json()
     assert set(response_json["ucsschool_roles"]) == set(ucsschool_roles_expected)
     assert response_json["roles"] == [f"{url_fragment_https}/roles/{role_change}"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("http_method", ("patch", "put"))
+async def test_udm_error_forwarding_on_modify(
+    auth_header,
+    check_password,
+    retry_http_502,
+    import_user_to_create_model_kwargs,
+    url_fragment,
+    create_ou_using_python,
+    new_import_user,
+    import_config,
+    http_method,
+):
+    school = await create_ou_using_python()
+    user: ImportUser = await new_import_user(school, "student", disabled=False)
+    assert user.disabled is False
+    old_password = user.password
+    await check_password(user.dn, old_password)
+    logger.debug("OK: can login with old password")
+    new_password = "__"
+    user.password = new_password
+    assert user.password != old_password
+    if http_method == "patch":
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment}/users/{user.name}",
+            headers=auth_header,
+            json={"password": new_password},
+        )
+    else:
+        create_model_kwargs = import_user_to_create_model_kwargs(user)
+        create_model = UserCreateModel.parse_obj(create_model_kwargs)
+        create_model.password = create_model.password.get_secret_value()
+        response = retry_http_502(
+            requests.put,
+            f"{url_fragment}/users/{user.name}",
+            headers=auth_header,
+            data=create_model.json(),
+        )
+
+    expected_return_value = {
+        "detail": [
+            {
+                "loc": ["password"],
+                "msg": "Password policy error:"
+                "  The password is too short, at least 8 characters needed!",
+                "type": "UdmError:ModifyError",
+            }
+        ]
+    }
+
+    assert response.json() == expected_return_value
+
+
+@pytest.mark.asyncio
+async def test_udm_error_forwarding_on_create(
+    auth_header,
+    check_password,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    random_user_create_model,
+    import_config,
+    reset_import_config,
+    udm_kwargs,
+    add_to_import_config,
+    schedule_delete_user_name_using_udm,
+):
+    school = await create_ou_using_python()
+    r_user = await random_user_create_model(
+        school, roles=[f"{url_fragment}/roles/student"], disabled=False
+    )
+    r_user.email = "abc@abc.de"
+    expected_name = f"test.{r_user.firstname[:2]}.{r_user.lastname[:3]}".lower()
+
+    schedule_delete_user_name_using_udm(expected_name)
+
+    response = retry_http_502(
+        requests.post,
+        f"{url_fragment}/users/",
+        headers={"Content-Type": "application/json", **auth_header},
+        json=json.loads(r_user.json()),
+    )
+
+    assert response.json() == {
+        "detail": [
+            {
+                "loc": ["mailPrimaryAddress"],
+                "msg": " The domain part of the primary mail address is not"
+                f" in list of configured mail domains: {r_user.email}",
+                "type": "UdmError:CreateError",
+            }
+        ]
+    }

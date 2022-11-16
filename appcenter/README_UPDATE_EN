@@ -17,6 +17,9 @@
     <li>
         Added the possibility to set additional <code>ucsschool_roles</code> strings via PATCH, PUT and POST for user objects. All role strings with context type ``school`` are ignored.
     </li>
+    <li>
+        All forwarded UDM errors are now structured the same way as FastAPI validation errors (Issue #30).
+    </li>
 </ul>
 
 <h2>v1.7.0 (2022-07-18)</h2>

@@ -96,7 +96,6 @@ async def get_lib_obj(
 
 
 class LibModelHelperMixin(BaseModel):
-
     udm_properties: Dict[str, Any] = None
 
     class Config:

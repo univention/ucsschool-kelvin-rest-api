@@ -34,7 +34,7 @@ from pydantic import BaseModel, Field, HttpUrl, root_validator, validator
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
 from ucsschool.lib.models.base import UDMPropertiesError
 from ucsschool.lib.models.group import WorkGroup
-from udm_rest_client import UDM, APICommunicationError, CreateError, ModifyError
+from udm_rest_client import UDM, CreateError, ModifyError
 
 from ..config import UDM_MAPPING_CONFIG
 from ..opa import OPAClient
@@ -201,10 +201,7 @@ async def search(
         filter_str = f"name={school}-{workgroup_name}"
     else:
         filter_str = None
-    try:
-        scs = await WorkGroup.get_all(udm, school, filter_str)
-    except APICommunicationError as exc:
-        raise HTTPException(status_code=exc.status, detail=exc.reason)
+    scs = await WorkGroup.get_all(udm, school, filter_str)
     return [await WorkGroupModel.from_lib_model(sc, request, udm) for sc in scs]
 
 
@@ -295,6 +292,8 @@ async def create(
         except (LibValidationError, CreateError, UDMPropertiesError) as exc:
             error_msg = f"Failed to create school workgroup {sc!r}: {exc}"
             logger.exception(error_msg)
+            if isinstance(exc, CreateError):
+                raise
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
     return await WorkGroupModel.from_lib_model(sc, request, udm)
 
@@ -393,6 +392,8 @@ async def partial_update(
                 await request.json(),
                 exc,
             )
+            if isinstance(exc, ModifyError):
+                raise
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(exc),
@@ -494,6 +495,8 @@ async def complete_update(
                 await request.json(),
                 exc,
             )
+            if isinstance(exc, ModifyError):
+                raise
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(exc),
