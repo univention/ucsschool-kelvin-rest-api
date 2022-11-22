@@ -294,7 +294,7 @@ class UserCreateModel(UserBaseModel):
                 school
             )
             for role in self.roles
-            for school in kwargs["schools"]
+            for school in kwargs["schools"] or [kwargs["school"]]
         ]
         # add all ucsschool_role_strings with context_type != school from ucsschool_roles
         for role_string in kwargs["ucsschool_roles"]:

@@ -2756,6 +2756,7 @@ async def test_complete_update_does_not_change_workgroups_if_not_passed(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+@pytest.mark.parametrize("with_schools", [True, False], ids=["with_schools", "schools=[]"])
 async def test_create_custom_ucsschool_roles(
     create_ou_using_python,
     random_user_create_model,
@@ -2764,6 +2765,7 @@ async def test_create_custom_ucsschool_roles(
     auth_header,
     schedule_delete_user_name_using_udm,
     role,
+    with_schools,
 ):
     school = await create_ou_using_python()
     # we also add "student:school:school1", but this should be ignored by KELVIN
@@ -2785,6 +2787,8 @@ async def test_create_custom_ucsschool_roles(
             "test_2:foo:bar",
         ]
     r_user = await random_user_create_model(school, roles=roles, ucsschool_roles=ucsschool_roles)
+    if not with_schools:
+        r_user.schools = []
     data = r_user.json()
     logger.debug("POST data=%r", data)
     schedule_delete_user_name_using_udm(r_user.name)
