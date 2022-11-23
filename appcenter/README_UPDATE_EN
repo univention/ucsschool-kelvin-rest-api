@@ -20,6 +20,9 @@
     <li>
         All forwarded UDM errors are now structured the same way as FastAPI validation errors (Issue #30).
     </li>
+    <li>
+        Fixed handling of role strings attribute if schools attribute is empty.
+    </li>
 </ul>
 
 <h2>v1.7.0 (2022-07-18)</h2>
