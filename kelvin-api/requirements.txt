@@ -5,6 +5,7 @@ async-property
 diskcache
 fastapi>=0.83.0
 fastapi_utils
+httpx
 lazy-object-proxy
 ldap3
 psutil
