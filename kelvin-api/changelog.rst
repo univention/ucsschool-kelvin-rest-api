@@ -12,6 +12,7 @@ v1.8.0 (2022-11-11)
 * Internal: Added option to check password policies when creating or modifying users (Bug #55393).
 * Added the possibility to send an Accept-Language header with each request.
 * All forwarded UDM errors are now structured the same way as FastAPI validation errors (Issue #30).
+* Fixed handling of role strings attribute if schools attribute is empty.
 
 v1.7.0 (2022-07-18)
 .........
