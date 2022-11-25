@@ -269,9 +269,13 @@ async def test_get_school_language(auth_header, monkeypatch, language):
     )
 
     client = TestClient(app, base_url="http://test.server")
+    if language is not None:
+        headers = {"Accept-Language": language, **auth_header}
+    else:
+        headers = {**auth_header}
     response = client.get(
         app.url_path_for("school_get", school_name="DEMOSCHOOL"),
-        headers={"Accept-Language": language, **auth_header},
+        headers=headers,
     ).json()
 
     assert response["display_name"] == language
