@@ -70,7 +70,8 @@ https://appcenter-test.software-univention.de/meta-inf/4.4/ucsschool-kelvin-rest
 This code should be run **on dimma or omar**:
 ```shell
 cd /mnt/omar/vmwares/mirror/appcenter
-./copy_from_appcenter.test.sh 4.4 ucsschool-kelvin-rest-api_20220504072827  # copies the given version to public app center on local mirror!
+./copy_from_appcenter.test.sh 4.4
+./copy_from_appcenter.test.sh 4.4 ucsschool-kelvin-rest-api_20221104105930  # copies the given version to public app center on local mirror!
 sudo update_mirror.sh -v appcenter  # syncs the local mirror to the public download server!
 ```
 
