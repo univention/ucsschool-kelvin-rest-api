@@ -56,7 +56,13 @@ from ucsschool.importer.models.import_user import (
     convert_to_teacher_and_staff,
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
-from ucsschool.lib.roles import InvalidUcsschoolRoleString, UnknownRole, get_role_info
+from ucsschool.lib.models.user import User
+from ucsschool.lib.roles import (
+    InvalidUcsschoolRoleString,
+    UnknownRole,
+    create_ucsschool_role_string,
+    get_role_info,
+)
 from udm_rest_client import UDM, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
@@ -75,6 +81,7 @@ from .base import (
     udm_ctx,
 )
 from .role import SchoolUserRole
+from .school import search_schools_in_ldap
 
 router = APIRouter()
 
@@ -807,6 +814,8 @@ async def create(
         ]
     )
     user: ImportUser = await request_user.as_lib_model(request)
+    await fix_case_of_ous(user)
+
     if not await OPAClient.instance().check_policy_true(
         policy="users",
         token=token,
@@ -1388,3 +1397,32 @@ async def set_password_hashes(dn: str, kelvin_password_hashes: PasswordsHashes) 
         logger.info("Successfully set password hashes of %r.", dn)
     else:
         logger.error("Error modifying password hashes of %r.", dn)
+
+
+async def fix_case_of_ous(user: User) -> None:
+    """
+    Fix case of OUs in attributes `school`, `schools`, `school_class` and `workgroups` (Bug #55456).
+    """
+    if user.school:
+        user.school = (await search_schools_in_ldap(user.school, raise404=True))[0]
+    if user.schools:
+        user.schools = [(await search_schools_in_ldap(ou, raise404=True))[0] for ou in user.schools]
+    for ucsschool_role in user.ucsschool_roles[:]:
+        role, context_type, context = get_role_info(ucsschool_role)
+        if context_type != "school":
+            continue
+        for school_correct in user.schools:
+            if context.lower() == school_correct.lower() and context != school_correct:
+                # same OU but different upper/lower case
+                user.ucsschool_roles.remove(ucsschool_role)
+                user.ucsschool_roles.append(
+                    create_ucsschool_role_string(
+                        role=role, context=school_correct, context_type=context_type
+                    )
+                )
+    for groups in (user.school_classes, user.workgroups):
+        for ou, classes in list(groups.items()):
+            for school_correct in user.schools:
+                if ou.lower() == school_correct.lower() and ou != school_correct:
+                    # same OU but different upper/lower case
+                    groups[school_correct] = groups.pop(ou)

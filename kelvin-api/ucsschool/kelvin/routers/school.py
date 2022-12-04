@@ -385,10 +385,22 @@ async def school_exists(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to see schools.",
         )
-    ldap_access = ldap_access_obj()
-    results = await ldap_access.search(
-        filter_format("(&(objectClass=ucsschoolOrganizationalUnit)(ou=%s))", (school_name,)),
-        attributes=["ou"],
-    )
+    results = await search_schools_in_ldap(school_name)
     status_code = status.HTTP_200_OK if results else status.HTTP_404_NOT_FOUND
     return Response(status_code=status_code)
+
+
+async def search_schools_in_ldap(ou: str, raise404: bool = False) -> List[str]:
+    """Get names of school OUs matching `ou`. Optionally raise HTTPException(404)."""
+    ldap_access = ldap_access_obj()
+    results = await ldap_access.search(
+        filter_format("(&(objectClass=ucsschoolOrganizationalUnit)(ou=%s))", (ou,)),
+        attributes=["ou"],
+    )
+    ous = [r["ou"].value for r in results]
+    if not ous and raise404:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No school with name={ou!r} found.",
+        )
+    return ous

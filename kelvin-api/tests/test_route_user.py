@@ -52,6 +52,7 @@ from ucsschool.kelvin.routers.user import (
     UserPatchModel,
     _validate_date_format,
     _validate_date_range,
+    fix_case_of_ous,
     set_password_hashes,
     userexpiry_to_shadowExpire,
 )
@@ -85,6 +86,16 @@ def role_id(value: Role) -> str:
 
 def two_roles_id(value: List[Role]) -> str:
     return f"{value[0].name} -> {value[1].name}"
+
+
+def scramble_case(s: str) -> str:
+    """`"FooBar"` -> `"FoObAr"`"""
+    res = s
+    max_iterations = 100  # handle strings without letters
+    while res == s and max_iterations > 0:
+        res = "".join([random.choice((str.lower, str.upper))(c) for c in res])
+        max_iterations -= 1
+    return res
 
 
 async def compare_lib_api_user(  # noqa: C901
@@ -635,13 +646,15 @@ async def test_create(
     else:
         roles = [role.name]
     school = await create_ou_using_python()
+    school_scrambled = scramble_case(school)
     wg_dn, wg_attr = await new_workgroup_using_lib(school)
-    workgroups = {school: [wg_attr["name"]]}
+    workgroups = {school_scrambled: [wg_attr["name"]]}
     r_user = await random_user_create_model(
-        school,
+        school_scrambled,
         roles=[f"{url_fragment}/roles/{role_}" for role_ in roles],
         workgroups=workgroups,
     )
+    r_user.school_classes = {scramble_case(ou): kls for ou, kls in r_user.school_classes.items()}
     title = random_name()
     r_user.udm_properties["title"] = title
     phone = [random_name(), random_name()]
@@ -667,6 +680,7 @@ async def test_create(
         assert isinstance(lib_users[0], role.klass)
         udm_props = (await lib_users[0].get_udm_object(udm)).props
     assert api_user.udm_properties["title"] == title
+    assert api_user.school.split("/")[-1] == school
     assert set(api_user.udm_properties["phone"]) == set(phone)
     assert udm_props.title == title
     assert set(udm_props.phone) == set(phone)
@@ -3065,3 +3079,28 @@ async def test_udm_error_forwarding_on_create(
             }
         ]
     }
+
+
+@pytest.mark.asyncio
+async def test_fix_case_of_ous(create_multiple_ous, school_user):
+    school1_ori, school2_ori = await create_multiple_ous(2)
+    school1_scrambled = scramble_case(school1_ori)
+    school2_scrambled = scramble_case(school2_ori)
+
+    user = school_user(
+        school=school1_scrambled,
+        schools=[school1_scrambled, school2_scrambled],
+        school_classes={
+            school1_scrambled: [fake.user_name(), fake.user_name()],
+            school2_scrambled: [fake.user_name(), fake.user_name()],
+        },
+        workgroups={
+            school1_scrambled: [fake.user_name(), fake.user_name()],
+            school2_scrambled: [fake.user_name(), fake.user_name()],
+        },
+    )
+    await fix_case_of_ous(user)
+    assert user.school == school1_ori
+    assert set(user.schools) == {school1_ori, school2_ori}
+    assert set(user.school_classes) == {school1_ori, school2_ori}
+    assert set(user.workgroups) == {school1_ori, school2_ori}

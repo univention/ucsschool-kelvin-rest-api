@@ -41,6 +41,7 @@ from ..opa import OPAClient
 from ..token_auth import get_token
 from ..urls import name_from_dn, url_to_dn, url_to_name
 from .base import APIAttributesMixin, UcsSchoolBaseModel, get_lib_obj, get_logger, udm_ctx
+from .school import search_schools_in_ldap
 
 router = APIRouter()
 
@@ -274,17 +275,19 @@ async def create(
             detail="Not authorized to create school classes.",
         )
     sc: SchoolClass = await school_class.as_lib_model(request)
+    ou_names = await search_schools_in_ldap(sc.school, raise404=True)
+    sc.school = ou_names[0]  # use OU name from LDAP, not from request (Bug #55456)
+    sc.name = f"{sc.school}-{school_class.name}"
     if await sc.exists(udm):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="School class exists.")
-    else:
-        try:
-            await sc.create(udm)
-        except (LibValidationError, CreateError, UDMPropertiesError) as exc:
-            error_msg = f"Failed to create school class {sc!r}: {exc}"
-            logger.exception(error_msg)
-            if isinstance(exc, CreateError):
-                raise
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
+    try:
+        await sc.create(udm)
+    except (LibValidationError, CreateError, UDMPropertiesError) as exc:
+        error_msg = f"Failed to create school class {sc!r}: {exc}"
+        logger.exception(error_msg)
+        if isinstance(exc, CreateError):
+            raise
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
     return await SchoolClassModel.from_lib_model(sc, request, udm)
 
 
@@ -346,6 +349,8 @@ async def partial_update(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to edit school classes.",
         )
+    ou_names = await search_schools_in_ldap(school, raise404=True)
+    school = ou_names[0]  # use OU name from LDAP, not from request (Bug #55456)
     sc_current = await get_lib_obj(udm, SchoolClass, f"{school}-{class_name}", school)
     changed = False
     for attr, new_value in (await school_class.to_modify_kwargs(school, request)).items():
@@ -430,9 +435,12 @@ async def complete_update(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to edit school classes.",
         )
-    if school != url_to_name(
+    ou_names = await search_schools_in_ldap(school, raise404=True)
+    school = ou_names[0]  # use OU name from LDAP, not from request (Bug #55456)
+    school_class_school = url_to_name(
         request, "school", UcsSchoolBaseModel.unscheme_and_unquote(school_class.school)
-    ):
+    )
+    if school.lower() != school_class_school.lower():
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Moving of class to other school is not allowed.",
@@ -440,6 +448,8 @@ async def complete_update(
     sc_current = await get_lib_obj(udm, SchoolClass, f"{school}-{class_name}", school)
     changed = False
     sc_request: SchoolClass = await school_class.as_lib_model(request)
+    sc_request.school = school
+    sc_request.name = f"{school}-{school_class.name}"
     sc_current.udm_properties = sc_request.udm_properties
     for attr in SchoolClass._attributes.keys():
         current_value = getattr(sc_current, attr)

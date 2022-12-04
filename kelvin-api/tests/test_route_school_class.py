@@ -25,6 +25,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+import random
 from typing import List
 
 import pytest
@@ -165,6 +166,16 @@ async def test_get(
     assert api_obj.udm_properties["mailAddress"] == mail_address
 
 
+def scramble_case(s: str) -> str:
+    """`"FooBar"` -> `"FoObAr"`"""
+    res = s
+    max_iterations = 100  # handle strings without letters
+    while res == s and max_iterations > 0:
+        res = "".join([random.choice((str.lower, str.upper))(c) for c in res])
+        max_iterations -= 1
+    return res
+
+
 @pytest.mark.asyncio
 async def test_create(
     auth_header,
@@ -175,12 +186,15 @@ async def test_create(
     new_school_class_using_lib_obj,
     mail_domain,
 ):
-    school = await create_ou_using_python()
-    lib_obj: SchoolClass = new_school_class_using_lib_obj(school)
+    school_ori: str = await create_ou_using_python()
+    # Change upper/lower case of OU. Result should have name from LDAP, not from request (Bug #55456).
+    school = scramble_case(school_ori)
+    assert school != school_ori
+    lib_obj: SchoolClass = new_school_class_using_lib_obj(school_ori)
     name = lib_obj.name[len(lib_obj.school) + 1 :]  # noqa: E203
     attrs = {
         "name": name,
-        "school": f"{url_fragment}/schools/{lib_obj.school}",
+        "school": f"{url_fragment}/schools/{school}",
         "description": lib_obj.description,
         "users": lib_obj.users,
         "udm_properties": {"mailAddress": f"{name}@{mail_domain}"},
@@ -199,6 +213,7 @@ async def test_create(
         api_obj = SchoolClassModel(**json_resp)
         assert lib_obj.dn == api_obj.dn
         assert api_obj.udm_properties["mailAddress"] == f"{name}@{mail_domain}"
+        assert api_obj.school.split("/")[-1] == school_ori
         assert await SchoolClass(name=lib_obj.name, school=lib_obj.school).exists(udm) is True
         await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
         compare_ldap_json_obj(json_resp["dn"], json_resp, url_fragment)
@@ -273,10 +288,13 @@ async def change_operation(
             "users": [f"{url_fragment}/users/{user.name}" for user in users],
             "udm_properties": {"mailAddress": f"{sc1_attr['name']}@{mail_domain}"},
         }
+        # Change upper/lower case of OU. Case of 'name' in result should be from LDAP, not from request.
+        school_scrambled = scramble_case(school)
+        assert school_scrambled != school
         if operation == "put":
             change_data["name"] = sc1_attr["name"]
-            change_data["school"] = f"{url_fragment}/schools/{school}"
-        url = f"{url_fragment}/classes/{school}/{sc1_attr['name']}"
+            change_data["school"] = f"{url_fragment}/schools/{school_scrambled}"
+        url = f"{url_fragment}/classes/{school_scrambled}/{sc1_attr['name']}"
         requests_method = getattr(requests, operation)
         response = retry_http_502(
             requests_method,
@@ -291,6 +309,7 @@ async def change_operation(
         udm_obj = await udm.obj_by_dn(api_obj.dn)
         assert api_obj.dn == sc1_dn
         assert api_obj.udm_properties["mailAddress"] == f"{sc1_attr['name']}@{mail_domain}"
+        assert api_obj.school.split("/")[-1] == school
         assert udm_obj.props["mailAddress"] == f"{sc1_attr['name']}@{mail_domain}"
         assert api_obj.description == change_data["description"]
         assert {api_obj.unscheme_and_unquote(url) for url in api_obj.users} == set(change_data["users"])
