@@ -55,7 +55,7 @@ async def test_unhandled_routes_non_kelvin_admin(
     params = dict()
     if route == "classes":
         params["school"] = ou
-    response = retry_http_502(requests.get, f"{url_fragment}/{route}", headers=headers, params=params)
+    response = retry_http_502(requests.get, f"{url_fragment}/{route}/", headers=headers, params=params)
     assert response.status_code == 401
 
 
@@ -68,7 +68,7 @@ async def test_unhandled_routes_kelvin_admin(
     params = dict()
     if route == "classes":
         params["school"] = ou
-    response = retry_http_502(requests.get, f"{url_fragment}/{route}", headers=headers, params=params)
+    response = retry_http_502(requests.get, f"{url_fragment}/{route}/", headers=headers, params=params)
     assert response.status_code == 200
 
 

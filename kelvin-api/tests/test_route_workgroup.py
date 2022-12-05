@@ -117,7 +117,7 @@ async def test_search(
     assert sc2_dn in [c.dn for c in lib_workgroups]
     response = retry_http_502(
         requests.get,
-        f"{url_fragment}/workgroups",
+        f"{url_fragment}/workgroups/",
         headers=auth_header,
         params={"school": ou},
     )

@@ -268,7 +268,7 @@ async def test_search_no_filter(
     assert {u.name for u in users}.issubset({u.name for u in lib_users})
     response = retry_http_502(
         requests.get,
-        f"{url_fragment}/users",
+        f"{url_fragment}/users/",
         headers=auth_header,
         params={"school": ou_name},
     )
@@ -368,7 +368,7 @@ async def test_search_filter(  # noqa: C901
         params = {filter_param: param_value}
     response = retry_http_502(
         requests.get,
-        f"{url_fragment}/users",
+        f"{url_fragment}/users/",
         headers=auth_header,
         params=params,
     )
@@ -435,7 +435,7 @@ async def test_search_filter_udm_properties(
     params = {filter_param: filter_value}
     response = retry_http_502(
         requests.get,
-        f"{url_fragment}/users",
+        f"{url_fragment}/users/",
         headers=auth_header,
         params=params,
     )
@@ -466,7 +466,7 @@ async def test_search_user_without_firstname(
     assert lib_user.firstname
     response = retry_http_502(
         requests.get,
-        f"{url_fragment}/users",
+        f"{url_fragment}/users/",
         headers=auth_header,
         params={"school": school},
     )
@@ -481,7 +481,7 @@ async def test_search_user_without_firstname(
     # should fail now:
     response = retry_http_502(
         requests.get,
-        f"{url_fragment}/users",
+        f"{url_fragment}/users/",
         headers=auth_header,
         params={"school": school},
     )
@@ -507,7 +507,7 @@ async def test_search_returns_no_exam_user(
 
     response = retry_http_502(
         requests.get,
-        f"{url_fragment}/users",
+        f"{url_fragment}/users/",
         headers=auth_header,
         params={"school": school},
     )

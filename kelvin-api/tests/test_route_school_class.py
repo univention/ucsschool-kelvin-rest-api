@@ -118,7 +118,7 @@ async def test_search(
     assert sc2_dn in [c.dn for c in lib_classes]
     response = retry_http_502(
         requests.get,
-        f"{url_fragment}/classes",
+        f"{url_fragment}/classes/",
         headers=auth_header,
         params={"school": ou},
     )
@@ -548,7 +548,7 @@ async def test_search_udm_error_forwarding(
 ):
     response = retry_http_502(
         requests.get,
-        f"{url_fragment}/classes",
+        f"{url_fragment}/classes/",
         headers=auth_header,
         params={"school": "an_unkown_ou"},
     )
