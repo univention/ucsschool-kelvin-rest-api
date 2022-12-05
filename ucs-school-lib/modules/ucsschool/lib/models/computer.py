@@ -147,7 +147,10 @@ class SchoolDCSlave(RoleSupportMixin, SchoolDC):
             # find dhcp server object by checking all dhcp service objects
             for dhcp_service in await AnyDHCPService.get_all(lo, None):
                 for dhcp_server in await dhcp_service.get_servers(lo):
-                    if dhcp_server.name == self.name and not dhcp_server.dn.endswith(",%s" % school.dn):
+                    if (
+                        dhcp_server.name.lower() == self.name.lower()
+                        and not dhcp_server.dn.lower().endswith(",%s" % school.dn.lower())
+                    ):
                         await dhcp_server.remove(lo)
                         removed = True
 
