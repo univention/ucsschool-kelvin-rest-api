@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.8.1 (2022-12-07)
+.........
+* Compare OU names case insensitive (Bug #55472).
+
 v1.8.0 (2022-11-11)
 .........
 * Add support for arbitrary context types for users (Bug #55355).

@@ -178,7 +178,7 @@ class ImportUser(User):
         "roles",
     )
     prop = uadmin_property("_replace")
-    _all_school_names: List[str] = None
+    _all_school_names: Iterable[str] = None
     _all_usernames: Dict[str, UsernameUniquenessTuple] = {}
     _prop_regex = re.compile(r"<(.*?)(:.*?)*>")
     _prop_providers = {
@@ -358,12 +358,12 @@ class ImportUser(User):
             schools.update(additional_schools)
         all_school_names = await self.get_all_school_names(lo)
         for school in schools:
-            if school not in all_school_names:
+            if school.lower() not in all_school_names:
                 # retry for case where create_ou ran parallel to this process
                 # may happen with HTTP-API
-                self.__class__._all_school_names = []
+                self.__class__._all_school_names = set()
                 all_school_names = await self.get_all_school_names(lo)
-                if school in all_school_names:
+                if school.lower() in all_school_names:
                     continue
                 self.logger.debug("Known schools: %r", all_school_names)
                 raise UnknownSchoolName(
@@ -525,7 +525,7 @@ class ImportUser(User):
     @classmethod
     async def get_all_school_names(cls, lo: UDM) -> Iterable[str]:
         if not cls._all_school_names:
-            cls._all_school_names = [s.name for s in await School.get_all(lo)]
+            cls._all_school_names = {s.name.lower() for s in await School.get_all(lo)}
         return cls._all_school_names
 
     async def has_purge_timestamp(self, connection: UDM) -> bool:

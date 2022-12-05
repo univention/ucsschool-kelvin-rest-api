@@ -192,33 +192,35 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     @classmethod
     def _legacy_is_student(cls, school: str, dn: str) -> bool:
         cls.logger.warning("Using deprecated method is_student()")
-        return dn.endswith(cls.get_search_base(school).students)
+        return dn.lower().endswith(cls.get_search_base(school).students.lower())
 
     @classmethod
     def _legacy_is_exam_student(cls, school: str, dn: str) -> bool:
         cls.logger.warning("Using deprecated method is_exam_student()")
-        return dn.endswith(cls.get_search_base(school).examUsers)
+        return dn.lower().endswith(cls.get_search_base(school).examUsers.lower())
 
     @classmethod
     def _legacy_is_teacher(cls, school: str, dn: str) -> bool:
         cls.logger.warning("Using deprecated method is_teacher()")
         search_base = cls.get_search_base(school)
         return (
-            dn.endswith(search_base.teachers)
-            or dn.endswith(search_base.teachersAndStaff)
-            or dn.endswith(search_base.admins)
+            dn.lower().endswith(search_base.teachers.lower())
+            or dn.lower().endswith(search_base.teachersAndStaff.lower())
+            or dn.lower().endswith(search_base.admins.lower())
         )
 
     @classmethod
     def _legacy_is_staff(cls, school: str, dn: str) -> bool:
         cls.logger.warning("Using deprecated method is_staff()")
         search_base = cls.get_search_base(school)
-        return dn.endswith(search_base.staff) or dn.endswith(search_base.teachersAndStaff)
+        return dn.lower().endswith(search_base.staff.lower()) or dn.lower().endswith(
+            search_base.teachersAndStaff.lower()
+        )
 
     @classmethod
     def _legacy_is_admininstrator(cls, school: str, dn: str) -> bool:
         cls.logger.warning("Using deprecated method is_admininstrator()")
-        return dn.endswith(cls.get_search_base(school).admins)
+        return dn.lower().endswith(cls.get_search_base(school).admins.lower())
 
     async def __check_object_class(
         self, lo: UDM, object_class: str, fallback: Callable[[str, str], bool]
@@ -271,7 +273,9 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         obj.workgroups = await cls.get_workgroups(udm_obj, obj)
         return obj
 
-    async def create(self, lo: UDM, validate: bool = True, check_password_policies: bool = False) -> bool:
+    async def create(
+        self, lo: UDM, validate: bool = True, check_password_policies: bool = False
+    ) -> bool:
         self.check_password_policies = check_password_policies
         return await super(User, self).create(lo=lo, validate=validate)
 
@@ -314,9 +318,17 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             self.password = ""  # nosec
         return success
 
-    async def modify(self, lo: UDM, validate: bool = True, move_if_necessary: bool = None, check_password_policies : bool = False) -> bool:
+    async def modify(
+        self,
+        lo: UDM,
+        validate: bool = True,
+        move_if_necessary: bool = None,
+        check_password_policies: bool = False,
+    ) -> bool:
         self.check_password_policies = check_password_policies
-        return await super(User, self).modify(lo=lo, validate=validate, move_if_necessary=move_if_necessary)
+        return await super(User, self).modify(
+            lo=lo, validate=validate, move_if_necessary=move_if_necessary
+        )
 
     async def do_modify(self, udm_obj: UdmObject, lo: UDM) -> None:
         await self.create_mail_domain(lo)

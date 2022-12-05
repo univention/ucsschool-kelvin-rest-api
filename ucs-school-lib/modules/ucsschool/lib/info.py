@@ -76,13 +76,13 @@ def get_school_membership_type(lo: univention.uldap.access, dn: str) -> Membersh
             "-DC-Edukativnetz,cn=ucsschool,cn=groups,{}".format(ucr.get("ldap/base")),
             "-Member-Edukativnetz,cn=ucsschool,cn=groups,{}".format(ucr.get("ldap/base")),
         ):
-            if grp_dn.endswith(suffix):
+            if grp_dn.lower().endswith(suffix.lower()):
                 is_edu_school_member = True
         for suffix in (
             "-DC-Verwaltungsnetz,cn=ucsschool,cn=groups,{}".format(ucr.get("ldap/base")),
             "-Member-Verwaltungsnetz,cn=ucsschool,cn=groups,{}".format(ucr.get("ldap/base")),
         ):
-            if grp_dn.endswith(suffix):
+            if grp_dn.lower().endswith(suffix.lower()):
                 is_admin_school_member = True
     return MembershipFlags(is_edu_school_member, is_admin_school_member)
 
