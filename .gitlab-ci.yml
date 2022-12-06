@@ -15,12 +15,14 @@ variables:
   DOC_TARGET_NAME: "ucsschool-kelvin-rest-api"
   DOC_TARGET_PATH: $DOC_TARGET_NAME
 
+run_pre_commit:
+  stage: lint
+  image: docker-registry.knut.univention.de/knut/pre-commit-opa-python3.8
+  script:
+    - pre-commit run -a
+
 prepare:
   stage: prepare
-  cache:
-    - key: "$CI_COMMIT_REF_SLUG"
-      paths:
-        - docker/build/
   rules:
     - changes:
         - docker/*
@@ -35,19 +37,15 @@ prepare:
     paths:
     - docker/build/
     expire_in: 1 day
+  cache:
+    - key: "$CI_COMMIT_REF_SLUG"
+      paths:
+        - docker/build/
   script:
     - apt-get update
     - apt-get install git rsync
     - cd ${CI_PROJECT_DIR}/docker
     - ./gitlab_prepare_docker_image
-
-run_pre_commit:
-  stage: lint
-  image: docker-registry.knut.univention.de/knut/pre-commit-opa
-  variables:
-    opa_version: 0.45.0
-  script:
-    - pre-commit run -a
 
 
 html:
@@ -142,8 +140,7 @@ build:
     name: docker-registry.knut.univention.de/kaniko-project/executor:debug
     entrypoint: [""]
   variables:
-    KANIKO_ARGS: --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo "$CI_REGISTRY_IMAGE"
-
+    KANIKO_ARGS: --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT"
   script:
     # install KNUT CA
     - install -m 644 "$KNUT_CA" /kaniko/ssl/certs/knut.pem
@@ -171,5 +168,5 @@ tests:
         - ucs-school-lib/**/*
   image: "${CI_REGISTRY_IMAGE}:branch-${CI_COMMIT_REF_SLUG}"
   script:
-    - cd kelvin-api && make test && cd -
-    - cd ucs-school-lib/modules/ucsschool/lib && pytest -v tests
+    - cd ${CI_PROJECT_DIR}/kelvin-api && make test
+    - cd ${CI_PROJECT_DIR}/ucs-school-lib/modules/ucsschool/lib && pytest -v tests
