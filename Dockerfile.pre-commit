@@ -1,0 +1,18 @@
+# We currently need python3.8 for our pre-commit hooks.
+# The image can be built and pushed like this:
+# $ docker build . -t pre-commit-opa-python3.8 -f Dockerfile.pre-commit
+# $ docker image tag pre-commit-opa-python3.8 docker-registry.knut.univention.de/knut/pre-commit-opa-python3.8
+# $ docker image push docker-registry.knut.univention.de/knut/pre-commit-opa-python3.8
+
+FROM docker-registry.knut.univention.de/python:3.8-slim
+
+RUN apt-get -qq update \
+	&& apt-get install -q --assume-yes --no-install-recommends git curl \
+    && pip install pre-commit \
+	&& rm -rf /var/lib/apt/lists/*_* /var/cache/apt/archives/*.deb
+
+RUN curl -L -o /usr/bin/opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static \
+    && chmod +x /usr/bin/opa
+
+ENV HOME /tmp
+CMD pre-commit run --all-files
