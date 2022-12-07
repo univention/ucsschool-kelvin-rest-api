@@ -2880,7 +2880,7 @@ async def test_modify_custom_ucsschool_roles(
             data=modified_user.json(),
         )
     else:
-        patch_data = {"ucsschool_roles": ucsschool_roles_to_set}
+        patch_data = {"ucsschool_roles": ["test_1:mycon:where", "test-2:foo:bar"]}
         response = retry_http_502(
             requests.patch,
             f"{url_fragment_https}/users/{user.name}",
@@ -2912,7 +2912,7 @@ async def test_modify_custom_ucsschool_roles(
         )
     else:
         patch_data = {
-            "ucsschool_roles": ["test_1:mycon:where", "test-2:foo:bar"],
+            "ucsschool_roles": ["test_1:nextcon:where"],
             "school": f"{url_fragment_https}/schools/{school2}",
         }
         response = retry_http_502(
