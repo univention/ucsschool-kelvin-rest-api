@@ -10,7 +10,7 @@ v1.8.1 (2022-12-07)
 * Compare OU names case insensitive (Bug #55472).
 
 v1.8.0 (2022-11-11)
-.........
+...................
 * Add support for arbitrary context types for users (Bug #55355).
 * Added a configuration option to enable the evaluation of password policies when creating UCS@school users (Bug #55408).
 * Internal: Added option to check password policies when creating or modifying users (Bug #55393).
@@ -19,7 +19,7 @@ v1.8.0 (2022-11-11)
 * Fixed handling of role strings attribute if schools attribute is empty.
 
 v1.7.0 (2022-07-18)
-.........
+...................
 * **Breaking change for UCS@school Kelvin REST API clients below ``1.7.0``**: Add work group support in user resource (Bug #54891).
 * Allow the creation of school classes without share (Bug #54875).
 * Add a correlation ID to the headers of requests and responses. Write the ID to the log (Issue #25).
@@ -31,17 +31,17 @@ v1.7.0 (2022-07-18)
 * The ``multipart`` library output is not logged anymore (at ``DEBUG`` level), when retrieving a token (Issue #27).
 
 v1.6.0 (2022-08-24)
-.........
+...................
 * Security Issue: An error causing group shares to be created with wrong permissions has been fixed. The permissions of existing shares will be fixed during the joinscript (Bug #55103).
 * Creating schools with OU names including underscores is now allowed, if the DC name is passed, too (Bug #55125).
 
 
 v1.5.6 (2022-06-30)
-.........
+...................
 * Remove create_share from school class objects to avoid conflicts with older Kelvin client versions (Bug #54916).
 
 v1.5.5 (2022-06-23)
-.........
+...................
 * Add work group resource (Bug #54876).
 * Allow the creation of school classes without share (Bug #54875).
 * Entering an invalid school URL does result in HTTP error-code 422 instead of 500 (Bug #52895).
@@ -54,7 +54,7 @@ v1.5.5 (2022-06-23)
 
 
 v1.5.4 (2022-04-27)
-.........
+...................
 * The valid date range is now specified (Bug #54668).
 * A new App Setting was added to configure the amount CPU cores utilized by the UCS@school Kelvin REST API (Bug #54575).
 * It is now possible to define multiple schools for users via PATCH and PUT requests (Bug #54481, Bug #54690).
