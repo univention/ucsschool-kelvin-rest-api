@@ -1,3 +1,4 @@
+aiocache>=0.11.1,<0.12
 aiofiles
 asgi-correlation-id>=3.0.1
 async-lru

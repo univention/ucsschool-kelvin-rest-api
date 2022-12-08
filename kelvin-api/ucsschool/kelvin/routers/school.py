@@ -29,6 +29,7 @@ import logging
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
+from aiocache import Cache, cached
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from ldap.dn import explode_dn
 from ldap.filter import escape_filter_chars, filter_format
@@ -48,16 +49,25 @@ from .base import APIAttributesMixin, LibModelHelperMixin, udm_ctx
 
 router = APIRouter()
 
+OU_CACHE_NAMESPACE = __name__
+OU_CACHE_TTL = 60  # seconds
+
 
 @lru_cache(maxsize=1)
 def get_logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
-# not subclassing 'UcsSchoolBaseModel' because that has a 'school' attribute
+def ou_cache_key(func, *args, **kwargs):
+    return (
+        f"{func.__name__}+"
+        f"{'-'.join(repr(a) for a in args)}+"
+        f"{'-'.join(f'{k!r}={v!r}' for k, v in kwargs.items())}"
+    )
 
 
 class SchoolCreateModel(LibModelHelperMixin):
+    # not subclassing 'UcsSchoolBaseModel' because that has a 'school' attribute
     name: str
     display_name: str = None
     educational_servers: List[str] = []
@@ -385,12 +395,19 @@ async def school_exists(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to see schools.",
         )
+
+    # Always do a fresh LDAP search for this resource. Don't use value from cache.
+    # (As a side effect, this will add/update the cache entry for `school_name`.)
+    cache = Cache(Cache.MEMORY, namespace=OU_CACHE_NAMESPACE)
+    await cache.delete(ou_cache_key(search_schools_in_ldap, school_name), namespace=OU_CACHE_NAMESPACE)
+
     results = await search_schools_in_ldap(school_name)
     status_code = status.HTTP_200_OK if results else status.HTTP_404_NOT_FOUND
     return Response(status_code=status_code)
 
 
-async def search_schools_in_ldap(ou: str, raise404: bool = False) -> List[str]:
+@cached(ttl=OU_CACHE_TTL, cache=Cache.MEMORY, namespace=OU_CACHE_NAMESPACE, key_builder=ou_cache_key)
+async def search_schools_in_ldap(ou: str, *, raise404: bool = False) -> List[str]:
     """Get names of school OUs matching `ou`. Optionally raise HTTPException(404)."""
     ldap_access = ldap_access_obj()
     results = await ldap_access.search(
