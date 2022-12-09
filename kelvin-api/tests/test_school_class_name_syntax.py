@@ -35,8 +35,6 @@ from faker import Faker
 
 import ucsschool.kelvin.constants
 from ucsschool.kelvin.routers.school_class import SchoolClass
-from ucsschool.lib.models.utils import ucr
-from ucsschool.lib.roles import create_ucsschool_role_string, role_school_class
 from udm_rest_client import UDM
 from udm_rest_client.exceptions import CreateError
 
