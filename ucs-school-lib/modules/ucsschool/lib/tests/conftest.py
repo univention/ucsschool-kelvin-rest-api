@@ -99,14 +99,14 @@ def udm_kwargs() -> Dict[str, Any]:
 def school_class_attrs(ldap_base):
     async def _func(school: str, **kwargs) -> Dict[str, str]:
         return {
-            "name": kwargs.get("name", f"test.{fake.user_name()}"),
+            "name": kwargs.get("name", f"test.{fake.unique.user_name()}"),
             "school": school,
             "description": kwargs.get("description", fake.text(max_nb_chars=50)),
             "users": kwargs.get(
                 "users",
                 [
-                    f"uid={fake.user_name()},cn=users,{ldap_base}",
-                    f"uid={fake.user_name()},cn=users,{ldap_base}",
+                    f"uid={fake.unique.user_name()},cn=users,{ldap_base}",
+                    f"uid={fake.unique.user_name()},cn=users,{ldap_base}",
                 ],
             ),
             "ucsschool_roles": kwargs.get(
