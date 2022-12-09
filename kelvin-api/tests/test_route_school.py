@@ -226,9 +226,7 @@ async def test_create_unmapped_udm_prop(
 @pytest.mark.asyncio
 async def test_create_udm_error_forwarding(
     auth_header,
-    udm_kwargs,
     docker_host_name,
-    ldap_base,
     random_school_create_model,
     schedule_delete_ou_using_ssh,
 ):
@@ -242,7 +240,7 @@ async def test_create_udm_error_forwarding(
         headers={"Content-Type": "application/json", **auth_header},
         json=attrs,
     )
-    assert response.status_code == 422
+    assert response.status_code == 422, response.json()
     assert response.json() == {
         "detail": [
             {
