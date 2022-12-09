@@ -38,6 +38,7 @@ from ucsschool.kelvin.routers.school_class import SchoolClass
 from ucsschool.lib.models.utils import ucr
 from ucsschool.lib.roles import create_ucsschool_role_string, role_school_class
 from udm_rest_client import UDM
+from udm_rest_client.exceptions import CreateError
 
 must_run_in_container = pytest.mark.skipif(
     not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
@@ -68,23 +69,20 @@ async def test_schoolclass_module(name: str, udm_kwargs):
 @must_run_in_container
 @pytest.mark.asyncio
 async def test_check_class_name(
-    auth_header, create_ou_using_python, retry_http_502, url_fragment, udm_kwargs
+    auth_header, create_ou_using_python, retry_http_502, url_fragment, new_school_class_using_udm
 ):
     school_name = await create_ou_using_python()
+
     names = {"1a", "1-a"}
     name_lengths = random.sample(range(1, 33), 3) + [1] * 3
     names.update(set(random_names(name_lengths, string.ascii_lowercase)))
     names.update(set(random_names(name_lengths, string.digits)))
-
-    async with UDM(**udm_kwargs) as udm:
-        group_mod = udm.get("groups/group")
-        for name in names:
-            obj = await group_mod.new()
-            obj.props.name = f"{school_name}-{name}"
-            obj.props.ucsschoolRole = [create_ucsschool_role_string(role_school_class, school_name)]
-            obj.props.school = [school_name]
-            obj.position = f"cn=klassen,cn=schueler,cn=groups,ou={school_name},{ucr.get('ldap/base')}"
-            await obj.save()
+    for name in names:
+        try:
+            await new_school_class_using_udm(school=school_name, name=name)
+        except CreateError:
+            # this test only tests get, so we don't care if the sc exists already
+            pass
 
     response = retry_http_502(
         requests.get,
