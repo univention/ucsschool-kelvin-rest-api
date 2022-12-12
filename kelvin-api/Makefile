@@ -61,14 +61,6 @@ linters:  ## run isort, black, flake8 etc
 	@if [ -e ../Makefile ]; then \
   		# running in dev env (git repo) \
   		make -C .. lint; \
-	else \
-	  	# running in Docker image build \
-		isort --sp .isort.cfg --check-only $(PY_PATHS) && \
-	  	echo "==> isort ok" && \
-		black --config .black --check $(PY_PATHS) && \
-		echo "==> black ok" && \
-		flake8 --config .flake8 $(PY_PATHS) && \
-		echo "==> flake8 ok"; \
 	fi
 
 lint-coverage: .coverage
@@ -101,6 +93,3 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	python3 -m pip install -e .
-
-build-docker-image: clean ## build docker image
-	(cd ../docker && ./build_docker_image)
