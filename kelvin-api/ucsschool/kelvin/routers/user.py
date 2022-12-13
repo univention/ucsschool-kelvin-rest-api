@@ -1118,7 +1118,8 @@ async def partial_update(  # noqa: C901
             udm, logger, user_current, new_roles, new_school_classes, new_workgroups
         )
     if "ucsschool_roles" in to_change:
-        # add all ucsschool_role_strings with context_type != school from ucsschool_roles
+        # Overwrite all role strings with `context_type != school` with those from the request,
+        # but don't touch role strings with `context_type == school`.
         non_school_roles = [s for s in to_change["ucsschool_roles"] if not _is_school_role_string(s)]
         # roles with context school are not touched in patch
         school_context_roles = [
