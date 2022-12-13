@@ -2951,7 +2951,11 @@ async def test_modify_custom_ucsschool_roles_with_role_change(
         f"foo:bar:{school}",
         f"staff:school:{school}",
     ]
-    ucsschool_roles_expected = ["test_1:mycon:where", f"foo:bar:{school}", f"{role_change}:school:{school}"]
+    ucsschool_roles_expected = [
+        "test_1:mycon:where",
+        f"foo:bar:{school}",
+        f"{role_change}:school:{school}",
+    ]
     create_kwargs = {}
     user: ImportUser = await new_import_user(school, role_create, **create_kwargs)
     schedule_delete_user_name_using_udm(user.name)
