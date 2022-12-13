@@ -1119,17 +1119,14 @@ async def partial_update(  # noqa: C901
         )
     if "ucsschool_roles" in to_change:
         # add all ucsschool_role_strings with context_type != school from ucsschool_roles
-        ucsschool_role_strings = []
-        for role_string in to_change["ucsschool_roles"]:
-            if not _is_school_role_string(role_string) and role_string not in ucsschool_role_strings:
-                ucsschool_role_strings.append(role_string)
+        non_school_roles = [s for s in to_change["ucsschool_roles"] if not _is_school_role_string(s)]
         # roles with context school are not touched in patch
         school_context_roles = [
             ucsschool_role
             for ucsschool_role in user_current.ucsschool_roles
             if _is_school_role_string(ucsschool_role)
         ]
-        to_change["ucsschool_roles"] = ucsschool_role_strings + school_context_roles
+        to_change["ucsschool_roles"] = non_school_roles + school_context_roles
 
     # 4. modify
     changed = False
