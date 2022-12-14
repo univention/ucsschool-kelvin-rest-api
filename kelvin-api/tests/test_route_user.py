@@ -2863,11 +2863,11 @@ async def test_modify_custom_ucsschool_roles(
     # all ucsschool role strings with context == school are ignored in patch/put
     ucsschool_roles_to_set = [
         "test_1:mycon:where",
-        "test-2:foo:bar",
+        f"foo:bar:{school}",
         f"teacher:school:{school}",
         f"foo:school:{school}",
     ]
-    ucsschool_roles_expected = ["test_1:mycon:where", "test-2:foo:bar"] + [
+    ucsschool_roles_expected = ["test_1:mycon:where", f"foo:bar:{school}"] + [
         f"{role_}:school:{school}" for role_ in roles
     ]
     modified_user.ucsschool_roles = ucsschool_roles_to_set
@@ -2880,7 +2880,7 @@ async def test_modify_custom_ucsschool_roles(
             data=modified_user.json(),
         )
     else:
-        patch_data = {"ucsschool_roles": ucsschool_roles_to_set}
+        patch_data = {"ucsschool_roles": [f"foo:bar:{school}", "test_1:mycon:where"]}
         response = retry_http_502(
             requests.patch,
             f"{url_fragment_https}/users/{user.name}",
@@ -2892,8 +2892,8 @@ async def test_modify_custom_ucsschool_roles(
     assert set(response_json["ucsschool_roles"]) == set(ucsschool_roles_expected)
     assert set(response_json["roles"]) == set([f"{url_fragment_https}/roles/{role_}" for role_ in roles])
     # one more with school change
-    ucsschool_roles_to_set = ["test_1:nextcon:where", f"student:school:{school}"]
-    ucsschool_roles_expected = ["test_1:nextcon:where"] + [
+    ucsschool_roles_to_set = ["test_1:nextcon:where", f"student:school:{school}", f"foo:bar:{school}"]
+    ucsschool_roles_expected = ["test_1:nextcon:where", f"foo:bar:{school}"] + [
         f"{role_}:school:{school2}" for role_ in roles
     ]
     response_json["ucsschool_roles"] = ucsschool_roles_to_set
@@ -2912,7 +2912,7 @@ async def test_modify_custom_ucsschool_roles(
         )
     else:
         patch_data = {
-            "ucsschool_roles": ucsschool_roles_to_set,
+            "ucsschool_roles": [f"foo:bar:{school}", "test_1:nextcon:where"],
             "school": f"{url_fragment_https}/schools/{school2}",
         }
         response = retry_http_502(
@@ -2948,11 +2948,14 @@ async def test_modify_custom_ucsschool_roles_with_role_change(
     # all ucsschool role strings with context == school are ignored in patch/put
     ucsschool_roles_to_set = [
         "test_1:mycon:where",
-        "test-2:foo:bar",
+        f"foo:bar:{school}",
         f"staff:school:{school}",
-        "foo:school:bar",
     ]
-    ucsschool_roles_expected = ["test_1:mycon:where", "test-2:foo:bar", f"{role_change}:school:{school}"]
+    ucsschool_roles_expected = [
+        "test_1:mycon:where",
+        f"foo:bar:{school}",
+        f"{role_change}:school:{school}",
+    ]
     create_kwargs = {}
     user: ImportUser = await new_import_user(school, role_create, **create_kwargs)
     schedule_delete_user_name_using_udm(user.name)
@@ -2970,7 +2973,7 @@ async def test_modify_custom_ucsschool_roles_with_role_change(
         )
     else:
         patch_data = {
-            "ucsschool_roles": ucsschool_roles_to_set,
+            "ucsschool_roles": [f"foo:bar:{school}", "test_1:mycon:where"],
             "roles": [f"{url_fragment_https}/roles/{role_change}"],
         }
         response = retry_http_502(

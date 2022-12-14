@@ -1044,7 +1044,7 @@ async def partial_update(  # noqa: C901
             "udm_properties": {}
         }
 
-    **Note:** Eventhough only **school** or **schools** needs to be set,
+    **Note:** Although only **school** or **schools** needs to be set,
         its advised to set both as best practice.
     """
     async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
@@ -1118,12 +1118,16 @@ async def partial_update(  # noqa: C901
             udm, logger, user_current, new_roles, new_school_classes, new_workgroups
         )
     if "ucsschool_roles" in to_change:
-        # add all ucsschool_role_strings with context_type != school from ucsschool_roles
-        ucsschool_role_strings = []
-        for role_string in to_change["ucsschool_roles"]:
-            if not _is_school_role_string(role_string) and role_string not in ucsschool_role_strings:
-                ucsschool_role_strings.append(role_string)
-        to_change["ucsschool_roles"] = ucsschool_role_strings
+        # Overwrite all role strings with `context_type != school` with those from the request,
+        # but don't touch role strings with `context_type == school`.
+        non_school_roles = [s for s in to_change["ucsschool_roles"] if not _is_school_role_string(s)]
+        # roles with context school are not touched in patch
+        school_context_roles = [
+            ucsschool_role
+            for ucsschool_role in user_current.ucsschool_roles
+            if _is_school_role_string(ucsschool_role)
+        ]
+        to_change["ucsschool_roles"] = non_school_roles + school_context_roles
 
     # 4. modify
     changed = False
