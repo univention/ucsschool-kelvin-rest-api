@@ -4,6 +4,7 @@
 <ul>
     <li>Compare OU names case insensitive (Bug #55472).</li>
     <li>Calculate group names using OU names from LDAP (Bug #55456).</li>
+    <li>Bugfix: Setting UCS@school roles with context type school in PATCH led to inconsistent UCS@school Users (Issue #47).</li>
 </ul>
 
 <h2>v1.8.0 (2022-11-09)</h2>
