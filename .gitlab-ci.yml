@@ -15,8 +15,8 @@ workflow:
 
 
 stages:
-  - lint
   - prepare
+  - lint
   - build
   - tests
   - merge
@@ -27,6 +27,23 @@ variables:
   APP_ID: "ucsschool-kelvin-rest-api"
   DOC_TARGET_NAME: $APP_ID
   DOC_TARGET_PATH: $DOC_TARGET_NAME
+
+
+build_pre_commit:
+  stage: prepare
+  rules:
+    - changes:
+      - .gitlab-ci/Dockerfile.pre-commit
+      - .bandit
+      - .black
+      - .dockerignore
+      - .flake8
+      - .isort.cfg
+      - .pre-commit-config.yaml
+  extends: .kaniko
+  variables:
+    DOCKERFILE_PATH: .gitlab-ci/Dockerfile.pre-commit
+    KANIKO_ARGS: --cache=true
 
 run_pre_commit:
   stage: lint
