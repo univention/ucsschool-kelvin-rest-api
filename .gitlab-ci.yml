@@ -2,6 +2,14 @@ include:
   - project: 'univention/documentation/sphinx-docker'
     file: 'pipeline/sphinx.yml'
 
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_OPEN_MERGE_REQUESTS
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "webide"
+
+
 stages:
   - lint
   - prepare
@@ -37,6 +45,7 @@ prepare:
     paths:
     - docker/build/
     expire_in: 1 day
+  # todo please check me
   cache:
     - key: "$CI_COMMIT_REF_SLUG"
       paths:
@@ -140,7 +149,7 @@ build:
     name: docker-registry.knut.univention.de/kaniko-project/executor:debug
     entrypoint: [""]
   variables:
-    KANIKO_ARGS: --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT"
+    KANIKO_ARGS: --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo "$CI_REGISTRY_IMAGE"
   script:
     # install KNUT CA
     - install -m 644 "$KNUT_CA" /kaniko/ssl/certs/knut.pem
