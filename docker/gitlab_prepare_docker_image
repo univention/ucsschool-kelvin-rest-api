@@ -88,4 +88,4 @@ echo "Collecting all Python dependencies..."
 find build/ -name 'requirements*.txt' -exec cat {} + | egrep -v 'univention|school' | sort | uniq > build/requirements_all.txt
 
 echo "Building docker image..."
-BUILD_ARGS="--no-cache"
+#BUILD_ARGS="--no-cache"

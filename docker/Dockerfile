@@ -27,11 +27,6 @@
 
 FROM alpine:3.12
 
-ARG app_id
-ARG commit
-ARG date
-ARG version
-
 VOLUME /var/log
 
 WORKDIR /kelvin
