@@ -31,7 +31,6 @@ from functools import lru_cache
 from typing import Any, Dict, List
 
 import aiofiles
-import lazy_object_proxy
 from asgi_correlation_id import CorrelationIdMiddleware
 from asgi_correlation_id.context import correlation_id
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -60,7 +59,7 @@ from .constants import (
     URL_TOKEN_BASE,
 )
 from .import_config import get_import_config
-from .ldap_access import LDAPAccess
+from .ldap import check_auth_and_get_user
 from .opa import OPAClient
 from .routers import role, school, school_class, user, workgroup
 from .token_auth import Token, create_access_token, get_token_ttl
@@ -71,7 +70,6 @@ def get_logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
-ldap_auth_instance: LDAPAccess = lazy_object_proxy.Proxy(LDAPAccess)
 app = FastAPI(
     title="Kelvin API",
     description="UCS@school Kelvin REST API",
@@ -190,7 +188,7 @@ async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     logger: logging.Logger = Depends(get_logger),
 ):
-    user = await ldap_auth_instance.check_auth_and_get_user(form_data.username, form_data.password)
+    user = check_auth_and_get_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

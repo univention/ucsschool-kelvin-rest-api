@@ -41,7 +41,7 @@ from udm_rest_client import UDM, UdmObject
 
 from ..config import UDM_MAPPING_CONFIG
 from ..exceptions import UnknownUDMProperty
-from ..ldap_access import udm_kwargs
+from ..ldap import udm_kwargs
 from ..urls import url_to_name
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -288,5 +288,5 @@ def get_language_from_header(request: Request) -> str:
 
 async def udm_ctx(request: Request):
     language = get_language_from_header(request)
-    async with UDM(**await udm_kwargs(), language=language) as udm:
+    async with UDM(**udm_kwargs(), language=language) as udm:
         yield udm

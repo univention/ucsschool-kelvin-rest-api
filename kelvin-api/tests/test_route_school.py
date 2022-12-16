@@ -32,7 +32,7 @@ from fastapi.testclient import TestClient
 from ldap.dn import explode_dn
 
 import ucsschool.kelvin.constants
-import ucsschool.kelvin.ldap_access
+from ucsschool.kelvin.ldap import uldap_machine_read
 from ucsschool.kelvin.main import app
 from ucsschool.kelvin.routers.school import SchoolCreateModel, SchoolModel
 from ucsschool.lib.models.school import School
@@ -69,12 +69,10 @@ async def compare_lib_api_obj(lib_obj: School, api_obj: SchoolModel):
 
 @pytest.mark.asyncio
 async def test_search_no_filter(auth_header, udm_kwargs):
-    ldap_access = ucsschool.kelvin.ldap_access.LDAPAccess()
+    uldap = uldap_machine_read()
     ldap_ous: Set[Tuple[str, str]] = {
         (ldap_result["ou"].value, ldap_result.entry_dn)
-        for ldap_result in await ldap_access.search(
-            "(objectClass=ucsschoolOrganizationalUnit)", attributes=["ou"]
-        )
+        for ldap_result in uldap.search("(objectClass=ucsschoolOrganizationalUnit)", attributes=["ou"])
     }
     async with UDM(**udm_kwargs) as udm:
         lib_schools: Iterable[School] = await School.get_all(udm)
@@ -100,10 +98,10 @@ async def test_search_with_filter(auth_header, create_ou_using_python, random_ou
     common_name = random_ou_name()[:8]
     await create_ou_using_python(ou_name=f"{common_name}abc12")
     await create_ou_using_python(ou_name=f"{common_name}34xyz")
-    ldap_access = ucsschool.kelvin.ldap_access.LDAPAccess()
+    uldap = uldap_machine_read()
     ldap_ous: Set[Tuple[str, str]] = {
         (ldap_result["ou"].value, ldap_result.entry_dn)
-        for ldap_result in await ldap_access.search(
+        for ldap_result in uldap.search(
             f"(&(objectClass=ucsschoolOrganizationalUnit)(ou={common_name}*))", attributes=["ou"]
         )
     }
