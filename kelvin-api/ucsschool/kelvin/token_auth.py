@@ -31,7 +31,6 @@ from datetime import datetime, timedelta
 
 import aiofiles
 import jwt
-import lazy_object_proxy
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt import PyJWTError
@@ -40,11 +39,10 @@ from pydantic import BaseModel
 from ucsschool.lib.models.utils import ucr
 
 from .constants import TOKEN_HASH_ALGORITHM, TOKEN_SIGN_SECRET_FILE, UCRV_TOKEN_TTL, URL_TOKEN_BASE
-from .ldap_access import LDAPAccess, LdapUser
+from .ldap import LdapUser, get_user
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=URL_TOKEN_BASE)
 _secret_key = ""  # nosec
-ldap_auth_instance: LDAPAccess = lazy_object_proxy.Proxy(LDAPAccess)
 
 
 class Token(BaseModel):
@@ -115,7 +113,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> LdapUser:
         token_data = TokenData(username=username)
     except PyJWTError:
         raise credentials_exception
-    user = await ldap_auth_instance.get_user(username=token_data.username, school_only=False)
+    user = await get_user(username=token_data.username, school_only=False)
     if user is None:
         raise credentials_exception
     return user

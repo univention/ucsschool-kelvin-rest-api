@@ -24,6 +24,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
+
 import asyncio
 import datetime
 import itertools
@@ -37,13 +38,14 @@ import pytest
 import requests
 from conftest import MAPPED_UDM_PROPERTIES
 from faker import Faker
-from ldap3.core.exceptions import LDAPBindError
 from ldap.filter import filter_format
 from pydantic import HttpUrl, error_wrappers
+from uldap3 import BindError
 
 import ucsschool.kelvin.constants
-import ucsschool.kelvin.ldap_access
+import univention.admin.uldap
 from ucsschool.importer.models.import_user import ImportUser
+from ucsschool.kelvin.ldap import get_dn_of_user
 from ucsschool.kelvin.routers.role import SchoolUserRole
 from ucsschool.kelvin.routers.user import (
     PasswordsHashes,
@@ -150,7 +152,6 @@ async def compare_lib_api_user(  # noqa: C901
 
 
 def compare_ldap_json_obj(dn, json_resp, url_fragment):  # noqa: C901
-    import univention.admin.uldap
 
     lo, pos = univention.admin.uldap.getAdminConnection()
     ldap_obj = lo.get(dn)
@@ -688,7 +689,7 @@ async def test_create(
     await asyncio.sleep(5)
     compare_ldap_json_obj(api_user.dn, response_json, url_fragment)
     if r_user.disabled:
-        with pytest.raises(LDAPBindError):
+        with pytest.raises(BindError):
             await check_password(response_json["dn"], r_user.password)
     else:
         await check_password(response_json["dn"], r_user.password)
@@ -913,7 +914,7 @@ async def test_create_without_username(
     assert len(lib_users) == 1
     assert isinstance(lib_users[0], role.klass)
     if r_user.disabled:
-        with pytest.raises(LDAPBindError):
+        with pytest.raises(BindError):
             await check_password(response_json["dn"], r_user.password)
     else:
         await check_password(response_json["dn"], r_user.password)
@@ -1195,7 +1196,7 @@ async def test_put_with_password_hashes(
     compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
     await check_password(lib_users[0].dn, password_new)
     logger.debug("OK: can login as user with new password.")
-    with pytest.raises(LDAPBindError):
+    with pytest.raises(BindError):
         await check_password(lib_users[0].dn, user.password)
     logger.debug("OK: cannot login as user with old password.")
 
@@ -1316,7 +1317,7 @@ async def test_patch_with_password_hashes(
     compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
     await check_password(user.dn, password_new)
     logger.debug("OK: can login as user with new password.")
-    with pytest.raises(LDAPBindError):
+    with pytest.raises(BindError):
         await check_password(user.dn, user.password)
     logger.debug("OK: cannot login as user with old password.")
 
@@ -1711,7 +1712,7 @@ async def test_change_disable(
     await asyncio.sleep(5)
     api_user = UserModel(**response.json())
     assert api_user.disabled == user.disabled
-    with pytest.raises(LDAPBindError):
+    with pytest.raises(BindError):
         await check_password(lib_users[0].dn, password)
 
     user.disabled = False
@@ -1791,8 +1792,7 @@ async def test_set_password_hashes(
     user: User = await new_school_user(school, role.name, disabled=False, school_classes={})
     assert user.disabled is False
     password_old = user.password
-    ldap_access = ucsschool.kelvin.ldap_access.LDAPAccess()
-    user_dn = await ldap_access.get_dn_of_user(user.name)
+    user_dn = get_dn_of_user(user.name)
     await check_password(user_dn, password_old)
     logger.debug("OK: can login as user with its old password.")
     password_new, password_new_hashes = await password_hash()
@@ -1800,7 +1800,7 @@ async def test_set_password_hashes(
     await set_password_hashes(user_dn, password_new_hashes)
     await check_password(user_dn, password_new)
     logger.debug("OK: can login as user with new password.")
-    with pytest.raises(LDAPBindError):
+    with pytest.raises(BindError):
         await check_password(user_dn, password_old)
     logger.debug("OK: cannot login as user with old password.")
 

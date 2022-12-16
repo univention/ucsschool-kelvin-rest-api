@@ -46,15 +46,16 @@ import pytest
 import pytest_asyncio
 import requests
 from faker import Faker
+from uldap3 import UCSUser
 
 import ucsschool.kelvin.constants
-import ucsschool.kelvin.ldap_access
 import ucsschool.lib.models.base
 import ucsschool.lib.models.group
 import ucsschool.lib.models.user
 from ucsschool.importer.configuration import Configuration, ReadOnlyDict
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.kelvin.import_config import get_import_config
+from ucsschool.kelvin.ldap import uldap_machine_read
 from ucsschool.kelvin.opa import OPAClient
 from ucsschool.kelvin.routers.school import SchoolCreateModel
 from ucsschool.kelvin.routers.user import PasswordsHashes, UserCreateModel
@@ -741,21 +742,9 @@ def reset_import_config():
 @pytest.fixture
 def check_password():
     async def _func(bind_dn: str, bind_pw: str) -> None:
-        ldap_access = ucsschool.kelvin.ldap_access.LDAPAccess()
-        search_kwargs = {
-            "filter_s": f"({bind_dn.split(',')[0]})",
-            "attributes": ["uid"],
-            "bind_dn": bind_dn,
-            "bind_pw": bind_pw,
-            "raise_on_bind_error": True,
-        }
-        logger.debug("Testing login (making LDAP search) with: %r", search_kwargs)
-        results = await ldap_access.search(**search_kwargs)
+        uldap = uldap_machine_read()
+        UCSUser.test_bind(ldap=uldap, username=bind_dn.split(",")[0].split("=", 1)[1], password=bind_pw)
         logger.debug("Login success.")
-        assert len(results) == 1
-        result = results[0]
-        expected_uid = bind_dn.split(",")[0].split("=")[1]
-        assert expected_uid == result["uid"].value
 
     return _func
 
@@ -768,10 +757,10 @@ def password_hash(check_password, create_ou_using_python, new_udm_user):
         user_dn, user = await new_udm_user(
             ou, "student", disabled=False, password=password, school_classes={}, workgroups={}
         )
-        ldap_access = ucsschool.kelvin.ldap_access.LDAPAccess()
+        uldap = uldap_machine_read()
         await check_password(user_dn, password)
         # get hashes of user2
-        filter_s = f"(uid={user['username']})"
+        filter_search = f"(uid={user['username']})"
         attributes = [
             "userPassword",
             "sambaNTPassword",
@@ -779,12 +768,13 @@ def password_hash(check_password, create_ou_using_python, new_udm_user):
             "krb5KeyVersionNumber",
             "sambaPwdLastSet",
         ]
-        ldap_results = await ldap_access.search(filter_s=filter_s, attributes=attributes)
+        ldap_results = uldap.search(search_filter=filter_search, attributes=attributes)
         if len(ldap_results) == 1:
             ldap_result = ldap_results[0]
         else:
             raise RuntimeError(
-                f"More than 1 result when searching LDAP with filter {filter_s!r}: {ldap_results!r}."
+                f"More than 1 result when searching LDAP with filter {filter_search!r}: "
+                f"{ldap_results!r}."
             )
         user_password = ldap_result["userPassword"].value
         if not isinstance(user_password, list):

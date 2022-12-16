@@ -3,7 +3,7 @@ from typing import Set
 import pytest
 from ldap.filter import filter_format
 
-from ucsschool.kelvin.ldap_access import LDAPAccess
+from ucsschool.kelvin.ldap import uldap_machine_read
 from ucsschool.lib.models.computer import SchoolDCSlave
 from ucsschool.lib.models.utils import env_or_ucr, ucr
 from ucsschool.lib.roles import (
@@ -31,8 +31,8 @@ pytestmark = pytest.mark.skipif(
 
 
 async def get_all_host_dns() -> Set[str]:
-    lo = LDAPAccess()
-    return set(e.entry_dn for e in await lo.search("(!(sn=dummy))", []))
+    uldap = uldap_machine_read()
+    return set(e.entry_dn for e in uldap.search("(!(sn=dummy))", []))
 
 
 @pytest.mark.asyncio
