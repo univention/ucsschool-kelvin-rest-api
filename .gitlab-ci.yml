@@ -26,6 +26,12 @@ variables:
 run_pre_commit:
   stage: lint
   image: docker-registry.knut.univention.de/knut/pre-commit-opa-python3.8
+  variables:
+    PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/pre-commit
+  cache:
+    key: pre-commit
+    paths:
+      - $CI_PROJECT_DIR/.cache/pre-commit
   script:
     - pre-commit run -a
 
@@ -47,7 +53,7 @@ prepare:
     expire_in: 1 day
   # todo please check me
   cache:
-    - key: "$CI_COMMIT_REF_SLUG"
+    - key: "$CI_COMMIT_BRANCH"
       paths:
         - docker/build/
   script:
