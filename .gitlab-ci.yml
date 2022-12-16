@@ -35,7 +35,14 @@ run_pre_commit:
     paths:
       - $CI_PROJECT_DIR/.cache/pre-commit
   script:
-    - pre-commit run -a
+    - >
+      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ];
+      then  # merge request pipeline
+        pre-commit run --from-ref "${CI_MERGE_REQUEST_DIFF_BASE_SHA}" --to-ref "${CI_COMMIT_SHA}";
+      else  # branch pipeline
+        pre-commit run -a;
+      fi
+
 
 prepare:
   stage: prepare
@@ -53,9 +60,8 @@ prepare:
     paths:
     - docker/build/
     expire_in: 1 day
-  # todo please check me
   cache:
-    - key: "$CI_COMMIT_BRANCH"
+    - key: "$CI_COMMIT_REF_SLUG"
       paths:
         - docker/build/
   script:
