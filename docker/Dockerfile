@@ -27,10 +27,6 @@
 
 FROM alpine:3.12
 
-ARG app_id
-ARG commit
-ARG date
-ARG version
 
 VOLUME /var/log
 
@@ -40,11 +36,6 @@ EXPOSE 7890
 
 CMD ["/sbin/init"]
 
-LABEL "description"="Image of UCS app 'UCS@school Kelvin REST API' ('$app_id')." \
-    "url"="https://www.univention.com/products/univention-app-center/app-catalog/$app_id/" \
-    "version"="$version" \
-    "release date"="$date" \
-    "commit"="$commit"
 
 # package and Python dependency installation, base system configuration,
 # and uninstallation - all in one step to keep image small
@@ -135,3 +126,14 @@ RUN	mv -v /tmp/ucsschool-kelvin-rest-api.initd /etc/init.d/ucsschool-kelvin-rest
 	python3 -m pip install --no-cache-dir --editable /kelvin/kelvin-api[development] && \
 	rm -rf /root/.cache/
 COPY fix_nt_acl_on_shares /kelvin/fix_nt_acl_on_shares
+
+ARG app_id
+ARG commit
+ARG date
+ARG version
+
+LABEL "description"="Image of UCS app 'UCS@school Kelvin REST API' ('$app_id')." \
+    "url"="https://www.univention.com/products/univention-app-center/app-catalog/$app_id/" \
+    "version"="$version" \
+    "release date"="$date" \
+    "commit"="$commit"
