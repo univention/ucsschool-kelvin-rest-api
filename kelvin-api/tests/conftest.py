@@ -743,7 +743,7 @@ def reset_import_config():
 def check_password():
     async def _func(bind_dn: str, bind_pw: str) -> None:
         uldap = uldap_machine_read()
-        UCSUser.test_bind(ldap=uldap, username=bind_dn.split(",")[0].split("=", 1)[1], password=bind_pw)
+        UCSUser.test_bind(ldap=uldap, dn=bind_dn, password=bind_pw)
         logger.debug("Login success.")
 
     return _func
