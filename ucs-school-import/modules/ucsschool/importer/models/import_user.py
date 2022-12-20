@@ -35,9 +35,10 @@ Representation of a user read from a file.
 import datetime
 import re
 import string
+import time
 import warnings
 from collections import defaultdict, namedtuple
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, TypedDict, TypeVar, Union, cast
 
 import lazy_object_proxy
 from ldap.filter import filter_format
@@ -110,6 +111,11 @@ ALLOWED_CHARS_IN_WORKGROUP_NAME = set(string.digits + string.ascii_letters + " -
 UNIQUENESS = "uniqueness"
 
 
+class SchoolNameCache(TypedDict):
+    date: datetime.datetime
+    names: Iterable[str]
+
+
 class WorkgroupDoesNotExistError(ValueError):
     pass
 
@@ -178,8 +184,9 @@ class ImportUser(User):
         "roles",
     )
     prop = uadmin_property("_replace")
-    _all_school_names: Iterable[str] = None
+    _all_school_names: SchoolNameCache = {}
     _all_usernames: Dict[str, UsernameUniquenessTuple] = {}
+    _cache_ttl: int = lazy_object_proxy.Proxy(lambda: int(ucr.get("ucsschool/kelvin/cache_ttl", "300")))
     _prop_regex = re.compile(r"<(.*?)(:.*?)*>")
     _prop_providers = {
         "birthday": "make_birthday",
@@ -356,13 +363,13 @@ class ImportUser(User):
         schools.add(self.school)
         if additional_schools:
             schools.update(additional_schools)
-        all_school_names = await self.get_all_school_names(lo)
+        all_school_names = await self.get_all_school_names()
         for school in schools:
             if school.lower() not in all_school_names:
                 # retry for case where create_ou ran parallel to this process
                 # may happen with HTTP-API
-                self.__class__._all_school_names = set()
-                all_school_names = await self.get_all_school_names(lo)
+                self.update_all_school_names_cache()
+                all_school_names = await self.get_all_school_names()
                 if school.lower() in all_school_names:
                     continue
                 self.logger.debug("Known schools: %r", all_school_names)
@@ -523,10 +530,32 @@ class ImportUser(User):
             udm_obj.props["ucsschoolPurgeTimestamp"] = self._purge_ts
 
     @classmethod
-    async def get_all_school_names(cls, lo: UDM) -> Iterable[str]:
-        if not cls._all_school_names:
-            cls._all_school_names = {s.name.lower() for s in await School.get_all(lo)}
-        return cls._all_school_names
+    async def get_all_school_names(cls) -> Iterable[str]:
+        if (
+            not cls._all_school_names
+            or cls._all_school_names["date"] + datetime.timedelta(seconds=int(cls._cache_ttl))
+            < datetime.datetime.now()
+        ):
+            cls.update_all_school_names_cache()
+        return cls._all_school_names["names"]
+
+    @classmethod
+    def update_all_school_names_cache(cls) -> Iterable[str]:
+        cls._all_school_names = {
+            "date": datetime.datetime.now(),
+            "names": cls.fetch_all_school_names_from_ldap(),
+        }
+        return cls._all_school_names["names"]
+
+    @classmethod
+    def fetch_all_school_names_from_ldap(cls) -> Iterable[str]:
+        t0 = time.time()
+        res = {
+            attr["ou"][0].decode("utf-8").lower()
+            for _, attr in cls.ldap_lo_ro.search("objectClass=ucsschoolOrganizationalUnit", attr=["ou"])
+        }
+        cls.logger.debug("Retrieved %d OUs from LDAP in %.3f seconds.", len(res), time.time() - t0)
+        return res
 
     async def has_purge_timestamp(self, connection: UDM) -> bool:
         """

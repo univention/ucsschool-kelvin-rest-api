@@ -4,9 +4,12 @@
 
 Changelog
 ---------
+v1.8.2 (2022-12-20)
+...................
+* Speed up validation when creating or changing users (Bug #55384).
 
 v1.8.1 (2022-12-07)
-.........
+...................
 * Compare OU names case insensitive (Bug #55472).
 * Calculate group names using OU names from LDAP (Bug #55456).
 * Bugfix: Setting UCS@school roles with context type school in PATCH led to inconsistent UCS@school Users (Issue #47).

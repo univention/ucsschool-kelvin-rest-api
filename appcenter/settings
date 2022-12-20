@@ -4,6 +4,12 @@ Description = Number of minutes a token retrieved from the UCS@school Kelvin RES
 Description[de] = Anzahl der Minuten die ein Token, der von der UCS@school Kelvin REST API bezogen wurde, gültig ist.
 InitialValue = 60
 
+[ucsschool/kelvin/cache_ttl]
+Type = Int
+Description = Number of seconds entries in the cache (currently only school OU names) are valid.
+Description[de] = Anzahl der Sekunden die ein Eintrag im Cache (aktuell nur Schul-OU-Namen), gültig sind.
+InitialValue = 300
+
 [ucsschool/kelvin/log_level]
 Type = String
 Description = Log level for messages written to /var/log/univention/ucsschool-kelvin-rest-api/http.log. Valid values are "DEBUG", "INFO", "WARNING" and "ERROR". Defaults to "INFO".

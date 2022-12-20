@@ -24,17 +24,17 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
-
 import logging
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 from aiocache import Cache, cached
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response, status
 from ldap.dn import explode_dn
 from ldap.filter import escape_filter_chars, filter_format
 from pydantic import validator
 
+from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.lib.create_ou import create_ou
 from ucsschool.lib.models.computer import AnyComputer, SchoolDCSlave
 from ucsschool.lib.models.school import School
@@ -50,7 +50,7 @@ from .base import APIAttributesMixin, LibModelHelperMixin, udm_ctx
 router = APIRouter()
 
 OU_CACHE_NAMESPACE = __name__
-OU_CACHE_TTL = 60  # seconds
+OU_CACHE_TTL = int(env_or_ucr("ucsschool/kelvin/cache_ttl") or "300")
 
 
 @lru_cache(maxsize=1)
@@ -279,6 +279,7 @@ async def school_get(
 async def school_create(
     school: SchoolCreateModel,
     request: Request,
+    background_tasks: BackgroundTasks,
     alter_dhcpd_base: Optional[bool] = None,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
@@ -358,6 +359,7 @@ async def school_create(
         error_msg = f"Failed to create school {school_obj.name!r}: {exc}"
         logger.exception(error_msg)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
+    background_tasks.add_task(ImportUser.update_all_school_names_cache)
     school_obj_to_fix = await School.from_dn(school_obj.dn, school_obj.name, udm)
     school_obj_to_fix.udm_properties = school_obj.udm_properties
     logger.debug("Finished create_ou(), fixing schools DC attributes...")
