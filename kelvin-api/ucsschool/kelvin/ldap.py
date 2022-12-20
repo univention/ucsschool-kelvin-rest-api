@@ -217,7 +217,7 @@ def check_auth_and_get_user(username: str, password: str) -> Optional[LdapUser]:
 _udm_kwargs: Dict[str, str] = {}
 
 
-def udm_kwargs():
+def udm_kwargs() -> Dict[str, Any]:
     if not _udm_kwargs:
         uldap_config: uLdapConfig = get_uldap_conf()
         _udm_kwargs.update(
