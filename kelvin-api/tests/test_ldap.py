@@ -51,6 +51,7 @@ def test_get_uldap_conf_props(temp_file_func, random_name):
     with patch.object(ucsschool.kelvin.ldap, "CN_ADMIN_PASSWORD_FILE", tmp_file1), patch(
         "ucsschool.kelvin.ldap.MACHINE_PASSWORD_FILE", tmp_file2
     ), patch("ucsschool.kelvin.ldap._udm_kwargs", {}):
+        ucsschool.kelvin.ldap.get_uldap_conf.cache_clear()
         uldap = ucsschool.kelvin.ldap.get_uldap_conf()
         assert uldap.cn_admin_dn == f"cn=admin,{uldap.ldap_base}"
         assert txt1 == uldap.password_cn_admin.get_secret_value()
@@ -65,6 +66,7 @@ def test_udm_kwargs_fake(temp_file_func, random_name):
     with patch("ucsschool.kelvin.ldap.CN_ADMIN_PASSWORD_FILE", tmp_file1), patch(
         "ucsschool.kelvin.ldap.MACHINE_PASSWORD_FILE", tmp_file2
     ), patch("ucsschool.kelvin.ldap._udm_kwargs", {}):
+        ucsschool.kelvin.ldap.get_uldap_conf.cache_clear()
         udm_kwargs = ucsschool.kelvin.ldap.udm_kwargs()
     assert udm_kwargs["username"] == "cn=admin"
     assert udm_kwargs["password"] == txt1
@@ -75,6 +77,7 @@ def test_udm_kwargs_fake(temp_file_func, random_name):
 @must_run_in_container
 def test_get_user():
     username = "Administrator"
+    ucsschool.kelvin.ldap.get_uldap_conf.cache_clear()
     uldap = ucsschool.kelvin.ldap.get_uldap_conf()
     user_obj = ucsschool.kelvin.ldap.get_user(username, school_only=False)
     assert isinstance(user_obj, ucsschool.kelvin.ldap.LdapUser)
@@ -84,6 +87,7 @@ def test_get_user():
 @must_run_in_container
 def test_admin_group_members():
     username = "Administrator"
+    ucsschool.kelvin.ldap.get_uldap_conf.cache_clear()
     uldap = ucsschool.kelvin.ldap.get_uldap_conf()
     members = ucsschool.kelvin.ldap.admin_group_members()
     administrator_dn = f"uid={username},cn=users,{uldap.ldap_base}"
@@ -94,6 +98,7 @@ def test_admin_group_members():
 @must_run_in_container
 @pytest.mark.asyncio
 async def test_udm_kwargs_real():
+    ucsschool.kelvin.ldap.get_uldap_conf.cache_clear()
     uldap = ucsschool.kelvin.ldap.get_uldap_conf()
     udm_kwargs = ucsschool.kelvin.ldap.udm_kwargs()
     async with UDM(**udm_kwargs) as udm:
