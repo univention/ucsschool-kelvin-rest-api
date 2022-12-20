@@ -132,6 +132,8 @@ def get_user(
     Get data of user `username`.
 
     :param str username: user to load
+    :param str bind_dn: LDAP DN to bind with
+    :param str bind_pw: password for `bind_dn`
     :param List[str] attributes: user LDAP attributes to read (optional)
     :param bool school_only: search only for school user objects (optional, default: True)
     :return: LdapUser object if user is found. None if not found or the LDAP bind was not successful.
