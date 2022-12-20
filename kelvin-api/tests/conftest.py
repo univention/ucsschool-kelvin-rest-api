@@ -55,7 +55,7 @@ import ucsschool.lib.models.user
 from ucsschool.importer.configuration import Configuration, ReadOnlyDict
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.kelvin.import_config import get_import_config
-from ucsschool.kelvin.ldap import get_uldap_conf, uldap_machine_read
+from ucsschool.kelvin.ldap import uldap_machine_read
 from ucsschool.kelvin.opa import OPAClient
 from ucsschool.kelvin.routers.school import SchoolCreateModel
 from ucsschool.kelvin.routers.user import PasswordsHashes, UserCreateModel
@@ -829,8 +829,3 @@ def retry_http_502(log_http_502):
             return response
 
     return _func
-
-
-@pytest.fixture
-def invalidate_get_uldap_conf_cache(autouse=True):
-    get_uldap_conf.cache_clear()
