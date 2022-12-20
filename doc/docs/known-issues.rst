@@ -34,3 +34,10 @@ When it is, there will be ``<Link>`` entries in the response ``headers``.
 The format of the JSON response in the *body will not change*.
 
 .. _`Python UDM REST API Client`: https://github.com/univention/python-udm-rest-api-client
+
+
+Creating schools does not work on single servers
+------------------------------------------------
+A bug exists for this, see ``<Link>``.
+
+.. _`Bug 55506 – POST /school" does not work on singleserver`: https://forge.univention.org/bugzilla/show_bug.cgi?id=55506
