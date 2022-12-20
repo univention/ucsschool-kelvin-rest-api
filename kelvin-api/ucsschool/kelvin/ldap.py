@@ -95,9 +95,8 @@ def uldap_primary_write(uldap_conf: Optional[uLdapConfig] = None):
     return uLdapWrite(uldap_conf).primary()
 
 
-def admin_group_members(ldap_base: Optional[str] = None) -> List[str]:
-    if ldap_base is None:
-        ldap_base = env_or_ucr("ldap/base")
+def admin_group_members() -> List[str]:
+    ldap_base = env_or_ucr("ldap/base")
     search_filter = f"(cn={escape_filter_chars(API_USERS_GROUP_NAME)})"
     base = f"cn=groups,{ldap_base}"
     uldap = uldap_machine_read()
