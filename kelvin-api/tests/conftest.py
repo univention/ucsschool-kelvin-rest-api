@@ -760,7 +760,7 @@ def password_hash(check_password, create_ou_using_python, new_udm_user):
         uldap = uldap_machine_read()
         await check_password(user_dn, password)
         # get hashes of user2
-        filter_search = f"(uid={user['username']})"
+        search_filter = f"(uid={user['username']})"
         attributes = [
             "userPassword",
             "sambaNTPassword",
@@ -768,12 +768,12 @@ def password_hash(check_password, create_ou_using_python, new_udm_user):
             "krb5KeyVersionNumber",
             "sambaPwdLastSet",
         ]
-        ldap_results = uldap.search(search_filter=filter_search, attributes=attributes)
+        ldap_results = uldap.search(search_filter=search_filter, attributes=attributes)
         if len(ldap_results) == 1:
             ldap_result = ldap_results[0]
         else:
             raise RuntimeError(
-                f"More than 1 result when searching LDAP with filter {filter_search!r}: "
+                f"More than 1 result when searching LDAP with filter {search_filter!r}: "
                 f"{ldap_results!r}."
             )
         user_password = ldap_result["userPassword"].value
