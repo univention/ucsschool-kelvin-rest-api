@@ -29,6 +29,7 @@
 
 import logging
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 from asgi_correlation_id.context import correlation_id
@@ -48,6 +49,7 @@ from .constants import API_USERS_GROUP_NAME, CN_ADMIN_PASSWORD_FILE, MACHINE_PAS
 logger = logging.getLogger(__name__)
 
 
+@lru_cache
 def get_uldap_conf(
     ldap_base: Optional[str] = None,
     host_dn: Optional[str] = None,
