@@ -3076,7 +3076,7 @@ async def test_udm_error_forwarding_on_create(
             {
                 "loc": ["mailPrimaryAddress"],
                 "msg": "The domain part of the primary mail address is not"
-                f" in list of configured mail domains: {r_user.email}",
+                f" in list of configured mail domains: {r_user.email}.",
                 "type": "UdmError:CreateError",
             }
         ]
