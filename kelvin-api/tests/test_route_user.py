@@ -765,7 +765,6 @@ async def test_user_create_password_policies(
         response_msg: str = response.json()["detail"][0]["msg"]
         assert "Password policy error" in response_msg, response_msg
     else:
-        # todo this is failing again
         assert response.status_code == 201, f"{response.__dict__!r}"
         assert "detail" not in response_json
 
@@ -3033,7 +3032,7 @@ async def test_udm_error_forwarding_on_modify(
             {
                 "loc": ["password"],
                 "msg": "Password policy error:"
-                "  The password is too short, at least 8 characters needed!",
+                " The password is too short, at least 8 characters needed!",
                 "type": "UdmError:ModifyError",
             }
         ]
@@ -3076,7 +3075,7 @@ async def test_udm_error_forwarding_on_create(
         "detail": [
             {
                 "loc": ["mailPrimaryAddress"],
-                "msg": " The domain part of the primary mail address is not"
+                "msg": "The domain part of the primary mail address is not"
                 f" in list of configured mail domains: {r_user.email}",
                 "type": "UdmError:CreateError",
             }
