@@ -38,6 +38,4 @@ The format of the JSON response in the *body will not change*.
 
 Creating schools does not work in single server environments
 ------------------------------------------------
-A bug exists for this, see `Bug 55506 – POST /school" does not work on singleserver`_.
-
-.. _Bug 55506 – POST /school" does not work on singleserver: https://forge.univention.org/bugzilla/show_bug.cgi?id=55506
+A bug exists for this, see :uv:bug:`55506`.
