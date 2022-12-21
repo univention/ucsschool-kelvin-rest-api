@@ -37,5 +37,5 @@ The format of the JSON response in the *body will not change*.
 
 
 Creating schools does not work in single server environments
-------------------------------------------------
+------------------------------------------------------------
 A bug exists for this, see :uv:bug:`55506`.
