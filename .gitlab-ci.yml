@@ -161,7 +161,9 @@ tests:
     - changes:
         - kelvin-api/**/*
         - ucs-school-lib/**/*
-  image: "${CI_REGISTRY_IMAGE}:branch-${CI_COMMIT_REF_SLUG}"
+  needs:
+    - job: build_docker_image
+  image: $IMAGE_TAG
   script:
     - cd ${CI_PROJECT_DIR}/kelvin-api && make test
     - cd ${CI_PROJECT_DIR}/ucs-school-lib/modules/ucsschool/lib && pytest -v tests
