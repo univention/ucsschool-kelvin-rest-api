@@ -30,7 +30,12 @@ This can be done with the following commands:
 No pagination
 -------------
 Pagination of resource collections has not yet been implemented.
-When it is, there will be ``<Link>`` entries in the response ``headers``.
+When it is, there will be `Python UDM REST API Client`_ entries in the response ``headers``.
 The format of the JSON response in the *body will not change*.
 
-.. _`Python UDM REST API Client`: https://github.com/univention/python-udm-rest-api-client
+.. _Python UDM REST API Client: https://github.com/univention/python-udm-rest-api-client
+
+
+Creating schools does not work in single server environments
+------------------------------------------------------------
+A bug exists for this, see :uv:bug:`55506`.
