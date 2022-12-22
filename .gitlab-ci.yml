@@ -24,7 +24,8 @@ stages:
 
 variables:
   DOCS_DIR: "doc/docs"
-  DOC_TARGET_NAME: "ucsschool-kelvin-rest-api"
+  APP_ID: "ucsschool-kelvin-rest-api"
+  DOC_TARGET_NAME: $APP_ID
   DOC_TARGET_PATH: $DOC_TARGET_NAME
 
 run_pre_commit:
