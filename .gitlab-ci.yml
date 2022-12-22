@@ -154,7 +154,7 @@ build_docker_image:
   extends: .kaniko
   variables:
       KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/docker/build/"
-      KANIKO_ARGS: --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache
+      KANIKO_ARGS: --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
 
 tests:
   stage: tests
