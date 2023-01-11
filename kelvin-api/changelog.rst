@@ -7,6 +7,8 @@ Changelog
 v1.8.2 (2022-12-20)
 ...................
 * Speed up validation when creating or changing users (Bug #55384).
+* Use the LDAP client library ``uldap3`` instead of a custom implementation
+to get better support and improved performance during direct LDAP calls (Issue #50).
 
 v1.8.1 (2022-12-07)
 ...................
