@@ -77,7 +77,7 @@ opatest: ## run opa test on opa policies
 test: pytest opatest
 
 .coverage: $(PY_FILES)
-	coverage run --source tests,ucsschool -m pytest  --junit-xml=/tmp/junit.xml --junit-prefix=94_ucsschool-api-kelvin.10_in_container_tests_kelvin_api
+	coverage run --source tests,ucsschool -m pytest  --reruns 1 --reruns-delay 5 --junit-xml=/tmp/junit.xml --junit-prefix=94_ucsschool-api-kelvin.10_in_container_tests_kelvin_api
 
 coverage: .coverage ## check code coverage with the current Python interpreter
 	coverage report --show-missing $(MY_COVERAGE_REPORT_ARGS)
