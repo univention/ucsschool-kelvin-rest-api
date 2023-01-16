@@ -1,5 +1,10 @@
 <h1>Changelog</h1>
 
+<h2>v1.8.3 (2023-01-16)</h2>
+<ul>
+    <li>Unhandled exceptions are logged (Bug #55114).</li>
+</ul>
+
 <h2>v1.8.2 (2022-12-20)</h2>
 <ul>
     <li>Speed up validation when creating or changing users (Bug #55384).</li>
