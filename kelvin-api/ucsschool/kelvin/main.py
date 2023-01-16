@@ -148,6 +148,7 @@ async def udm_exception_handler(request: Request, exc: UdmError) -> JSONResponse
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Add Correlation-ID to HTTP 500."""
+    logger.exception(f"While responding to {request.method!s} {request.url!s}: {exc!s}")
     return await http_exception_handler(
         request,
         HTTPException(
