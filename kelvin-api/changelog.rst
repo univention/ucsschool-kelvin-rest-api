@@ -8,6 +8,7 @@ Changelog
 v1.8.3 (2023-01-16)
 ...................
 * Unhandled exceptions are logged (Bug #55114).
+* Move operations succeed, when a language header is set.
 
 v1.8.2 (2022-12-20)
 ...................
