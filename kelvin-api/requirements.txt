@@ -20,3 +20,6 @@ ujson>=2.0,<3.0
 univention-config-registry
 uvicorn
 gunicorn
+uldap3>=1.0.0
+
+--extra-index-url https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple

@@ -42,7 +42,7 @@ from ucsschool.lib.models.utils import env_or_ucr
 from udm_rest_client import UDM
 
 from ...lib.models.base import UDMPropertiesError
-from ..ldap import uldap_machine_read
+from ..ldap import uldap_admin_read_local
 from ..opa import OPAClient
 from ..token_auth import get_token
 from .base import APIAttributesMixin, LibModelHelperMixin, udm_ctx
@@ -411,7 +411,7 @@ async def school_exists(
 @cached(ttl=OU_CACHE_TTL, cache=Cache.MEMORY, namespace=OU_CACHE_NAMESPACE, key_builder=ou_cache_key)
 async def search_schools_in_ldap(ou: str, *, raise404: bool = False) -> List[str]:
     """Get names of school OUs matching `ou`. Optionally raise HTTPException(404)."""
-    uldap = uldap_machine_read()
+    uldap = uldap_admin_read_local()
     results = uldap.search(
         filter_format("(&(objectClass=ucsschoolOrganizationalUnit)(ou=%s))", (ou,)),
         attributes=["ou"],

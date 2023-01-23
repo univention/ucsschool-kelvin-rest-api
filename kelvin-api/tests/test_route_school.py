@@ -32,7 +32,7 @@ from fastapi.testclient import TestClient
 from ldap.dn import explode_dn
 
 import ucsschool.kelvin.constants
-from ucsschool.kelvin.ldap import uldap_machine_read
+from ucsschool.kelvin.ldap import uldap_admin_read_local
 from ucsschool.kelvin.main import app
 from ucsschool.kelvin.routers.school import SchoolCreateModel, SchoolModel
 from ucsschool.lib.models.school import School
@@ -69,7 +69,7 @@ async def compare_lib_api_obj(lib_obj: School, api_obj: SchoolModel):
 
 @pytest.mark.asyncio
 async def test_search_no_filter(auth_header, udm_kwargs):
-    uldap = uldap_machine_read()
+    uldap = uldap_admin_read_local()
     ldap_ous: Set[Tuple[str, str]] = {
         (ldap_result["ou"].value, ldap_result.entry_dn)
         for ldap_result in uldap.search("(objectClass=ucsschoolOrganizationalUnit)", attributes=["ou"])
@@ -98,7 +98,7 @@ async def test_search_with_filter(auth_header, create_ou_using_python, random_ou
     common_name = random_ou_name()[:8]
     await create_ou_using_python(ou_name=f"{common_name}abc12")
     await create_ou_using_python(ou_name=f"{common_name}34xyz")
-    uldap = uldap_machine_read()
+    uldap = uldap_admin_read_local()
     ldap_ous: Set[Tuple[str, str]] = {
         (ldap_result["ou"].value, ldap_result.entry_dn)
         for ldap_result in uldap.search(

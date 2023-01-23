@@ -86,23 +86,21 @@ class LdapUser(BaseModel):
     attributes: Optional[Dict[str, List[Any]]] = None
 
 
-def uldap_machine_read(uldap_conf: Optional[uLdapConfig] = None):
-    if uldap_conf is None:
-        uldap_conf = get_uldap_conf()
-    return uLdapRead(uldap_conf).machine_account()
+def uldap_admin_read_local(uldap_conf: Optional[uLdapConfig] = None):
+    uldap_conf = uldap_conf or get_uldap_conf()
+    return uLdapRead(settings=uldap_conf, admin=True, primary=False)
 
 
 def uldap_primary_write(uldap_conf: Optional[uLdapConfig] = None):
-    if uldap_conf is None:
-        uldap_conf = get_uldap_conf()
-    return uLdapWrite(uldap_conf).primary()
+    uldap_conf = uldap_conf or get_uldap_conf()
+    return uLdapWrite(settings=uldap_conf, admin=True, primary=True)
 
 
 def admin_group_members() -> List[str]:
     ldap_base = env_or_ucr("ldap/base")
     search_filter = f"(cn={escape_filter_chars(API_USERS_GROUP_NAME)})"
     base = f"cn=groups,{ldap_base}"
-    uldap = uldap_machine_read()
+    uldap = uldap_admin_read_local()
     results = uldap.search(search_filter=search_filter, attributes=["uniqueMember"], search_base=base)
     if len(results) == 1:
         return results[0]["uniqueMember"].values
@@ -159,7 +157,7 @@ def get_user(
             f"(objectClass=ucsschoolTeacher)"
             f"))"
         )
-    uldap = uldap_machine_read().user_account(user=bind_dn, password=bind_pw)
+    uldap = uldap_admin_read_local().user_account(user=bind_dn, password=bind_pw)
     results = uldap.search(
         search_filter,
         attributes=attributes,
@@ -183,7 +181,7 @@ def get_user(
 
 def get_dn_of_user(username: str) -> str:
     search_filter = f"(uid={escape_filter_chars(username)})"
-    uldap = uldap_machine_read()
+    uldap = uldap_admin_read_local()
     results = uldap.search(search_filter=search_filter, attributes=None)
     if len(results) == 1:
         return results[0].entry_dn
