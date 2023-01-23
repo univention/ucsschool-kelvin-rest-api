@@ -68,7 +68,7 @@ from univention.admin.filter import conjunction, expression
 
 from ..config import UDM_MAPPING_CONFIG
 from ..import_config import get_import_config, init_ucs_school_import_framework
-from ..ldap import uldap_primary_write
+from ..ldap import get_dn_of_user, uldap_primary_write
 from ..opa import OPAClient, import_user_to_opa
 from ..token_auth import get_token
 from ..urls import url_to_name
@@ -698,14 +698,13 @@ async def get(
 
     - **username**: name of the school user (required)
     """
-    async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
-        break
-    else:
+    dn = get_dn_of_user(username)
+    if not dn:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No object with name={username!r} found or not authorized.",
         )
-    user = await get_import_user(udm, udm_obj.dn)
+    user = await get_import_user(udm, dn)
     if not await OPAClient.instance().check_policy_true(
         policy="users",
         token=token,
