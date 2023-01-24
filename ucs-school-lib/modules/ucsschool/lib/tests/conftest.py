@@ -1,7 +1,9 @@
 import asyncio
+import datetime
 import logging
 import random
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Set, Tuple
 
@@ -14,7 +16,15 @@ import ucsschool.lib.models.user
 from ucsschool.lib.create_ou import create_ou
 from ucsschool.lib.models.school import School
 from ucsschool.lib.models.user import User
-from ucsschool.lib.models.utils import env_or_ucr, exec_cmd, get_file_handler, ucr
+from ucsschool.lib.models.utils import (
+    env_or_ucr,
+    exec_cmd,
+    get_file_handler,
+    ucr,
+    uldap_admin_read_local,
+    uldap_admin_read_primary,
+    uldap_conf,
+)
 from ucsschool.lib.roles import (
     create_ucsschool_role_string,
     role_school_class,
@@ -174,7 +184,7 @@ class UserFactory(factory.Factory):
 
 
 @pytest_asyncio.fixture(scope="session")
-async def mail_domain(udm_kwargs) -> str:
+async def mail_domain(udm_kwargs, wait_for_replication) -> str:
     async with UDM(**udm_kwargs) as udm:
         mod = udm.get("mail/domain")
         async for obj in mod.search():
@@ -188,6 +198,7 @@ async def mail_domain(udm_kwargs) -> str:
             obj = await mod.new()
             obj.props.name = name
             await obj.save()
+            wait_for_replication(obj.dn)
             created_domain = name
 
     yield name
@@ -249,7 +260,7 @@ def udm_users_user_props(school_user):
 
 
 @pytest_asyncio.fixture
-async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs):
+async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs, wait_for_replication):
     """Create a new school class. -> (DN, {attrs})"""
     created_school_classes = []
     created_school_shares = []
@@ -264,6 +275,7 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs):
             grp_obj.props.users = sc_attrs["users"]
             grp_obj.props.ucsschoolRole = sc_attrs["ucsschool_roles"]
             await grp_obj.save()
+            wait_for_replication(grp_obj.dn)
             created_school_classes.append(grp_obj.dn)
             logger.debug("Created new SchoolClass: %r.", grp_obj)
 
@@ -279,6 +291,7 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs):
                 create_ucsschool_role_string(role_school_class_share, school),
             ]
             await share_obj.save()
+            wait_for_replication(share_obj.dn)
             created_school_shares.append(share_obj.dn)
             logger.debug("Created new ClassShare: %r.", share_obj)
 
@@ -308,7 +321,7 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs):
 
 
 @pytest_asyncio.fixture
-async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs):
+async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs, wait_for_replication):
     """Create a new work group. -> (DN, {attrs})"""
     created_workgroups = []
     created_wg_shares = []
@@ -323,6 +336,7 @@ async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs):
             grp_obj.props.users = wg_attrs["users"]
             grp_obj.props.ucsschoolRole = wg_attrs["ucsschool_roles"]
             await grp_obj.save()
+            wait_for_replication(grp_obj.dn)
             created_workgroups.append(grp_obj.dn)
             logger.debug("Created new WorkGroup: %r.", grp_obj)
 
@@ -338,6 +352,7 @@ async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs):
                 create_ucsschool_role_string(role_workgroup_share, school),
             ]
             await share_obj.save()
+            wait_for_replication(share_obj.dn)
             created_wg_shares.append(share_obj.dn)
             logger.debug("Created new ClassShare: %r.", share_obj)
 
@@ -374,6 +389,7 @@ def new_udm_user(
     new_school_class_using_udm,
     new_workgroup_using_udm,
     schedule_delete_user_dn,
+    wait_for_replication,
 ):
     """Create a new school user using UDM. -> (DN, {attrs})"""
 
@@ -442,6 +458,7 @@ def new_udm_user(
             await user_obj.save()
 
             schedule_delete_user_dn(user_obj.dn)
+            wait_for_replication(user_obj.dn)
             logger.debug("Created new %s%s: %r", role[0].upper(), role[1:], user_obj)
 
         return user_obj.dn, user_props
@@ -568,7 +585,7 @@ def cn_attrs(ldap_base):
 
 
 @pytest_asyncio.fixture
-async def new_cn(udm_kwargs, ldap_base, cn_attrs):
+async def new_cn(udm_kwargs, ldap_base, cn_attrs, wait_for_replication):
     """Create a new container"""
     created_cns = []
 
@@ -580,6 +597,7 @@ async def new_cn(udm_kwargs, ldap_base, cn_attrs):
             obj.props.name = attr["name"]
             obj.props.description = attr["description"]
             await obj.save()
+            wait_for_replication(obj.dn)
             created_cns.append(obj.dn)
             logger.debug("Created new container: %r.", obj)
 
@@ -771,6 +789,7 @@ def create_ou_using_ssh(
     schedule_delete_ou_using_ssh,
     schedule_delete_ou_using_ssh_at_end_of_session,
     udm_kwargs,
+    wait_for_replication,
 ):
     async def _func(ou_name: str = None, host: str = None, cache: bool = True) -> str:
         if cached_ou := get_ou_from_cache(ou_name, cache):
@@ -800,11 +819,13 @@ def create_ou_using_ssh(
             logger.debug(" => OU %r exists in %r.", ou_name, host)
         else:
             logger.debug(" => OU %r created in %r.", ou_name, host)
+        dn = f"ou={ou_name},{ldap_base}"
         async with UDM(**udm_kwargs) as udm:
             try:
-                await udm.get("container/ou").get(f"ou={ou_name},{ldap_base}")
+                await udm.get("container/ou").get(dn)
             except UdmNoObject:
                 raise AssertionError(f"Creation of OU {ou_name} failed.")
+        wait_for_replication(dn)
         return ou_name
 
     return _func
@@ -818,6 +839,7 @@ def create_ou_using_python(
     schedule_delete_ou_using_ssh,
     schedule_delete_ou_using_ssh_at_end_of_session,
     udm_kwargs,
+    wait_for_replication,
 ):
     async def _func(ou_name: str = None, cache: bool = True) -> str:
         if cached_ou := get_ou_from_cache(ou_name, cache):
@@ -852,12 +874,14 @@ def create_ou_using_python(
             "alter_dhcpd_base": False,
         }
         logger.debug("=> kwargs for create_ou: %r", create_ou_python_kwargs)
+        dn = f"ou={ou_name},{ldap_base}"
         async with UDM(**udm_kwargs) as udm:
             await create_ou(lo=udm, **create_ou_python_kwargs)
             try:
-                await udm.get("container/ou").get(f"ou={ou_name},{ldap_base}")
+                await udm.get("container/ou").get(dn)
             except UdmNoObject:
                 raise AssertionError(f"Creation of OU {ou_name} failed.")
+        wait_for_replication(dn)
         logger.debug(
             " ====================================================%s",
             len(ou_name) * "=",
@@ -888,3 +912,36 @@ def create_multiple_ous(
         return res[:amount]
 
     return _func
+
+
+@pytest.fixture(scope="session")
+def wait_for_replication():
+    def _wait_for_replication(dn: str, timeout: int = 60):
+        conf = uldap_conf()
+        if conf.host_fqdn == conf.primary_fqdn:
+            return
+        logger.debug("Waiting for replication of %r...", dn)
+        filter_s, search_base = dn.split(",", 1)
+        filter_s = f"({filter_s})"
+        uldap_primary = uldap_admin_read_primary()
+        assert uldap_primary.search_dn(
+            search_filter=filter_s, search_base=search_base
+        ), f"DN {dn!r} not found on primary."
+        start = datetime.datetime.now()
+        end = start + datetime.timedelta(seconds=timeout)
+        uldap_local = uldap_admin_read_local()
+        while datetime.datetime.now() < end:
+            if uldap_local.search_dn(search_filter=filter_s, search_base=search_base):
+                logger.debug(
+                    "DN %r was found in local LDAP after %d seconds.",
+                    dn,
+                    (datetime.datetime.now() - start).seconds,
+                )
+                return
+            time.sleep(1)
+        raise AssertionError(
+            f"DN {dn!r} was not found in local LDAP after {(datetime.datetime.now() - start).seconds} "
+            f"seconds."
+        )
+
+    return _wait_for_replication
