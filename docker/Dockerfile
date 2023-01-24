@@ -82,7 +82,7 @@ RUN apk add --no-cache --virtual mybuilddeps $(cat /tmp/alpine_apk_list.build) &
 	# install uldap3 from the GitLab registry
 	python3 -m pip install --no-cache-dir --compile --index-url https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple "uldap3>=1.1.0" && \
 	# install all remaining Python requirements
-	python3 -m pip install --no-cache-dir --compile -r /tmp/requirements_all.txt && \
+	python3 -m pip install --no-cache-dir --compile --extra-index-url https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple -r /tmp/requirements_all.txt && \
     apk del --no-cache mybuilddeps && \
 	rm -rf /tmp/*
 
@@ -119,10 +119,10 @@ RUN	mv -v /tmp/ucsschool-kelvin-rest-api.initd /etc/init.d/ucsschool-kelvin-rest
 	cp -r /kelvin/ucs-school-import/usr/share/ucs-school-import /usr/share/ && \
 	cp kelvin-api/usr/share/ucs-school-import/configs/kelvin_defaults.json /usr/share/ucs-school-import/configs/ && \
 	cp kelvin-api/usr/share/ucs-school-import/checks/*.py /usr/share/ucs-school-import/checks/ && \
-	mkdir -p /usr/share/ucs-school-import/pyhooks && \
-	mkdir -p /var/lib/ucs-school-import && \
-	mkdir -p /var/lib/ucs-school-lib/kelvin-hooks && \
-	cp -r /kelvin/ucs-school-import/empty_configs /var/lib/ucs-school-import/configs && \
+	mkdir -pv /usr/share/ucs-school-import/pyhooks && \
+	mkdir -pv /var/lib/ucs-school-import && \
+	mkdir -pv /var/lib/ucs-school-lib/kelvin-hooks && \
+	cp -rv /kelvin/ucs-school-import/empty_configs /var/lib/ucs-school-import/configs && \
 	python3 /kelvin/kelvin-api/setup.py build_html && \
 	python3 -m pip install --no-cache-dir --editable /kelvin/kelvin-api[development] && \
 	rm -rf /root/.cache/

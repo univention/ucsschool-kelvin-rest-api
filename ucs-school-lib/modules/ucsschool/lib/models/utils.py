@@ -39,6 +39,7 @@ import string
 import subprocess
 import sys
 from contextlib import contextmanager
+from functools import lru_cache
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from random import choice, shuffle
@@ -51,6 +52,7 @@ from asgi_correlation_id import CorrelationIdFilter
 from asgi_correlation_id.context import correlation_id
 from pkg_resources import resource_stream
 from six import string_types
+from uldap3 import LdapConfig, LdapRead, LdapWrite
 
 from univention.config_registry import ConfigRegistry, handler_set
 
@@ -117,6 +119,7 @@ APP_ID = "ucsschool-kelvin-rest-api"
 APP_BASE_PATH = Path("/var/lib/univention-appcenter/apps", APP_ID)
 APP_CONFIG_BASE_PATH = APP_BASE_PATH / "conf"
 CN_ADMIN_PASSWORD_FILE = APP_CONFIG_BASE_PATH / "cn_admin.secret"
+MACHINE_PASSWORD_FILE = "/etc/machine.secret"  # nosec
 DEFAULT_UCS_SSL_CA_CERT = "/usr/local/share/ca-certificates/ucs.crt"
 
 _handler_cache: Dict[str, logging.Handler] = {}
@@ -550,6 +553,7 @@ def _write_logging_config(path: str) -> None:
         )
 
 
+@lru_cache(maxsize=1)
 def udm_rest_client_cn_admin_kwargs() -> Dict[str, str]:
     global _udm_kwargs
     if not _udm_kwargs:
@@ -562,6 +566,18 @@ def udm_rest_client_cn_admin_kwargs() -> Dict[str, str]:
             "url": f"https://{host}/univention/udm/",
         }
     return {**_udm_kwargs, "request_id": correlation_id.get()}
+
+
+@lru_cache(maxsize=1)
+def uldap_conf() -> LdapConfig:
+    with open(CN_ADMIN_PASSWORD_FILE, "r") as fp:
+        password_cn_admin = fp.read().strip()
+    with open(MACHINE_PASSWORD_FILE, "r") as fp:
+        password_machine = fp.read().strip()
+    return LdapConfig(
+        password_machine=password_machine,
+        password_cn_admin=password_cn_admin,
+    )
 
 
 def add_or_remove_ucrv_value(ucrv, action, value, delimiter):
@@ -587,3 +603,18 @@ def add_or_remove_ucrv_value(ucrv, action, value, delimiter):
 
     handler_set(["{}={}".format(ucrv, delimiter.join(cur_val_list))])
     return 0
+
+
+def uldap_admin_read_local(conf: LdapConfig = None) -> LdapRead:
+    conf = conf or uldap_conf()
+    return LdapRead(settings=conf, admin=True, primary=False)
+
+
+def uldap_admin_read_primary(conf: LdapConfig = None) -> LdapRead:
+    conf = conf or uldap_conf()
+    return LdapRead(settings=conf, admin=True, primary=True)
+
+
+def uldap_admin_write_primary(conf: LdapConfig = None) -> LdapWrite:
+    conf = conf or uldap_conf()
+    return LdapWrite(settings=conf, admin=True, primary=True)

@@ -113,6 +113,7 @@ setuptools.setup(
     tests_require=requirements_test,
     extras_require={"development": set(requirements + requirements_dev + requirements_test)},
     packages=["ucsschool.kelvin", "ucsschool.kelvin.routers"],
+    dependency_links=["https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple"],
     python_requires=">=3.7",
     license="GNU Affero General Public License v3",
     classifiers=[

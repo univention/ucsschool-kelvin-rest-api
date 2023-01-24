@@ -57,6 +57,7 @@ from ucsschool.importer.models.import_user import (
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
 from ucsschool.lib.models.user import User
+from ucsschool.lib.models.utils import uldap_admin_write_primary
 from ucsschool.lib.roles import (
     InvalidUcsschoolRoleString,
     UnknownRole,
@@ -68,7 +69,7 @@ from univention.admin.filter import conjunction, expression
 
 from ..config import UDM_MAPPING_CONFIG
 from ..import_config import get_import_config, init_ucs_school_import_framework
-from ..ldap import get_dn_of_user, uldap_primary_write
+from ..ldap import get_dn_of_user
 from ..opa import OPAClient, import_user_to_opa
 from ..token_auth import get_token
 from ..urls import url_to_name
@@ -1390,7 +1391,7 @@ async def delete(
 
 async def set_password_hashes(dn: str, kelvin_password_hashes: PasswordsHashes) -> None:
     logger: logging.Logger = get_logger()
-    uldap = uldap_primary_write()
+    uldap = uldap_admin_write_primary()
     pw_hashes = kelvin_password_hashes.dict_with_ldap_attr_names()
     pw_hashes["krb5Key"] = kelvin_password_hashes.krb_5_key_as_bytes
     for key, value in pw_hashes.items():

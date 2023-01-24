@@ -57,6 +57,7 @@ setuptools.setup(
     long_description="Common UCS@school Python modules",
     url="https://www.univention.de/",
     install_requires=requirements,
+    dependency_links=["https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple"],
     setup_requires=["pytest-runner"],
     tests_require=requirements_test,
     packages=["ucsschool", "ucsschool.lib", "ucsschool.lib.models", "ucsschool.lib.pyhooks"],

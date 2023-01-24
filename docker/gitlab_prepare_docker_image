@@ -85,8 +85,6 @@ chmod +x build/opa
 
 echo "Collecting all Python dependencies..."
 # ... to minimize Docker image by installing and uninstalling in one step
-find build/ -name 'requirements*.txt' -exec cat {} + | egrep -v 'univention|school|extra-index-url' | sort | uniq > build/requirements_all.txt
-find build/ -name 'requirements*.txt' -exec cat {} + | grep 'extra-index-url' | sort | uniq >> build/requirements_all.txt
-cat build/requirements_all.txt
+find build/ -name 'requirements*.txt' -exec cat {} + | egrep -v 'univention|school' | sort | uniq > build/requirements_all.txt
 
 echo "Building docker image..."

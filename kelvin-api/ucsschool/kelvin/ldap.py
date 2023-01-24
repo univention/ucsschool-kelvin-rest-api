@@ -35,15 +35,9 @@ from typing import Any, Dict, List, Optional
 import uldap3
 from asgi_correlation_id.context import correlation_id
 from pydantic import BaseModel
-from uldap3 import (
-    Entry,
-    LdapConfig as uLdapConfig,
-    LdapRead as uLdapRead,
-    LdapWrite as uLdapWrite,
-    escape_filter_chars,
-)
+from uldap3 import Entry, LdapConfig as uLdapConfig, escape_filter_chars
 
-from ucsschool.lib.models.utils import env_or_ucr
+from ucsschool.lib.models.utils import env_or_ucr, uldap_admin_read_local
 
 from .constants import API_USERS_GROUP_NAME, CN_ADMIN_PASSWORD_FILE, MACHINE_PASSWORD_FILE
 
@@ -84,16 +78,6 @@ class LdapUser(BaseModel):
     dn: str
     kelvin_admin: bool = False
     attributes: Optional[Dict[str, List[Any]]] = None
-
-
-def uldap_admin_read_local(uldap_conf: Optional[uLdapConfig] = None):
-    uldap_conf = uldap_conf or get_uldap_conf()
-    return uLdapRead(settings=uldap_conf, admin=True, primary=False)
-
-
-def uldap_primary_write(uldap_conf: Optional[uLdapConfig] = None):
-    uldap_conf = uldap_conf or get_uldap_conf()
-    return uLdapWrite(settings=uldap_conf, admin=True, primary=True)
 
 
 def admin_group_members() -> List[str]:
