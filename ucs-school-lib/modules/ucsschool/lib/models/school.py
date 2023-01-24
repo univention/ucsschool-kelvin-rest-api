@@ -995,3 +995,4 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         udm_module = "container/ou"
         udm_filter = "objectClass=ucsschoolOrganizationalUnit"
         ldap_name_part = "ou"
+        _ldap_filter = f"(&({udm_filter})({ldap_name_part}={{name}}))"

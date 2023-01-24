@@ -66,6 +66,7 @@ class AnyComputer(UCSSchoolHelperAbstractClass):
 
     class Meta:
         udm_module = "computers/computer"
+        _ldap_filter = "(&(objectClass=univentionHost)(cn={name}))"
 
 
 class SchoolDC(UCSSchoolHelperAbstractClass):
@@ -82,6 +83,10 @@ class SchoolDC(UCSSchoolHelperAbstractClass):
             SchoolDCSlave.Meta.udm_module: SchoolDCSlave,
         }
         return module_to_class.get(udm_obj._udm_module.name, cls)
+
+    class Meta:
+        udm_module = "computers/computer"
+        _ldap_filter = "(&(objectClass=ucsschoolServer)(cn={name}))"
 
 
 class SchoolDCSlave(RoleSupportMixin, SchoolDC):
@@ -172,6 +177,9 @@ class SchoolDCSlave(RoleSupportMixin, SchoolDC):
         udm_module = "computers/domaincontroller_slave"
         name_is_unique = True
         allow_school_change = True
+        _ldap_filter = (
+            f"(&(objectClass=ucsschoolServer)(univentionObjectType={udm_module})(cn={{name}}))"
+        )
 
 
 class SchoolComputer(UCSSchoolHelperAbstractClass):
@@ -399,6 +407,7 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
     class Meta:
         udm_module = "computers/computer"
         name_is_unique = True
+        _ldap_filter = "(&(objectClass=ucsschoolComputer)(cn={name}))"
 
 
 class WindowsComputer(RoleSupportMixin, SchoolComputer):

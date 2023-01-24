@@ -64,7 +64,7 @@ from ..schoolldap import SchoolSearchBase
 from .attributes import CommonName, Roles, SchoolAttribute, ValidationError
 from .hook import KelvinHook
 from .meta import UCSSchoolHelperMetaClass
-from .utils import _, env_or_ucr
+from .utils import _, env_or_ucr, uldap_exists
 from .validator import validate
 
 SuperOrdinateType = Union[str, UdmObject]
@@ -436,7 +436,18 @@ class UCSSchoolHelperAbstractClass(object):
         if error_message not in errors:
             errors.append(error_message)
 
+    @classmethod
+    def _ldap_filter(cls, name: str) -> str:
+        if not cls._meta._ldap_filter:
+            raise TypeError(f"No '_ldap_filter' defined for class {cls.__name__}.")
+        return cls._meta._ldap_filter.format(name=escape_filter_chars(name))
+
     async def exists(self, lo: UDM) -> bool:
+        name = self.get_name_from_dn(self.old_dn or self.dn) or self.name
+        if not name:
+            return False
+        if self._meta._ldap_filter:
+            return uldap_exists(self._ldap_filter(name=name))
         return await self.get_udm_object(lo) is not None
 
     async def exists_outside_school(self, lo: UDM) -> bool:

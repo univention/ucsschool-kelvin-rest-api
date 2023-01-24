@@ -360,6 +360,13 @@ class WorkGroupShare(RoleSupportMixin, GroupShare):
     def get_nt_acls(self, lo: UDM) -> List[str]:
         return self.get_aces_work_group(lo)
 
+    class Meta:
+        udm_module = "shares/share"
+        _ldap_filter = (
+            f"(&(univentionObjectType={udm_module})(ucsschoolRole=workgroup_share:school:*)"
+            "(cn={name}))"
+        )
+
 
 class ClassShare(RoleSupportMixin, GroupShare):
     school_group = SchoolClassAttribute(_("School class"), required=True, internal=True)
@@ -383,6 +390,13 @@ class ClassShare(RoleSupportMixin, GroupShare):
 
     def get_nt_acls(self, lo: UDM) -> List[str]:
         return self.get_aces_class_group(lo)
+
+    class Meta:
+        udm_module = "shares/share"
+        _ldap_filter = (
+            f"(&(univentionObjectType={udm_module})(ucsschoolRole=school_class_share:school:*)"
+            "(cn={name}))"
+        )
 
 
 class MarketplaceShare(RoleSupportMixin, SetNTACLsMixin, Share):

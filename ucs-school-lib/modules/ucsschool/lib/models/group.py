@@ -37,7 +37,6 @@ from udm_rest_client import UDM, NoObject as UdmNoObject, UdmObject
 
 from ..roles import (
     create_ucsschool_role_string,
-    get_role_info,
     role_computer_room,
     role_computer_room_backend_veyon,
     role_school_class,
@@ -156,6 +155,7 @@ class Group(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     class Meta:
         udm_module = "groups/group"
         name_is_unique = True
+        _ldap_filter = f"(&(univentionObjectType={udm_module})(cn={{name}}))"
 
 
 class BasicGroup(Group):
@@ -309,6 +309,13 @@ class SchoolClass(Group, _MayHaveSchoolPrefix):
         if not self.name.startswith("{}-".format(self.school)):
             raise ValueError("Missing school prefix in name: {!r}.".format(self))
 
+    class Meta:
+        udm_module = "groups/group"
+        name_is_unique = True
+        _ldap_filter = (
+            f"(&(univentionObjectType={udm_module})(ucsschoolRole=school_class:school*)" "(cn={name}))"
+        )
+
 
 class WorkGroup(EmailAttributesMixin, SchoolClass, _MayHaveSchoolPrefix):
     default_roles: List[str] = [role_workgroup]
@@ -324,12 +331,12 @@ class WorkGroup(EmailAttributesMixin, SchoolClass, _MayHaveSchoolPrefix):
             return
         return cls
 
-    async def exists(self, lo: UDM) -> bool:
-        """Check if the work group exists avoiding collisions with other groups."""
-        work_group_object = await self.get_udm_object(lo)
-        if not work_group_object:
-            return False
-        return any(get_role_info(r)[0] == role_workgroup for r in work_group_object.props.ucsschoolRole)
+    class Meta:
+        udm_module = "groups/group"
+        name_is_unique = True
+        _ldap_filter = (
+            f"(&(univentionObjectType={udm_module})(ucsschoolRole=workgroup:school*)" "(cn={name}))"
+        )
 
 
 class ComputerRoom(Group, _MayHaveSchoolPrefix):

@@ -770,6 +770,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         name_is_unique = True
         allow_school_change = False
         ldap_name_part = "uid"
+        _ldap_filter = f"(&(univentionObjectType={udm_module})(uid={{name}}))"
 
 
 class Student(User):

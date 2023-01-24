@@ -618,3 +618,9 @@ def uldap_admin_read_primary(conf: LdapConfig = None) -> LdapRead:
 def uldap_admin_write_primary(conf: LdapConfig = None) -> LdapWrite:
     conf = conf or uldap_conf()
     return LdapWrite(settings=conf, admin=True, primary=True)
+
+
+def uldap_exists(search_filter: str, search_base: str = None, primary: bool = False) -> bool:
+    uldap = uldap_admin_read_primary() if primary else uldap_admin_read_local()
+    search_base = search_base or uldap.settings.ldap_base
+    return bool(uldap.search_dn(search_filter=search_filter, search_base=search_base))

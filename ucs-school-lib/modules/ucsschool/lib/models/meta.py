@@ -54,6 +54,7 @@ class UCSSchoolHelperOptions(object):
         if self.udm_module:
             udm_module_short = self.udm_module.split("/")[1]
         self.set_from_meta_object(meta, "udm_module_short", udm_module_short)
+        self.set_from_meta_object(meta, "_ldap_filter", "")
 
     def set_from_meta_object(self, meta, name, default):
         setattr(self, name, getattr(meta, name, default))

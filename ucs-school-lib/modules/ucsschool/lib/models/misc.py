@@ -46,6 +46,7 @@ class MailDomain(UCSSchoolHelperAbstractClass):
 
     class Meta:
         udm_module = "mail/domain"
+        _ldap_filter = f"(&(univentionObjectType={udm_module})(cn={{name}}))"
 
 
 class OU(UCSSchoolHelperAbstractClass):
@@ -75,6 +76,7 @@ class OU(UCSSchoolHelperAbstractClass):
 
     class Meta:
         udm_module = "container/ou"
+        _ldap_filter = f"(&(univentionObjectType={udm_module})(ou={{name}}))"
 
 
 class Container(OU):
