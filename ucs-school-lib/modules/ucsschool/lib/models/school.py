@@ -35,7 +35,7 @@ from typing import Dict, Iterable, List, Optional, Set, Union
 
 import ldap
 from ldap.dn import escape_dn_chars
-from ldap.filter import escape_filter_chars, filter_format
+from ldap.filter import filter_format
 
 from udm_rest_client import UDM, CreateError, NoObject as UdmNoObject, UdmObject
 from univention.admin.filter import conjunction
@@ -447,8 +447,7 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             # call dc.move() if really necessary to move
             return await dc.modify(lo, move_if_necessary=False)
         else:
-            existing_host = await AnyComputer.get_first_udm_obj(lo, "cn=%s" % escape_filter_chars(name))
-            if existing_host:
+            if await AnyComputer(name=name).exists(lo):
                 self.logger.error(
                     'Given host name "%s" is already in use and no domaincontroller slave system. '
                     "Please choose another name.",

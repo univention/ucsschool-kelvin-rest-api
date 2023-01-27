@@ -189,9 +189,8 @@ async def validate_create_request_params(school: SchoolCreateModel, logger: logg
         share_host = getattr(school, share_attr_name)
         if share_host:
             # must either exist or must be automatically created by create_ou()
-            host_obj = await AnyComputer.get_first_udm_obj(udm, filter_format("cn=%s", (share_host,)))
             if (
-                not host_obj
+                not await AnyComputer(name=share_host).exists(udm)
                 and share_host != f"dc{school.name}"
                 and share_host not in school.administrative_servers
                 and share_host not in school.educational_servers
