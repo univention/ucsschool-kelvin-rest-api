@@ -65,7 +65,7 @@ from .group import BasicGroup, BasicSchoolGroup, Group
 from .misc import OU, Container
 from .policy import DHCPDNSPolicy
 from .share import MarketplaceShare
-from .utils import _, flatten, ucr
+from .utils import _, flatten, ucr, uldap_admin_read_primary
 
 
 class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
@@ -296,16 +296,19 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             host = SchoolDC(name=hostname, school=self.name)
             return host.dn
 
-        host = await AnyComputer.get_first_udm_obj(lo, "cn=%s" % escape_filter_chars(hostname))
-        if host:
-            return host.dn
+        filter_s = AnyComputer._ldap_filter(hostname)
+        uldap = uldap_admin_read_primary()
+        host_dns = uldap.search_dn(filter_s)
+        if host_dns:
+            return host_dns[0]
         else:
+            host_dn = ucr.get("ldap/hostdn")
             self.logger.warning(
                 'Could not find %s. Using this host as ShareFileServer ("%s").',
                 hostname,
-                ucr.get("hostname"),
+                host_dn,
             )
-            return ucr.get("ldap/hostdn")
+            return host_dn
 
     async def get_class_share_file_server(self, lo: UDM) -> str:
         return await self.get_share_fileserver_dn(self.class_share_file_server, lo)

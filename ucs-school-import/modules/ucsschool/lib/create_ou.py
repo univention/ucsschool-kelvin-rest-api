@@ -2,7 +2,7 @@
 #
 # Univention UCS@school
 #
-# Copyright 2018-2021 Univention GmbH
+# Copyright 2018-2023 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -40,10 +40,11 @@ from typing import List
 from ldap.filter import filter_format
 
 from ucsschool.lib.models.school import School
-from ucsschool.lib.models.utils import ucr
+from ucsschool.lib.models.utils import ucr, uldap_admin_read_primary
 from udm_rest_client import UDM
 
 MAX_HOSTNAME_LENGTH = 13
+logger = logging.getLogger(__name__)
 
 
 async def create_ou(
@@ -72,13 +73,28 @@ async def create_ou(
     :param str share_name: host name
     :param univention.uldap.access lo: LDAP connection object
     :param str baseDN: base DN
-    :param str hostname: hostname of master in case of singlemaster
-    :param bool is_single_master: whether it is a singlemaster
+    :param str hostname: hostname of Primary Directory Node in case of singleserver
+    :param bool is_single_master: whether it is a singleserver
     :param bool alter_dhcpd_base: if the DHCP base should be modified
     :return bool: whether the OU was successfully created (or already existed)
     :raises ValueError: on validation errors
     :raises uidAlreadyUsed:
     """
+    logger.debug(
+        "ou_name=%r display_name=%r edu_name=%r admin_name=%r share_name=%r lo=%r baseDN=%r hostname=%r "
+        "is_single_master=%r alter_dhcpd_base=%r",
+        ou_name,
+        display_name,
+        edu_name,
+        admin_name,
+        share_name,
+        lo,
+        baseDN,
+        hostname,
+        is_single_master,
+        alter_dhcpd_base,
+    )
+
     if edu_name:
         is_edu_name_generated = False
     else:
@@ -108,8 +124,6 @@ async def create_ou(
     if display_name is None:
         display_name = ou_name
 
-    logger = logging.getLogger(__name__)
-
     new_school = School(
         name=ou_name,
         dc_name=edu_name,
@@ -119,15 +133,12 @@ async def create_ou(
     )
 
     # TODO: Reevaluate this validation after CNAME changes are implemented
-    share_dn = ""
     if share_name is None:
         share_name = edu_name
-    objects: List[str] = [
-        obj.dn
-        async for obj in lo.get("computers/computer").search(
-            filter_s=filter_format("(&(objectClass=univentionHost)(cn=%s))", (share_name,)), base=baseDN
-        )
-    ]
+    objects: List[str] = uldap_admin_read_primary().search_dn(
+        filter_format("(&(objectClass=univentionHost)(cn=%s))", (share_name,)),
+        search_base=baseDN,
+    )
     if not objects:
         if share_name == "dc{}".format(ou_name) or (edu_name and share_name == edu_name):
             share_dn = filter_format(
@@ -140,12 +151,9 @@ async def create_ou(
                 share_name,
                 host,
             )
-            objects: List[str] = [
-                obj.dn
-                async for obj in lo.get("computers/computer").search(
-                    filter_s=filter_format("(&(objectClass=univentionHost)(cn=%s))", (host,)),
-                )
-            ]
+            objects: List[str] = uldap_admin_read_primary().search_dn(
+                filter_format("(&(objectClass=univentionHost)(cn=%s))", (host,))
+            )
             share_dn = objects[0]
     else:
         share_dn = objects[0]

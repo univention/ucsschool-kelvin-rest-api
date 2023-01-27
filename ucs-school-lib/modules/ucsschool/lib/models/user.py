@@ -35,7 +35,7 @@ from collections.abc import Mapping
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 from ldap.dn import escape_dn_chars, explode_dn
-from ldap.filter import escape_filter_chars, filter_format
+from ldap.filter import filter_format
 from six import iteritems
 
 import univention.admin.syntax as syntax
@@ -71,7 +71,7 @@ from .computer import AnyComputer
 from .group import BasicGroup, Group, SchoolClass, SchoolGroup, WorkGroup
 from .misc import MailDomain
 from .school import School
-from .utils import _, create_passwd, env_or_ucr, ucr
+from .utils import _, create_passwd, env_or_ucr, ucr, uldap_exists
 
 SuperOrdinateType = Union[str, UdmObject]
 unicode_s = str  # py3
@@ -491,8 +491,11 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                     },
                 )
         if self.email:
-            name, email = escape_filter_chars(self.name), escape_filter_chars(self.email)
-            if await self.get_first_udm_obj(lo, "(&(!(uid=%s))(mailPrimaryAddress=%s))" % (name, email)):
+            filter_s = filter_format(
+                "(&(univentionObjectType=users/user)(!(uid=%s))(mailPrimaryAddress=%s))",
+                (self.name, self.email),
+            )
+            if uldap_exists(filter_s):
                 self.add_error(
                     "email",
                     _(

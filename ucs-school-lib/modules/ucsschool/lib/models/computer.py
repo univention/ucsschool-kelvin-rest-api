@@ -34,7 +34,7 @@ from typing import Any, Dict, List, Optional, Type
 
 import six
 from ipaddr import AddressValueError, IPv4Network, NetmaskValueError
-from ldap.filter import escape_filter_chars
+from ldap.filter import escape_filter_chars, filter_format
 
 from udm_rest_client import UDM, UdmObject
 from univention.admin.filter import conjunction, expression, parse
@@ -52,7 +52,7 @@ from .base import MultipleObjectsError, RoleSupportMixin, SuperOrdinateType, UCS
 from .dhcp import AnyDHCPService, DHCPServer
 from .group import BasicGroup
 from .network import Network
-from .utils import _, ucr
+from .utils import _, ucr, uldap_exists
 
 
 class AnyComputer(UCSSchoolHelperAbstractClass):
@@ -312,8 +312,10 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
     async def validate(self, lo: UDM, validate_unlikely_changes: bool = False) -> None:
         await super(SchoolComputer, self).validate(lo, validate_unlikely_changes)
         for ip_address in self.ip_address:
-            name, ip_address = escape_filter_chars(self.name), escape_filter_chars(ip_address)
-            if await AnyComputer.get_first_udm_obj(lo, "&(!(cn=%s))(ip=%s)" % (name, ip_address)):
+            filter_s = filter_format(
+                "(&(objectClass=univentionHost)(!(cn=%s))(ip=%s))", (self.name, ip_address)
+            )
+            if uldap_exists(filter_s):
                 self.add_error(
                     "ip_address",
                     _(
@@ -322,8 +324,10 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
                     ),
                 )
         for mac_address in self.mac_address:
-            name, mac_address = escape_filter_chars(self.name), escape_filter_chars(mac_address)
-            if await AnyComputer.get_first_udm_obj(lo, "&(!(cn=%s))(mac=%s)" % (name, mac_address)):
+            filter_s = filter_format(
+                "(&(objectClass=univentionHost)(!(cn=%s))(mac=%s))", (self.name, mac_address)
+            )
+            if uldap_exists(filter_s):
                 self.add_error(
                     "mac_address",
                     _(
