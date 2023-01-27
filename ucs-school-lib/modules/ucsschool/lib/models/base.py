@@ -29,6 +29,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 import inspect
+import time
 from copy import deepcopy
 from functools import lru_cache
 from typing import (  # noqa: F401
@@ -512,7 +513,11 @@ class UCSSchoolHelperAbstractClass(object):
             func_name,
             self,
         )
+        t0 = time.time()
         await self._call_pyhooks(hook_time, func_name, udm)
+        self.logger.debug(
+            "Timings self._call_pyhooks(%r, %r): %.3f", hook_time, func_name, time.time() - t0
+        )
         return True
 
     def build_hook_line(self, hook_time, func_name):  # type: (str, str) -> Optional[str]
@@ -616,23 +621,24 @@ class UCSSchoolHelperAbstractClass(object):
             )
         else:
             await self.call_hooks(lo, "pre", "create")
-        success = await self.create_without_hooks(lo, validate)
+        t0 = time.time()
+        success = await self.create_without_hooks(lo, validate)  # TODO: this takes 680 ms
+        self.logger.debug("Timings self.create_without_hooks(): %.3f", time.time() - t0)
         if success and not self._in_hook:
             await self.call_hooks(lo, "post", "create")
         return success
 
     async def create_without_hooks(self, lo: UDM, validate: bool) -> bool:
+        t0 = time.time()
         if await self.exists(lo):
             return False
         self.logger.info("Creating %r", self)
-
         await self.create_without_hooks_roles(lo)
-
         if validate:
-            await self.validate(lo)
+            await self.validate(lo)  # TODO: this takes 100 ms
             if self.errors:
                 raise ValidationError(self.errors.copy())
-
+        t1 = time.time()
         pos = PoType(env_or_ucr("ldap/base"))
         container = self.position
         if not container:
@@ -645,21 +651,33 @@ class UCSSchoolHelperAbstractClass(object):
                 superordinate_arg = superordinate_obj._api_obj
             else:
                 superordinate_arg = None
+            t2 = time.time()
+            # TODO: this takes 240 ms:
             udm_obj = await lo.get(self._meta.udm_module).new(superordinate=superordinate_arg)
+            t3 = time.time()
             if not udm_obj.superordinate:
                 # TODO: remove this, once new() has been fixed
                 udm_obj.superordinate = superordinate_obj
             udm_obj.position = pos.getDn()
-
             # here is the real logic
-            await self.do_create(udm_obj, lo)
+            await self.do_create(udm_obj, lo)  # TODO: this takes 680 ms (of which UDM REST took 650 ms)
+            t4 = time.time()
 
             # get it fresh from the database (needed for udm_obj._exists ...)
             self.set_dn(self.dn)
             self.logger.info("%r successfully created", self)
+            self.logger.debug(
+                "Timings: t1=%.3f t2=%.3f t3=%.3f t4=%.3f",
+                t1 - t0,
+                t2 - t1,
+                t3 - t2,
+                t4 - t3,
+            )
             return True
         finally:
+            t5 = time.time()
             self.invalidate_cache()
+            self.logger.debug("Timings self.invalidate_cache(): %.3f", time.time() - t5)
 
     async def create_without_hooks_roles(self, lo: UDM) -> None:
         """
@@ -675,8 +693,12 @@ class UCSSchoolHelperAbstractClass(object):
             udm_obj['used_in_ucs_school'] = '1'
             super(MyModel, self).do_create(udm_obj, lo)
         """
+        t0 = time.time()
         await self._alter_udm_obj(udm_obj)
-        await udm_obj.save()
+        t1 = time.time()
+        await udm_obj.save()  # TODO: this takes 680 ms
+        t2 = time.time()
+        self.logger.debug("Timings: t1=%.3f t2=%.3f", t1 - t0, t2 - t1)
 
     async def modify(self, lo: UDM, validate: bool = True, move_if_necessary: bool = None) -> bool:
         """
@@ -1344,7 +1366,7 @@ class RoleSupportMixin(object):
         (and thus before py:meth:`do_create()`).
         """
         roles = self.roles_as_dicts
-        if self.default_roles and not any([role["context"] for role in roles if role["context"] != "-"]):
+        if self.default_roles and not any(role["context"] for role in roles if role["context"] != "-"):
             schools = self.get_schools()
             self.ucsschool_roles += [
                 create_ucsschool_role_string(role, school)

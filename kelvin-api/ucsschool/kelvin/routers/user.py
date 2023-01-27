@@ -807,6 +807,7 @@ async def create(
     **Note:** Even though only **school** or **schools** needs to be set,
         its advised to set both as best practice.
     """
+    t0 = time.time()
     request_user.Config.lib_class = SchoolUserRole.get_lib_class(
         [
             SchoolUserRole(url_to_name(request, "role", UcsSchoolBaseModel.unscheme_and_unquote(role)))
@@ -828,12 +829,15 @@ async def create(
         )
     if await user.exists(udm):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="School user exists.")
+    t1 = time.time()
 
     try:
         user.prepare_uids()
         user_importer = get_user_importer()
+        t2 = time.time()
         # user_importer.determine_add_modify_action() will call user.prepare_all()
-        user = await user_importer.determine_add_modify_action(user)
+        user = await user_importer.determine_add_modify_action(user)  # TODO: this takes 90 ms
+        t3 = time.time()
         if user.action != "A":
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -841,9 +845,13 @@ async def create(
                 f"record_uid={user.record_uid!r}, "
                 f"source_uid={user.source_uid!r}).",
             )
+        t4 = time.time()
+        # TODO: this takes 150 ms:
         await user.validate(udm, validate_unlikely_changes=True, check_username=True)
+        t5 = time.time()
         logger.info("Going to create %s with %r...", user, user.to_dict())
-        res = await user.create(udm)
+        res = await user.create(udm)  # TODO: this takes 750 ms
+        t6 = time.time()
     except (CreateError, LibValidationError, UcsSchoolImportError, WorkgroupDoesNotExistError) as exc:
         error_msg = f"Failed to create {user!r}: {exc}"
         logger.exception(error_msg)
@@ -860,7 +868,18 @@ async def create(
 
     if request_user.kelvin_password_hashes:
         await set_password_hashes(user.dn, request_user.kelvin_password_hashes)
+    t7 = time.time()
 
+    logger.debug(
+        "Timings: t1=%.3f t2=%.3f t3=%.3f t4=%.3f t5=%.3f t6=%.3f t7=%.3f",
+        t1 - t0,
+        t2 - t1,
+        t3 - t2,
+        t4 - t3,
+        t5 - t4,
+        t6 - t5,
+        t7 - t6,
+    )
     return await UserModel.from_lib_model(user, request, udm)
 
 

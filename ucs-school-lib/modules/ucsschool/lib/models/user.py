@@ -31,6 +31,7 @@
 import asyncio
 import copy
 import os.path
+import time
 from collections.abc import Mapping
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 
@@ -280,6 +281,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         return await super(User, self).create(lo=lo, validate=validate)
 
     async def do_create(self, udm_obj: UdmObject, lo: UDM) -> None:
+        t0 = time.time()
         if not self.schools:
             self.schools = [self.school]
         await self.set_default_options(udm_obj)
@@ -311,11 +313,14 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             udm_obj.props.homedrive = home_drive
         if script_path := self.get_samba_netlogon_script_path():
             udm_obj.props.scriptpath = script_path
-        success = await super(User, self).do_create(udm_obj, lo)
+        t1 = time.time()
+        success = await super(User, self).do_create(udm_obj, lo)  # TODO: this takes 680 ms
+        t2 = time.time()
         if password_created:
-            # dont' show password in post_hooks
+            # don't show password in post_hooks
             # (it has already been saved to LDAP in super().do_create() above)
             self.password = ""  # nosec
+        self.logger.debug("Timings: t1=%.3f t2=%.3f", t1 - t0, t2 - t1)
         return success
 
     async def modify(
@@ -457,10 +462,13 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         groups.extend(wg.dn for wg in self.get_workgroup_objs())
         return groups
 
+    # TODO: validate() is run twice - why?
     async def validate(self, lo: UDM, validate_unlikely_changes: bool = False) -> None:
-        await super(User, self).validate(lo, validate_unlikely_changes)
+        t0 = time.time()
+        await super(User, self).validate(lo, validate_unlikely_changes)  # TODO: this takes 85 ms
+        t1 = time.time()
         try:
-            udm_obj = await self.get_udm_object(lo)
+            udm_obj = await self.get_udm_object(lo)  # TODO: this takes 80 ms - replace with LDAP call?
         except UnknownModel:
             udm_obj = None
         except WrongModel as exc:
@@ -473,6 +481,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                 )
                 % {"old_role": exc.model.type_name, "name": self.name, "new_role": self.type_name},
             )
+        t2 = time.time()
         if udm_obj:
             original_class = await self.get_class_for_udm_obj(udm_obj, self.school)
             if original_class is not self.__class__:
@@ -507,7 +516,6 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             # 	'email',
             # 	_('The mail domain is unknown. Please change the email address or create the mail \
             # 	   domain "%s" using the Univention Directory Manager.') % mail_domain.name)
-
         if not isinstance(self.school_classes, Mapping):
             self.add_error(
                 "school_classes",
@@ -559,6 +567,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                     syntax.gid.parse(work_group_name)
                 except valueError as exc:
                     self.add_error("workgroups", str(exc))
+        self.logger.debug("Timings: t1=%.3f t2=%.3f t3=%.3f", t1 - t0, t2 - t1, time.time() - t2)
 
     async def remove_from_school(self, school: str, lo: UDM) -> bool:
         if not await self.exists(lo):

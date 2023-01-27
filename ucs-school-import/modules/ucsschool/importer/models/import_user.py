@@ -390,6 +390,7 @@ class ImportUser(User):
         :return: whether the object created succeeded
         :rtype: bool
         """
+        t0 = time.time()
         self.lo = lo
         check_password_policies = check_password_policies or self.config.get(
             "evaluate_password_policies", False
@@ -398,10 +399,12 @@ class ImportUser(User):
             # prevent recursion
             self.logger.warning("Running create() from within a hook.")
             res = await self.create_without_hooks(lo, validate)
+            self.logger.debug("Timings in_hook: %.3f", time.time() - t0)
         else:
-            res = await super(ImportUser, self).create(
+            res = await super(ImportUser, self).create(  # TODO: this take 740 ms
                 lo, validate, check_password_policies=check_password_policies
             )
+            self.logger.debug("Timings not in_hook: %.3f", time.time() - t0)
         if UNIQUENESS not in self.config.get("skip_tests", []):
             self._all_usernames[self.name] = UsernameUniquenessTuple(
                 self.record_uid, self.source_uid, self.dn
@@ -409,7 +412,9 @@ class ImportUser(User):
         return res
 
     async def create_without_hooks_roles(self, lo: UDM) -> None:
-        await _validate_workgroups(self.get_workgroup_objs(), lo)
+        t0 = time.time()
+        await _validate_workgroups(self.get_workgroup_objs(), lo)  # TODO: this takes 100 ms
+        self.logger.debug("Timings: %.3f", time.time() - t0)
         if self.config["dry_run"]:
             self.logger.info("Dry-run: skipping user.create() for %s.", self)
             return True
@@ -1269,7 +1274,7 @@ class ImportUser(User):
         else:
             return await super(ImportUser, self).remove_without_hooks(lo)
 
-    async def validate(
+    async def validate(  # TODO: validate() is run twice - why?
         self,
         lo: UDM,
         validate_unlikely_changes: bool = False,
@@ -1308,6 +1313,7 @@ class ImportUser(User):
         :raises InvalidSchoolClasses: ...
         :raises InvalidSchools: ...
         """
+        t0 = time.time()
         skip_tests = self.config.get("skip_tests", [])
 
         # check `name` 1st: it must be set, or `dn` will be empty, leading to AttributeError in
@@ -1331,9 +1337,8 @@ class ImportUser(User):
                     entry_count=self.entry_count,
                     import_user=self,
                 )
-
-        await super(ImportUser, self).validate(lo, validate_unlikely_changes)
-
+        await super(ImportUser, self).validate(lo, validate_unlikely_changes)  # TODO: this takes 147 ms
+        t1 = time.time()
         _ma = None
         mandatory_attributes = {}
         for _ma in self.config["mandatory_attributes"]:
@@ -1356,7 +1361,6 @@ class ImportUser(User):
                 raise EmptyMandatoryAttribute(
                     "Mandatory attribute {!r} has empty value.".format(k), attr_name=k
                 )
-
         # don't run uniqueness checks from within a post_move hook
         if not self.in_hook and UNIQUENESS not in skip_tests:
             if self._unique_ids["record_uid"].get(self.record_uid, self.dn) != self.dn:
@@ -1390,7 +1394,6 @@ class ImportUser(User):
                         import_user=self,
                     )
                 self._unique_ids["email"][self.email] = self.dn
-
         if self.email:
             # email_pattern:
             # * must not begin with an @
@@ -1404,7 +1407,6 @@ class ImportUser(User):
                     entry_count=self.entry_count,
                     import_user=self,
                 )
-
         if self.birthday:
             try:
                 datetime.datetime.strptime(self.birthday, "%Y-%m-%d")
@@ -1424,7 +1426,6 @@ class ImportUser(User):
             raise InvalidSchools(
                 "Schools must be a list.", entry_count=self.entry_count, import_user=self
             )
-
         for school, school_classes in self.school_classes.items():
             for sc in school_classes:
                 if sc.startswith("{0}-{0}-".format(school)):
@@ -1438,9 +1439,9 @@ class ImportUser(User):
                             entry_count=self.entry_count,
                             import_user=self,
                         )
-
+        t2 = time.time()
         await self.check_schools(lo)
-
+        t3 = time.time()
         if UNIQUENESS not in skip_tests:
             if not self._all_usernames:
                 # fetch usernames of all users only once per import job
@@ -1462,6 +1463,14 @@ class ImportUser(User):
                     if not attr["uid"][0].endswith("$")
                 )
             self._check_username_uniqueness()
+        t4 = time.time()
+        self.logger.debug(
+            "Timings: t1=%.3f t2=%.3f t3=%.3f t4=%.3f",
+            t1 - t0,
+            t2 - t1,
+            t3 - t2,
+            t4 - t3,
+        )
 
     def _check_username_uniqueness(self):  # type: () -> None
         """
