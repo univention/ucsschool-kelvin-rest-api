@@ -168,13 +168,11 @@ def compare_ldap_json_obj(dn, json_resp, url_fragment):  # noqa: C901
         elif attr == "birthday" and "univentionBirthday" in ldap_obj:
             assert value == ldap_obj["univentionBirthday"][0].decode("utf-8")
         elif attr == "expiration_date" and "shadowExpire" in ldap_obj:
-            if json_resp["disabled"] is True:
-                check_value = "1"
-            elif value:
+            if value:
                 dt = datetime.datetime.strptime(value, "%Y-%m-%d").date()
                 check_value = userexpiry_to_shadowExpire(dt)
             else:
-                check_value = "0"
+                check_value = "1" if json_resp["disabled"] is True else "0"
             assert check_value == ldap_obj["shadowExpire"][0].decode("utf-8")
         elif attr == "firstname" and "givenName" in ldap_obj:
             assert value == ldap_obj["givenName"][0].decode("utf-8")
