@@ -148,12 +148,8 @@ class SchoolCreateModelFactory(factory.Factory):
     display_name = factory.LazyAttribute(lambda o: f"displ name {o.name}")
     educational_servers = factory.LazyAttribute(lambda o: [f"edu{o.name[:10]}"])
     administrative_servers = factory.LazyAttribute(lambda o: [f"adm{o.name[:10]}"])
-    class_share_file_server = factory.LazyAttribute(
-        lambda o: f"{random.choice(('adm', 'edu'))}{o.name[:10]}"
-    )
-    home_share_file_server = factory.LazyAttribute(
-        lambda o: f"{random.choice(('adm', 'edu'))}{o.name[:10]}"
-    )
+    class_share_file_server = factory.LazyAttribute(lambda o: o.educational_servers[0])
+    home_share_file_server = factory.LazyAttribute(lambda o: o.educational_servers[0])
 
 
 class SchoolClassFactory(factory.Factory):
