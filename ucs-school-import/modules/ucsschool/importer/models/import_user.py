@@ -31,7 +31,7 @@
 """
 Representation of a user read from a file.
 """
-
+import asyncio
 import datetime
 import re
 import string
@@ -124,12 +124,14 @@ async def _validate_workgroups(workgroups: Iterable[WorkGroup], lo: UDM) -> None
 
     :raises WorkgroupDoesNotExistError: if the work group does not exist.
     """
-    for workgroup in workgroups:
-        if not await workgroup.exists(lo):
+
+    async def _work_group_exists_or_raise(wg, lo):
+        if not await wg.exists(lo):
             raise WorkgroupDoesNotExistError(
-                f"Work group {workgroup.name!r} of school {workgroup.school!r} does not exist, please "
-                f"create it first."
+                f"Work group {wg.name!r} of school {wg.school!r} does not exist, please create it first."
             )
+
+    await asyncio.gather(*(_work_group_exists_or_raise(workgroup, lo) for workgroup in workgroups))
 
 
 class ImportUser(User):

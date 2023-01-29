@@ -28,7 +28,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
-
+import asyncio
 import copy
 import os.path
 from collections.abc import Mapping
@@ -627,10 +627,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     async def groups_used(self, lo: UDM) -> List[str]:
         group_dns = await self.get_specific_groups(lo)
-
-        for group_dn in group_dns:
-            await self.create_group_if_missing(group_dn, lo)
-
+        await asyncio.gather(*(self.create_group_if_missing(group_dn, lo) for group_dn in group_dns))
         return group_dns
 
     @classmethod
