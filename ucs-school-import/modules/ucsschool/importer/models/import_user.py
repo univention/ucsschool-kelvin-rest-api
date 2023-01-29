@@ -125,13 +125,10 @@ async def _validate_workgroups(workgroups: Iterable[WorkGroup], lo: UDM) -> None
     :raises WorkgroupDoesNotExistError: if the work group does not exist.
     """
     for workgroup in workgroups:
-        if not workgroup.name.startswith("%s-" % workgroup.school):
-            workgroup.name = "%s-%s" % (workgroup.school, workgroup.name)
-        wg: WorkGroup = WorkGroup.cache(workgroup.name, workgroup.school)
-        if not await wg.exists(lo):
+        if not await workgroup.exists(lo):
             raise WorkgroupDoesNotExistError(
-                "Work group '%s' of school '%s' does not exist, please create it first"
-                % (wg.name, wg.school)
+                f"Work group {workgroup.name!r} of school {workgroup.school!r} does not exist, please "
+                f"create it first."
             )
 
 

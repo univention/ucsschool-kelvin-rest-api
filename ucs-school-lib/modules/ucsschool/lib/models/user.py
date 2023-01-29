@@ -687,16 +687,20 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     def get_school_class_objs(self) -> List[SchoolClass]:
         ret = []
-        for school, classes in iteritems(self.school_classes):
-            for school_class in classes:
-                ret.append(SchoolClass.cache(school_class, school))
+        for school, names in self.school_classes.items():
+            for name in names:
+                if not name.startswith(f"{school}-"):
+                    name = f"{school}-{name}"
+                ret.append(SchoolClass.cache(name, school))
         return ret
 
     def get_workgroup_objs(self) -> List[WorkGroup]:
         ret = []
-        for school, workgroups in iteritems(self.workgroups):
-            for workgroup in workgroups:
-                ret.append(WorkGroup.cache(workgroup, school))
+        for school, names in self.workgroups.items():
+            for name in names:
+                if not name.startswith(f"{school}-"):
+                    name = f"{school}-{name}"
+                ret.append(WorkGroup.cache(name, school))
         return ret
 
     @classmethod
