@@ -25,7 +25,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import collections
+from collections.abc import Sequence
 from unittest.mock import patch
 
 import pytest
@@ -91,7 +91,7 @@ def test_admin_group_members():
     uldap = ucsschool.kelvin.ldap.get_uldap_conf()
     members = ucsschool.kelvin.ldap.admin_group_members()
     administrator_dn = f"uid={username},cn=users,{uldap.ldap_base}"
-    assert isinstance(members, collections.abc.Sequence)
+    assert isinstance(members, Sequence)
     assert administrator_dn in members
 
 

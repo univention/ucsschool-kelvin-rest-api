@@ -35,10 +35,10 @@ Model/HTTP-API Serializers
 
 from __future__ import unicode_literals
 
-import collections
 import datetime
 import logging
 import os
+from collections.abc import Iterable
 
 import lazy_object_proxy
 from django.conf import settings
@@ -236,7 +236,7 @@ class TextArtifactSerializer(serializers.HyperlinkedModelSerializer):
     def to_representation(self, instance):
         # when reading an item, read logfile from disk, when listing all LogFiles don't
         res = super(TextArtifactSerializer, self).to_representation(instance)
-        if not isinstance(self.instance, collections.Iterable):
+        if not isinstance(self.instance, Iterable):
             res["text"] = instance.get_text()
         return res
 

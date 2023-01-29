@@ -31,8 +31,8 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
 from urllib.parse import ParseResult, quote, unquote, urlparse
 
+import orjson
 import psutil
-import ujson
 from fastapi import HTTPException, Request, status
 from pydantic import BaseModel, HttpUrl, validator
 
@@ -101,7 +101,7 @@ class LibModelHelperMixin(BaseModel):
     class Config:
         lib_class: Type[UCSSchoolModel]
         config_id: str = "LibModelHelperMixin"
-        json_loads = ujson.loads
+        json_loads = orjson.loads
 
     @staticmethod
     def scheme_and_quote(url: str) -> str:

@@ -92,10 +92,10 @@ def LDAP_Connection(*connection_types):
         connection_types = (USER_READ,)
 
     def inner_wrapper(func):
-        argspec = inspect.getargspec(func)
+        argspec = inspect.getfullargspec(func)
         argnames = set(argspec.args) | set(connection_types)
-        add_search_base = "search_base" in argspec.args or argspec.keywords is not None
-        add_position = "ldap_position" in argspec.args or argspec.keywords is not None
+        add_search_base = "search_base" in argspec.args or argspec.varkw is not None
+        add_position = "ldap_position" in argspec.args or argspec.varkw is not None
 
         def wrapper_func(*args, **kwargs):
             # set LDAP keyword arguments

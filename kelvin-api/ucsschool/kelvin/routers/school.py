@@ -86,7 +86,6 @@ class SchoolCreateModel(LibModelHelperMixin):
 
 
 class SchoolModel(SchoolCreateModel, APIAttributesMixin):
-
     _dn2name: Dict[str, str] = {}
 
     class Config(SchoolCreateModel.Config):

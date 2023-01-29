@@ -462,7 +462,6 @@ def list_objs(
     def get_and_print_without_school(
         lo: LoType, model_cls: Type[UCSSchoolModel], base: str = "", filter_str: str = ""
     ) -> None:
-
         filter_str = udm_filter_from_school_filter(filter_str)
         model_cls.init_udm_module(lo)
         try:

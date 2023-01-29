@@ -36,7 +36,7 @@ from asgi_correlation_id.context import correlation_id
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import HTMLResponse, JSONResponse, UJSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, ORJSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi_utils.timing import add_timing_middleware
@@ -77,7 +77,7 @@ app = FastAPI(
     docs_url=f"{URL_API_PREFIX}/docs",
     redoc_url=f"{URL_API_PREFIX}/redoc",
     openapi_url=f"{URL_API_PREFIX}/openapi.json",
-    default_response_class=UJSONResponse,
+    default_response_class=ORJSONResponse,
 )
 app.add_middleware(CorrelationIdMiddleware)
 logger = get_logger()
@@ -116,7 +116,7 @@ def setup_logging() -> None:
 
 
 @app.exception_handler(UdmError)
-async def udm_exception_handler(request: Request, exc: UdmError) -> JSONResponse:
+async def udm_exception_handler(request: Request, exc: UdmError) -> ORJSONResponse:
     """Format unhandled udm exceptions and return in a standard JSON format"""
 
     error_type = f"UdmError:{exc.__class__.__name__}"
@@ -135,7 +135,7 @@ async def udm_exception_handler(request: Request, exc: UdmError) -> JSONResponse
 
     logger.error(f"Encountered exception {exc} responding with {errors}")
 
-    return JSONResponse(
+    return ORJSONResponse(
         content=jsonable_encoder({"detail": errors}),
         status_code=status_code,
         headers={
@@ -176,12 +176,12 @@ def configure_import():
 
 @app.exception_handler(NoObject)
 async def no_object_exception_handler(request: Request, exc: NoObject):
-    return UJSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"message": str(exc)})
+    return ORJSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"message": str(exc)})
 
 
 @app.exception_handler(SchooLibValidationError)
 async def school_lib_validation_exception_handler(request: Request, exc: SchooLibValidationError):
-    return UJSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"message": str(exc)})
+    return ORJSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"message": str(exc)})
 
 
 @app.post(URL_TOKEN_BASE, response_model=Token)

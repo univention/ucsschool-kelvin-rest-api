@@ -49,7 +49,6 @@ try:
     from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
     if TYPE_CHECKING:
-
         import ucsschool
         from univention.admin.handlers import simpleLdap as UdmObject
         from univention.admin.uldap import access as LoType

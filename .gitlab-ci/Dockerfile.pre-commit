@@ -1,4 +1,4 @@
-FROM docker-registry.knut.univention.de/python:3.8-slim
+FROM docker-registry.knut.univention.de/python:3.11-slim
 
 RUN apt-get -qq update \
 	&& apt-get install -q --assume-yes --no-install-recommends git curl \

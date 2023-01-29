@@ -1,4 +1,4 @@
-busybox-initscripts
+busybox-openrc
 libstdc++
 openjdk11-jre-headless
 make
@@ -12,6 +12,7 @@ py3-docutils
 py3-jwt
 py3-ldap3
 py3-msgpack
+py3-orjson
 py3-packaging
 py3-pip
 py3-psutil

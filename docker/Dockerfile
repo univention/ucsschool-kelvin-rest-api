@@ -1,4 +1,4 @@
-# Copyright 2020-2021 Univention GmbH
+# Copyright 2020-2023 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -25,8 +25,8 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-FROM alpine:3.12
-
+# TODO: set to specific alpine version (>=3.18?) that includes Python 3.11 or migarte to Debian image
+FROM alpine:edge
 
 VOLUME /var/log
 
@@ -68,9 +68,10 @@ RUN apk add --no-cache --virtual mybuilddeps $(cat /tmp/alpine_apk_list.build) &
     sed -i 's/VSERVER/DOCKER/Ig' /lib/rc/sh/init.sh && \
     mkdir -pv /kelvin/openapi-generator/build /kelvin/openapi-generator/jar && \
     mv /tmp/openapi-generator-cli-*.jar /kelvin/openapi-generator/jar && \
+    # work around PEP 668 - Marking Python base environments as "externally managed" \
+    # TODO: we should use a virtualenv
+    rm -fv /usr/lib/python*/EXTERNALLY-MANAGED && \
 	python3 -m pip install --no-cache-dir --compile --upgrade pip wheel && \
-	# build ujson from source https://github.com/esnme/ultrajson/issues/326
-	python3 -m pip install --no-cache-dir --compile git+https://github.com/esnme/ultrajson.git@2.0.3 && \
 	# Install already, since it would fetch old versions from test.pypi.org in a later step.
 	python3 -m pip install --no-cache-dir --compile aiohttp certifi && \
 	# python-debian for UCR

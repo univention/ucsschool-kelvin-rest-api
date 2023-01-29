@@ -645,7 +645,6 @@ def add_to_import_config(add_to_config):  # noqa: C901
 @pytest.fixture(scope="session")
 def add_to_config(restart_kelvin_api_server_session):  # noqa: C901
     def _func(config_type, **kwargs) -> None:
-
         target_configuration = {"user_import": IMPORT_CONFIG, "kelvin": KELVIN_CONFIG}[config_type]
 
         if not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists():

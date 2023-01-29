@@ -29,7 +29,6 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import collections
 import copy
 import grp
 import logging
@@ -38,6 +37,8 @@ import pwd
 import string
 import subprocess
 import sys
+from collections import OrderedDict
+from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import lru_cache
 from logging.handlers import TimedRotatingFileHandler
@@ -165,7 +166,7 @@ def mkdir_p(dir_name: str, user: Union[str, int], group: Union[str, int], mode: 
 def _remove_password_from_log_record(record: logging.LogRecord) -> logging.LogRecord:
     def replace_password(obj, attr):
         ori = getattr(obj, attr)
-        if isinstance(ori, collections.abc.Mapping) and isinstance(ori.get("password"), string_types):
+        if isinstance(ori, Mapping) and isinstance(ori.get("password"), string_types):
             # don't change original record arguments as it would change the objects being logged
             new_dict = copy.deepcopy(ori)
             new_dict["password"] = "*" * 8
@@ -177,7 +178,7 @@ def _remove_password_from_log_record(record: logging.LogRecord) -> logging.LogRe
         for index, arg in enumerate(record.args):
             # cannot call replace_password() to replace single arg, because a tuple is not mutable,
             # -> have to replace all of record.args
-            if isinstance(arg, collections.Mapping) and isinstance(arg.get("password"), string_types):
+            if isinstance(arg, Mapping) and isinstance(arg.get("password"), string_types):
                 # don't change original record arguments as it would change the objects being logged
                 args = copy.deepcopy(record.args)
                 args[index]["password"] = "*" * 8
@@ -543,9 +544,9 @@ def _write_logging_config(path: str) -> None:
         ruamel.yaml.dump(
             {
                 "date": str(LOG_DATETIME_FORMAT),
-                "cmdline": collections.OrderedDict(CMDLINE_LOG_FORMATS),
-                "colors": collections.OrderedDict(LOG_COLORS),
-                "file": collections.OrderedDict(FILE_LOG_FORMATS),
+                "cmdline": OrderedDict(CMDLINE_LOG_FORMATS),
+                "colors": OrderedDict(LOG_COLORS),
+                "file": OrderedDict(FILE_LOG_FORMATS),
             },
             fp,
             ruamel.yaml.RoundTripDumper,

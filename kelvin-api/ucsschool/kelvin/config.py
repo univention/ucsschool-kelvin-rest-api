@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import lazy_object_proxy
-import ujson
+import orjson
 from pydantic import BaseSettings
 
 from ..importer.configuration import ReadOnlyDict
@@ -27,7 +27,7 @@ def json_config_settings_source(path: Path):
         """
         encoding = settings.__config__.env_file_encoding
         try:
-            result = ujson.loads(path.read_text(encoding))
+            result = orjson.loads(path.read_text(encoding))
         except FileNotFoundError:
             # TODO: We should log this error,
             #  but can we expect logging to be set up during loading of config?
