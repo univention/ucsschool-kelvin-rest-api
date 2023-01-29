@@ -599,7 +599,8 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     async def primary_group_dn(self, lo: UDM) -> str:
         dn = self.get_group_dn("Domain Users %s" % self.school, self.school)
-        return (await self.get_or_create_group_udm_object(dn, lo)).dn
+        await self.create_group_if_missing(dn, lo)
+        return dn
 
     def get_domain_users_groups(self) -> List[str]:
         return [self.get_group_dn("Domain Users %s" % school, school) for school in self.schools]
@@ -628,17 +629,21 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         group_dns = await self.get_specific_groups(lo)
 
         for group_dn in group_dns:
-            await self.get_or_create_group_udm_object(group_dn, lo)
+            await self.create_group_if_missing(group_dn, lo)
 
         return group_dns
 
     @classmethod
-    async def get_or_create_group_udm_object(cls, group_dn: str, lo: UDM, fresh: bool = False) -> Group:
+    async def create_group_if_missing(cls, group_dn: str, lo: UDM) -> None:
         """
-        In the case of work groups, this function assumes that they already exists.
+        In the case of work groups, this function assumes that they already exist.
 
         :raises RuntimeError: if a work group does not exist.
         """
+        filter_s, search_base = group_dn.split(",", 1)
+        filter_s = f"({filter_s})"
+        if uldap_exists(search_filter=filter_s, search_base=search_base):
+            return
         name = cls.get_name_from_dn(group_dn)
         school = cls.get_school_from_dn(group_dn)
         if school is None and name.startswith(cls.get_search_base(school).group_prefix_admins):
@@ -654,11 +659,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             raise RuntimeError("Work group '%s' does not exist, please create it first." % group_dn)
         else:
             group = Group.cache(name, school)
-        if fresh:
-            group._udm_obj_searched = False
         await group.create(lo)
-
-        return group
 
     def is_active(self) -> bool:
         return self.disabled != "1"
