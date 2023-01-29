@@ -453,10 +453,8 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     async def get_specific_groups(self, lo: UDM) -> List[str]:
         groups = self.get_domain_users_groups()
-        for school_class in self.get_school_class_objs():
-            groups.append(await self.get_class_dn(school_class.name, school_class.school, lo))
-        for workgroup in self.get_workgroup_objs():
-            groups.append(await self.get_workgroup_dn(workgroup.name, workgroup.school, lo))
+        groups.extend(sc.dn for sc in self.get_school_class_objs())
+        groups.extend(wg.dn for wg in self.get_workgroup_objs())
         return groups
 
     async def validate(self, lo: UDM, validate_unlikely_changes: bool = False) -> None:
@@ -598,25 +596,6 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     def get_group_dn(self, group_name: str, school: str) -> str:
         return Group.cache(group_name, school).dn
-
-    async def get_class_dn(self, class_name: str, school: str, lo: UDM) -> str:
-        # Bug #32337: check if the class exists without OU prefix
-        # if it does not exist the class name with OU prefix is used
-        school_class = SchoolClass.cache(class_name, school)
-        if school_class.get_relative_name() == school_class.name:
-            if not await school_class.exists(lo):
-                class_name = "%s-%s" % (school, class_name)
-                school_class = SchoolClass.cache(class_name, school)
-        return school_class.dn
-
-    async def get_workgroup_dn(self, workgroup_name: str, school: str, lo: UDM) -> str:
-        school_workgroup = WorkGroup.cache(workgroup_name, school)
-        if school_workgroup.get_relative_name() == school_workgroup.name:
-            wg = WorkGroup.cache(workgroup_name, school)
-            if not await wg.exists(lo):
-                workgroup_name = "%s-%s" % (school, workgroup_name)
-                school_workgroup = WorkGroup.cache(workgroup_name, school)
-        return school_workgroup.dn
 
     async def primary_group_dn(self, lo: UDM) -> str:
         dn = self.get_group_dn("Domain Users %s" % self.school, self.school)
