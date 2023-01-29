@@ -47,7 +47,6 @@ from six import iteritems, string_types
 from ucsschool.lib.models.attributes import RecordUID, SourceUID, ValidationError
 from ucsschool.lib.models.base import NoObject, UDMPropertiesError, WrongObjectType
 from ucsschool.lib.models.group import WorkGroup
-from ucsschool.lib.models.school import School
 from ucsschool.lib.models.user import (
     ConcreteUserClass,
     Staff,
@@ -1682,18 +1681,6 @@ class ImportUser(User):
             return ImportStudent
         else:
             return None
-
-    def get_school_class_objs(self):  # type: () -> List[School]
-        if isinstance(self.school_classes, string_types):
-            # school_classes was set from input data
-            self.make_classes()
-        return super(ImportUser, self).get_school_class_objs()
-
-    def get_workgroup_objs(self):  # type: () -> List[School]
-        if isinstance(self.workgroups, string_types):
-            # workgroups was set from input data
-            self.make_workgroups()
-        return super(ImportUser, self).get_workgroup_objs()
 
     def _prevent_mapped_attributes_in_udm_properties(self):  # type: () -> None
         """
