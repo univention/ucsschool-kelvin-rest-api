@@ -89,3 +89,19 @@ documentation files were changed. To run the job, you need to start it manually.
 
 The commit in `docs.univention.de` will also trigger a pipeline, which will do the actual release.
 The pipeline also needs to be triggered manually.
+
+
+## Install in a virtualenv
+
+```shell
+python3 -m venv venv
+. venv/bin/activate
+pip install -U pip wheel
+pip install -i https://test.pypi.org/simple/ univention-config-registry
+pip install -i https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple uldap3
+pip install -e univention-lib-slim/
+pip install -e univention-directory-manager-modules-slim/
+pip install -e ucs-school-lib/modules/
+pip install -e ucs-school-import/modules/
+pip install -e kelvin-api/ -r kelvin-api/requirements.txt -r kelvin-api/requirements_dev.txt -r kelvin-api/requirements_test.txt
+```
