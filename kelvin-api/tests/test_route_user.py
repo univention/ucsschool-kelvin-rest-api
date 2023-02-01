@@ -340,10 +340,10 @@ async def test_search_filter(  # noqa: C901
     else:
         create_kwargs = {}
 
+    if filter_param == "disabled" and create_kwargs["disabled"]:
+        # search does not work for disabled users with an expiry date, bug 55633
+        create_kwargs["expiration_date"] = None
     user: ImportUser = await new_import_user(ou_name, role, **create_kwargs)
-    if filter_param == "disabled":
-        # No idea why this is needed, but w/o it >50% of the "disabled" tests fail.
-        await asyncio.sleep(10)
     assert ou_name == user.school
     assert user.role_sting == role  # TODO: add 'r' when #47210 is fixed
     if filter_param == "school":
