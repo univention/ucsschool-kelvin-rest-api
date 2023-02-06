@@ -48,6 +48,7 @@ from ucsschool.lib.roles import (
 from ..import_config import init_ucs_school_import_framework
 from ..opa import OPAClient
 from ..token_auth import get_token
+from ..urls import cached_url_for
 
 router = APIRouter()
 _roles_to_class = {}
@@ -106,7 +107,7 @@ class SchoolUserRole(str, Enum):
             return create_ucsschool_role_string(role_school_admin, school)
 
     def to_url(self, request: Request) -> HttpUrl:
-        url = request.url_for("get", role_name=self.value)
+        url = cached_url_for(request, "get", role_name=self.value)
         up: ParseResult = urlparse(url)
         replaced = up._replace(scheme="https")
         return HttpUrl(replaced.geturl(), scheme="https", host=up.netloc)

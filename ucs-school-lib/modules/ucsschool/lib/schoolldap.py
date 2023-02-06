@@ -30,6 +30,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import re
+from functools import lru_cache
 
 try:
     from typing import Dict, Pattern, Sequence
@@ -125,7 +126,7 @@ class SchoolSearchBase(object):
         """
         school_dn = cls.getOUDN(dn)
         if school_dn:
-            return explode_dn(school_dn, True)[0]
+            return name_from_dn(school_dn)
 
     @classmethod
     def getOUDN(cls, dn: str) -> str:
@@ -494,3 +495,9 @@ class SchoolSearchBase(object):
                 flags=re.IGNORECASE,
             )
         return cls._regex_cache["school_class_share_pos"]
+
+
+@lru_cache(maxsize=10240)
+def name_from_dn(dn: str) -> str:
+    """Return first part of DN as name."""
+    return explode_dn(dn, True)[0]

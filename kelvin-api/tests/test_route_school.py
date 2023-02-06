@@ -29,13 +29,13 @@ from typing import Dict, Iterable, Set, Tuple
 
 import pytest
 from fastapi.testclient import TestClient
-from ldap.dn import explode_dn
 
 import ucsschool.kelvin.constants
 from ucsschool.kelvin.ldap import uldap_admin_read_local
 from ucsschool.kelvin.main import app
 from ucsschool.kelvin.routers.school import SchoolCreateModel, SchoolModel
 from ucsschool.lib.models.school import School
+from ucsschool.lib.schoolldap import name_from_dn
 from udm_rest_client import UDM
 
 pytestmark = pytest.mark.skipif(
@@ -52,12 +52,12 @@ async def compare_lib_api_obj(lib_obj: School, api_obj: SchoolModel):
             assert lib_value == "container/ou"
         elif attr in ("class_share_file_server", "home_share_file_server"):
             if lib_value:
-                hostname = explode_dn(lib_value, True)[0]
+                hostname = name_from_dn(lib_value)
                 assert hostname == getattr(api_obj, attr)
             else:
                 assert getattr(api_obj, attr) is None
         elif attr in ("administrative_servers", "educational_servers"):
-            assert {explode_dn(lv, True)[0] for lv in lib_value} == set(getattr(api_obj, attr))
+            assert {name_from_dn(lv) for lv in lib_value} == set(getattr(api_obj, attr))
         elif attr in ("dc_name", "dc_name_administrative"):
             continue
         elif attr == "ucsschool_roles":

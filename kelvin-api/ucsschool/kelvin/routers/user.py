@@ -72,7 +72,7 @@ from ..import_config import get_import_config, init_ucs_school_import_framework
 from ..ldap import get_dn_of_user
 from ..opa import OPAClient, import_user_to_opa
 from ..token_auth import get_token
-from ..urls import url_to_name
+from ..urls import cached_url_for, url_to_name
 from .base import (
     APIAttributesMixin,
     BasePatchModel,
@@ -330,10 +330,10 @@ class UserModel(UserBaseModel, APIAttributesMixin):
     async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
         kwargs["schools"] = sorted(
-            cls.scheme_and_quote(request.url_for("school_get", school_name=school))
+            cls.scheme_and_quote(cached_url_for(request, "school_get", school_name=school))
             for school in obj.schools
         )
-        kwargs["url"] = cls.scheme_and_quote(request.url_for("get", username=kwargs["name"]))
+        kwargs["url"] = cls.scheme_and_quote(cached_url_for(request, "get", username=kwargs["name"]))
         udm_obj = await obj.get_udm_object(udm)
         # filter out all non school role strings
         roles = sorted(

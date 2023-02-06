@@ -92,14 +92,13 @@ def parentDn(dn, base=""):
     return ldap.dn.dn2str(dn[1:])
 
 
-def explodeDn(dn, notypes=0):
-    # type: (str, int) -> List[str]
+def explodeDn(dn: str, notypes: bool = False) -> List[str]:
     """
     Break up a DN into its component parts.
 
     :param str dn: The distinguished name.
-    :param int notypes: Return only the component's attribute values if True. Also the attribute types
-        if False.
+    :param bool notypes: Return only the component's attribute values if True. Include the attribute
+        types if False.
     :return: A list of relative distinguished names.
     :rtype: list[str]
     """

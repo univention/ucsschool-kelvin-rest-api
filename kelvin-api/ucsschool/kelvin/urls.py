@@ -25,25 +25,35 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from typing import Union
+from typing import Any, Union
 
+from cachetools import LRUCache, cached
+from cachetools.keys import hashkey
 from fastapi import Request
-from ldap.dn import escape_dn_chars, explode_dn  # TODO: use ldap3
 from pydantic import HttpUrl
 from starlette.datastructures import URL
 
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.utils import env_or_ucr
-from udm_rest_client import UDM
 
-from .ldap import udm_kwargs
-
-
-def name_from_dn(dn):
-    """Return first part of DN as name."""
-    return explode_dn(dn, 1)[0]
+from .ldap import get_dn_of_user
 
 
+@cached(
+    cache=LRUCache(maxsize=10240),
+    key=lambda request, name, **path_params: hashkey(name, tuple(sorted(path_params.items()))),
+)
+def cached_url_for(request: Request, name: str, **path_params: Any) -> str:
+    """Cached drop-in replacement for `request.url_for()`."""
+    # Using `cachetools`, because `lru_cache` does not support dropping a function argument. And we
+    # don't want the `request` object to be part of the cache key.
+    return request.url_for(name, **path_params)
+
+
+@cached(
+    cache=LRUCache(maxsize=10240),
+    key=lambda request, obj_type, url: hashkey(obj_type, url),
+)
 def url_to_name(request: Request, obj_type: str, url: Union[str, HttpUrl]) -> str:
     """
     Convert URL to object name.
@@ -61,17 +71,17 @@ def url_to_name(request: Request, obj_type: str, url: Union[str, HttpUrl]) -> st
     no_object_exception = NoObject(f"Could not find object of type {obj_type!r} with URL {url!r}.")
     if obj_type == "school":
         name = URL(url).path.rstrip("/").split("/")[-1]
-        calc_url = request.url_for("school_get", school_name=name)
+        calc_url = cached_url_for(request, "school_get", school_name=name)
         if url != calc_url:
             raise no_object_exception
     elif obj_type == "user":
         name = URL(url).path.rstrip("/").split("/")[-1]
-        calc_url = request.url_for("get", username=name)
+        calc_url = cached_url_for(request, "get", username=name)
         if url != calc_url:
             raise no_object_exception
     elif obj_type == "role":
         name = URL(url).path.rstrip("/").split("/")[-1]
-        calc_url = request.url_for("get", role_name=name)
+        calc_url = cached_url_for(request, "get", role_name=name)
         if url != calc_url:
             raise no_object_exception
     else:
@@ -79,6 +89,10 @@ def url_to_name(request: Request, obj_type: str, url: Union[str, HttpUrl]) -> st
     return name
 
 
+@cached(
+    cache=LRUCache(maxsize=10240),
+    key=lambda request, obj_type, url: hashkey(obj_type, url),
+)
 async def url_to_dn(request: Request, obj_type: str, url: str) -> str:
     """
     Guess object ID (e.g. school name or username) from last part of URL. If
@@ -88,10 +102,8 @@ async def url_to_dn(request: Request, obj_type: str, url: str) -> str:
     if obj_type == "school":
         return f"ou={name},{env_or_ucr('ldap/base')}"
     elif obj_type == "user":
-        async with UDM(**udm_kwargs()) as udm:
-            filter_s = f"(&(objectClass=ucsschoolType)(uid={escape_dn_chars(name)}))"
-            async for obj in udm.get("users/user").search(filter_s, base=env_or_ucr("ldap/base")):
-                return obj.dn
-            else:
-                raise NoObject(f"Could not find object of type {obj_type!r} with URL {url!r}.")
+        if dn := get_dn_of_user(name):
+            return dn
+        else:
+            raise NoObject(f"Could not find object of type {obj_type!r} with URL {url!r}.")
     raise NotImplementedError(f"Don't know how to create DN for obj_type {obj_type!r}.")

@@ -48,7 +48,6 @@ from typing import (  # noqa: F401
 
 import lazy_object_proxy
 import ldap
-from ldap import explode_dn
 from ldap.dn import escape_dn_chars
 from ldap.filter import escape_filter_chars
 from six import add_metaclass, iteritems
@@ -60,7 +59,7 @@ from univention.admin.uldap import LoType, PoType, getAdminConnection, getMachin
 
 from ..pyhooks.pyhooks_loader import PyHooksLoader
 from ..roles import all_roles, create_ucsschool_role_string
-from ..schoolldap import SchoolSearchBase
+from ..schoolldap import SchoolSearchBase, name_from_dn
 from .attributes import CommonName, Roles, SchoolAttribute, ValidationError
 from .hook import KelvinHook
 from .meta import UCSSchoolHelperMetaClass
@@ -861,7 +860,7 @@ class UCSSchoolHelperAbstractClass(object):
     def get_name_from_dn(cls, dn: str) -> str:
         if dn:
             try:
-                name = explode_dn(dn, 1)[0]
+                name = name_from_dn(dn)
             except ldap.DECODING_ERROR:
                 name = ""
             return name

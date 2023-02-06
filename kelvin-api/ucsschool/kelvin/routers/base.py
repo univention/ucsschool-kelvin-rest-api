@@ -42,7 +42,7 @@ from udm_rest_client import UDM, UdmObject
 from ..config import UDM_MAPPING_CONFIG
 from ..exceptions import UnknownUDMProperty
 from ..ldap import udm_kwargs
-from ..urls import url_to_name
+from ..urls import cached_url_for, url_to_name
 
 if TYPE_CHECKING:  # pragma: no cover
     from pydantic.main import Model
@@ -104,6 +104,7 @@ class LibModelHelperMixin(BaseModel):
         json_loads = orjson.loads
 
     @staticmethod
+    @lru_cache(maxsize=10240)
     def scheme_and_quote(url: str) -> str:
         """Add 's' to scheme (http) and quote characters for HTTP URL."""
         up: ParseResult = urlparse(url)
@@ -111,6 +112,7 @@ class LibModelHelperMixin(BaseModel):
         return replaced.geturl()
 
     @staticmethod
+    @lru_cache(maxsize=10240)
     def unscheme_and_unquote(url: str) -> str:
         """
         Remove 's' from https and replace '%xx' escapes with their
@@ -183,7 +185,7 @@ class LibModelHelperMixin(BaseModel):
         kwargs["dn"] = kwargs.pop("$dn$")
         if obj.supports_school():
             kwargs["school"] = cls.scheme_and_quote(
-                request.url_for("school_get", school_name=obj.school)
+                cached_url_for(request, "school_get", school_name=obj.school)
             )
         udm_obj = await obj.get_udm_object(udm)
         kwargs["udm_properties"] = cls.get_mapped_udm_properties(udm_obj)

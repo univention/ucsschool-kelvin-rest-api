@@ -30,7 +30,6 @@ from typing import Any, Dict, List, Optional
 
 from aiocache import Cache, cached
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response, status
-from ldap.dn import explode_dn
 from ldap.filter import escape_filter_chars, filter_format
 from pydantic import validator
 
@@ -39,12 +38,14 @@ from ucsschool.lib.create_ou import create_ou
 from ucsschool.lib.models.computer import AnyComputer, SchoolDCSlave
 from ucsschool.lib.models.school import School
 from ucsschool.lib.models.utils import env_or_ucr
+from ucsschool.lib.schoolldap import name_from_dn
 from udm_rest_client import UDM
 
 from ...lib.models.base import UDMPropertiesError
 from ..ldap import uldap_admin_read_local
 from ..opa import OPAClient
 from ..token_auth import get_token
+from ..urls import cached_url_for
 from .base import APIAttributesMixin, LibModelHelperMixin, udm_ctx
 
 router = APIRouter()
@@ -94,7 +95,9 @@ class SchoolModel(SchoolCreateModel, APIAttributesMixin):
     @classmethod
     async def _from_lib_model_kwargs(cls, obj: School, request: Request, udm: UDM) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
-        kwargs["url"] = cls.scheme_and_quote(request.url_for("school_get", school_name=kwargs["name"]))
+        kwargs["url"] = cls.scheme_and_quote(
+            cached_url_for(request, "school_get", school_name=kwargs["name"])
+        )
         kwargs["administrative_servers"] = [
             await cls.computer_dn2name(udm, dn) for dn in obj.administrative_servers
         ]
@@ -161,13 +164,13 @@ async def fix_school_attributes(
         changed = True
     if (
         school.class_share_file_server
-        and explode_dn(school_obj.class_share_file_server, True)[0] != school.class_share_file_server
+        and name_from_dn(school_obj.class_share_file_server) != school.class_share_file_server
     ):
         school_obj.class_share_file_server = await computer_name2dn(school.class_share_file_server, udm)
         changed = True
     if (
         school.home_share_file_server
-        and explode_dn(school_obj.home_share_file_server, True)[0] != school.home_share_file_server
+        and name_from_dn(school_obj.home_share_file_server) != school.home_share_file_server
     ):
         school_obj.home_share_file_server = await computer_name2dn(school.home_share_file_server, udm)
         changed = True

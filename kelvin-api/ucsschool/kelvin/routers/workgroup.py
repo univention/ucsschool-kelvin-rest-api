@@ -34,12 +34,13 @@ from pydantic import BaseModel, Field, HttpUrl, root_validator, validator
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
 from ucsschool.lib.models.base import UDMPropertiesError
 from ucsschool.lib.models.group import WorkGroup
+from ucsschool.lib.schoolldap import name_from_dn
 from udm_rest_client import UDM, CreateError, ModifyError
 
 from ..config import UDM_MAPPING_CONFIG
 from ..opa import OPAClient
 from ..token_auth import get_token
-from ..urls import name_from_dn, url_to_dn, url_to_name
+from ..urls import cached_url_for, url_to_dn, url_to_name
 from .base import APIAttributesMixin, UcsSchoolBaseModel, get_lib_obj, get_logger, udm_ctx
 
 router = APIRouter()
@@ -83,10 +84,11 @@ class WorkGroupCreateModel(UcsSchoolBaseModel):
     async def _from_lib_model_kwargs(cls, obj: WorkGroup, request: Request, udm: UDM) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
         kwargs["url"] = cls.scheme_and_quote(
-            request.url_for("get", workgroup_name=kwargs["name"], school=obj.school)
+            cached_url_for(request, "get", workgroup_name=kwargs["name"], school=obj.school)
         )
         kwargs["users"] = [
-            cls.scheme_and_quote(request.url_for("get", username=name_from_dn(dn))) for dn in obj.users
+            cls.scheme_and_quote(cached_url_for(request, "get", username=name_from_dn(dn)))
+            for dn in obj.users
         ]
         return kwargs
 
