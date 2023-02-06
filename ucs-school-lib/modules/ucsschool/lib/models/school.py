@@ -65,7 +65,7 @@ from .group import BasicGroup, BasicSchoolGroup, Group
 from .misc import OU, Container
 from .policy import DHCPDNSPolicy
 from .share import MarketplaceShare
-from .utils import _, flatten, ucr, uldap_admin_read_primary
+from .utils import _, flatten, ucr, uldap_admin_read_primary, uldap_exists
 
 
 class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
@@ -112,10 +112,11 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                 role_filter = "(|(univentionServerRole=backup)(univentionServerRole=master))"
                 err_msg += " or Primary Directory Node"
             ldap_filter_str = filter_format(
-                "(&(objectClass=univentionDomainController)(cn=%s){})".format(role_filter),
+                "(&(univentionObjectType=computers/computer)(objectClass=univentionDomainController)"
+                f"(cn=%s){role_filter})",
                 [self.dc_name.lower()],
             )
-            if [obj async for obj in lo.get("computers/computer").search(ldap_filter_str)]:
+            if uldap_exists(ldap_filter_str):
                 self.add_error("dc_name", err_msg)
 
     def get_district(self) -> str:
@@ -371,20 +372,17 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         if self.dc_name:
             dc_name_l = self.dc_name.lower()
             dc_udm_obj = None
-            mb_dcs = [
-                obj
-                async for obj in lo.get("computers/computer").search(
-                    filter_format(
-                        "(&"
-                        "(objectClass=univentionDomainController)"
-                        "(cn=%s)"
-                        "(|(univentionServerRole=backup)(univentionServerRole=master))"
-                        ")",
-                        [self.dc_name.lower()],
-                    )
+            if uldap_exists(
+                filter_format(
+                    "(&"
+                    "(univentionObjectType=computers/computer)"
+                    "(objectClass=univentionDomainController)"
+                    "(cn=%s)"
+                    "(|(univentionServerRole=backup)(univentionServerRole=master))"
+                    ")",
+                    [self.dc_name.lower()],
                 )
-            ]
-            if mb_dcs:
+            ):
                 return  # We do not modify the groups of master or backup servers.
                 # Should be validated, but stays here as well in case validation was deactivated
             # Sadly we need this here to access non school specific computers.
@@ -697,10 +695,11 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             if filter_str:
                 complete_filter = conjunction("&", [complete_filter, filter_str])
             schools = []
-            async for obj in lo.get(cls.Meta.udm_module).search(str(complete_filter)):
-                ou = obj.props.name
+            uldap = uldap_admin_read_primary()
+            for entry in uldap.search(str(complete_filter), attributes=["ou"]):
+                ou = entry["ou"].value
                 if ou.lower() not in cls._school_obj_cache:
-                    cls._school_obj_cache[ou.lower()] = await School.from_dn(obj.dn, None, lo)
+                    cls._school_obj_cache[ou.lower()] = await School.from_dn(entry.entry_dn, None, lo)
                 schools.append(cls._school_obj_cache[ou.lower()])
         oulist = ucr.get("ucsschool/local/oulist")
         if oulist and respect_local_oulist:

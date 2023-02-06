@@ -48,7 +48,7 @@ from .base import RoleSupportMixin, UCSSchoolHelperAbstractClass, UCSSchoolModel
 from .misc import OU, Container
 from .policy import UMCPolicy
 from .share import ClassShare, WorkGroupShare
-from .utils import _, ucr
+from .utils import _, ucr, uldap_exists
 
 
 class _MayHaveSchoolPrefix(object):
@@ -194,12 +194,8 @@ class BasicGroup(Group):
         return self.container
 
     async def container_exists(self, lo: UDM) -> bool:
-        try:
-            mod = lo.get("container/cn")
-            await mod.get(self.get_own_container())
-            return True
-        except UdmNoObject:
-            return False
+        filter_s, base = self.get_own_container().split(",", 1)
+        return uldap_exists(f"(&(univentionObjectType=container/cn)({filter_s}))", search_base=base)
 
     def build_hook_line(self, hook_time: str, func_name: str) -> Optional[str]:
         return None
