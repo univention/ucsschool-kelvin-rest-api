@@ -27,36 +27,33 @@ variables:
   APP_ID: "ucsschool-kelvin-rest-api"
   DOC_TARGET_NAME: $APP_ID
   DOC_TARGET_PATH: $DOC_TARGET_NAME
-  _PRE_COMMIT_IMAGE: "${CI_REGISTRY_IMAGE}:pre-commit-${CI_COMMIT_REF_SLUG}"
 
 
-
-build_pre_commit:
-  stage: prepare
-  rules:
-    - changes:
-      - .gitlab-ci/Dockerfile.pre-commit
-      - .bandit
-      - .black
-      - .dockerignore
-      - .flake8
-      - .isort.cfg
-      - .pre-commit-config.yaml
-  extends: .kaniko
-  variables:
-    DOCKERFILE_PATH: .gitlab-ci/Dockerfile.pre-commit
-    KANIKO_ARGS: --cache=true
-    IMAGE_TAG: "${_PRE_COMMIT_IMAGE}"
+# This would use an image with the same name as the one
+# used in build_docker_image. IMAGE_TAG can only be set once and
+# can not be reset. The image has to be built manually until then.!reference:
+# todo: fix this
+#build_pre_commit:
+#  stage: prepare
+#  rules:
+#    - changes:
+#      - .gitlab-ci/Dockerfile.pre-commit
+#      - .bandit
+#      - .black
+#      - .dockerignore
+#      - .flake8
+#      - .isort.cfg
+#      - .pre-commit-config.yaml
+#  extends: .kaniko
+#  variables:
+#    DOCKERFILE_PATH: .gitlab-ci/Dockerfile.pre-commit
+#    KANIKO_ARGS: --cache=true
 
 run_pre_commit:
   stage: lint
-  variables:
-    IMAGE_TAG: "${_PRE_COMMIT_IMAGE}"
-    PRE_COMMIT_IMAGE: "${_PRE_COMMIT_IMAGE}"
-  needs:
-    - job: build_pre_commit
-      optional: true
   extends: .pre-commit
+  variables:
+    PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit-opa-python3.8"
 
 
 prepare:
