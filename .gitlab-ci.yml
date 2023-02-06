@@ -27,6 +27,8 @@ variables:
   APP_ID: "ucsschool-kelvin-rest-api"
   DOC_TARGET_NAME: $APP_ID
   DOC_TARGET_PATH: $DOC_TARGET_NAME
+  _PRE_COMMIT_IMAGE: "${CI_REGISTRY_IMAGE}:pre-commit-${CI_COMMIT_REF_SLUG}"
+
 
 
 build_pre_commit:
@@ -44,12 +46,13 @@ build_pre_commit:
   variables:
     DOCKERFILE_PATH: .gitlab-ci/Dockerfile.pre-commit
     KANIKO_ARGS: --cache=true
+    IMAGE_TAG: "${_PRE_COMMIT_IMAGE}"
 
 run_pre_commit:
   stage: lint
   variables:
-    IMAGE_TAG: $CI_REGISTRY_IMAGE
-    PRE_COMMIT_IMAGE: $IMAGE_TAG
+    IMAGE_TAG: "${_PRE_COMMIT_IMAGE}"
+    PRE_COMMIT_IMAGE: "${_PRE_COMMIT_IMAGE}"
   needs:
     - job: build_pre_commit
       optional: true
