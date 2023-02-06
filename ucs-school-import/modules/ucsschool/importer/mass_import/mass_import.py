@@ -46,7 +46,7 @@ from ..utils.result_pyhook import ResultPyHook
 from ..utils.utils import nullcontext
 
 try:
-    from typing import TYPE_CHECKING, Optional, TypeVar
+    from typing import TYPE_CHECKING, Optional, TypeVar  # noqa: F401
 
     if TYPE_CHECKING:
         from ..utils.import_pyhook import ImportPyHook

@@ -36,7 +36,7 @@ UCS@school new import tool cmdline frontend.
 from .cmdline import CommandLine
 
 try:
-    from typing import List
+    from typing import List  # noqa: F401
 except ImportError:
     pass
 

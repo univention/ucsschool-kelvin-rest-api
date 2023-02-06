@@ -56,7 +56,7 @@ from .models import Logfile, PasswordsFile, Role, School, SummaryFile, TextArtif
 from .tasks import dry_run, import_users
 
 try:
-    from typing import Tuple
+    from typing import Tuple  # noqa: F401
 except ImportError:
     pass
 

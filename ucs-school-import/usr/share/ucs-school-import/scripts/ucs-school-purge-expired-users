@@ -48,9 +48,9 @@ from ucsschool.importer.utils.ldap_connection import get_admin_connection
 from ucsschool.lib.models.utils import UniStreamHandler, ucr
 
 try:
-    from typing import List
+    from typing import List  # noqa: F401
 
-    from ucsschool.importer.models.import_user import ImportUser
+    from ucsschool.importer.models.import_user import ImportUser  # noqa: F401
 except ImportError:
     pass
 

@@ -55,7 +55,7 @@ from ..factory import setup_factory
 from .parse_user_import_cmdline import ParseUserImportCmdline
 
 try:
-    from typing import List
+    from typing import List  # noqa: F401
 except ImportError:
     pass
 

@@ -72,9 +72,9 @@ from ..exceptions import UcsSchoolImportFatalError
 from .ldap_connection import get_readonly_connection, get_unprivileged_connection
 
 try:
-    from typing import List, Type
+    from typing import List, Type  # noqa: F401
 
-    from ..configuration import ReadOnlyDict
+    from ..configuration import ReadOnlyDict  # noqa: F401
 except ImportError:
     pass
 

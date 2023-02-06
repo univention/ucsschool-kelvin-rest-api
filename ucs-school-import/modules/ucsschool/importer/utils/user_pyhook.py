@@ -32,7 +32,7 @@
 """
 Base class for all Python based User hooks.
 """
-from typing import TYPE_CHECKING, Dict, Union
+from typing import TYPE_CHECKING, Dict, Union  # noqa: F401
 
 if TYPE_CHECKING:
     from ucsschool.importer.models.import_user import ImportUser

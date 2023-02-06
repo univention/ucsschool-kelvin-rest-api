@@ -33,7 +33,7 @@ from UCSSchoolHelperAbstractClass.
 """
 
 import logging
-from typing import Dict, Type, TypeVar, Union
+from typing import Dict, Type, TypeVar, Union  # noqa: F401
 
 from udm_rest_client import UDM
 from univention.admin.uldap import LoType, getAdminConnection

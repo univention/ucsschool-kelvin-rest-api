@@ -52,9 +52,9 @@ from ucsschool.lib.models.utils import get_file_handler, get_stream_handler
 from univention.config_registry import ConfigRegistry
 
 try:
-    from typing import Optional
+    from typing import Optional  # noqa: F401
 
-    from univention.admin.uldap import access as LoType, position as PoType
+    from univention.admin.uldap import access as LoType, position as PoType  # noqa: F401
 except ImportError:
     pass
 

@@ -38,7 +38,7 @@ from argparse import ArgumentParser
 from six import string_types
 
 try:
-    from typing import Any, Dict
+    from typing import Any, Dict  # noqa: F401
 except ImportError:
     pass
 

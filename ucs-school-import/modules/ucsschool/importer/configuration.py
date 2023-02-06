@@ -46,7 +46,7 @@ from .utils.configuration_checks import run_configuration_checks
 from .utils.import_pyhook import run_import_pyhooks
 
 try:
-    from typing import Any, Dict, List, Optional, Type
+    from typing import Any, Dict, List, Optional, Type  # noqa: F401
 except ImportError:
     pass
 

@@ -26,9 +26,9 @@
 # <http://www.gnu.org/licenses/>.
 
 try:
-    from typing import Any, List, Tuple
+    from typing import Any, List, Tuple  # noqa: F401
 
-    from ucsschool.importer.models.import_user import ImportUser
+    from ucsschool.importer.models.import_user import ImportUser  # noqa: F401
 except ImportError:
     pass
 from ucsschool.importer.utils.user_pyhook import UserPyHook

@@ -62,10 +62,10 @@ from ucsschool.importer.utils.config_pyhook import ConfigPyHook
 from ucsschool.lib.roles import supported_roles
 
 try:
-    from typing import TYPE_CHECKING, Any, Dict, List
+    from typing import TYPE_CHECKING, Any, Dict, List  # noqa: F401
 
     if TYPE_CHECKING:
-        import ucsschool.importer.configuration.ReadOnlyDict
+        import ucsschool.importer.configuration.ReadOnlyDict  # noqa: F401
 except ImportError:
     pass
 

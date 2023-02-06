@@ -38,7 +38,7 @@ import logging
 from ucsschool.lib.models.utils import UniFileHandler, UniStreamHandler, get_file_handler
 
 try:
-    from typing import Optional
+    from typing import Optional  # noqa: F401
 except ImportError:
     pass
 

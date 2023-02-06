@@ -43,9 +43,9 @@ from ..exceptions import InvalidSchools, UserValidationError
 from .user_import import UserImport
 
 try:
-    from typing import Optional
+    from typing import Optional  # noqa: F401
 
-    from ..models.import_user import ImportUser
+    from ..models.import_user import ImportUser  # noqa: F401
 except ImportError:
     pass
 

@@ -35,15 +35,15 @@ Default implementation of the Abstract Factory.
 import logging
 
 from ucsschool.lib.models.utils import ucr
-from univention.config_registry import ConfigRegistry
 
 from .exceptions import InitialisationError
 from .factory import load_class
 
 try:
-    from typing import Any, Iterable, Optional
+    from typing import Any, Iterable, Optional  # noqa: F401
 
-    import ucsschool
+    import ucsschool  # noqa: F401
+    from univention.config_registry import ConfigRegistry  # noqa: F401
 except ImportError:
     pass
 

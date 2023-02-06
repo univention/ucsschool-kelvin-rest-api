@@ -31,7 +31,7 @@
 import inspect
 from copy import deepcopy
 from functools import lru_cache
-from typing import (
+from typing import (  # noqa: F401
     Any,
     Callable,
     Dict,

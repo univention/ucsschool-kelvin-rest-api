@@ -63,10 +63,10 @@ from ..utils.ldap_connection import get_admin_connection, get_readonly_connectio
 from ..utils.post_read_pyhook import PostReadPyHook
 
 try:
-    from typing import Any, Dict, List, Optional, Tuple, Type, Union
+    from typing import Any, Dict, List, Optional, Tuple, Type, Union  # noqa: F401
 
-    from ..configuration import ReadOnlyDict
-    from ..models.import_user import ImportUser
+    from ..configuration import ReadOnlyDict  # noqa: F401
+    from ..models.import_user import ImportUser  # noqa: F401
 except ImportError:
     pass
 

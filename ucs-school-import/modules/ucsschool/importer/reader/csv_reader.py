@@ -50,10 +50,10 @@ from ..exceptions import ConfigurationError, InitialisationError, NoRole, Unknow
 from .base_reader import BaseReader
 
 try:
-    from csv import Dialect
-    from typing import Any, BinaryIO, Callable, Dict, Iterable, Iterator, Optional, Union
+    from csv import Dialect  # noqa: F401
+    from typing import Any, BinaryIO, Callable, Dict, Iterable, Iterator, Optional, Union  # noqa: F401
 
-    from ..models.import_user import ImportUser
+    from ..models.import_user import ImportUser  # noqa: F401
 except ImportError:
     pass
 

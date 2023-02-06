@@ -35,9 +35,9 @@ Base class for configuration hooks.
 from .import_pyhook import ImportPyHook
 
 try:
-    from typing import Any, Dict, List
+    from typing import Any, Dict, List  # noqa: F401
 
-    from ..configuration import ReadOnlyDict
+    from ..configuration import ReadOnlyDict  # noqa: F401
 except ImportError:
     pass
 
