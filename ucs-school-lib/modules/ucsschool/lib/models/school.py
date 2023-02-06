@@ -719,7 +719,7 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             if any(
                 ucr.get("ldap/hostdn", "").lower() == x.lower()
                 for x in await school.get_administrative_server_names(lo)
-                + school.get_educational_server_names(lo)
+                + await school.get_educational_server_names(lo)
             )
         ]
 
