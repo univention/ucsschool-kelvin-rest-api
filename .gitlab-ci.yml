@@ -29,31 +29,37 @@ variables:
   DOC_TARGET_PATH: $DOC_TARGET_NAME
 
 
-# This would use an image with the same name as the one
-# used in build_docker_image. IMAGE_TAG can only be set once and
-# can not be reset. The image has to be built manually until then.!reference:
-# todo: fix this
-#build_pre_commit:
-#  stage: prepare
-#  rules:
-#    - changes:
-#      - .gitlab-ci/Dockerfile.pre-commit
-#      - .bandit
-#      - .black
-#      - .dockerignore
-#      - .flake8
-#      - .isort.cfg
-#      - .pre-commit-config.yaml
-#  extends: .kaniko
-#  variables:
-#    DOCKERFILE_PATH: .gitlab-ci/Dockerfile.pre-commit
-#    KANIKO_ARGS: --cache=true
+build_pre_commit:
+  stage: prepare
+  rules:
+    - changes:
+      - .gitlab-ci/Dockerfile.pre-commit
+      - .bandit
+      - .black
+      - .dockerignore
+      - .flake8
+      - .isort.cfg
+      - .pre-commit-config.yaml
+  extends: .kaniko_knut
+  variables:
+    DOCKERFILE_PATH: .gitlab-ci/Dockerfile.pre-commit
+    KANIKO_ARGS: --cache=true
+    # using CI_REGISTRY_IMAGE=gitregistry... yields a permission error
+    # IMAGE_TAG can't be reset in following jobs.
+    CI_REGISTRY_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit-kelvin"
 
 run_pre_commit:
   stage: lint
   extends: .pre-commit
+  needs:
+    - job: build_pre_commit
+      optional: true
   variables:
-    PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit-opa-python3.8"
+      # The image will have the branch name when built in the branch, i.e. not latest.
+      # The logic from the .kaniko template should not be duplicated here.
+      # If the image is being worked on in a branch change the tag.
+     PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit-kelvin:latest"
+
 
 
 prepare:
@@ -164,6 +170,8 @@ docs-production:
 
 build_docker_image:
   stage: build
+  needs:
+    - job: prepare
   rules:
     - changes:
         - docker/*
@@ -176,6 +184,8 @@ build_docker_image:
   variables:
       KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/docker/build/"
       KANIKO_ARGS: --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
+      # If CI_REGISTRY_IMAGE is set like in  build_pre_commit, it has to be re-set per job
+      CI_REGISTRY_IMAGE: "gitregistry.knut.univention.de/univention/components/$APP_ID"
 
 tests:
   stage: tests
