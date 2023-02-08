@@ -1274,7 +1274,7 @@ class ImportUser(User):
         else:
             return await super(ImportUser, self).remove_without_hooks(lo)
 
-    async def validate(  # TODO: validate() is run twice - why?
+    async def validate(
         self,
         lo: UDM,
         validate_unlikely_changes: bool = False,

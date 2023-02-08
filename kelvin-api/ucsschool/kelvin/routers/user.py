@@ -846,12 +846,9 @@ async def create(
                 f"source_uid={user.source_uid!r}).",
             )
         t4 = time.time()
-        # TODO: this takes 150 ms:
-        await user.validate(udm, validate_unlikely_changes=True, check_username=True)
-        t5 = time.time()
         logger.info("Going to create %s with %r...", user, user.to_dict())
         res = await user.create(udm)  # TODO: this takes 750 ms
-        t6 = time.time()
+        t5 = time.time()
     except (CreateError, LibValidationError, UcsSchoolImportError, WorkgroupDoesNotExistError) as exc:
         error_msg = f"Failed to create {user!r}: {exc}"
         logger.exception(error_msg)
@@ -868,17 +865,16 @@ async def create(
 
     if request_user.kelvin_password_hashes:
         await set_password_hashes(user.dn, request_user.kelvin_password_hashes)
-    t7 = time.time()
+    t6 = time.time()
 
     logger.debug(
-        "Timings: t1=%.3f t2=%.3f t3=%.3f t4=%.3f t5=%.3f t6=%.3f t7=%.3f",
+        "Timings: t1=%.3f t2=%.3f t3=%.3f t4=%.3f t5=%.3f t6=%.3f",
         t1 - t0,
         t2 - t1,
         t3 - t2,
         t4 - t3,
         t5 - t4,
         t6 - t5,
-        t7 - t6,
     )
     return await UserModel.from_lib_model(user, request, udm)
 

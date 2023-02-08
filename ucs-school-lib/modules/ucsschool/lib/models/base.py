@@ -354,7 +354,6 @@ class UCSSchoolHelperAbstractClass(object):
         :param kwargs: The attributes to set.
         """
         existing_attributes = self._attributes.keys()
-        existing_attributes = self._attributes.keys()
         for key, value in kwargs.items():
             if key in existing_attributes:
                 setattr(self, key, value)

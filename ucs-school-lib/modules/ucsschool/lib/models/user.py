@@ -462,7 +462,6 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         groups.extend(wg.dn for wg in self.get_workgroup_objs())
         return groups
 
-    # TODO: validate() is run twice - why?
     async def validate(self, lo: UDM, validate_unlikely_changes: bool = False) -> None:
         t0 = time.time()
         await super(User, self).validate(lo, validate_unlikely_changes)  # TODO: this takes 85 ms
