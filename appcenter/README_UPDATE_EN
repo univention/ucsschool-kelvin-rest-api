@@ -1,8 +1,10 @@
 <h1>Changelog</h1>
 
-<h2>v1.8.5 (2023-02-21)</h2>
+<h2>v1.8.5 (2023-02-22)</h2>
 <ul>
     <li>Fix `h11._util.LocalProtocolError: Can't send data when our state is ERROR` traceback (Bug #55730).</li>
+    <li>General performance improvements, with focus on object existence, searches and user creation (Issue #56).</li>
+    <li>Upgrade to Python 3.11 (Issue #56).</li>
 </ul>
 
 <h2>v1.8.4 (2023-02-16)</h2>

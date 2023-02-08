@@ -5,9 +5,11 @@
 Changelog
 ---------
 
-v1.8.5 (2023-02-21)
+v1.8.5 (2023-02-22)
 ...................
 * Fix ``h11._util.LocalProtocolError: Can't send data when our state is ERROR`` traceback (Bug #55730).
+* General performance improvements, with focus on object existence, searches and user creation (Issue #56).
+* Upgrade to Python 3.11 (Issue #56).
 
 v1.8.4 (2023-02-16)
 ...................

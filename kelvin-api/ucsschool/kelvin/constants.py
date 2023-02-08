@@ -42,7 +42,7 @@ def _app_version() -> str:
         with (Path(__file__).parent.parent.parent / "VERSION.txt").open("r") as fp:
             return fp.read().strip()
     except IOError:
-        return "1.1.0"
+        return "1.8.5"
 
 
 APP_ID = "ucsschool-kelvin-rest-api"
