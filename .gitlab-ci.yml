@@ -40,13 +40,13 @@ build_pre_commit:
       - .flake8
       - .isort.cfg
       - .pre-commit-config.yaml
-  extends: .kaniko_knut
+  extends: .kaniko
   variables:
     DOCKERFILE_PATH: .gitlab-ci/Dockerfile.pre-commit
     KANIKO_ARGS: --cache=true
     # using CI_REGISTRY_IMAGE=gitregistry... yields a permission error
     # IMAGE_TAG can't be reset in following jobs.
-    CI_REGISTRY_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit-kelvin"
+    CI_REGISTRY_IMAGE: "gitregistry.knut.univention.de/v2/univention/components/pre-commit-kelvin"
 
 run_pre_commit:
   stage: lint
@@ -58,7 +58,7 @@ run_pre_commit:
       # The image will have the branch name when built in the branch, i.e. not latest.
       # The logic from the .kaniko template should not be duplicated here.
       # If the image is being worked on in a branch change the tag.
-     PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit-kelvin:latest"
+     PRE_COMMIT_IMAGE: "gitregistry.knut.univention.de/v2/univention/components/pre-commit-kelvin:latest"
 
 
 
