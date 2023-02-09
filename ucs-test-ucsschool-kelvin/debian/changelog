@@ -1,0 +1,5 @@
+ucs-test-ucsschool-kelvin (1.0.0) unstable; urgency=low
+
+  * Issue #56: initial version
+
+ -- Daniel Troeder <troeder@univention.de>  Tue, 07 Feb 2023 08:28:10 +0100

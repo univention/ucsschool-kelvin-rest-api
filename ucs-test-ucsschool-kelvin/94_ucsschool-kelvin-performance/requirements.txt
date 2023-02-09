@@ -1,0 +1,6 @@
+diskcache<6
+faker<17
+locust<3
+pydantic<1.11
+pyjwt
+requests

@@ -25,8 +25,14 @@ stages:
 variables:
   DOCS_DIR: "doc/docs"
   APP_ID: "ucsschool-kelvin-rest-api"
+  PACKAGE: "ucs-test-ucsschool-kelvin"
+  UCS_VERSION: "502"
+  UCS_RELEASE: "5.0"
+  SCOPE: "ucs-school-5.0"
   DOC_TARGET_NAME: $APP_ID
   DOC_TARGET_PATH: $DOC_TARGET_NAME
+  DEB_IMAGE: docker-registry.knut.univention.de/phahn/ucs-debbase:$UCS_VERSION
+  UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/ucs
 
 
 # This would use an image with the same name as the one
@@ -189,3 +195,76 @@ tests:
   script:
     - cd ${CI_PROJECT_DIR}/kelvin-api && make test
     - cd ${CI_PROJECT_DIR}/ucs-school-lib/modules/ucsschool/lib && pytest -v tests
+
+ucs_test_deb_lint:
+  stage: lint
+  rules:
+    - changes:
+      - ucs-test-ucsschool-kelvin/**/*
+  image:
+    name: $UCSLINT_IMAGE
+    entrypoint: [""]
+  script:
+    - cd ucs-test-ucsschool-kelvin && ucslint -j ucslint.xml
+  artifacts:
+    reports:
+      junit: ucs-test-ucsschool-kelvin/ucslint.xml
+
+ucs_test_deb_build_git:
+  stage: build
+  image: $DEB_IMAGE
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      changes:
+        - ucs-test-ucsschool-kelvin/**/*
+  script:
+    - apt-get update
+    - cd ucs-test-ucsschool-kelvin
+    - apt-get -q --assume-yes build-dep .
+    - dpkg-buildpackage -us -uc
+    - install -d -m 755 build
+    - mv ../*.tar.*z ../*.dsc ../*.deb ../*.buildinfo ../*.changes build/
+  artifacts:
+    paths:
+      - ucs-test-ucsschool-kelvin/build/
+
+ucs_test_deb_repo_import:
+  stage: build
+  variables:
+    GIT_STRATEGY: none
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - ucs-test-ucsschool-kelvin/debian/changelog
+  tags:
+    - omar
+  script:
+    - >
+      repo_admin.py
+      -G $CI_REPOSITORY_URL
+      -b $CI_COMMIT_BRANCH
+      -P ucs-test-ucsschool-kelvin
+      -r ${UCS_RELEASE}-0-0
+      -s $SCOPE
+      -p $PACKAGE
+
+ucs_test_deb_repo_build:
+  stage: build
+  needs:
+    - job: ucs_test_deb_repo_import
+      artifacts: false
+  variables:
+    GIT_STRATEGY: none
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - ucs-test-ucsschool-kelvin/debian/changelog
+  tags:
+    - ladda
+  script:
+    - >
+      build-package-ng
+      --no-pbuilder-update
+      -r ${UCS_RELEASE}-0-0
+      -s $SCOPE
+      -p $PACKAGE
