@@ -1,2 +1,8 @@
+0002-3: debian/ucs-test-ucsschool-kelvin.pyinstall
+0008-7: 94_ucsschool-kelvin/conftest.py
+0008-7: 94_ucsschool-kelvin-performance/locust_files/settings_locust.py
+0008-7: modules/univention/testing/ucsschool/kelvin_api.py
+0009-10: 94_ucsschool-kelvin/*
 0009-10: 94_ucsschool-kelvin-performance/*
+0010-2: 94_ucsschool-kelvin/*
 0010-2: 94_ucsschool-kelvin-performance/*

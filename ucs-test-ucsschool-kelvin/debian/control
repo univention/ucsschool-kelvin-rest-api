@@ -4,15 +4,33 @@ Priority: optional
 Maintainer: Univention GmbH <packages@univention.de>
 Build-Depends:
  debhelper-compat (= 12),
+ dh-python,
+ python3-all,
  ucslint,
 Standards-Version: 3.6.1
+
+Package: ucs-test-ucsschool-kelvin
+Architecture: all
+Breaks:
+ ucs-test-ucsschool (<<7.3.109),
+Depends:
+ python3-pytest,
+ python3-requests,
+ ucs-test-framework (>= 10),
+ ucs-test-ucsschool (>=7.3.109),
+ ${python3:Depends},
+Provides:
+ ucs-test-module
+ ${python3:Provides},
+Description: Additional UCS@school tests for ucs-test
+ This package provides correctness tests for the Kelvin REST API app.
 
 Package: ucs-test-ucsschool-kelvin-performance
 Architecture: all
 Depends:
- ucs-test-framework (>= 10),
- python3-venv (>=3.7),
  libffi-dev (>=3.2),
+ python3-venv (>=3.7),
+ ucs-test-framework (>= 10),
 Provides:
  ucs-test-module
 Description: Additional UCS@school tests for ucs-test
