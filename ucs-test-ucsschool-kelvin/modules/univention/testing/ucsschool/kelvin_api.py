@@ -49,10 +49,9 @@ import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Text, Tuple  # noqa: F401
 from unittest import TestCase
+from urllib.parse import urljoin
 
 import requests
-from six import iteritems, reraise as raise_
-from six.moves.urllib_parse import urljoin
 from urllib3.exceptions import InsecureRequestWarning
 
 import univention.testing.strings as uts
@@ -315,7 +314,7 @@ class HttpApiUserTestBase(TestCase):
                 # order (for example phone, e-mail, etc), so converting them to sets:
                 self.assertSetEqual(set(import_user.udm_properties.keys()), set(v.keys()))
                 udm_properties = empty_str2none(import_user.udm_properties)
-                for udm_k, udm_v in iteritems(udm_properties):
+                for udm_k, udm_v in udm_properties.items():
                     msg = "Value of attribute {!r} in {} is {!r} and in resource is {!r} ({!r}).".format(
                         k, source, getattr(import_user, k), v, dn
                     )
@@ -537,8 +536,7 @@ def init_ucs_school_import_framework(**config_kwargs):
     if _ucs_school_import_framework_error:
         # prevent "Changing the configuration is not allowed." error if we
         # return here after raising an InitialisationError
-        etype, exc, etraceback = sys.exc_info()
-        raise_(_ucs_school_import_framework_error, exc, etraceback)
+        raise _ucs_school_import_framework_error
 
     _config_args = {
         "dry_run": False,
@@ -562,7 +560,7 @@ def init_ucs_school_import_framework(**config_kwargs):
         logger.exception("Error initializing UCS@school import framework: %s", exc)
         etype, exc, etraceback = sys.exc_info()
         _ucs_school_import_framework_error = InitialisationError(str(exc))
-        raise_(etype, exc, etraceback)
+        raise _ucs_school_import_framework_error
     logger.info("------ UCS@school import tool configured ------")
     logger.info("Used configuration files: %s.", config.conffiles)
     logger.info("Using command line arguments: %r", _config_args)
@@ -573,7 +571,7 @@ def init_ucs_school_import_framework(**config_kwargs):
 
 def empty_str2none(udm_props):  # type: (Dict[str, Any]) -> Dict[str, Any]
     res = {}
-    for k, v in iteritems(udm_props):
+    for k, v in udm_props.items():
         if isinstance(v, dict):
             res[k] = empty_str2none(v)
         elif isinstance(v, list):

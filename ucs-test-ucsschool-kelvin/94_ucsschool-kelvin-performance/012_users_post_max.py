@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner /usr/bin/pytest-3 -l -v
 ## -*- coding: utf-8 -*-
-## desc: Test performance of POST /ucsschool/kelvin/v1/users/
+## desc: Test performance of POST /ucsschool/kelvin/v1/users/ (max)
 ## tags: [kelvin, performance]
 ## exposure: dangerous
 ## packages: []
@@ -16,7 +16,7 @@ from locust_files.settings_kelvin import KELVIN_URL_BASE
 LOCUST_ENV_VARIABLES = copy.deepcopy(ENV_LOCUST_DEFAULTS)
 LOCUST_ENV_VARIABLES["LOCUST_RUN_TIME"] = "2m"
 LOCUST_ENV_VARIABLES["LOCUST_STOP_TIMEOUT"] = "15"
-LOCUST_ENV_VARIABLES["LOCUST_SPAWN_RATE"] = "0.2"
+LOCUST_ENV_VARIABLES["LOCUST_SPAWN_RATE"] = "0.2"  # add a user every 5s
 LOCUST_ENV_VARIABLES["LOCUST_USERS"] = str(4 * 1 * 4)  # 4 parallel clients on 1 machine with 4 CPUs
 
 RESULT_FILES_NAME = "users-post"

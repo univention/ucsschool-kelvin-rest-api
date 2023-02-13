@@ -11,22 +11,16 @@ from __future__ import unicode_literals
 import logging
 import random
 from typing import Set  # noqa: F401
+from urllib.parse import urljoin
 
 import pytest
 import requests
 from ldap.filter import filter_format
-from six import string_types
 
 import univention.testing.strings as uts
 from ucsschool.lib.models.school import School as LibSchool
 from univention.testing.ucsschool.kelvin_api import RESOURCE_URLS
 from univention.udm import UDM, NoObject as UdmNoObject
-
-try:
-    from urlparse import urljoin  # py2
-except ImportError:
-    from urllib.parse import urljoin  # py3
-
 
 _cached_ous = set()  # type: Set[str]
 logger = logging.getLogger("univention.testing.ucsschool")
@@ -125,7 +119,7 @@ def test_list(auth_header):
             elif k == "udm_properties":
                 assert isinstance(obj[k], dict)
             else:
-                assert isinstance(obj[k], (string_types, type(None)))
+                assert isinstance(obj[k], (str, type(None)))
 
 
 def test_get(auth_header, lo):

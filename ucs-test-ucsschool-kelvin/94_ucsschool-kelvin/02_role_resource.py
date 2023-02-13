@@ -10,17 +10,12 @@ from __future__ import unicode_literals
 
 import logging
 from unittest import TestCase, main
+from urllib.parse import urljoin
 
 import requests
 
 from ucsschool.importer.utils.ldap_connection import get_admin_connection
 from univention.testing.ucsschool.kelvin_api import RESOURCE_URLS, HttpApiUserTestBase
-
-try:
-    from urlparse import urljoin  # py2
-except ImportError:
-    from urllib.parse import urljoin  # py3
-
 
 logger = logging.getLogger("univention.testing.ucsschool")
 

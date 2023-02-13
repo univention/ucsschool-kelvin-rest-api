@@ -12,6 +12,7 @@ import logging
 import random
 import time
 from multiprocessing import Pool
+from urllib.parse import urljoin
 
 import pytest
 import requests
@@ -25,11 +26,6 @@ from univention.testing.ucsschool.kelvin_api import (
     partial_update_remote_static,
 )
 from univention.testing.utils import wait_for_listener_replication, wait_for_s4connector_replication
-
-try:
-    from urlparse import urljoin  # py2
-except ImportError:
-    from urllib.parse import urljoin  # py3
 
 logger = logging.getLogger("univention.testing.ucsschool")
 

@@ -26,7 +26,7 @@ variables:
   DOCS_DIR: "doc/docs"
   APP_ID: "ucsschool-kelvin-rest-api"
   PACKAGE: "ucs-test-ucsschool-kelvin"
-  UCS_VERSION: "502"
+  UCS_VERSION: "503"
   UCS_RELEASE: "5.0"
   SCOPE: "ucs-school-5.0"
   DOC_TARGET_NAME: $APP_ID

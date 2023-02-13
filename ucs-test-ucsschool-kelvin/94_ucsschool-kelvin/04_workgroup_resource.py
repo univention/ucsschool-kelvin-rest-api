@@ -11,21 +11,15 @@ from __future__ import unicode_literals
 import logging
 import random
 from typing import Set, Tuple  # noqa: F401
+from urllib.parse import urljoin
 
 import requests
 from ldap.filter import filter_format
-from six import string_types
 
 from ucsschool.lib.models.group import WorkGroup as LibWorkGroup
 from ucsschool.lib.models.user import Student as LibStudent
 from univention.testing.ucsschool.kelvin_api import RESOURCE_URLS
 from univention.udm import UDM
-
-try:
-    from urlparse import urljoin  # py2
-except ImportError:
-    from urllib.parse import urljoin  # py3
-
 
 _cached_wgs = set()  # type: Set[Tuple[str,str]]
 logger = logging.getLogger("univention.testing.ucsschool")
@@ -94,7 +88,7 @@ def test_list(auth_header, lo, schoolenv):
             elif k == "create_share":
                 assert isinstance(obj[k], bool)
             else:
-                assert isinstance(obj[k], (string_types, type(None)))
+                assert isinstance(obj[k], (str, type(None)))
 
 
 def test_get(auth_header, lo, ucr_ldap_base, schoolenv):

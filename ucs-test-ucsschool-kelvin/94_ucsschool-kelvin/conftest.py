@@ -2,24 +2,19 @@ import datetime
 import json
 import logging
 import os.path
+import pprint
 import random
 import shutil
+import sys
 import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional  # noqa: F401
+from urllib.parse import urljoin
 
 import pytest
 import requests
-import six
 
 from ucsschool.lib.models.utils import exec_cmd
-from univention.testing.ucsschool.conftest import IMPORT_CONFIG_KWARGS
 from univention.testing.ucsschool.kelvin_api import HTTP_502_ERRORS, KELVIN_TOKEN_URL, RESOURCE_URLS
-
-try:
-    from urlparse import urljoin  # py2
-except ImportError:
-    from urllib.parse import urljoin  # py3
-
 
 if TYPE_CHECKING:
     from ucsschool.importer.models.import_user import ImportUser  # noqa: F401
@@ -30,10 +25,98 @@ logger = logging.getLogger("univention.testing.ucsschool")
 APP_ID = "ucsschool-kelvin-rest-api"
 IMPORT_CONFIG = {
     "active": "/var/lib/ucs-school-import/configs/user_import.json",
-    "bak": "/var/lib/ucs-school-import/configs/user_import.json.bak.{}".format(
-        datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-    ),
+    "bak": f"/var/lib/ucs-school-import/configs/user_import.json.bak"
+    f'.{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}',
+    "default": "/usr/share/ucs-school-import/configs/ucs-school-testuser-http-import.json",
 }
+MAPPED_UDM_PROPERTIES = (
+    "title",
+    "description",
+    "displayName",
+    "e-mail",
+    "employeeType",
+    "organisation",
+    "phone",
+    "uidNumber",
+    "gidNumber",
+)  # keep in sync with [ucs-repo(4.4|5.0)]/test/utils/ucsschool_id_connector.py
+# if changed: check kelvin-api/tests/test_route_user.test_search_filter_udm_properties()
+IMPORT_CONFIG_KWARGS = {
+    "configuration_checks": ["defaults", "mapped_udm_properties"],
+    "dry_run": False,
+    "logfile": "/var/log/univention/ucsschool-kelvin-rest-api/http.log",
+    "scheme": {
+        "firstname": "<lastname>",
+        "username": {"default": "<:lower>test.<firstname>[:2].<lastname>[:3]"},
+    },
+    "skip_tests": ["uniqueness"],
+    "mapped_udm_properties": MAPPED_UDM_PROPERTIES,
+    "source_uid": "TESTID",
+    "verbose": True,
+}
+_ucs_school_import_framework_initialized = False
+_ucs_school_import_framework_error = None  # type: Optional[InitialisationError]
+
+
+class InitialisationError(Exception):
+    pass
+
+
+@pytest.fixture(scope="session")
+def init_ucs_school_import_framework():
+    # ucs-test-ucsschool must not depend on ucs-school-import package
+    from ucsschool.importer.configuration import (
+        Configuration,
+        setup_configuration as _setup_configuration,
+    )
+    from ucsschool.importer.exceptions import UcsSchoolImportError
+    from ucsschool.importer.factory import setup_factory as _setup_factory
+    from ucsschool.importer.frontend.user_import_cmdline import (
+        UserImportCommandLine as _UserImportCommandLine,
+    )
+
+    def _func(**config_kwargs):
+        global _ucs_school_import_framework_initialized, _ucs_school_import_framework_error
+
+        if _ucs_school_import_framework_initialized:
+            return Configuration()
+        if _ucs_school_import_framework_error:
+            # prevent "Changing the configuration is not allowed." error if we
+            # return here after raising an InitialisationError
+            raise _ucs_school_import_framework_error
+
+        _config_args = IMPORT_CONFIG_KWARGS
+        _config_args.update(config_kwargs)
+        _ui = _UserImportCommandLine()
+        _config_files = _ui.configuration_files
+        logger = logging.getLogger("univention.testing.ucsschool")
+        try:
+            config = _setup_configuration(_config_files, **_config_args)
+            if "mapped_udm_properties" not in config.get("configuration_checks", []):
+                raise UcsSchoolImportError(
+                    'Missing "mapped_udm_properties" in configuration checks, e.g.: '
+                    '{.., "configuration_checks": ["defaults", "mapped_udm_properties"], ..}'
+                )
+            _ui.setup_logging(config["verbose"], config["logfile"])
+            _setup_factory(config["factory"])
+        except UcsSchoolImportError as exc:
+            logger.exception("Error initializing UCS@school import framework: %s", exc)
+            etype, exc, etraceback = sys.exc_info()
+            _ucs_school_import_framework_error = InitialisationError(str(exc))
+            raise _ucs_school_import_framework_error
+        logger.info("------ UCS@school import tool configured ------")
+        logger.info("Used configuration files: %s.", config.conffiles)
+        logger.info("Using command line arguments: %r", _config_args)
+        logger.info("Configuration is:\n%s", pprint.pformat(config))
+        _ucs_school_import_framework_initialized = True
+        return config
+
+    return _func
+
+
+@pytest.fixture(scope="session")
+def import_config(init_ucs_school_import_framework):
+    return init_ucs_school_import_framework()
 
 
 def get_access_token(username="Administrator", password="univention"):  # type: (str, str) -> str # nosec
@@ -50,7 +133,7 @@ def get_access_token(username="Administrator", password="univention"):  # type: 
 @pytest.fixture(scope="session")
 def auth_header():  # type: () -> Dict[str, str]
     token = get_access_token()
-    return {"Authorization": "Bearer {}".format(token)}
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture(scope="session")
@@ -132,10 +215,8 @@ def make_user_attrs(import_config, mail_domain, random_int, random_username):
                 #         -> 'schools' must contain all OUs
                 res["schools"] = schools
         assert all(
-            [
-                urljoin(RESOURCE_URLS["schools"], ou) in res.get("schools", [])
-                for ou in res.get("school_classes", {})
-            ]
+            urljoin(RESOURCE_URLS["schools"], ou) in res.get("schools", [])
+            for ou in res.get("school_classes", {})
         )
         res.update(kwargs)
         return res
@@ -145,7 +226,7 @@ def make_user_attrs(import_config, mail_domain, random_int, random_username):
 
 def empty_str2none(udm_props):  # type: (Dict[str, Any]) -> Dict[str, Any]
     res = {}
-    for k, v in six.iteritems(udm_props):
+    for k, v in udm_props.items():
         if isinstance(v, dict):
             res[k] = empty_str2none(v)
         elif isinstance(v, list):
@@ -183,10 +264,10 @@ def compare_import_user_and_resource(auth_header):
                 assert set(v) == {urljoin(RESOURCE_URLS["roles"], r) for r in import_user_roles}
             elif k == "school_classes":
                 if source == "LDAP":
-                    val = dict(
-                        (school, ["{}-{}".format(school, kls) for kls in classes])
+                    val = {
+                        school: ["{}-{}".format(school, kls) for kls in classes]
                         for school, classes in v.items()
-                    )
+                    }
                 else:
                     val = v
                 msg = (
@@ -199,7 +280,7 @@ def compare_import_user_and_resource(auth_header):
                 # order (for example phone, e-mail, etc), so converting them to sets:
                 assert set(import_user.udm_properties.keys()) == set(v.keys())
                 udm_properties = empty_str2none(import_user.udm_properties)
-                for udm_k, udm_v in six.iteritems(udm_properties):
+                for udm_k, udm_v in udm_properties.items():
                     msg = "Value of attribute {!r} in {} is {!r} and in resource is {!r} ({!r}).".format(
                         k, source, getattr(import_user, k), v, dn
                     )
@@ -297,9 +378,9 @@ def setup_import_config(add_to_import_config):
 @pytest.fixture(autouse=True, scope="session")
 def log_http_502_amount():
     log_file = "/tmp/http502.log"  # nosec
-    msg = "{} HTTP 502: {} times".format(datetime.datetime.now().isoformat(), len(HTTP_502_ERRORS))
+    msg = f"{datetime.datetime.now().isoformat()} HTTP 502: {len(HTTP_502_ERRORS)} times"
     print("{}, see {!r}.".format(msg, log_file))
     with open(log_file, "a") as fp:
-        fp.write("{}.\n".format(msg))
+        fp.write(f"{msg}.\n")
         for msg in HTTP_502_ERRORS:
-            fp.write("{}\n".format(msg))
+            fp.write(f"{msg}\n")
