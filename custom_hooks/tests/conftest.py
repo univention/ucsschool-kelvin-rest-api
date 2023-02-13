@@ -62,7 +62,7 @@ def kelvin_create_user_with_role(get_fqdn, kelvin_token, random_name):
             "school": "https://%s/ucsschool/kelvin/v1/schools/DEMOSCHOOL" % get_fqdn,
             "schools": ["https://%s/ucsschool/kelvin/v1/schools/DEMOSCHOOL" % get_fqdn],
             "record_uid": tmpname,
-            "roles": ["https://%s/ucsschool/kelvin/v1/roles/staff" % get_fqdn],
+            "roles": [f"https://{get_fqdn}/ucsschool/kelvin/v1/roles/{role.split(':', 1)[0]}"],
             "ucsschool_roles": [role],
         }
         return requests.post(

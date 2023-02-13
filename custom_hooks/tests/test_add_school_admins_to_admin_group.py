@@ -22,15 +22,13 @@ async def test_add_school_admins_to_admin_group(get_base, kelvin_create_user_wit
     assert resp.status_code == 201
 
     user_name = resp.json()["name"]
-    school = resp.json()["school"]
 
     # Init udm object
     usermod = UDM.admin().version(2).get("users/user")
     domadm_dn = (
-        f"cn={ucr['ucsschool/ldap/default/groupprefix/admins']}"
-        f"{school.lower()},cn=ouadmins,cn=groups,{ucr['ldap/base']}"
+        f"cn={ucr.get('ucsschool/ldap/default/groupprefix/admins', 'admins-')}"
+        f"demoschool,cn=ouadmins,cn=groups,{ucr['ldap/base']}"
     )
 
     for obj in usermod.search("uid=%s" % user_name):
         assert domadm_dn in obj.props.groups
-    breakpoint()

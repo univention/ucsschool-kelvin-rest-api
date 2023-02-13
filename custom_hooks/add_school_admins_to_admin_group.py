@@ -50,12 +50,6 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
     def class_name(self):
         return type(self).__name__
 
-    def info(self, message):
-        self.logger.info("%s: %s", self.class_name, message)
-
-    def error(self, message):
-        self.logger.error("%s: %s", self.class_name, message)
-
     async def post_create(self, obj: ImportUser) -> None:
         """
         Get the user data after account creation
@@ -64,15 +58,15 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
         :param: ImportUser.
         :return: None
         """
-        self.info("Running a post_create hook for user %r" % obj.name)
+        self.logger.info("Running a post_create hook for user %r" % obj.name)
 
         target_group_dn: str = (
-            f"cn={ucr['ucsschool/ldap/default/groupprefix/admins']}"
+            f"cn={ucr.get('ucsschool/ldap/default/groupprefix/admins', 'admins-')}"
             f"{obj.school.lower()},cn=ouadmins,cn=groups,{ucr['ldap/base']}"
         )
         udm_obj = await obj.get_udm_object(self.udm)
 
-        self.info("User has groups %r" % udm_obj.props.groups)
+        self.logger.info("User has groups %r" % udm_obj.props.groups)
 
         if (
             any(
@@ -81,11 +75,11 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
             )
             and target_group_dn not in udm_obj.props.groups
         ):
-            self.info("Adding user %r to %r." % (obj.name, target_group_dn))
+            self.logger.info("Adding user %r to %r." % (obj.name, target_group_dn))
             udm_obj.props.groups.append(target_group_dn)
             await udm_obj.save()
         else:
-            self.info(
+            self.logger.info(
                 "User %r doesn't have the role %r or already has %r" % (obj.name, ROLE, target_group_dn)
             )
-        self.info("Done!")
+        self.logger.info("Done!")
