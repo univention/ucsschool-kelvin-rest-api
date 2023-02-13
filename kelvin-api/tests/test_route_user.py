@@ -1230,7 +1230,7 @@ async def test_patch(
     new_user_data = user_create_model.dict(exclude={"name", "record_uid", "source_uid"})
     new_user_data["birthday"] = str(new_user_data["birthday"])
     new_user_data["expiration_date"] = str(new_user_data["expiration_date"])
-    for key in random.sample(new_user_data.keys(), random.randint(1, len(new_user_data.keys()))):
+    for key in random.sample(list(new_user_data.keys()), random.randint(1, len(new_user_data.keys()))):
         del new_user_data[key]
     title = random_name()
     phone = [random_name(), random_name()]
