@@ -47,7 +47,7 @@ async def test_group_share_nt_acls(
     ShareClass,
 ):
     ou = await create_ou_using_python()
-    if isinstance(ObjectClass, SchoolClass):
+    if ObjectClass is SchoolClass:
         _attrs = school_class_attrs(ou)
     else:
         _attrs = workgroup_attrs(ou)
