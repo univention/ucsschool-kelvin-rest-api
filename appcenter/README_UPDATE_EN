@@ -1,5 +1,10 @@
 <h1>Changelog</h1>
 
+<h2>v1.8.4 (2023-02-16)</h2>
+<ul>
+    <li>Security fix in login (Issue #64).</li>
+</ul>
+
 <h2>v1.8.3 (2023-01-16)</h2>
 <ul>
     <li>Unhandled exceptions are logged (Bug #55114).</li>
