@@ -32,6 +32,7 @@ from datetime import datetime
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
+import uldap3
 from asgi_correlation_id.context import correlation_id
 from pydantic import BaseModel
 from uldap3 import (
@@ -204,7 +205,10 @@ def check_auth_and_get_user(username: str, password: str) -> Optional[LdapUser]:
     """
     user_dn = get_dn_of_user(username)
     if user_dn:
-        user = get_user(username=username, bind_dn=user_dn, bind_pw=password, school_only=False)
+        try:
+            user = get_user(username=username, bind_dn=user_dn, bind_pw=password, school_only=False)
+        except uldap3.exceptions.BindError:
+            user = None
         if user:
             admin_users = admin_group_members()
             if user_dn in admin_users:
