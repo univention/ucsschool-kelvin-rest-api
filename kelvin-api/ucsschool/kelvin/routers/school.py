@@ -87,8 +87,6 @@ class SchoolCreateModel(LibModelHelperMixin):
 
 
 class SchoolModel(SchoolCreateModel, APIAttributesMixin):
-    _dn2name: Dict[str, str] = {}
-
     class Config(SchoolCreateModel.Config):
         ...
 
@@ -98,29 +96,30 @@ class SchoolModel(SchoolCreateModel, APIAttributesMixin):
         kwargs["url"] = cls.scheme_and_quote(
             cached_url_for(request, "school_get", school_name=kwargs["name"])
         )
-        kwargs["administrative_servers"] = [
-            await cls.computer_dn2name(udm, dn) for dn in obj.administrative_servers
-        ]
-        kwargs["class_share_file_server"] = await cls.computer_dn2name(udm, obj.class_share_file_server)
-        kwargs["educational_servers"] = [
-            await cls.computer_dn2name(udm, dn) for dn in obj.educational_servers
-        ]
-        kwargs["home_share_file_server"] = await cls.computer_dn2name(udm, obj.home_share_file_server)
+        kwargs["administrative_servers"] = [computer_dn2name(dn) for dn in obj.administrative_servers]
+        kwargs["class_share_file_server"] = computer_dn2name(obj.class_share_file_server)
+        kwargs["educational_servers"] = [computer_dn2name(dn) for dn in obj.educational_servers]
+        kwargs["home_share_file_server"] = computer_dn2name(obj.home_share_file_server)
         return kwargs
 
-    @classmethod
-    async def computer_dn2name(cls, udm: UDM, dn: str) -> Optional[str]:
-        if not dn:
-            return None
-        if dn not in cls._dn2name:
-            obj = await udm.obj_by_dn(dn)
-            cls._dn2name[dn] = obj.props.name
-        return cls._dn2name[dn]
+
+@lru_cache(maxsize=1024)
+def computer_dn2name(dn: str) -> Optional[str]:
+    if not dn:
+        return None
+    uldap = uldap_admin_read_local()
+    filter_s, base = dn.split(",", 1)
+    filter_s = f"({filter_s})"
+    for entry in uldap.search(search_filter=filter_s, search_base=base, attributes=["cn"]):
+        return entry["cn"].value
+    return None
 
 
-async def computer_name2dn(name: str, udm: UDM) -> Optional[str]:
-    async for obj in udm.get("computers/computer").search(filter_format("cn=%s", (name,))):
-        return obj.dn
+@lru_cache(maxsize=1024)
+def computer_name2dn(name: str) -> Optional[str]:
+    uldap = uldap_admin_read_local()
+    for dn in uldap.search_dn(School._ldap_filter(name)):
+        return dn
     return None
 
 
@@ -137,7 +136,7 @@ async def fix_school_attributes(
     if len(school_obj.administrative_servers) != len(school.administrative_servers):
         dns = []
         for host in school.administrative_servers:
-            if dn := await computer_name2dn(host, udm):
+            if dn := computer_name2dn(host):
                 dns.append(dn)
             else:
                 success = await school_obj.create_dc_slave(udm, host, True)
@@ -152,7 +151,7 @@ async def fix_school_attributes(
     ):
         dns = []
         for host in school.educational_servers:
-            if dn := await computer_name2dn(host, udm):
+            if dn := computer_name2dn(host):
                 dns.append(dn)
             else:
                 success = await school_obj.create_dc_slave(udm, host, False)
@@ -166,13 +165,13 @@ async def fix_school_attributes(
         school.class_share_file_server
         and name_from_dn(school_obj.class_share_file_server) != school.class_share_file_server
     ):
-        school_obj.class_share_file_server = await computer_name2dn(school.class_share_file_server, udm)
+        school_obj.class_share_file_server = computer_name2dn(school.class_share_file_server)
         changed = True
     if (
         school.home_share_file_server
         and name_from_dn(school_obj.home_share_file_server) != school.home_share_file_server
     ):
-        school_obj.home_share_file_server = await computer_name2dn(school.home_share_file_server, udm)
+        school_obj.home_share_file_server = computer_name2dn(school.home_share_file_server)
         changed = True
     if changed:
         await school_obj.modify(udm)
