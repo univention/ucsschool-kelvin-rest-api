@@ -660,9 +660,11 @@ async def search(  # noqa: C901
         udm_filter = f"(&{udm_filter}(!(objectClass=ucsschoolExam)))"
 
     logger.debug("Looking for %r with filter %r...", user_class.__name__, udm_filter)
-    users: List[ImportUser] = []
-    async for udm_obj in udm.get("users/user").search(udm_filter):
-        users.append(await user_class.from_udm_obj(udm_obj, None, udm))
+    t0 = time.time()
+    udm_objs = [udm_obj async for udm_obj in udm.get("users/user").search(udm_filter)]
+    t1 = time.time()
+    users: List[ImportUser] = [await user_class.from_udm_obj(udm_obj, None, udm) for udm_obj in udm_objs]
+    t2 = time.time()
     users.sort(key=attrgetter("name"))
     allowed_users = await OPAClient.instance().check_policy(
         policy="allowed_users_list",
@@ -674,6 +676,7 @@ async def search(  # noqa: C901
         ),
         target=dict(),
     )
+    t3 = time.time()
     res: List[UserModel] = []
     for user in (element for element in users if element.name in allowed_users):
         try:
@@ -683,6 +686,17 @@ async def search(  # noqa: C901
             logger.error(msg)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=msg)
         res.append(obj)
+    t4 = time.time()
+    logger.debug(
+        "Timings: retrieved %d users in %.2f sec (%.1f/s): t1=%.3f t2=%.3f t3=%.3f t4=%.3f",
+        len(res),
+        t4 - t0,
+        len(res) / (t4 - t0),
+        t1 - t0,
+        t2 - t1,
+        t3 - t2,
+        t4 - t3,
+    )
     return res
 
 
