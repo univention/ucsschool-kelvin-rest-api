@@ -742,19 +742,14 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         )
         if filter_s:
             filter_object_type = conjunction("&", [filter_object_type, parse(filter_s)])
+        t0 = time.time()
         objects = [
             o
             async for o in lo.get(cls._meta.udm_module).search(
                 filter_s=unicode_s(filter_object_type), scope="sub"
             )
         ]
-        # objects = await udm_modules.lookup(cls._meta.udm_module, None, lo,
-        # filter=unicode_s(filter_object_type),
-        # scope='sub', superordinate=superordinate)
-        # legacy objects (find by position in LDAP) support:
-        more_objs = await super(User, cls).lookup(lo, school, filter_s, superordinate=superordinate)
-        dns = {o.dn for o in objects}
-        objects.extend(obj for obj in more_objs if obj.dn not in dns)
+        cls.logger.debug("Timings: retrieved %d users in %.3f sec.", len(objects), time.time() - t0)
         return objects
 
     class Meta:
