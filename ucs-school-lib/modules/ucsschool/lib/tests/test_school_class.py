@@ -110,7 +110,7 @@ async def test_get_class_for_udm_obj(create_ou_using_python, new_school_class_us
 @pytest.mark.asyncio
 async def test_create(create_ou_using_python, school_class_attrs, udm_kwargs):
     ou = await create_ou_using_python()
-    sc_attrs = await school_class_attrs(ou)
+    sc_attrs = school_class_attrs(ou)
     create_attr = sc_attrs.copy()
     create_attr["name"] = f"{ou}-{create_attr['name']}"
     async with UDM(**udm_kwargs) as udm:

@@ -107,7 +107,7 @@ def udm_kwargs() -> Dict[str, Any]:
 
 @pytest.fixture
 def school_class_attrs(ldap_base):
-    async def _func(school: str, **kwargs) -> Dict[str, str]:
+    def _func(school: str, **kwargs) -> Dict[str, Any]:
         return {
             "name": kwargs.get("name", f"test.{fake.unique.user_name()}"),
             "school": school,
@@ -123,33 +123,28 @@ def school_class_attrs(ldap_base):
                 "ucsschool_roles",
                 [create_ucsschool_role_string(role_school_class, school)],
             ),
+            "create_share": True,
         }
 
     return _func
 
 
 @pytest.fixture
-def workgroup_attrs(ldap_base):
-    async def _func(school: str, **kwargs) -> Dict[str, str]:
-        return {
-            "name": kwargs.get("name", f"test.{fake.unique.user_name()}"),
-            "school": school,
-            "description": kwargs.get("description", fake.text(max_nb_chars=50)),
-            "users": kwargs.get(
-                "users",
-                [
-                    f"uid={fake.unique.user_name()},cn=users,{ldap_base}",
-                    f"uid={fake.unique.user_name()},cn=users,{ldap_base}",
-                ],
-            ),
-            "ucsschool_roles": kwargs.get(
-                "ucsschool_roles",
-                [create_ucsschool_role_string(role_workgroup, school)],
-            ),
-            "email": None,
-            "allowed_email_senders_users": [],
-            "allowed_email_senders_groups": [],
-        }
+def workgroup_attrs(ldap_base, school_class_attrs):
+    def _func(school: str, **kwargs) -> Dict[str, Any]:
+        ucsschool_roles = kwargs.get(
+            "ucsschool_roles",
+            [create_ucsschool_role_string(role_workgroup, school)],
+        )
+        res = school_class_attrs(school, ucsschool_roles=ucsschool_roles, **kwargs)
+        res.update(
+            {
+                "email": None,
+                "allowed_email_senders_users": [],
+                "allowed_email_senders_groups": [],
+            }
+        )
+        return res
 
     return _func
 
@@ -267,7 +262,7 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs, 
 
     async def _func(school: str, **kwargs) -> Tuple[str, Dict[str, str]]:
         async with UDM(**udm_kwargs) as udm:
-            sc_attrs = await school_class_attrs(school, **kwargs)
+            sc_attrs = school_class_attrs(school, **kwargs)
             grp_obj = await udm.get("groups/group").new()
             grp_obj.position = f"cn=klassen,cn=schueler,cn=groups,ou={sc_attrs['school']},{ldap_base}"
             grp_obj.props.name = f"{sc_attrs['school']}-{sc_attrs['name']}"
@@ -328,7 +323,7 @@ async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs, wait_f
 
     async def _func(school: str, **kwargs) -> Tuple[str, Dict[str, str]]:
         async with UDM(**udm_kwargs) as udm:
-            wg_attrs = await workgroup_attrs(school, **kwargs)
+            wg_attrs = workgroup_attrs(school, **kwargs)
             grp_obj = await udm.get("groups/group").new()
             grp_obj.position = f"cn=schueler,cn=groups,ou={wg_attrs['school']},{ldap_base}"
             grp_obj.props.name = f"{wg_attrs['school']}-{wg_attrs['name']}"

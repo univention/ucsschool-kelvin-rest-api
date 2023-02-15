@@ -48,9 +48,9 @@ async def test_group_share_nt_acls(
 ):
     ou = await create_ou_using_python()
     if isinstance(ObjectClass, SchoolClass):
-        _attrs = await school_class_attrs(ou)
+        _attrs = school_class_attrs(ou)
     else:
-        _attrs = await workgroup_attrs(ou)
+        _attrs = workgroup_attrs(ou)
     create_attr = _attrs.copy()
     create_attr["name"] = f"{ou}-{create_attr['name']}"
     async with UDM(**udm_kwargs) as udm:
@@ -58,6 +58,7 @@ async def test_group_share_nt_acls(
         await group1.create(udm)
         sc0 = await ObjectClass.from_dn(group1.dn, ou, udm)
         share = ShareClass.from_school_group(school_group=sc0)
+        assert await share.exists(udm)
         expected_acls = share.get_aces_deny_students_change_permissions(udm)
         samba_sid = share.get_groups_samba_sid(udm, sc0.dn)
         expected_acls.append("(A;OICI;0x001f01ff;;;{})".format(samba_sid))
