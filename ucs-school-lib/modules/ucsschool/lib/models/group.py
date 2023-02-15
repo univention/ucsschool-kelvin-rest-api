@@ -234,7 +234,10 @@ class SchoolClass(Group, _MayHaveSchoolPrefix):
 
     async def create_share(self, lo: UDM) -> bool:
         share = self.ShareClass.from_school_group(self)
-        return await share.exists(lo) or await share.create(lo)
+        if not (res := await share.exists(lo)):
+            self.logger.info("Creating %r (for %r)...", share, self)
+            res = await share.create(lo)
+        return res
 
     async def modify_without_hooks(
         self, lo: UDM, validate: bool = True, move_if_necessary: bool = None
@@ -250,9 +253,9 @@ class SchoolClass(Group, _MayHaveSchoolPrefix):
                 share = self.ShareClass(name=old_name, school=self.school, school_group=self)
                 share.name = self.name
         success = await super(SchoolClass, self).modify_without_hooks(lo, validate, move_if_necessary)
-        if success:
-            if await share.exists(lo):
-                success = await share.modify(lo)
+        if success and await share.exists(lo):
+            self.logger.info("Modifying %r (of %r)...", share, self)
+            success = success and await share.modify(lo)
         return success
 
     async def remove_without_hooks(self, lo: UDM) -> bool:
@@ -260,6 +263,7 @@ class SchoolClass(Group, _MayHaveSchoolPrefix):
         if success:
             share = self.ShareClass.from_school_group(self)
             if await share.exists(lo):
+                self.logger.info("Removing %r (of %r)...", share, self)
                 success = success and await share.remove(lo)
         return success
 
