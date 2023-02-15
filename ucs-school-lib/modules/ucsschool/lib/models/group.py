@@ -313,8 +313,9 @@ class SchoolClass(Group, _MayHaveSchoolPrefix):
     class Meta:
         udm_module = "groups/group"
         name_is_unique = True
+        udm_filter = f"(&(univentionObjectType={udm_module})(ucsschoolRole=school_class:school:*))"
         _ldap_filter = (
-            f"(&(univentionObjectType={udm_module})(ucsschoolRole=school_class:school*)" "(cn={name}))"
+            f"(&(univentionObjectType={udm_module})(ucsschoolRole=school_class:school*)(cn={{name}}))"
         )
 
 
@@ -335,8 +336,9 @@ class WorkGroup(EmailAttributesMixin, SchoolClass, _MayHaveSchoolPrefix):
     class Meta:
         udm_module = "groups/group"
         name_is_unique = True
+        udm_filter = f"(&(univentionObjectType={udm_module})(ucsschoolRole=workgroup:school:*))"
         _ldap_filter = (
-            f"(&(univentionObjectType={udm_module})(ucsschoolRole=workgroup:school*)" "(cn={name}))"
+            f"(&(univentionObjectType={udm_module})(ucsschoolRole=workgroup:school*)(cn={{name}}))"
         )
 
 
