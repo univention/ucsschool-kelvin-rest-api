@@ -31,6 +31,7 @@
 
 import socket
 import subprocess
+import time
 from typing import Dict, Iterable, List, Optional, Set, Union
 
 import ldap
@@ -696,11 +697,15 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                 complete_filter = conjunction("&", [complete_filter, filter_str])
             schools = []
             uldap = uldap_admin_read_primary()
+            t0 = time.time()
             for entry in uldap.search(str(complete_filter), attributes=["ou"]):
                 ou = entry["ou"].value
                 if ou.lower() not in cls._school_obj_cache:
                     cls._school_obj_cache[ou.lower()] = await School.from_dn(entry.entry_dn, None, lo)
                 schools.append(cls._school_obj_cache[ou.lower()])
+            cls.logger.debug(
+                "Timings: retrieved %d schools in %.3f sec.", len(schools), time.time() - t0
+            )
         oulist = ucr.get("ucsschool/local/oulist")
         if oulist and respect_local_oulist:
             cls.logger.debug("All Schools: Schools overridden by UCR variable ucsschool/local/oulist")

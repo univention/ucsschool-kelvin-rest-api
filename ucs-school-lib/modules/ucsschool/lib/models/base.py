@@ -1020,11 +1020,13 @@ class UCSSchoolHelperAbstractClass(object):
         complete_filter = str(complete_filter)
         cls.logger.debug("Getting all %s of %s with filter %r", cls.__name__, school, complete_filter)
         ret = []
+        t0 = time.time()
         for udm_obj in await cls.lookup(lo, school, complete_filter, superordinate=superordinate):
             try:
                 ret.append(await cls.from_udm_obj(udm_obj, school, lo))
             except NoObject:
                 continue
+        cls.logger.debug("Timings: retrieved %d objects in %.3f sec.", len(ret), time.time() - t0)
         return ret
 
     @classmethod

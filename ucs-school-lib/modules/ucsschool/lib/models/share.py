@@ -328,40 +328,12 @@ class WorkGroupShare(RoleSupportMixin, GroupShare):
     def get_container(cls, school) -> str:
         return cls.get_search_base(school).shares
 
-    @classmethod
-    async def get_all(
-        cls,
-        lo: UDM,
-        school: str = None,
-        filter_str: str = None,
-        easy_filter: str = False,
-        superordinate: SuperOrdinateType = None,
-    ) -> List[UCSSchoolModel]:
-        """
-        This method was overwritten to identify WorkGroupShares and distinct them
-        from other shares of the school.
-        If at some point a lookup is implemented that uses the role attribute
-        which is reliable this code can be removed.
-        Bug #48428
-        """
-        shares = await super(WorkGroupShare, cls).get_all(
-            lo, school, filter_str, easy_filter, superordinate
-        )
-        filtered_shares = []
-        search_base = cls.get_search_base(school)
-        grp_mod = lo.get("groups/group")
-        for share in shares:
-            filter_s = filter_format("name=%s", (share.name,))
-            async for group in grp_mod.search(filter_s, base=search_base.groups):
-                if search_base.isWorkgroup(group.dn):
-                    filtered_shares.append(share)
-        return filtered_shares
-
     def get_nt_acls(self, lo: UDM) -> List[str]:
         return self.get_aces_work_group(lo)
 
     class Meta:
         udm_module = "shares/share"
+        udm_filter = f"(&(univentionObjectType={udm_module})(ucsschoolRole=workgroup_share:school:*))"
         _ldap_filter = (
             f"(&(univentionObjectType={udm_module})(ucsschoolRole=workgroup_share:school:*)"
             "(cn={name}))"
@@ -393,6 +365,7 @@ class ClassShare(RoleSupportMixin, GroupShare):
 
     class Meta:
         udm_module = "shares/share"
+        udm_filter = f"(&(univentionObjectType={udm_module})(ucsschoolRole=school_class_share:school:*))"
         _ldap_filter = (
             f"(&(univentionObjectType={udm_module})(ucsschoolRole=school_class_share:school:*)"
             "(cn={name}))"
