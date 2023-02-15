@@ -1,3 +1,9 @@
+ucs-test-ucsschool-kelvin (1.0.2) unstable; urgency=low
+
+  * Issue #56: fix AttributeError in test
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 15 Feb 2023 21:40:24 +0100
+
 ucs-test-ucsschool-kelvin (1.0.1) unstable; urgency=medium
 
   * Issue #56: trigger build and import pipeline

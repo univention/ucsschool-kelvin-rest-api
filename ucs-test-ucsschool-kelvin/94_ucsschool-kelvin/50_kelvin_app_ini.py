@@ -39,7 +39,7 @@ def get_ini_urls(base_url: str) -> Iterable[str]:
 INI_URLS = sorted(itertools.chain(*(get_ini_urls(base_url) for base_url in BASE_URLS)))
 
 
-def get_config(ini_url: str) -> ConfigParser.ConfigParser:
+def get_config(ini_url: str) -> ConfigParser:
     r = requests.get(ini_url)
     assert r.status_code == 200
     with tempfile.NamedTemporaryFile(mode="wb+") as fd:
