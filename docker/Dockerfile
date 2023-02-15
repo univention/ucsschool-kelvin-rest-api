@@ -81,7 +81,7 @@ RUN apk add --no-cache --virtual mybuilddeps $(cat /tmp/alpine_apk_list.build) &
 	# install most current udm_rest_client package (instead of the one from pypi)
 	python3 -m pip install git+https://github.com/univention/python-udm-rest-api-client.git && \
 	# install uldap3 from the GitLab registry
-	python3 -m pip install --index-url https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple uldap3 && \
+	python3 -m pip install --index-url https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple uldap3==0.0.0.dev0+fix.user.account.501bb1e2 && \
 	# install all remaining Python requirements
 	python3 -m pip install --no-cache-dir --compile -r /tmp/requirements_all.txt && \
     apk del --no-cache mybuilddeps && \
