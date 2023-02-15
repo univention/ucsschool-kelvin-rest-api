@@ -330,7 +330,7 @@ async def school_create(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to create schools.",
         )
-    school_obj: School = await school.as_lib_model(request)
+    school_obj: School = school.as_lib_model(request)
     if await school_obj.exists(udm):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="School exists.")
     await validate_create_request_params(school, logger, udm)

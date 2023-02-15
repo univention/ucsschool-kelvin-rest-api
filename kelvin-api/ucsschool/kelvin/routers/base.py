@@ -176,7 +176,7 @@ class LibModelHelperMixin(BaseModel):
         Get ucsschool.lib object data as dict that can be used to create a
         Kelvin object.
 
-        kwargs = kelvin_object._from_lib_model_kwargs(LibObject)
+        kwargs = await kelvin_object._from_lib_model_kwargs(LibObject)
         kelvin_object = KelvinClass(**kwargs)
         """
         kwargs = obj.to_dict()
@@ -198,16 +198,16 @@ class LibModelHelperMixin(BaseModel):
         if self.udm_properties is None:
             self.udm_properties = {}
 
-    async def as_lib_model(self, request: Request) -> UCSSchoolModel:
+    def as_lib_model(self, request: Request) -> UCSSchoolModel:
         """Get the corresponding ucsschool.lib object to this Kelvin object."""
-        kwargs = await self._as_lib_model_kwargs(request)
+        kwargs = self._as_lib_model_kwargs(request)
         udm_properties = kwargs.pop("udm_properties") if "udm_properties" in kwargs else {}
         filtered_udm_properties = self.filter_udm_properties(udm_properties)
         lib_obj: UCSSchoolModel = self.Config.lib_class(**kwargs)
         lib_obj.udm_properties = filtered_udm_properties
         return lib_obj
 
-    async def _as_lib_model_kwargs(self, request: Request) -> Dict[str, Any]:
+    def _as_lib_model_kwargs(self, request: Request) -> Dict[str, Any]:
         """
         Get object data as dict that can be used to create the ucsschool.lib
         object corresponding to this Kelvin object.
@@ -236,8 +236,8 @@ class UcsSchoolBaseModel(LibModelHelperMixin):
     class Config(LibModelHelperMixin.Config):
         ...
 
-    async def as_lib_model(self, request: Request) -> UCSSchoolModel:
-        kwargs = await self._as_lib_model_kwargs(request)
+    def as_lib_model(self, request: Request) -> UCSSchoolModel:
+        kwargs = self._as_lib_model_kwargs(request)
         udm_properties = kwargs.pop("udm_properties") if "udm_properties" in kwargs else {}
         filtered_udm_properties = self.filter_udm_properties(udm_properties)
         if self.Config.lib_class.supports_school():

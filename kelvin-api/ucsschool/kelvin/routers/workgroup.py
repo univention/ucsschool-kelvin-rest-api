@@ -92,13 +92,12 @@ class WorkGroupCreateModel(UcsSchoolBaseModel):
         ]
         return kwargs
 
-    async def _as_lib_model_kwargs(self, request: Request) -> Dict[str, Any]:
-        kwargs = await super()._as_lib_model_kwargs(request)
+    def _as_lib_model_kwargs(self, request: Request) -> Dict[str, Any]:
+        kwargs = super()._as_lib_model_kwargs(request)
         school_name = url_to_name(request, "school", self.unscheme_and_unquote(kwargs["school"]))
         kwargs["name"] = f"{school_name}-{self.name}"
         kwargs["users"] = [
-            await url_to_dn(request, "user", self.unscheme_and_unquote(user))
-            for user in (self.users or [])
+            url_to_dn(request, "user", self.unscheme_and_unquote(user)) for user in (self.users or [])
         ]  # this is expensive :/
         return kwargs
 
@@ -156,7 +155,7 @@ class WorkGroupPatchDocument(BaseModel):
             res["udm_properties"] = self.udm_properties
         if self.users:
             res["users"] = [
-                await url_to_dn(request, "user", UcsSchoolBaseModel.unscheme_and_unquote(user))
+                url_to_dn(request, "user", UcsSchoolBaseModel.unscheme_and_unquote(user))
                 for user in (self.users or [])
             ]  # this is expensive :/
         return res
@@ -285,7 +284,7 @@ async def create(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to create school workgroups.",
         )
-    sc: WorkGroup = await workgroup.as_lib_model(request)
+    sc: WorkGroup = workgroup.as_lib_model(request)
     if await sc.exists(udm):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="school workgroup exists.")
     else:
@@ -477,7 +476,7 @@ async def complete_update(
         _validate_change("school")
     sc_current = await get_lib_obj(udm, WorkGroup, f"{school}-{workgroup_name}", school)
     changed = False
-    sc_request: WorkGroup = await workgroup.as_lib_model(request)
+    sc_request: WorkGroup = workgroup.as_lib_model(request)
     sc_current.udm_properties = sc_request.udm_properties
     for attr in WorkGroup._attributes.keys():
         current_value = getattr(sc_current, attr)

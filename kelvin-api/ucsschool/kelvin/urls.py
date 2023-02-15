@@ -93,7 +93,7 @@ def url_to_name(request: Request, obj_type: str, url: Union[str, HttpUrl]) -> st
     cache=LRUCache(maxsize=10240),
     key=lambda request, obj_type, url: hashkey(obj_type, url),
 )
-async def url_to_dn(request: Request, obj_type: str, url: str) -> str:
+def url_to_dn(request: Request, obj_type: str, url: str) -> str:
     """
     Guess object ID (e.g. school name or username) from last part of URL. If
     object is user, search object with UDM HTTP API to retrieve DN.

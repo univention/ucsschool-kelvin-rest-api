@@ -92,13 +92,12 @@ class SchoolClassCreateModel(UcsSchoolBaseModel):
         ]
         return kwargs
 
-    async def _as_lib_model_kwargs(self, request: Request) -> Dict[str, Any]:
-        kwargs = await super()._as_lib_model_kwargs(request)
+    def _as_lib_model_kwargs(self, request: Request) -> Dict[str, Any]:
+        kwargs = super()._as_lib_model_kwargs(request)
         school_name = url_to_name(request, "school", self.unscheme_and_unquote(kwargs["school"]))
         kwargs["name"] = f"{school_name}-{self.name}"
         kwargs["users"] = [
-            await url_to_dn(request, "user", self.unscheme_and_unquote(user))
-            for user in (self.users or [])
+            url_to_dn(request, "user", self.unscheme_and_unquote(user)) for user in (self.users or [])
         ]  # this is expensive :/
         return kwargs
 
@@ -152,7 +151,7 @@ class SchoolClassPatchDocument(BaseModel):
             res["udm_properties"] = self.udm_properties
         if self.users:
             res["users"] = [
-                await url_to_dn(request, "user", UcsSchoolBaseModel.unscheme_and_unquote(user))
+                url_to_dn(request, "user", UcsSchoolBaseModel.unscheme_and_unquote(user))
                 for user in (self.users or [])
             ]  # this is expensive :/
         return res
@@ -275,7 +274,7 @@ async def create(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to create school classes.",
         )
-    sc: SchoolClass = await school_class.as_lib_model(request)
+    sc: SchoolClass = school_class.as_lib_model(request)
     ou_names = await search_schools_in_ldap(sc.school, raise404=True)
     sc.school = ou_names[0]  # use OU name from LDAP, not from request (Bug #55456)
     sc.name = f"{sc.school}-{school_class.name}"
@@ -448,7 +447,7 @@ async def complete_update(
         )
     sc_current = await get_lib_obj(udm, SchoolClass, f"{school}-{class_name}", school)
     changed = False
-    sc_request: SchoolClass = await school_class.as_lib_model(request)
+    sc_request: SchoolClass = school_class.as_lib_model(request)
     sc_request.school = school
     sc_request.name = f"{school}-{school_class.name}"
     sc_current.udm_properties = sc_request.udm_properties

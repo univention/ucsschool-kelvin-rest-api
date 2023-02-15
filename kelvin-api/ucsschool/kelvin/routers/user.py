@@ -279,8 +279,8 @@ class UserCreateModel(UserBaseModel):
 
     _not_both_password_and_hashes = root_validator(allow_reuse=True)(not_both_password_and_hashes)
 
-    async def _as_lib_model_kwargs(self, request: Request) -> Dict[str, Any]:
-        kwargs = await super()._as_lib_model_kwargs(request)
+    def _as_lib_model_kwargs(self, request: Request) -> Dict[str, Any]:
+        kwargs = super()._as_lib_model_kwargs(request)
         if isinstance(kwargs["password"], SecretStr):
             kwargs["password"] = kwargs["password"].get_secret_value()
         kwargs["school"] = (
@@ -814,7 +814,7 @@ async def create(
             for role in request_user.roles
         ]
     )
-    user: ImportUser = await request_user.as_lib_model(request)
+    user: ImportUser = request_user.as_lib_model(request)
     await fix_case_of_ous(user)
 
     if not await OPAClient.instance().check_policy_true(
@@ -1286,7 +1286,7 @@ async def complete_update(  # noqa: C901
             for role in user.roles
         ]
     )
-    user_request: ImportUser = await user.as_lib_model(request)
+    user_request: ImportUser = user.as_lib_model(request)
     user_current: ImportUser = await get_import_user(udm, udm_obj.dn)
     if not await OPAClient.instance().check_policy_true(
         policy="users",
