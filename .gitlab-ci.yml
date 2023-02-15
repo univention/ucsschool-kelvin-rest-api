@@ -193,8 +193,8 @@ tests:
     - job: build_docker_image
   image: $IMAGE_TAG
   script:
-    - cd ${CI_PROJECT_DIR}/kelvin-api && make test
-    - cd ${CI_PROJECT_DIR}/ucs-school-lib/modules/ucsschool/lib && pytest -v tests
+    - cd ${CI_PROJECT_DIR}/ucs-school-lib/modules/ucsschool/lib && python3 -m pytest -lvv --asyncio-mode=auto tests
+    - cd ${CI_PROJECT_DIR}/kelvin-api && python3 -m pytest -lvv --asyncio-mode=auto tests
 
 ucs_test_deb_lint:
   stage: lint
