@@ -42,6 +42,7 @@ async def test_login(retry_http_502, url_fragment, create_ou_using_python, new_s
     )
     assert response3.status_code == 401
 
+
 @pytest.mark.asyncio
 async def test_login_default_admin(retry_http_502, url_fragment):
     """like test_login, but dedicated to the default Administrator"""
