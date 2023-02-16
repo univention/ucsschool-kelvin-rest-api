@@ -33,6 +33,8 @@ the ucsschoolRole: technical_admin:bsb:* (fachliche Leitstelle)
 
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.importer.utils.user_pyhook import UserPyHook
+from ucsschool.lib.roles import get_role_info
+from ucsschool.lib.schoolldap import SchoolSearchBase
 from univention.config_registry import ConfigRegistry
 
 ucr = ConfigRegistry()
@@ -60,17 +62,14 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
         """
         self.logger.info("Running a post_create hook for user %r" % obj.name)
 
-        target_group_dn: str = (
-            f"cn={ucr.get('ucsschool/ldap/default/groupprefix/admins', 'admins-')}"
-            f"{obj.school.lower()},cn=ouadmins,cn=groups,{ucr['ldap/base']}"
-        )
+        target_group_dn: str = SchoolSearchBase(school=obj.school, availableSchools=None).admins_group
         udm_obj = await obj.get_udm_object(self.udm)
 
         self.logger.info("User has groups %r" % udm_obj.props.groups)
 
         if (
             any(
-                ur.split(":")[0] == ROLE and ur.split(":")[1] == "school"
+                get_role_info(ur)[0] == ROLE and get_role_info(ur)[1] == "school"
                 for ur in udm_obj.props.ucsschoolRole
             )
             and target_group_dn not in udm_obj.props.groups
