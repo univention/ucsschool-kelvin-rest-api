@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.8.4 (2023-02-16)
+...................
+* Security fix in login (Issue #64).
+
 v1.8.3 (2023-01-16)
 ...................
 * Unhandled exceptions are logged (Bug #55114).
