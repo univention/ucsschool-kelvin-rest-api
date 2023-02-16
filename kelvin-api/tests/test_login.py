@@ -41,3 +41,30 @@ async def test_login(retry_http_502, url_fragment, create_ou_using_python, new_s
         data={"username": user.name, "password": "wrongpassword"},
     )
     assert response3.status_code == 401
+
+@pytest.mark.asyncio
+async def test_login_default_admin(retry_http_502, url_fragment):
+    """like test_login, but dedicated to the default Administrator"""
+
+    login_url = f"{removesuffix(url_fragment, '/v1')}/token"
+    # login with the right password -> 200
+    response1 = retry_http_502(
+        requests.post, login_url, data={"username": "Administrator", "password": "univention"}
+    )
+    assert response1.status_code == 200
+
+    # login with the wrong password
+    response2 = retry_http_502(
+        requests.post,
+        login_url,
+        data={"username": "Administrator", "password": "wrongpassword"},
+    )
+    assert response2.status_code == 401
+
+    # login with no password
+    response2 = retry_http_502(
+        requests.post,
+        login_url,
+        data={"username": "Administrator", "password": ""},
+    )
+    assert response2.status_code == 401
