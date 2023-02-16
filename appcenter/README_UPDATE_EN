@@ -2,7 +2,7 @@
 
 <h2>v1.8.4 (2023-02-16)</h2>
 <ul>
-    <li>Security fix in login (Issue #64).</li>
+    <li>A critical security vulnerability was fixed (CVSS 9.1): The vulnerability allows to access the API as any valid user without knowing their passwords. This leads to full access for attackers to UCS@school data provided by the Kelvin API.</li>
 </ul>
 
 <h2>v1.8.3 (2023-01-16)</h2>
