@@ -68,4 +68,4 @@ async def test_login_default_admin(retry_http_502, url_fragment):
         login_url,
         data={"username": "Administrator", "password": ""},
     )
-    assert response2.status_code == 401
+    assert response2.status_code == 422
