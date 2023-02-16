@@ -27,8 +27,14 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <https://www.gnu.org/licenses/>.
 """
-Kelvin API Hook which adds the user to the group Domain Admins when the user has
-the ucsschoolRole: technical_admin:bsb:* (fachliche Leitstelle)
+Kelvin API Hook which adds the user to the group Admins of its school when the
+user has the role `school_admin`.
+
+To use it, copy it to
+`/var/lib/ucs-school-import/kelvin-hooks/add_school_admins_to_admin_group.py`
+and run:
+
+$ univention-app shell ucsschool-kelvin-rest-api /etc/init.d/ucsschool-kelvin-rest-api restart
 """
 
 from ucsschool.importer.models.import_user import ImportUser
@@ -47,10 +53,6 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
     priority = {
         "post_create": 900,
     }
-
-    @property
-    def class_name(self):
-        return type(self).__name__
 
     async def post_create(self, obj: ImportUser) -> None:
         """
