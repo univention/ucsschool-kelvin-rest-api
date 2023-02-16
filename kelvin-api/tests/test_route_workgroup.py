@@ -410,7 +410,7 @@ async def test_workgroup_name_can_change(
     school = await create_ou_using_python()
     _, sc1_attr = await new_workgroup_using_lib(school, users=[])
     change_data = {
-        "name": fake.user_name(),
+        "name": fake.unique.user_name(),
     }
     if operation == "put":
         change_data["school"] = f"{url_fragment}/schools/{school}"

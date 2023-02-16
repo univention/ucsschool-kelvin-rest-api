@@ -3091,12 +3091,12 @@ async def test_fix_case_of_ous(create_multiple_ous, school_user):
         school=school1_scrambled,
         schools=[school1_scrambled, school2_scrambled],
         school_classes={
-            school1_scrambled: [fake.user_name(), fake.user_name()],
-            school2_scrambled: [fake.user_name(), fake.user_name()],
+            school1_scrambled: [fake.unique.user_name(), fake.unique.user_name()],
+            school2_scrambled: [fake.unique.user_name(), fake.unique.user_name()],
         },
         workgroups={
-            school1_scrambled: [fake.user_name(), fake.user_name()],
-            school2_scrambled: [fake.user_name(), fake.user_name()],
+            school1_scrambled: [fake.unique.user_name(), fake.unique.user_name()],
+            school2_scrambled: [fake.unique.user_name(), fake.unique.user_name()],
         },
     )
     await fix_case_of_ous(user)

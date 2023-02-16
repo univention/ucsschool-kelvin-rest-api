@@ -242,7 +242,9 @@ async def test_format_pyhook(
     else:
         roles = [role.name]
     ou = await create_ou_using_python()
-    lastname = f"{fake.last_name()}-{fake.last_name()}"  # extra long name for reduced flakiness
+    lastname = (
+        f"{fake.unique.last_name()}-{fake.unique.last_name()}"  # extra long name for reduced flakiness
+    )
     r_user = await random_user_create_model(
         ou, roles=[f"{url_fragment}/roles/{role_}" for role_ in roles], lastname=lastname
     )

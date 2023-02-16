@@ -156,8 +156,8 @@ class SchoolClassFactory(factory.Factory):
     class Meta:
         model = ucsschool.lib.models.group.SchoolClass
 
-    name = factory.LazyAttribute(lambda o: f"{o.school}-test.{fake.user_name()}")
-    school = factory.LazyFunction(lambda: fake.user_name()[:10])
+    name = factory.LazyAttribute(lambda o: f"{o.school}-test.{fake.unique.user_name()}")
+    school = factory.LazyFunction(lambda: fake.unique.user_name()[:10])
     description = factory.Faker("text", max_nb_chars=50)
     users = factory.List([])
 
@@ -166,8 +166,8 @@ class WorkGroupFactory(factory.Factory):
     class Meta:
         model = ucsschool.lib.models.group.WorkGroup
 
-    name = factory.LazyAttribute(lambda o: f"{o.school}-test.{fake.user_name()}")
-    school = factory.LazyFunction(lambda: fake.user_name()[:10])
+    name = factory.LazyAttribute(lambda o: f"{o.school}-test.{fake.unique.user_name()}")
+    school = factory.LazyFunction(lambda: fake.unique.user_name()[:10])
     description = factory.Faker("text", max_nb_chars=50)
     users = factory.List([])
     email = None
@@ -326,7 +326,7 @@ def setup_logging(temp_dir_session):
 
 @pytest.fixture
 def random_name() -> Callable[[], str]:
-    return fake.first_name
+    return fake.unique.first_name
 
 
 @pytest.fixture

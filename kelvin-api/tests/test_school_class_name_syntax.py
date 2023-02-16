@@ -59,7 +59,7 @@ def random_names(name_lengths: List[int], chars: str) -> List[str]:
 @must_run_in_container
 @pytest.mark.asyncio
 async def test_schoolclass_module(name: str, udm_kwargs):
-    school = fake.user_name()
+    school = fake.unique.user_name()
     async with UDM(**udm_kwargs) as udm:
         await SchoolClass(name=f"{school}-{name}", school=school).validate(udm)
 
