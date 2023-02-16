@@ -64,7 +64,7 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
         """
         self.logger.info("Running a post_create hook for user %r" % obj.name)
 
-        target_group_dn: str = SchoolSearchBase(school=obj.school, availableSchools=None).admins_group
+        target_group_dn: str = SchoolSearchBase([obj.school]).admins_group
         udm_obj = await obj.get_udm_object(self.udm)
 
         self.logger.info("User has groups %r" % udm_obj.props.groups)
