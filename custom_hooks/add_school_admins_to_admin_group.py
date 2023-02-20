@@ -76,11 +76,10 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
             )
             and target_group_dn not in udm_obj.props.groups
         ):
-            self.logger.info("Adding user %r to %r." % (obj.name, target_group_dn))
             udm_obj.props.groups.append(target_group_dn)
             await udm_obj.save()
+            self.logger.info("Added user %r to %r." % (obj.name, target_group_dn))
         else:
             self.logger.info(
                 "User %r doesn't have the role %r or already has %r" % (obj.name, ROLE, target_group_dn)
             )
-        self.logger.info("Done!")
