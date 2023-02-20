@@ -67,17 +67,13 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
 
         self.logger.info("User has groups %r" % udm_obj.props.groups)
 
-        if (
-            any(
-                get_role_info(ur)[0] == ROLE and get_role_info(ur)[1] == "school"
-                for ur in udm_obj.props.ucsschoolRole
-            )
-            and target_group_dn not in udm_obj.props.groups
+        if any(
+            get_role_info(ur)[0] == ROLE and get_role_info(ur)[1] == "school"
+            for ur in udm_obj.props.ucsschoolRole
         ):
-            udm_obj.props.groups.append(target_group_dn)
-            await udm_obj.save()
-            self.logger.info("Added user %r to %r." % (obj.name, target_group_dn))
-        else:
-            self.logger.info(
-                "User %r doesn't have the role %r or already has %r" % (obj.name, ROLE, target_group_dn)
-            )
+            if target_group_dn not in udm_obj.props.groups:
+                udm_obj.props.groups.append(target_group_dn)
+                await udm_obj.save()
+                self.logger.info("Added user %r to %r." % (obj.name, target_group_dn))
+            else:
+                self.logger.info("User %r already has %r" % (obj.name, target_group_dn))
