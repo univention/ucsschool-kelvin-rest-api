@@ -6,12 +6,8 @@ import pytest
 from ucsschool.lib.models.user import User
 from ucsschool.lib.schoolldap import SchoolSearchBase
 from udm_rest_client import UDM
-from univention.config_registry import ConfigRegistry
 
-logging.basicConfig(level=logging.DEBUG, format="%(message)s", handlers=[logging.StreamHandler()])
-
-ucr = ConfigRegistry()
-ucr.load()
+logging.basicConfig(format="%(message)s", handlers=[logging.StreamHandler()])
 
 
 @pytest.mark.skipif(
@@ -20,14 +16,10 @@ ucr.load()
 )
 @pytest.mark.asyncio
 async def test_add_school_admins_to_admin_group(
-    ldap_base,
     create_ou_using_python,
     create_random_users,
     udm_kwargs,
     url_fragment,
-    random_user_create_model,
-    schedule_delete_user_name_using_udm,
-    retry_http_502,
 ):
     """
     This test case tests the add_school_admins_to_admin_group hook.
