@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from ucsschool.lib.models.user import User
+from ucsschool.lib.schoolldap import SchoolSearchBase
 from udm_rest_client import UDM
 from univention.config_registry import ConfigRegistry
 
@@ -31,9 +32,8 @@ async def test_add_school_admins_to_admin_group(
     """
     This test case tests the add_school_admins_to_admin_group hook.
     """
-    # TODO: add third school where it is also school_admin
-    school1 = await create_ou_using_python()  # school_admin
-    school2 = await create_ou_using_python()  # school_admin
+    school1 = await create_ou_using_python()
+    school2 = await create_ou_using_python()
 
     user = (
         await create_random_users(
@@ -49,13 +49,7 @@ async def test_add_school_admins_to_admin_group(
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school1, f"username={user.name}")
         udm_user = await udm.get("users/user").get(lib_users[0].dn)
-        domadm_dn1 = (
-            f"cn={ucr.get('ucsschool/ldap/default/groupprefix/admins', 'admins-')}"
-            f"{school1.lower()},cn=ouadmins,cn=groups,{ldap_base}"
-        )
+        domadm_dn1: str = SchoolSearchBase([school1]).admins_group
         assert domadm_dn1 in udm_user.props.groups
-        domadm_dn2 = (
-            f"cn={ucr.get('ucsschool/ldap/default/groupprefix/admins', 'admins-')}"
-            f"{school2.lower()},cn=ouadmins,cn=groups,{ldap_base}"
-        )
+        domadm_dn2: str = SchoolSearchBase([school2]).admins_group
         assert domadm_dn2 in udm_user.props.groups

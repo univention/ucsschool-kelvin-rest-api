@@ -58,10 +58,8 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
         :return: None
         """
         self.logger.debug("Running a post_create hook for user %r" % obj.name)
-
         udm_obj = await obj.get_udm_object(self.udm)
-
-        self.logger.info("User has groups %r" % udm_obj.props.groups)
+        self.logger.debug("User has groups %r" % udm_obj.props.groups)
 
         relevant_ucsschool_roles = [
             ucsschool_role
@@ -76,7 +74,7 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
                 udm_obj.props.groups.append(target_group_dn)
                 added_groups.append(target_group_dn)
             else:
-                self.logger.info("User %r already has %r" % (obj.name, target_group_dn))
+                self.logger.debug("User %r already has %r" % (obj.name, target_group_dn))
 
         if added_groups:
             await udm_obj.save()
