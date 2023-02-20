@@ -19,20 +19,43 @@ ucr.load()
 )
 @pytest.mark.asyncio
 async def test_add_school_admins_to_admin_group(
-    ldap_base, create_ou_using_python, create_random_users, udm_kwargs
+    ldap_base,
+    create_ou_using_python,
+    create_random_users,
+    udm_kwargs,
+    url_fragment,
+    random_user_create_model,
+    schedule_delete_user_name_using_udm,
+    retry_http_502,
 ):
     """
     This test case tests the add_school_admins_to_admin_group hook.
     """
+    # TODO: add third school where it is also school_admin
+    school1 = await create_ou_using_python()  # school_admin
+    school2 = await create_ou_using_python()  # school_admin
 
-    school = await create_ou_using_python()
-    user = (await create_random_users(ou_name=school, roles={"school_admin": 1}))[0]
+    user = (
+        await create_random_users(
+            ou_name=school1,
+            roles={"school_admin": 1},
+            schools=[
+                f"{url_fragment}/schools/{school1}",
+                f"{url_fragment}/schools/{school2}",
+            ],
+        )
+    )[0]
 
     async with UDM(**udm_kwargs) as udm:
-        lib_users = await User.get_all(udm, school, f"username={user.name}")
+        lib_users = await User.get_all(udm, school1, f"username={user.name}")
         udm_user = await udm.get("users/user").get(lib_users[0].dn)
-        domadm_dn = (
+        domadm_dn1 = (
             f"cn={ucr.get('ucsschool/ldap/default/groupprefix/admins', 'admins-')}"
-            f"{school.lower()},cn=ouadmins,cn=groups,{ldap_base}"
+            f"{school1.lower()},cn=ouadmins,cn=groups,{ldap_base}"
         )
-        assert domadm_dn in udm_user.props.groups
+        assert domadm_dn1 in udm_user.props.groups
+        domadm_dn2 = (
+            f"cn={ucr.get('ucsschool/ldap/default/groupprefix/admins', 'admins-')}"
+            f"{school2.lower()},cn=ouadmins,cn=groups,{ldap_base}"
+        )
+        assert domadm_dn2 in udm_user.props.groups

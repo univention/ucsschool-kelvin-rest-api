@@ -32,9 +32,6 @@ user has the role `school_admin`.
 
 To use it, copy it to
 `/var/lib/ucs-school-import/kelvin-hooks/add_school_admins_to_admin_group.py`
-and run:
-
-$ univention-app shell ucsschool-kelvin-rest-api /etc/init.d/ucsschool-kelvin-rest-api restart
 """
 
 from ucsschool.importer.models.import_user import ImportUser
@@ -62,18 +59,25 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
         """
         self.logger.debug("Running a post_create hook for user %r" % obj.name)
 
-        target_group_dn: str = SchoolSearchBase([obj.school]).admins_group
         udm_obj = await obj.get_udm_object(self.udm)
 
         self.logger.info("User has groups %r" % udm_obj.props.groups)
 
-        if any(
-            get_role_info(ur)[0] == ROLE and get_role_info(ur)[1] == "school"
-            for ur in udm_obj.props.ucsschoolRole
-        ):
+        relevant_ucsschool_roles = [
+            ucsschool_role
+            for ucsschool_role in udm_obj.props.ucsschoolRole
+            if get_role_info(ucsschool_role)[0] == ROLE and get_role_info(ucsschool_role)[1] == "school"
+        ]
+        added_groups = []
+
+        for ucsschool_role in relevant_ucsschool_roles:
+            target_group_dn: str = SchoolSearchBase([get_role_info(ucsschool_role)[2]]).admins_group
             if target_group_dn not in udm_obj.props.groups:
                 udm_obj.props.groups.append(target_group_dn)
-                await udm_obj.save()
-                self.logger.info("Added user %r to %r." % (obj.name, target_group_dn))
+                added_groups.append(target_group_dn)
             else:
                 self.logger.info("User %r already has %r" % (obj.name, target_group_dn))
+
+        if added_groups:
+            await udm_obj.save()
+            self.logger.info("Added user %r to %r." % (obj.name, added_groups))
