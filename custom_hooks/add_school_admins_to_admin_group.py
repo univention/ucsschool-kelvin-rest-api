@@ -56,9 +56,7 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
 
     async def post_create(self, obj: ImportUser) -> None:
         """
-        Get the user data after account creation
-        to check the ucsschoolRole and add the
-        user to the admin groups if necessary.
+        Add school_admin users to the admin groups if necessary.
         :param: ImportUser.
         :return: None
         """

@@ -28,7 +28,6 @@ async def test_add_school_admins_to_admin_group(
     school = await create_ou_using_python()
     user = (await create_random_users(ou_name=school, roles={"school_admin": 1}))[0]
 
-    # Init udm object
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={user.name}")
         udm_user = await udm.get("users/user").get(lib_users[0].dn)
