@@ -62,7 +62,7 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
         :param: ImportUser.
         :return: None
         """
-        self.logger.info("Running a post_create hook for user %r" % obj.name)
+        self.logger.debug("Running a post_create hook for user %r" % obj.name)
 
         target_group_dn: str = SchoolSearchBase([obj.school]).admins_group
         udm_obj = await obj.get_udm_object(self.udm)
