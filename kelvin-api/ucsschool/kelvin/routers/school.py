@@ -271,6 +271,7 @@ async def school_get(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to list schools.",
         )
+    await search_schools_in_ldap(school_name, raise404=True)  # shortcut for case OU doesn't exist
     school = await School.from_dn(School(name=school_name).dn, None, udm)
     return await SchoolModel.from_lib_model(school, request, udm)
 
@@ -359,6 +360,7 @@ async def school_create(
         error_msg = f"Failed to create school {school_obj.name!r}: {exc}"
         logger.exception(error_msg)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
+    await _remove_ou_from_cache(school.name)
     background_tasks.add_task(ImportUser.update_all_school_names_cache)
     school_obj_to_fix = await School.from_dn(school_obj.dn, school_obj.name, udm)
     school_obj_to_fix.udm_properties = school_obj.udm_properties
@@ -400,26 +402,35 @@ async def school_exists(
 
     # Always do a fresh LDAP search for this resource. Don't use value from cache.
     # (As a side effect, this will add/update the cache entry for `school_name`.)
-    cache = Cache(Cache.MEMORY, namespace=OU_CACHE_NAMESPACE)
-    await cache.delete(ou_cache_key(search_schools_in_ldap, school_name), namespace=OU_CACHE_NAMESPACE)
+    await _remove_ou_from_cache(school_name)
 
-    results = await search_schools_in_ldap(school_name)
+    results = await search_schools_in_ldap(school_name, raise404=False)
     status_code = status.HTTP_200_OK if results else status.HTTP_404_NOT_FOUND
     return Response(status_code=status_code)
 
 
 @cached(ttl=OU_CACHE_TTL, cache=Cache.MEMORY, namespace=OU_CACHE_NAMESPACE, key_builder=ou_cache_key)
-async def search_schools_in_ldap(ou: str, *, raise404: bool = False) -> List[str]:
-    """Get names of school OUs matching `ou`. Optionally raise HTTPException(404)."""
+async def _search_schools_in_ldap(ou: str) -> List[str]:
     uldap = uldap_admin_read_local()
     results = uldap.search(
         filter_format("(&(objectClass=ucsschoolOrganizationalUnit)(ou=%s))", (ou,)),
         attributes=["ou"],
     )
-    ous = [r["ou"].value for r in results]
+    return [r["ou"].value for r in results]
+
+
+async def search_schools_in_ldap(ou: str, *, raise404: bool = False) -> List[str]:
+    """Get names of school OUs matching `ou`. Optionally raise HTTPException(404)."""
+    ous = await _search_schools_in_ldap(ou)
     if not ous and raise404:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No school with name={ou!r} found.",
         )
     return ous
+
+
+async def _remove_ou_from_cache(ou: str) -> None:
+    cache = Cache(Cache.MEMORY, namespace=OU_CACHE_NAMESPACE)
+    cache_key = ou_cache_key(_search_schools_in_ldap, ou)
+    await cache.delete(cache_key, namespace=OU_CACHE_NAMESPACE)
