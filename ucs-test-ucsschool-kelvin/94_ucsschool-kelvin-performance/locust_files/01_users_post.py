@@ -6,11 +6,14 @@
 ## packages: []
 ## bugs: []
 
+import logging
 import random
 
 from locust import task
 from locust_files.base import KelvinClient
+from requests.exceptions import JSONDecodeError
 
+logger = logging.getLogger(__name__)
 URL_NAME = f"{KelvinClient.base_path}/users/"
 
 
@@ -36,3 +39,16 @@ class CreateUser(KelvinClient):
             res = self.request("post", url, json=payload, response_codes=[201])
             if res.status_code < 400:
                 self.test_cleaner.delete_user_later(name)
+            else:
+                try:
+                    msg = res.json()
+                except JSONDecodeError:
+                    msg = res.text
+                logger.error(
+                    "POST %r payload=%r -> [HTTP %d (%s)] %r",
+                    url,
+                    payload,
+                    res.status_code,
+                    res.reason,
+                    msg,
+                )

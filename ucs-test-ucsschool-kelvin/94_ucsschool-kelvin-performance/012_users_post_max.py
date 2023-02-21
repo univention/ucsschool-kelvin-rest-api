@@ -19,7 +19,7 @@ LOCUST_ENV_VARIABLES["LOCUST_STOP_TIMEOUT"] = "15"
 LOCUST_ENV_VARIABLES["LOCUST_SPAWN_RATE"] = "0.2"  # add a user every 5s
 LOCUST_ENV_VARIABLES["LOCUST_USERS"] = str(4 * 1 * 4)  # 4 parallel clients on 1 machine with 4 CPUs
 
-RESULT_FILES_NAME = "users-post"
+RESULT_FILES_NAME = "users-post-max"
 RESULT_FILE_BASE_PATH = RESULT_DIR / RESULT_FILES_NAME
 LOCUST_FILE_PATH = Path(__file__).parent / "locust_files" / "01_users_post.py"
 URL_NAME = f"{KELVIN_URL_BASE}/users/"
