@@ -4,7 +4,7 @@ asgi-correlation-id>=3.0.1
 async-lru
 async-property
 diskcache
-fastapi>=0.83.0
+fastapi>=0.83.0,<0.90.0
 fastapi_utils
 httpx
 lazy-object-proxy
