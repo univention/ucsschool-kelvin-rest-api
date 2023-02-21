@@ -1188,7 +1188,10 @@ class UCSSchoolHelperAbstractClass(object):
         If none is found, None is returned
         """
         if cls._meta.udm_filter:
-            filter_str = "(&(%s)(%s))" % (cls._meta.udm_filter, filter_str)
+            udm_filter = cls._meta.udm_filter
+            if not udm_filter.startswith("("):
+                udm_filter = f"({udm_filter})"
+            filter_str = f"(&{udm_filter}({filter_str}))"
         cls.logger.debug("Getting %s UDM object by filter: %s", cls.__name__, filter_str)
         objs = [
             obj

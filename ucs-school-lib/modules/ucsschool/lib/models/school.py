@@ -690,7 +690,9 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                 lo, school=None, filter_str=filter_str, easy_filter=easy_filter
             )
         else:
-            complete_filter = f"({cls.Meta.udm_filter})"
+            complete_filter = cls.Meta.udm_filter
+            if not cls.Meta.udm_filter.startswith("("):
+                complete_filter = f"({complete_filter})"
             if filter_str and not filter_str.startswith("("):
                 filter_str = f"({filter_str})"
             if filter_str:
@@ -999,6 +1001,6 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     class Meta:
         udm_module = "container/ou"
-        udm_filter = "objectClass=ucsschoolOrganizationalUnit"
+        udm_filter = "(objectClass=ucsschoolOrganizationalUnit)"
         ldap_name_part = "ou"
-        _ldap_filter = f"(&({udm_filter})({ldap_name_part}={{name}}))"
+        _ldap_filter = f"(&{udm_filter}({ldap_name_part}={{name}}))"
