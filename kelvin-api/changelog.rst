@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.8.5 (2023-02-21)
+...................
+* Fix ``h11._util.LocalProtocolError: Can't send data when our state is ERROR`` traceback (Bug #55730).
+
 v1.8.4 (2023-02-16)
 ...................
 * Security fix in login (Issue #64).

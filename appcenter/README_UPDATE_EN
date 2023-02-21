@@ -1,5 +1,10 @@
 <h1>Changelog</h1>
 
+<h2>v1.8.5 (2023-02-21)</h2>
+<ul>
+    <li>Fix `h11._util.LocalProtocolError: Can't send data when our state is ERROR` traceback (Bug #55730).</li>
+</ul>
+
 <h2>v1.8.4 (2023-02-16)</h2>
 <ul>
     <li>A critical security vulnerability was fixed (CVSS 9.1): The vulnerability allows to access the API as any valid user without knowing their passwords. This leads to full access for attackers to UCS@school data provided by the Kelvin API.</li>
