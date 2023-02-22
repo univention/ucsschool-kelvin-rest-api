@@ -1,3 +1,9 @@
+ucs-test-ucsschool-kelvin (1.0.6) unstable; urgency=low
+
+  * Issue #56: fix fixture
+
+ -- Daniel Troeder <troeder@univention.de>  Wed, 22 Feb 2023 10:39:11 +0100
+
 ucs-test-ucsschool-kelvin (1.0.5) unstable; urgency=low
 
   * Issue #56: make sure random values for IDs and passwords are unique

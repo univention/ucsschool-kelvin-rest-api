@@ -84,11 +84,6 @@ def random_last_name():
 
 
 @pytest.fixture(scope="session")
-def random_password():
-    return fake.unique.password
-
-
-@pytest.fixture(scope="session")
 def udm_kwargs() -> Dict[str, Any]:
     with open(CN_ADMIN_PASSWORD_FILE, "r") as fp:
         cn_admin_password = fp.read().strip()
