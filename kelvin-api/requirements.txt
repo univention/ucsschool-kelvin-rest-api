@@ -21,4 +21,4 @@ orjson>=3.8.4
 univention-config-registry
 uvicorn
 gunicorn
-uldap3>=1.0.0
+uldap3>=1.1.0
