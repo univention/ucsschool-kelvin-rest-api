@@ -119,31 +119,31 @@ docs-warnings:
     - changes:
       - $DOCS_DIR/**/*
 
-docs-merge:
+docs-merge-to-one-artifact:
   extends: .sphinx-merge-template
   needs:
     - job: docs-html
-      artifacts: true
     - job: docs-pdf
-      artifacts: true
     - job: docs-spelling
       artifacts: false
     - job: docs-linkcheck
       artifacts: false
   rules:
-    - changes:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
       - $DOCS_DIR/**/*
+      when: manual
 
-docs-merge-request:
+# The template has inherit:variables:false to prevent the passing of pipeline
+# variables to downstream, and therefore $DOCS_DIR is not available here.
+docs-create-production-merge-request:
   extends: .sphinx-docs-merge-request-template
   needs:
-    - job: docs-merge
-      artifacts: true
+    - job: docs-merge-to-one-artifact
   rules:
-    - changes:
-      - $DOCS_DIR/**/*
-      if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-      when: manual
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+      - doc/docs/**/*
 
 
 build_docker_image:
