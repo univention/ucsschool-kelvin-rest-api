@@ -113,6 +113,12 @@ docs-spelling:
     - changes:
       - $DOCS_DIR/**/*
 
+docs-warnings:
+  extends: .sphinx-warnings-template
+  rules:
+    - changes:
+      - $DOCS_DIR/**/*
+
 docs-merge:
   extends: .sphinx-merge-template
   needs:
