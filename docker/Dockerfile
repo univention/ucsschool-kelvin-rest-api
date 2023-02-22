@@ -76,14 +76,18 @@ RUN apk add --no-cache --virtual mybuilddeps $(cat /tmp/alpine_apk_list.build) &
 	python3 -m pip install --no-cache-dir --compile aiohttp certifi && \
 	# python-debian for UCR
 	python3 -m pip install --no-cache-dir --compile python-debian && \
+    # install dependencies of "openapi-client-udm" (next line), so they don't get pulled from test.pypi.org
+    python3 -m pip install --no-cache-dir --compile 'urllib3>=1.25.3' 'six>=1.10' python-dateutil 'aiohttp>=3.0.0' && \
 	# install pre-build openapi-client-udm package, not yet built against app host
-	python3 -m pip install --no-cache-dir --compile -i https://test.pypi.org/simple/ openapi-client-udm && \
+	python3 -m pip install --no-cache-dir --compile --extra-index-url https://test.pypi.org/simple/ 'openapi-client-udm>=1.0.2' && \
 	# install most current udm_rest_client package (instead of the one from pypi)
 	python3 -m pip install --no-cache-dir --compile git+https://github.com/univention/python-udm-rest-api-client.git && \
 	# install uldap3 from the GitLab registry
 	python3 -m pip install --no-cache-dir --compile --index-url https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple "uldap3>=1.1.0" && \
 	# install all remaining Python requirements
 	python3 -m pip install --no-cache-dir --compile --extra-index-url https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple -r /tmp/requirements_all.txt && \
+    # check that no later installation reverted openapi-client-udm to a version incompatible with Python 3.11
+    grep -q inspect.getargspec /usr/lib/python3.11/site-packages/openapi_client_udm/models/container_ou.py && exit 1 || \
     apk del --no-cache mybuilddeps && \
 	rm -rf /tmp/*
 
