@@ -153,7 +153,7 @@ def delete_ou(ucr_ldap_base):
 
 
 @pytest.fixture(scope="session")
-def make_user_attrs(import_config, mail_domain, random_int, random_username):
+def make_user_attrs(import_config, mail_domain, random_int, random_password, random_username):
     def _func(ous, partial=False, **kwargs):
         # type: (List[str], Optional[bool], **Any) -> Dict[str, Any]
         roles = kwargs.pop("roles", None) or random.choice(  # nosec
@@ -172,7 +172,7 @@ def make_user_attrs(import_config, mail_domain, random_int, random_username):
             "email": "{}@{}".format(random_username(), mail_domain),
             "firstname": random_username(),
             "lastname": random_username(),
-            "password": random_username(16),
+            "password": random_password(32),
             "record_uid": random_username(),
             "roles": [urljoin(RESOURCE_URLS["roles"], role) for role in roles],
             "school": urljoin(RESOURCE_URLS["schools"], sorted(ous)[0]),

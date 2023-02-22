@@ -355,7 +355,7 @@ class HttpApiUserTestBase(TestCase):
             "email": "{}@{}".format(uts.random_username(), self.itb.maildomain),
             "firstname": uts.random_username(),
             "lastname": uts.random_username(),
-            "password": uts.random_username(16),
+            "password": uts.random_username(32),
             "record_uid": uts.random_username(),
             "roles": [urljoin(RESOURCE_URLS["roles"], role) for role in roles],
             "school": urljoin(RESOURCE_URLS["schools"], sorted(ous)[0]),

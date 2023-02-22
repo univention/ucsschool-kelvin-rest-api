@@ -63,24 +63,29 @@ def ldap_base():
 @pytest.fixture
 def random_ou_name():
     def _func() -> str:
-        return f"testou{fake.pyint(1000, 9999)}"
+        return f"testou{fake.unique.pyint(1000, 9999)}"
 
     return _func
 
 
 @pytest.fixture(scope="session")
 def random_user_name():
-    return fake.user_name
+    return fake.unique.user_name
 
 
 @pytest.fixture(scope="session")
 def random_first_name():
-    return fake.first_name
+    return fake.unique.first_name
 
 
 @pytest.fixture(scope="session")
 def random_last_name():
-    return fake.last_name
+    return fake.unique.last_name
+
+
+@pytest.fixture(scope="session")
+def random_password():
+    return fake.unique.password
 
 
 @pytest.fixture(scope="session")
@@ -122,14 +127,14 @@ def school_class_attrs(ldap_base):
 def workgroup_attrs(ldap_base):
     async def _func(school: str, **kwargs) -> Dict[str, str]:
         return {
-            "name": kwargs.get("name", f"test.{fake.user_name()}"),
+            "name": kwargs.get("name", f"test.{fake.unique.user_name()}"),
             "school": school,
             "description": kwargs.get("description", fake.text(max_nb_chars=50)),
             "users": kwargs.get(
                 "users",
                 [
-                    f"uid={fake.user_name()},cn=users,{ldap_base}",
-                    f"uid={fake.user_name()},cn=users,{ldap_base}",
+                    f"uid={fake.unique.user_name()},cn=users,{ldap_base}",
+                    f"uid={fake.unique.user_name()},cn=users,{ldap_base}",
                 ],
             ),
             "ucsschool_roles": kwargs.get(
@@ -156,15 +161,15 @@ class UserFactory(factory.Factory):
     firstname = factory.Faker("first_name")
     lastname = factory.Faker("last_name")
     name = factory.LazyAttribute(
-        lambda o: f"test.{o.firstname[:8]}{fake.pyint(10, 99)}.{o.lastname}"[:15].rstrip(".")
+        lambda o: f"test.{o.firstname[:8]}{fake.unique.pyint(10, 99)}.{o.lastname}"[:15].rstrip(".")
     )
-    school = factory.LazyFunction(lambda: fake.user_name()[:10])
+    school = factory.LazyFunction(lambda: fake.unique.user_name()[:10])
     schools = factory.LazyAttribute(lambda o: [o.school])
     birthday = factory.LazyFunction(
-        lambda: fake.date_of_birth(minimum_age=6, maximum_age=18).strftime("%Y-%m-%d")
+        lambda: fake.unique.date_of_birth(minimum_age=6, maximum_age=18).strftime("%Y-%m-%d")
     )
     expiration_date = factory.LazyFunction(
-        lambda: fake.date_between(start_date="+1y", end_date="+10y").strftime("%Y-%m-%d")
+        lambda: fake.unique.date_between(start_date="+1y", end_date="+10y").strftime("%Y-%m-%d")
     )
     email = None
     password = factory.Faker("password", length=20)
@@ -209,7 +214,7 @@ def school_user(mail_domain):
 
     def _func(school: str, **kwargs) -> ucsschool.lib.models.user.User:
         if "email" not in kwargs:
-            local_part = fake.ascii_company_email().split("@", 1)[0]
+            local_part = fake.unique.ascii_company_email().split("@", 1)[0]
             kwargs["email"] = f"{local_part}@{mail_domain}"
         if "schools" not in kwargs:
             kwargs["schools"] = [school]
@@ -729,7 +734,7 @@ async def schedule_delete_ou_using_ssh_at_end_of_session(delete_ou_using_ssh, de
 
 
 def create_ou_kwargs(ou_name: str = None) -> Dict[str, Any]:
-    ou_name = ou_name or f"testou{fake.pyint(1000, 9999)}"
+    ou_name = ou_name or f"testou{fake.unique.pyint(1000, 9999)}"
     assert ou_name not in {ou[0] for ou in _cached_ous}
     short_ou_name = f"{ou_name}"[:10]
     is_single_master = ucr.is_true("ucsschool/singlemaster")
