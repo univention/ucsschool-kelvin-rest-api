@@ -2835,7 +2835,7 @@ async def test_create_invalid_custom_ucsschool_roles(
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 @pytest.mark.parametrize("method", ("patch", "put"))
 async def test_modify_custom_ucsschool_roles(
-    create_ou_using_python,
+    create_multiple_ous,
     new_import_user,
     url_fragment_https,
     retry_http_502,
@@ -2849,8 +2849,7 @@ async def test_modify_custom_ucsschool_roles(
     roles = [role.name]
     if role.name == "teacher_and_staff":
         roles = ["staff", "teacher"]
-    school = await create_ou_using_python()
-    school2 = await create_ou_using_python()
+    school, school2 = create_multiple_ous(2)
     create_kwargs = {}
     user: ImportUser = await new_import_user(school, role.name, **create_kwargs)
     schedule_delete_user_name_using_udm(user.name)

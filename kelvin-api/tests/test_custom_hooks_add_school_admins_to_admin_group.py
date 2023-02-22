@@ -16,7 +16,7 @@ logging.basicConfig(format="%(message)s", handlers=[logging.StreamHandler()])
 )
 @pytest.mark.asyncio
 async def test_add_school_admins_to_admin_group(
-    create_ou_using_python,
+    create_multiple_ous,
     create_random_users,
     udm_kwargs,
     url_fragment,
@@ -24,8 +24,7 @@ async def test_add_school_admins_to_admin_group(
     """
     This test case tests the add_school_admins_to_admin_group hook.
     """
-    school1 = await create_ou_using_python()
-    school2 = await create_ou_using_python()
+    school1, school2 = create_multiple_ous(2)
 
     user = (
         await create_random_users(
