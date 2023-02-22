@@ -13,8 +13,7 @@ class TestData(object):
 
     @property
     def schools(self) -> List[str]:
-        # return self.db["schools"]
-        return ["001", "002", "003", "004"]
+        return self.db["schools"]
 
     def random_school(self) -> str:
         """Return a random school from the dataset"""
@@ -50,6 +49,4 @@ class TestData(object):
 
     def random_class(self, school: str) -> str:
         """Return a random class from ``school``"""
-        # return random.choice(self.db[school]["classes"])
-        classes = {"001": ["1a"], "002": ["1a"], "003": ["1a"], "004": ["1a"]}
-        return random.choice(classes[school])  # nosec
+        return random.choice(self.db[school]["classes"])  # nosec
