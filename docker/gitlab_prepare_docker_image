@@ -74,8 +74,8 @@ done
 
 
 echo "Downloading OpenAPI Generator JAR file..."
-OPENAPI_CLIENT_GENERATOR_JAR="$(wget -q -O - https://raw.githubusercontent.com/univention/python-udm-rest-api-client/master/update_openapi_client | egrep '^JAR_URL = ' | cut -f 3 -d ' ')"
-if ! ls -l build/openapi-generator-cli-*.jar 2>/dev/null; then
+OPENAPI_CLIENT_GENERATOR_JAR="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/5.4.0/openapi-generator-cli-5.4.0.jar"
+if ! ls -l build/openapi-generator-cli-5.4.0.jar 2>/dev/null; then
   wget -P build/ "${OPENAPI_CLIENT_GENERATOR_JAR//\"}"
 fi
 
