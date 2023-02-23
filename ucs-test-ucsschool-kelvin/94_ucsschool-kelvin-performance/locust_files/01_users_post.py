@@ -1,11 +1,3 @@
-#!/usr/share/ucs-test/runner /usr/bin/pytest-3 -l -v
-## -*- coding: utf-8 -*-
-## desc: Test performance of POST /ucsschool/kelvin/v1/users/
-## tags: [kelvin, performance]
-## exposure: dangerous
-## packages: []
-## bugs: []
-
 import logging
 import random
 

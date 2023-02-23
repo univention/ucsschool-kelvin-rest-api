@@ -44,8 +44,8 @@ class TokenError(Exception):
 
 
 def retrieve_token(host: str, username: str, password: str) -> AuthToken:
-    logger.info("Fetching access token for %r from %r...", username, host)
     url = f"https://{host}{AUTH_TOKEN_URL}"
+    logger.info("Fetching access token for %r from %r...", username, url)
     headers = {"accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
     data = {"username": username, "password": password}
     response = requests.post(url, data=data, headers=headers)

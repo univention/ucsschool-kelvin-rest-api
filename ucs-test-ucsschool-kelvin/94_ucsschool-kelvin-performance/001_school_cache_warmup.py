@@ -1,8 +1,8 @@
 #!/usr/share/ucs-test/runner /usr/bin/pytest-3 -l -v
 ## -*- coding: utf-8 -*-
-## desc: Test performance of POST /ucsschool/kelvin/v1/users/ (max)
+## desc: Fill schools cache by retrieving /ucsschool/kelvin/v1/schools/
 ## tags: [kelvin, performance]
-## exposure: dangerous
+## exposure: safe
 ## packages: []
 ## bugs: []
 
@@ -14,21 +14,21 @@ from conftest import ENV_LOCUST_DEFAULTS, RESULT_DIR, set_locust_environment_var
 from locust_files.settings_kelvin import KELVIN_URL_BASE
 
 LOCUST_ENV_VARIABLES = copy.deepcopy(ENV_LOCUST_DEFAULTS)
-LOCUST_ENV_VARIABLES["LOCUST_RUN_TIME"] = "2m"
+LOCUST_ENV_VARIABLES["LOCUST_RUN_TIME"] = "3m"
 LOCUST_ENV_VARIABLES["LOCUST_STOP_TIMEOUT"] = "15"
-LOCUST_ENV_VARIABLES["LOCUST_SPAWN_RATE"] = "0.2"  # add a user every 5s
-LOCUST_ENV_VARIABLES["LOCUST_USERS"] = str(4 * 1 * 4)  # 4 clients per CPU on 1 machine with 4 CPUs
+LOCUST_ENV_VARIABLES["LOCUST_SPAWN_RATE"] = str(4 * 1 * 4)  # fast startup
+LOCUST_ENV_VARIABLES["LOCUST_USERS"] = str(4 * 1 * 4)  # 16 parallel clients on 1 machine with 4 CPUs
 
-RESULT_FILES_NAME = "012_users-post-max"
+RESULT_FILES_NAME = "00_school-cache-warmup"
 RESULT_FILE_BASE_PATH = RESULT_DIR / RESULT_FILES_NAME
-LOCUST_FILE_PATH = Path(__file__).parent / "locust_files" / "01_users_post.py"
-URL_NAME = f"{KELVIN_URL_BASE}/users/"
+LOCUST_FILE_PATH = Path(__file__).parent / "locust_files" / "00_schools_get_all.py"
+URL_NAME = f"{KELVIN_URL_BASE}/schools/"
 
 
 @pytest.fixture(scope="module")
 def run_test(execute_test, verify_test_sent_requests, wait_for_replication, sleep10):
     set_locust_environment_vars(LOCUST_ENV_VARIABLES)
-    execute_test(LOCUST_FILE_PATH, "CreateUser", RESULT_FILE_BASE_PATH)
+    execute_test(LOCUST_FILE_PATH, "GetAllSchools", RESULT_FILE_BASE_PATH)
     # fail in fixture, so pytest prints the output of Locust,
     # regardless which test_*() function started Locust
     verify_test_sent_requests(RESULT_FILE_BASE_PATH)
@@ -43,4 +43,4 @@ def test_rps(check_rps, run_test):
 
 
 def test_95_percentile(check_95_percentile, run_test):
-    check_95_percentile(RESULT_FILE_BASE_PATH, URL_NAME, 2000)
+    check_95_percentile(RESULT_FILE_BASE_PATH, URL_NAME, 40000)

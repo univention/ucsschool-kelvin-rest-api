@@ -1,8 +1,8 @@
 #!/usr/share/ucs-test/runner /usr/bin/pytest-3 -l -v
 ## -*- coding: utf-8 -*-
-## desc: Test performance of POST /ucsschool/kelvin/v1/users/ (max)
+## desc: Test performance of GET /ucsschool/kelvin/v1/users/ (max)
 ## tags: [kelvin, performance]
-## exposure: dangerous
+## exposure: safe
 ## packages: []
 ## bugs: []
 
@@ -19,16 +19,16 @@ LOCUST_ENV_VARIABLES["LOCUST_STOP_TIMEOUT"] = "15"
 LOCUST_ENV_VARIABLES["LOCUST_SPAWN_RATE"] = "0.2"  # add a user every 5s
 LOCUST_ENV_VARIABLES["LOCUST_USERS"] = str(4 * 1 * 4)  # 4 clients per CPU on 1 machine with 4 CPUs
 
-RESULT_FILES_NAME = "012_users-post-max"
+RESULT_FILES_NAME = "022_users-get-max"
 RESULT_FILE_BASE_PATH = RESULT_DIR / RESULT_FILES_NAME
-LOCUST_FILE_PATH = Path(__file__).parent / "locust_files" / "01_users_post.py"
+LOCUST_FILE_PATH = Path(__file__).parent / "locust_files" / "02_users_get.py"
 URL_NAME = f"{KELVIN_URL_BASE}/users/"
 
 
 @pytest.fixture(scope="module")
 def run_test(execute_test, verify_test_sent_requests, wait_for_replication, sleep10):
     set_locust_environment_vars(LOCUST_ENV_VARIABLES)
-    execute_test(LOCUST_FILE_PATH, "CreateUser", RESULT_FILE_BASE_PATH)
+    execute_test(LOCUST_FILE_PATH, "GetUser", RESULT_FILE_BASE_PATH)
     # fail in fixture, so pytest prints the output of Locust,
     # regardless which test_*() function started Locust
     verify_test_sent_requests(RESULT_FILE_BASE_PATH)
