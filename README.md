@@ -93,6 +93,9 @@ The pipeline also needs to be triggered manually.
 
 ## Install in a virtualenv
 
+Please be aware that python-ldap is a dependency of univention-lib-slim. This python package requires to build some C-extensions and has
+some additional requirements. Please follow the instructions provided [here](https://www.python-ldap.org/en/python-ldap-3.4.3/installing.html#installing-from-pypi)
+
 ```shell
 python3 -m venv venv
 . venv/bin/activate
