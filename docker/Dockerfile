@@ -81,8 +81,6 @@ RUN apk add --no-cache --virtual mybuilddeps $(cat /tmp/alpine_apk_list.build) &
 	python3 -m pip install --no-cache-dir --compile --extra-index-url https://test.pypi.org/simple/ 'openapi-client-udm>=1.0.2' && \
 	# install most current udm_rest_client package (instead of the one from pypi)
 	python3 -m pip install --no-cache-dir --compile git+https://github.com/univention/python-udm-rest-api-client.git && \
-	# install uldap3 from the GitLab registry
-	python3 -m pip install --no-cache-dir --compile --index-url https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple "uldap3>=1.1.0" && \
 	# install all remaining Python requirements
 	python3 -m pip install --no-cache-dir --compile --extra-index-url https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple -r /tmp/requirements_all.txt && \
     # check that no later installation reverted openapi-client-udm to a version incompatible with Python 3.11
