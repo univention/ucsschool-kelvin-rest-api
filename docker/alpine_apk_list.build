@@ -3,3 +3,6 @@ gcc
 git
 linux-headers
 musl-dev
+libc-dev
+libffi-dev
+cargo
