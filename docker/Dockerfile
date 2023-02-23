@@ -25,8 +25,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-# TODO: set to specific alpine version (>=3.18?) that includes Python 3.11 or migarte to Debian image
-FROM alpine:edge
+FROM python:3.11-alpine
 
 VOLUME /var/log
 
