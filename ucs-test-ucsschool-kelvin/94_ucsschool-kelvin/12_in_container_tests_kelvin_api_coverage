@@ -1,0 +1,17 @@
+#!/usr/share/ucs-test/runner bash
+## desc: coverage of the previous kelvin api tests (requires 10_in_container_tests_kelvin_api to have run)
+## tags: [ucs_school_kelvin]
+## exposure: dangerous
+## packages: []
+## bugs: []
+
+APP="ucsschool-kelvin-rest-api"
+MIN_COVERAGE=70
+
+declare -a CMD=(sh -c "
+cd /kelvin/kelvin-api &&
+ls -la .coverage &&
+coverage report --show-missing --fail-under=$MIN_COVERAGE")
+
+echo "Running in container:" "${CMD[@]}"
+univention-app shell "$APP" "${CMD[@]}"

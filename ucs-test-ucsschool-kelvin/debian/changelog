@@ -1,3 +1,10 @@
+ucs-test-ucsschool-kelvin (1.0.9) unstable; urgency=low
+
+  * Issue #56: workaround Alpine make problem
+  * Issue #56: reorder and rename performance test
+
+ -- Daniel Troeder <troeder@univention.de>  Fri, 24 Feb 2023 11:31:44 +0100
+
 ucs-test-ucsschool-kelvin (1.0.8) unstable; urgency=low
 
   * Issue #56: performance tests: warmup school cache, add user-get

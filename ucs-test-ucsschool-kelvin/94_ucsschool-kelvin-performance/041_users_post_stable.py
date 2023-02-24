@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner /usr/bin/pytest-3 -l -v
 ## -*- coding: utf-8 -*-
-## desc: Test performance of POST /ucsschool/kelvin/v1/users/ (max)
+## desc: Test performance of POST /ucsschool/kelvin/v1/users/ (stable)
 ## tags: [kelvin, performance]
 ## exposure: dangerous
 ## packages: []
@@ -14,14 +14,14 @@ from conftest import ENV_LOCUST_DEFAULTS, RESULT_DIR, set_locust_environment_var
 from locust_files.settings_kelvin import KELVIN_URL_BASE
 
 LOCUST_ENV_VARIABLES = copy.deepcopy(ENV_LOCUST_DEFAULTS)
-LOCUST_ENV_VARIABLES["LOCUST_RUN_TIME"] = "2m"
+LOCUST_ENV_VARIABLES["LOCUST_RUN_TIME"] = "1m"
 LOCUST_ENV_VARIABLES["LOCUST_STOP_TIMEOUT"] = "15"
-LOCUST_ENV_VARIABLES["LOCUST_SPAWN_RATE"] = "0.2"  # add a user every 5s
-LOCUST_ENV_VARIABLES["LOCUST_USERS"] = str(4 * 1 * 4)  # 4 clients per CPU on 1 machine with 4 CPUs
+LOCUST_ENV_VARIABLES["LOCUST_SPAWN_RATE"] = "0.1"  # add a user every 10s
+LOCUST_ENV_VARIABLES["LOCUST_USERS"] = "4"  # should not overtax system
 
-RESULT_FILES_NAME = "012_users-post-max"
+RESULT_FILES_NAME = "041-users-post-stable"
 RESULT_FILE_BASE_PATH = RESULT_DIR / RESULT_FILES_NAME
-LOCUST_FILE_PATH = Path(__file__).parent / "locust_files" / "01_users_post.py"
+LOCUST_FILE_PATH = Path(__file__).parent / "locust_files" / "04_users_post.py"
 URL_NAME = f"{KELVIN_URL_BASE}/users/"
 
 
@@ -39,8 +39,8 @@ def test_failure_count(check_failure_count, run_test):
 
 
 def test_rps(check_rps, run_test):
-    check_rps(RESULT_FILE_BASE_PATH, URL_NAME, 0.5)
+    check_rps(RESULT_FILE_BASE_PATH, URL_NAME, 1.0)
 
 
 def test_95_percentile(check_95_percentile, run_test):
-    check_95_percentile(RESULT_FILE_BASE_PATH, URL_NAME, 2000)
+    check_95_percentile(RESULT_FILE_BASE_PATH, URL_NAME, 4000)

@@ -7,13 +7,12 @@
 ## external-junit: /tmp/kelvin_api_in_container_integration_tests.xml
 
 APP="ucsschool-kelvin-rest-api"
-MIN_COVERAGE=70
 
 declare -a CMD=(sh -c "
 cd /kelvin/kelvin-api &&
-export MY_COVERAGE_REPORT_ARGS=\"--fail-under=$MIN_COVERAGE\" &&
-rm -f .coverage &&
-make coverage")
+rm -f .coverage /tmp/junit.xml &&
+coverage run --source tests,ucsschool -m pytest --junit-xml=/tmp/junit.xml --junit-prefix=94_ucsschool-api-kelvin.10_in_container_tests_kelvin_api;
+ls -la .coverage")
 
 echo "Running in container:" "${CMD[@]}"
 

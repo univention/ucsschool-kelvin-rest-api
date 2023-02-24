@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner /usr/bin/pytest-3 -l -v
 ## -*- coding: utf-8 -*-
-## desc: Test performance of GET /ucsschool/kelvin/v1/users/ (max)
+## desc: Test performance of GET /ucsschool/kelvin/v1/users/USERNAME (stable)
 ## tags: [kelvin, performance]
 ## exposure: safe
 ## packages: []
@@ -14,14 +14,14 @@ from conftest import ENV_LOCUST_DEFAULTS, RESULT_DIR, set_locust_environment_var
 from locust_files.settings_kelvin import KELVIN_URL_BASE
 
 LOCUST_ENV_VARIABLES = copy.deepcopy(ENV_LOCUST_DEFAULTS)
-LOCUST_ENV_VARIABLES["LOCUST_RUN_TIME"] = "2m"
+LOCUST_ENV_VARIABLES["LOCUST_RUN_TIME"] = "1m"
 LOCUST_ENV_VARIABLES["LOCUST_STOP_TIMEOUT"] = "15"
-LOCUST_ENV_VARIABLES["LOCUST_SPAWN_RATE"] = "0.2"  # add a user every 5s
-LOCUST_ENV_VARIABLES["LOCUST_USERS"] = str(4 * 1 * 4)  # 4 clients per CPU on 1 machine with 4 CPUs
+LOCUST_ENV_VARIABLES["LOCUST_SPAWN_RATE"] = "0.1"  # add a user every 10s
+LOCUST_ENV_VARIABLES["LOCUST_USERS"] = "4"  # should not overtax system
 
-RESULT_FILES_NAME = "022_users-get-max"
+RESULT_FILES_NAME = "021-users-get-obj-stable"
 RESULT_FILE_BASE_PATH = RESULT_DIR / RESULT_FILES_NAME
-LOCUST_FILE_PATH = Path(__file__).parent / "locust_files" / "02_users_get.py"
+LOCUST_FILE_PATH = Path(__file__).parent / "locust_files" / "02_users_get_obj.py"
 URL_NAME = f"{KELVIN_URL_BASE}/users/"
 
 
