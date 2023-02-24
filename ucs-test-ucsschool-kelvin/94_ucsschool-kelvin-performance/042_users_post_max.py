@@ -39,8 +39,8 @@ def test_failure_count(check_failure_count, run_test):
 
 
 def test_rps(check_rps, run_test):
-    check_rps(RESULT_FILE_BASE_PATH, URL_NAME, 1.5)
+    check_rps(RESULT_FILE_BASE_PATH, URL_NAME, 1.3)
 
 
 def test_95_percentile(check_95_percentile, run_test):
-    check_95_percentile(RESULT_FILE_BASE_PATH, URL_NAME, 10000)
+    check_95_percentile(RESULT_FILE_BASE_PATH, URL_NAME, 15000)

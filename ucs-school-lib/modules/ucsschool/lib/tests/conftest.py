@@ -161,7 +161,7 @@ class UserFactory(factory.Factory):
     firstname = factory.Faker("first_name")
     lastname = factory.Faker("last_name")
     name = factory.LazyAttribute(
-        lambda o: f"test.{o.firstname[:8]}{fake.unique.pyint(10, 99)}.{o.lastname}"[:15].rstrip(".")
+        lambda o: f"test.{o.firstname[:8]}{fake.pyint(10, 99)}.{o.lastname}"[:15].rstrip(".")
     )
     school = factory.LazyFunction(lambda: fake.unique.user_name()[:10])
     schools = factory.LazyAttribute(lambda o: [o.school])

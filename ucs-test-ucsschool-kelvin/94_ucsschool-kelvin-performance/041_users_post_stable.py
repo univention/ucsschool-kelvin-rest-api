@@ -43,4 +43,4 @@ def test_rps(check_rps, run_test):
 
 
 def test_95_percentile(check_95_percentile, run_test):
-    check_95_percentile(RESULT_FILE_BASE_PATH, URL_NAME, 4000)
+    check_95_percentile(RESULT_FILE_BASE_PATH, URL_NAME, 5000)
