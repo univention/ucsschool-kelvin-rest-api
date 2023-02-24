@@ -2848,7 +2848,7 @@ async def test_modify_custom_ucsschool_roles(
     roles = [role.name]
     if role.name == "teacher_and_staff":
         roles = ["staff", "teacher"]
-    school, school2 = create_multiple_ous(2)
+    school, school2 = await create_multiple_ous(2)
     create_kwargs = {}
     user: ImportUser = await new_import_user(school, role.name, **create_kwargs)
     schedule_delete_user_name_using_udm(user.name)

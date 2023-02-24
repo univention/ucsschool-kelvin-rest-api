@@ -24,7 +24,7 @@ async def test_add_school_admins_to_admin_group(
     """
     This test case tests the add_school_admins_to_admin_group hook.
     """
-    school1, school2 = create_multiple_ous(2)
+    school1, school2 = await create_multiple_ous(2)
 
     user = (
         await create_random_users(

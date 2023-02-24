@@ -430,7 +430,7 @@ async def test_workgroup_name_can_change(
 async def test_workgroup_school_cant_change(
     auth_header, retry_http_502, url_fragment, new_workgroup_using_lib, create_multiple_ous, operation
 ):
-    school, school2 = create_multiple_ous(2)
+    school, school2 = await create_multiple_ous(2)
     _, sc1_attr = await new_workgroup_using_lib(school, users=[])
     change_data = {
         "school": f"{url_fragment}/schools/{school2}",
