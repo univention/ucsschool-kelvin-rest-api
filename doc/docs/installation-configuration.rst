@@ -36,8 +36,20 @@ Configuration
 
 The *UCS\@school Kelvin REST API* can be used out of the box, but there are various parameters that can be configured.
 
-*Hint*: ``univention-app configure --list ucsschool-kelvin-rest-api`` lists all available app settings and their current values.
-*Hint*: App Settings can be changed using the command line with ``univention-app configure ucsschool-kelvin-rest-api --set ucsschool/kelvin/log_level=DEBUG && univention-app restart ucsschool-kelvin-rest-api``
+*Hint*: The following command lists all available app settings and their current values:
+
+.. code-block:: console
+
+    $ univention-app configure --list ucsschool-kelvin-rest-api
+
+
+*Hint*: App Settings can be changed using the command line with:
+
+.. code-block:: console
+
+    $ univention-app configure ucsschool-kelvin-rest-api \
+        --set ucsschool/kelvin/log_level=DEBUG \
+        && univention-app restart ucsschool-kelvin-rest-api
 
 
 Number of cores
@@ -82,15 +94,15 @@ Documentation for the UCS\@school import configuration is available only in Germ
 UDM Properties
 ^^^^^^^^^^^^^^
 
-There was already an ``udm_properties`` functionality available for user resources within Kelvin.
-With the release of Kelvin 1.5.0 the ``udm_properties`` functionality was added to all other resources (except roles)
-as well. The list of ``mapped_udm_properties`` can be configured in
+Previous versions of Kelvin already had ``udm_properties`` functionality available for user resources.
+With the release of Kelvin 1.5.0, the ``udm_properties`` functionality is also supported for all other resources
+(except roles) as well. The list of ``mapped_udm_properties`` can be configured in
 :file:`/etc/ucsschool/kelvin/mapped_udm_properties.json`.
 
 The format of the ``mapped_udm_properties.json`` is::
 
     {
-        name_of_resource: ["name_of_property_to_map",...],
+        "name_of_resource": ["name_of_property_to_map",...],
         ...
     }
 
@@ -106,14 +118,21 @@ For example:
 
 The following restrictions have to be observed:
 
-#. The Kelvin configuration may contain also a ``mapped_udm_properties``. This refers to the user resource.
+#. The Kelvin configuration may also contain a ``mapped_udm_properties``. This refers to the user resource.
    If there is also a configuration for the key ``user`` in ``mapped_udm_properties.json``, it will override the
-   ``mapped_udm_propertes`` kelvin configuration (for users only).
+   ``mapped_udm_propertes`` Kelvin configuration (for users only).
 #. Any udm property that is directly linked to an already existing model field results in an invalid configuration.
    It is not allowed, for example, to configure the ``description`` of a school class as an udm property, since it is
    already present in the model itself. This is now also true for the user resource, where this was possible before.
 
-**Important** Please be advised that this direct access to udm properties is in no way checked or validated by any UCS@school logic
+**Important**: the Kelvin API needs to be restarted before changes can take effect.
+This can be done with the following command:
+
+.. code-block:: console
+
+   $ univention-app restart ucsschool-kelvin-rest-api
+
+**Important**: Please be advised that this direct access to UDM properties is in no way checked or validated by any UCS@school logic
 and thus can lead to corrupt objects and errors on your system, if not used correctly.
 
 Python hooks for user object management (import hooks)
