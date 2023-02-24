@@ -28,15 +28,32 @@ Further information about the tooling for documentation can be found [here](http
 Publish HTML documentation
 --------------------------
 
-The pipeline takes care of building and publishing the HTML and PDF. After
-merging the documentation changes to the default branch, the ``docs-production``
-job adds to the pipeline. Start it manually to run the job to publish the
-content to the `docs.univention.de
-<https://git.knut.univention.de/univention/docs.univention.de>`_ repository.
+The pipeline takes care of building and publishing the HTML and PDF. After you
+merge your documentation changes to the default branch, you can publish it.
+Follow these steps:
 
-The job will fail, if no Sphinx build job that generate the needed artifacts
-haven run before.
+1. Manually trigger the ``docs-merge-to-one-artifact`` job. After it completes,
+   the ``docs-create-production-merge-request`` runs and creates a merge request
+   with the content in the `docs.univention.de
+   <https://git.knut.univention.de/univention/docs.univention.de>`_ downstream
+   repository.
 
-The documentation will be build automatically in our pipeline https://git.knut.univention.de/univention/docs.univention.de/-/pipelines
+2. In the downstream repository, you become assignee of the merge request.
+   GitLab automatically merges the merge request after successful tests. To
+   pause the documentation release, you can deactivate the automatic merge in
+   the merge request. You find the link to the merge request in the downstream
+   part of the pipeline in the log output of the ``create merge request`` or in
+   your assigned merge requests lists.
+
+Depending on the automation progress of the downstream repository, you may have
+to manually trigger the ``deploy`` there. It's planned to remove that manual
+trigger.
+
+If the manual ``deploy`` is still active, you need to trigger the ``deploy`` job
+in the `downstream repository pipeline
+<https://git.knut.univention.de/univention/docs.univention.de/-/pipelines>`_
+running after the successful merge. You find the link to that pipeline in the
+successful merged merge request.
+
 Check the [staged documentation](http://univention-repository.knut.univention.de/download/docs/).
 You have to press a deploy button to publish the documentation.
