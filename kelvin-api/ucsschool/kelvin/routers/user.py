@@ -79,6 +79,7 @@ from .base import (
     UcsSchoolBaseModel,
     get_lib_obj,
     get_logger,
+    only_known_udm_properties,
     udm_ctx,
 )
 from .role import SchoolUserRole
@@ -91,7 +92,7 @@ router = APIRouter()
 def accepted_udm_properties() -> Set[str]:
     return set(ImportUser._attributes.keys()).union(
         set(get_import_config().get("mapped_udm_properties", [])),
-        set(getattr(UDM_MAPPING_CONFIG, "user", [])),
+        set(UDM_MAPPING_CONFIG.user or []),
     )
 
 
@@ -405,16 +406,10 @@ class UserPatchModel(BasePatchModel):
 
     @validator("udm_properties")
     def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
-        property_list = getattr(UDM_MAPPING_CONFIG, "user", [])
-        if not udm_properties:
-            return udm_properties
-        for key in udm_properties:
-            if key not in property_list:
-                raise ValueError(
-                    f"The udm property {key!r} was not configured for this resource "
-                    f"and thus is not allowed."
-                )
-        return udm_properties
+        configured_properties = set(UDM_MAPPING_CONFIG.user or [])
+        return only_known_udm_properties(
+            udm_properties, configured_properties, UserBaseModel.Config.config_id
+        )
 
     async def to_modify_kwargs(self, request: Request) -> Dict[str, Any]:  # noqa: C901
         kwargs = await super().to_modify_kwargs(request)

@@ -26,7 +26,7 @@ fake = Faker()
 def assert_attr_eq_school_obj_attr(attr: Dict[str, Any], obj: SchoolClass) -> None:
     for key, value in attr.items():
         exp_value = value
-        found_value = getattr(obj, key)
+        found_value = obj._create_share if key == "create_share" else getattr(obj, key)
         if key == "name":
             exp_value = f"{attr['school']}-{exp_value}"
         if isinstance(exp_value, list):

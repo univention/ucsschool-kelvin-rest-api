@@ -860,7 +860,18 @@ async def test_create_unmapped_udm_prop(
         headers={"Content-Type": "application/json", **auth_header},
         data=data,
     )
-    assert response.status_code == 422, f"{response.__dict__!r}"
+    response_json = response.json()
+    assert response.status_code == 422, response.__dict__
+    assert response_json == {
+        "detail": [
+            {
+                "loc": ["body", "udm_properties"],
+                "msg": "UDM properties that were not configured for resource 'user' and are "
+                "thus not allowed: {'unmapped_prop'}",
+                "type": "value_error.unknownudmproperty",
+            }
+        ]
+    }
 
 
 @pytest.mark.asyncio

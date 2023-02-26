@@ -28,7 +28,7 @@
 import logging
 import re
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Type
 from urllib.parse import ParseResult, quote, unquote, urlparse
 
 import orjson
@@ -124,16 +124,8 @@ class LibModelHelperMixin(BaseModel):
 
     @validator("udm_properties")
     def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
-        property_list = getattr(UDM_MAPPING_CONFIG, cls.Config.config_id, [])
-        if not udm_properties:
-            return udm_properties
-        for key in udm_properties:
-            if key not in property_list:
-                raise ValueError(
-                    f"The udm property {key!r} was not configured for this resource "
-                    f"and thus is not allowed."
-                )
-        return udm_properties
+        configured_properties = set(getattr(UDM_MAPPING_CONFIG, cls.Config.config_id) or [])
+        return only_known_udm_properties(udm_properties, configured_properties, cls.Config.config_id)
 
     @classmethod
     def parse_obj(cls: Type["Model"], obj: Any) -> "Model":
@@ -292,3 +284,18 @@ async def udm_ctx(request: Request):
     language = get_language_from_header(request)
     async with UDM(**udm_kwargs(), language=language) as udm:
         yield udm
+
+
+def only_known_udm_properties(
+    received_udm_properties: Optional[Dict[str, Any]],
+    configured_udm_properties: Iterable[str],
+    ressource_name: str,
+) -> Optional[Dict[str, Any]]:
+    if not received_udm_properties:
+        return received_udm_properties
+    if unknown_udm_properties := set(received_udm_properties) - set(configured_udm_properties):
+        raise UnknownUDMProperty(
+            f"UDM properties that were not configured for resource {ressource_name!r} and are thus not "
+            f"allowed: {unknown_udm_properties!r}"
+        )
+    return received_udm_properties

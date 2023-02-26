@@ -41,7 +41,14 @@ from ..config import UDM_MAPPING_CONFIG
 from ..opa import OPAClient
 from ..token_auth import get_token
 from ..urls import cached_url_for, url_to_dn, url_to_name
-from .base import APIAttributesMixin, UcsSchoolBaseModel, get_lib_obj, get_logger, udm_ctx
+from .base import (
+    APIAttributesMixin,
+    UcsSchoolBaseModel,
+    get_lib_obj,
+    get_logger,
+    only_known_udm_properties,
+    udm_ctx,
+)
 from .school import search_schools_in_ldap
 
 router = APIRouter()
@@ -129,15 +136,10 @@ class SchoolClassPatchDocument(BaseModel):
 
     @validator("udm_properties")
     def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
-        property_list = set(getattr(UDM_MAPPING_CONFIG, "school_class", []))
-        if not udm_properties:
-            return udm_properties
-        if unknown := property_list - set(udm_properties):
-            raise ValueError(
-                "UDM properties that were not configured for this resource (school_class) and are thus "
-                f"not allowed: {unknown!r}"
-            )
-        return udm_properties
+        configured_properties = set(UDM_MAPPING_CONFIG.school_class or [])
+        return only_known_udm_properties(
+            udm_properties, configured_properties, SchoolClassCreateModel.Config.config_id
+        )
 
     async def to_modify_kwargs(self, school, request: Request) -> Dict[str, Any]:
         res = {}

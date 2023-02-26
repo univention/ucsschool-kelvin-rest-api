@@ -41,7 +41,14 @@ from ..config import UDM_MAPPING_CONFIG
 from ..opa import OPAClient
 from ..token_auth import get_token
 from ..urls import cached_url_for, url_to_dn, url_to_name
-from .base import APIAttributesMixin, UcsSchoolBaseModel, get_lib_obj, get_logger, udm_ctx
+from .base import (
+    APIAttributesMixin,
+    UcsSchoolBaseModel,
+    get_lib_obj,
+    get_logger,
+    only_known_udm_properties,
+    udm_ctx,
+)
 
 router = APIRouter()
 
@@ -130,16 +137,10 @@ class WorkGroupPatchDocument(BaseModel):
 
     @validator("udm_properties")
     def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
-        property_list = getattr(UDM_MAPPING_CONFIG, "workgroup", [])
-        if not udm_properties:
-            return udm_properties
-        for key in udm_properties:
-            if key not in property_list:
-                raise ValueError(
-                    f"The udm property {key!r} was not configured for this resource "
-                    f"and thus is not allowed."
-                )
-        return udm_properties
+        configured_properties = set(UDM_MAPPING_CONFIG.workgroup or [])
+        return only_known_udm_properties(
+            udm_properties, configured_properties, WorkGroupCreateModel.Config.config_id
+        )
 
     async def to_modify_kwargs(self, school, request: Request) -> Dict[str, Any]:
         res = {}
