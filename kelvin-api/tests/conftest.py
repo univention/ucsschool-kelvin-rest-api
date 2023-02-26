@@ -615,7 +615,17 @@ def mapped_udm_properties_test_config(restart_kelvin_api_server_session):
         config = {
             "school": ["description", "userPath"],
             "school_class": ["mailAddress", "gidNumber"],
-            "workgroup": ["gidNumber"],
+            "workgroup": ["gidNumber"],  # already maps 'mailAddress' as 'email'
+            "user": [
+                "description",
+                "displayName",
+                "e-mail",
+                "employeeType",
+                "gidNumber" "organisation",
+                "phone",
+                "title",
+                "uidNumber",
+            ],
         }
 
         with open(MAPPED_UDM_PROPERTIES_CONFIG["active"], "w") as fd:

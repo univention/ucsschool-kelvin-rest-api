@@ -37,6 +37,8 @@ def assert_attr_eq_school_obj_attr(attr: Dict[str, Any], obj: SchoolClass) -> No
 
 def assert_eq_objs(obj1: SchoolClass, obj2: SchoolClass, comprare_attrs: List[str]):
     for attr in comprare_attrs:
+        if attr == "create_share":
+            attr = "_create_share"
         exp_value = getattr(obj1, attr)
         found_value = getattr(obj2, attr)
         if attr == "users":
