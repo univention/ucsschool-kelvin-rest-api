@@ -36,20 +36,16 @@ Configuration
 
 The *UCS\@school Kelvin REST API* can be used out of the box, but there are various parameters that can be configured.
 
-*Hint*: The following command lists all available app settings and their current values:
+.. hint::
 
-.. code-block:: console
+   The command ``univention-app configure --list ucsschool-kelvin-rest-api``
+   lists all available app settings and their current values.
 
-    $ univention-app configure --list ucsschool-kelvin-rest-api
+.. hint::
 
-
-*Hint*: App Settings can be changed using the command line with:
-
-.. code-block:: console
-
-    $ univention-app configure ucsschool-kelvin-rest-api \
-        --set ucsschool/kelvin/log_level=DEBUG \
-        && univention-app restart ucsschool-kelvin-rest-api
+   App Settings can be changed using the command line with ``univention-app
+   configure ucsschool-kelvin-rest-api --set ucsschool/kelvin/log_level=DEBUG &&
+   univention-app restart ucsschool-kelvin-rest-api``
 
 
 Number of cores
@@ -125,15 +121,11 @@ The following restrictions have to be observed:
    It is not allowed, for example, to configure the ``description`` of a school class as an udm property, since it is
    already present in the model itself. This is now also true for the user resource, where this was possible before.
 
-**Important**: the Kelvin API needs to be restarted before changes can take effect.
-This can be done with the following command:
+.. important::
 
-.. code-block:: console
-
-   $ univention-app restart ucsschool-kelvin-rest-api
-
-**Important**: Please be advised that this direct access to UDM properties is in no way checked or validated by any UCS@school logic
-and thus can lead to corrupt objects and errors on your system, if not used correctly.
+   Please be advised that this direct access to udm properties is in no way
+   checked or validated by any UCS\@school logic and thus can lead to corrupt
+   objects and errors on your system, if not used correctly.
 
 Python hooks for user object management (import hooks)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
