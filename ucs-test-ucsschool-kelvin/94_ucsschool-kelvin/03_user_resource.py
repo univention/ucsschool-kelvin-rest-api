@@ -1071,7 +1071,7 @@ def test_opa_does_not_log_sensitive_attributes(
 
     logger.info("*** create_attrs=%r", create_attrs)
 
-    create_remote_static(auth_header, create_attrs)
+    create_remote_static((auth_header, create_attrs))
 
     opa_log_file = "/var/log/univention/ucsschool-kelvin-rest-api/opa.log"
 
