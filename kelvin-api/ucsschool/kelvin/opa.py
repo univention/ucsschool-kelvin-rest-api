@@ -18,6 +18,11 @@ class OPAClient:
 
     _instance: "OPAClient" = None
 
+    # sensitive attributes which must not be transmitted to OPA
+    # as they might be shown in the general or decision logs
+    _sensitive_attributes = ["password", "kelvin_password_hashes"]
+    _mask_value = "********"
+
     @classmethod
     def instance(cls):
         if not cls._instance:
@@ -28,6 +33,13 @@ class OPAClient:
     async def shutdown_instance(cls):
         if cls._instance:
             await cls._instance.shutdown()
+
+    @classmethod
+    def filter_sensitive_attributes(cls, request: Dict[str, Any]) -> Dict[str, Any]:
+        for attr in OPAClient._sensitive_attributes:
+            if attr in request:
+                request[attr] = OPAClient._mask_value
+        return request
 
     def __init__(self):
         self._session = aiohttp.ClientSession()
@@ -40,7 +52,13 @@ class OPAClient:
     ) -> Any:
         async with self._session.post(
             f"{OPA_URL}{policy}",
-            json={"input": {"token": token, "request": request, "target": target}},
+            json={
+                "input": {
+                    "token": token,
+                    "request": OPAClient.filter_sensitive_attributes(request),
+                    "target": target,
+                }
+            },
         ) as response:
             if response.status != 200:
                 return False
