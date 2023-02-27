@@ -1040,7 +1040,7 @@ def test_modify_classes_0old_2new(
     logger.info("*** OK: 0 classes in old and 2 classes in new")
 
 
-def test_do_not_log_sensitive_attributes(
+def test_opa_does_not_log_sensitive_attributes(
     auth_header,
     compare_import_user_and_resource,
     extract_class_dns,
