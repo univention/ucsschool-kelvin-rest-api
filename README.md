@@ -108,3 +108,24 @@ pip install -e ucs-school-lib/modules/
 pip install -e ucs-school-import/modules/
 pip install -e kelvin-api/ -r kelvin-api/requirements.txt -r kelvin-api/requirements_dev.txt -r kelvin-api/requirements_test.txt
 ```
+
+# Local Development
+
+## Run pre-commit locally
+
+The pipeline for this repository has a pre-commit job. If you would like to run pre-commit checks before push you can use docker:
+
+```
+docker run -v ".:/ucsschool-kelvin-rest-api" \
+    -w "/ucsschool-kelvin-rest-api" \
+    -it docker-registry.knut.univention.de/knut/pre-commit-opa-python3.11 \
+    /bin/bash -c "git config --global --add safe.directory /ucsschool-kelvin-rest-api && pre-commit run -a"
+```
+
+For running pre-commit outside of docker, you will need to install the following:
+
+* python3.11
+* [OPA](https://www.openpolicyagent.org/docs/latest/#running-opa)
+
+*Hint*: You may also need to install pre-commit into your python3.11 installation; it may not work with a system-installed pre-commit.
+Be sure to close and re-open your terminal after installing pre-commit.
