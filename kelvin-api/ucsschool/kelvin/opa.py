@@ -37,7 +37,7 @@ class OPAClient:
     @classmethod
     def filter_sensitive_attributes(cls, request: Dict[str, Any]) -> Dict[str, Any]:
         for attr in OPAClient._sensitive_attributes:
-            if attr in request["data"]:
+            if attr in request.get("data", {}):
                 request["data"][attr] = OPAClient._mask_value
         return request
 
