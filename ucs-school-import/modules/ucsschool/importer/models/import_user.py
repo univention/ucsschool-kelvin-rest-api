@@ -269,7 +269,7 @@ class ImportUser(User):
             dry_run=self.config["dry_run"],
             udm=udm,
         )  # result is cached on the lib side
-        meth_name = "{}_{}".format(hook_time, func_name)
+        meth_name = f"{hook_time}_{func_name}"
         try:
             for func in hooks.get(meth_name, []):
                 func.__self__.udm = udm  # update UDM instance to the current one
@@ -283,6 +283,7 @@ class ImportUser(User):
                 await func(self)
         finally:
             self.in_hook = False
+        await self._call_pyhooks(hook_time, func_name, udm)
         return None
 
     def call_format_hook(self, prop_name, fields):  # type: (str, Dict[str, Any]) -> Dict[str, Any]
