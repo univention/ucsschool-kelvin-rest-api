@@ -27,7 +27,7 @@ author = "Univention GmbH"
 # The short X.Y version
 version = ""
 # The full version, including alpha/beta/rc tags
-release = "1.8.5"
+release = "1.8.6"
 
 
 # -- General configuration ---------------------------------------------------

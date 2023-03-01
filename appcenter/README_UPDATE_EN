@@ -1,5 +1,10 @@
 <h1>Changelog</h1>
 
+<h2>v1.8.6 (2023-03-01)</h2>
+<ul>
+    <li>Fix error in <code>udm_properties</code> check for school classes (Issue #72).</li>
+</ul>
+
 <h2>v1.8.5 (2023-02-22)</h2>
 <ul>
     <li>Fix <code>h11._util.LocalProtocolError: Can't send data when our state is ERROR</code> traceback (Bug #55730).</li>

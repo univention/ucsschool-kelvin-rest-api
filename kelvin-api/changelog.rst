@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.8.6 (2023-03-01)
+...................
+* Fix error in ``udm_properties`` check for school classes (Issue #72).
+
 v1.8.5 (2023-02-22)
 ...................
 * Fix ``h11._util.LocalProtocolError: Can't send data when our state is ERROR`` traceback (Bug #55730).
