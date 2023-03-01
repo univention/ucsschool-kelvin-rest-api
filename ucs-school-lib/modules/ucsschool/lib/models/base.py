@@ -517,7 +517,6 @@ class UCSSchoolHelperAbstractClass(object):
         self.logger.debug(
             "Timings self._call_pyhooks(%r, %r): %.3f", hook_time, func_name, time.time() - t0
         )
-        return True
 
     def build_hook_line(self, hook_time, func_name):  # type: (str, str) -> Optional[str]
         """Must be overridden if the model wants to support hooks.
@@ -619,12 +618,14 @@ class UCSSchoolHelperAbstractClass(object):
                 "create_without_hooks() from within hooks."
             )
         else:
-            await self.call_hooks(lo, "pre", "create")
+            await self.call_hooks(hook_time="pre", func_name="create", udm=lo)
+
         t0 = time.time()
         success = await self.create_without_hooks(lo, validate)  # TODO: this takes 680 ms
         self.logger.debug("Timings self.create_without_hooks(): %.3f", time.time() - t0)
         if success and not self._in_hook:
-            await self.call_hooks(lo, "post", "create")
+            await self.call_hooks(hook_time="post", func_name="create", udm=lo)
+
         return success
 
     async def create_without_hooks(self, lo: UDM, validate: bool) -> bool:
@@ -714,10 +715,11 @@ class UCSSchoolHelperAbstractClass(object):
                 "modify_without_hooks() from within hooks."
             )
         else:
-            await self.call_hooks(lo, "pre", "modify")
+            await self.call_hooks(hook_time="pre", func_name="modify", udm=lo)
+
         success = await self.modify_without_hooks(lo, validate, move_if_necessary)
         if success and not self._in_hook:
-            await self.call_hooks(lo, "post", "modify")
+            await self.call_hooks(hook_time="post", func_name="modify", udm=lo)
         return success
 
     async def modify_without_hooks(
@@ -788,10 +790,10 @@ class UCSSchoolHelperAbstractClass(object):
                 "move_without_hooks() from within hooks."
             )
         else:
-            await self.call_hooks(lo, "pre", "move")
+            await self.call_hooks(hook_time="pre", func_name="move", udm=lo)
         success = await self.move_without_hooks(lo, udm_obj, force)
         if success and not self._in_hook:
-            await self.call_hooks(lo, "post", "move")
+            await self.call_hooks(hook_time="post", func_name="move", udm=lo)
         return success
 
     async def move_without_hooks(self, lo: UDM, udm_obj: UdmObject = None, force: bool = False) -> bool:
@@ -857,10 +859,10 @@ class UCSSchoolHelperAbstractClass(object):
                 "remove_without_hooks() from within hooks."
             )
         else:
-            await self.call_hooks(lo, "pre", "remove")
+            await self.call_hooks(hook_time="pre", func_name="remove", udm=lo)
         success = await self.remove_without_hooks(lo)
         if success and not self._in_hook:
-            await self.call_hooks(lo, "post", "remove")
+            await self.call_hooks(hook_time="post", func_name="remove", udm=lo)
         return success
 
     async def remove_without_hooks(self, lo: UDM) -> bool:
