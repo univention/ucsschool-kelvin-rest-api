@@ -40,7 +40,7 @@ import ucsschool.kelvin.constants
 import univention.admin.uldap_docker
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.importer.utils.format_pyhook import FormatPyHook
-from ucsschool.importer.utils.user_pyhook import UserPyHook
+from ucsschool.importer.utils.user_pyhook import KelvinUserHook, UserPyHook
 from ucsschool.kelvin.routers.user import UserModel
 from ucsschool.lib.models.hook import Hook
 from ucsschool.lib.models.user import Staff, Student, Teacher, TeachersAndStaff, User
@@ -124,7 +124,7 @@ class UserBirthdayImportPyHook(UserPyHook):
         assert isinstance(self.udm, UDM), type(self.udm)
         assert self.udm.session._session
         assert not self.udm.session._session.closed
-        assert await self.udm.session.base_dn == env_or_ucr('ldap/base')
+        assert await self.udm.session.base_dn == env_or_ucr("ldap/base")
 
     async def _hook_func(self, user: ImportUser) -> None:
         await self.test_lo()
@@ -182,7 +182,7 @@ class ExpirationDateUCSSchoolLibPyHook(Hook):
         assert isinstance(self.udm, UDM), type(self.udm)
         assert self.udm.session._session
         assert not self.udm.session._session.closed
-        assert await self.udm.session.base_dn == env_or_ucr('ldap/base')
+        assert await self.udm.session.base_dn == env_or_ucr("ldap/base")
 
     async def _hook_func(self, user: User) -> None:
         await self.test_lo()
@@ -265,6 +265,7 @@ from ucsschool.lib.models.utils import env_or_ucr
             text=text,
             hook_path=Path(ucsschool.lib.models.base.PYHOOKS_PATH),
         )
+
     yield func
 
 
@@ -292,8 +293,7 @@ from pathlib import Path
 from udm_rest_client import UDM
 import univention.admin.uldap_docker
 from ucsschool.importer.models.import_user import ImportUser
-from ucsschool.importer.utils.user_pyhook import UserPyHook
-from ucsschool.importer.utils.user_pyhook import KelvinUserHook
+from ucsschool.importer.utils.user_pyhook import UserPyHook, KelvinUserHook
 from ucsschool.lib.models.utils import env_or_ucr
 
 {inspect.getsource(UserBirthdayImportPyHook)}
@@ -301,7 +301,7 @@ from ucsschool.lib.models.utils import env_or_ucr
     _create_pyhook_file(
         name="importusertesthook",
         text=text,
-        hook_path=ucsschool.kelvin.constants.KELVIN_IMPORTUSER_HOOKS_PATH
+        hook_path=ucsschool.kelvin.constants.KELVIN_IMPORTUSER_HOOKS_PATH,
     )
 
 
