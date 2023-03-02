@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any, Dict
 
 import aiohttp
@@ -36,10 +37,11 @@ class OPAClient:
 
     @classmethod
     def filter_sensitive_attributes(cls, request: Dict[str, Any]) -> Dict[str, Any]:
+        result = deepcopy(request)
         for attr in OPAClient._sensitive_attributes:
-            if attr in request.get("data", {}):
-                request["data"][attr] = OPAClient._mask_value
-        return request
+            if attr in result.get("data", {}):
+                result["data"][attr] = OPAClient._mask_value
+        return result
 
     def __init__(self):
         self._session = aiohttp.ClientSession()
