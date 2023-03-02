@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.8.7 (2023-03-02)
+...................
+* UCS@school lib hooks were not called when the UCS@school Kelvin REST API was called. This has been fixed (Issue #61).
+
 v1.8.6 (2023-03-01)
 ...................
 * Fix error in ``udm_properties`` check for school classes (Issue #72).
