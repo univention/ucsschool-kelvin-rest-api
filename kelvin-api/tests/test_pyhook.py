@@ -258,8 +258,8 @@ from ucsschool.lib.models.utils import env_or_ucr
 
 {inspect.getsource(ExpirationDateUCSSchoolLibPyHook)}
             """
-        modle_name = "Teacher" if role.klass.__name__ == "TeachersAndStaff" else role.klass.__name__
-        text = text.replace("# MODEL_NAME", f"model = {modle_name}")
+        module_name = "Teacher" if role.klass.__name__ == "TeachersAndStaff" else role.klass.__name__
+        text = text.replace("# MODEL_NAME", f"model = {module_name}")
         _create_pyhook_file(
             name="ucsschool-lib-testhook",
             text=text,
