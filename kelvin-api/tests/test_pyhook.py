@@ -126,27 +126,34 @@ class UserBirthdayImportPyHook(UserPyHook):
         assert not self.udm.session._session.closed
         assert await self.udm.session.base_dn == env_or_ucr("ldap/base")
 
-    async def _hook_func(self, user: ImportUser) -> None:
+    async def _hook_func(self, user: ImportUser, hook_phase: str) -> None:
         await self.test_lo()
         await self.test_udm()
-        self.logger.info(f"{self.__class__.__name__}  -> {inspect.currentframe().f_back.f_code.co_name}")
+        self.logger.info(f"{self.__class__.__name__}  -> {hook_phase}")
+        Path("/tmp", f"{hook_phase}-{user.name}").touch()
 
-    pre_create = _hook_func
-    post_modify = _hook_func
-    pre_remove = _hook_func
+    async def pre_create(self, user: ImportUser) -> None:
+        user.record_uid = user.lastname
+        await self._hook_func(user, "pre_create")
 
     async def post_create(self, user: ImportUser) -> None:
-        await self._hook_func(user)
+        await self._hook_func(user, "post_create")
         user.birthday = datetime.date.today().isoformat()
         await user.modify(self.udm)
 
     async def pre_modify(self, user: ImportUser) -> None:
         user.record_uid = user.lastname
-        await self._hook_func(user)
+        await self._hook_func(user, "pre_modify")
+
+    async def post_modify(self, user: ImportUser) -> None:
+        user.record_uid = user.lastname
+        await self._hook_func(user, "post_modify")
+
+    async def pre_remove(self, user: ImportUser) -> None:
+        await self._hook_func(user, "pre_remove")
 
     async def post_remove(self, user: ImportUser) -> None:
-        await self._hook_func(user)
-        Path("/tmp", user.name).touch()
+        await self._hook_func(user, "post_remove")
 
 
 class ExpirationDateUCSSchoolLibPyHook(Hook):
@@ -184,27 +191,32 @@ class ExpirationDateUCSSchoolLibPyHook(Hook):
         assert not self.udm.session._session.closed
         assert await self.udm.session.base_dn == env_or_ucr("ldap/base")
 
-    async def _hook_func(self, user: User) -> None:
+    async def _hook_func(self, user: User, hook_phase: str) -> None:
         await self.test_lo()
         await self.test_udm()
-        self.logger.info(f"{self.__class__.__name__}  -> {inspect.currentframe().f_back.f_code.co_name}")
+        self.logger.info(f"{self.__class__.__name__}  -> {hook_phase}")
+        Path("/tmp", f"{hook_phase}-{user.name}").touch()
 
-    pre_create = _hook_func
-    post_modify = _hook_func
-    pre_remove = _hook_func
+    async def pre_create(self, user: User) -> None:
+        await self._hook_func(user, "pre_create")
 
     async def post_create(self, user: User) -> None:
-        await self._hook_func(user)
+        await self._hook_func(user, "post_create")
         user.expiration_date = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
         await user.modify(self.udm)
 
     async def pre_modify(self, user: User) -> None:
         user.disabled = True
-        await self._hook_func(user)
+        await self._hook_func(user, "pre_modify")
+
+    async def post_modify(self, user: User) -> None:
+        await self._hook_func(user, "post_modify")
+
+    async def pre_remove(self, user: User) -> None:
+        await self._hook_func(user, "pre_remove")
 
     async def post_remove(self, user: User) -> None:
-        await self._hook_func(user)
-        Path("/tmp", user.name).touch()
+        await self._hook_func(user, "post_remove")
 
 
 @pytest.fixture(scope="module")
@@ -309,6 +321,25 @@ def role_id(value: Role) -> str:
     return value.name
 
 
+def check_all_hooks_called_and_clean_up(user: User | ImportUser) -> None:
+    hook_phases = [
+        "pre_create",
+        "post_create",
+        "pre_modify",
+        "post_modify",
+        "pre_remove",
+        "post_remove",
+    ]
+    hook_file_paths = [Path("/tmp", f"{hook_phase}-{user.name}") for hook_phase in hook_phases]
+    hooks_called = [hook_file.exists() for hook_file in hook_file_paths]
+    for _path in hook_file_paths:
+        try:
+            Path("/tmp", _path).unlink()
+        except FileNotFoundError:
+            pass
+    assert all(hooks_called), f"Not all hooks were called: {dict(zip(hook_phases, hooks_called))}"
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 async def test_format_pyhook(
@@ -410,9 +441,7 @@ async def test_user_import_pyhook(
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, ou, f"username={r_user.name}")
     assert len(lib_users) == 0
-
-    assert Path("/tmp", r_user.name).exists()
-    Path("/tmp", r_user.name).unlink()
+    check_all_hooks_called_and_clean_up(r_user)
 
 
 @pytest.mark.asyncio
@@ -463,4 +492,4 @@ async def test_user_ucsschool_lib_pyhook(
         headers=auth_header,
     )
     assert response.status_code == 204, response.reason
-    assert Path("/tmp", r_user.name).exists()
+    check_all_hooks_called_and_clean_up(r_user)
