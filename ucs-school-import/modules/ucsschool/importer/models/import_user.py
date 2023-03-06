@@ -283,7 +283,10 @@ class ImportUser(User):
                 await func(self)
         finally:
             self.in_hook = False
-        await self._call_pyhooks(hook_time, func_name, udm)
+        if self.config["dry_run"]:
+            return True
+        else:
+            await self._call_pyhooks(hook_time, func_name, udm)
         return None
 
     def call_format_hook(self, prop_name, fields):  # type: (str, Dict[str, Any]) -> Dict[str, Any]
