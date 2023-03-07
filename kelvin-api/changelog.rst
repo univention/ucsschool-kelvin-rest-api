@@ -9,6 +9,7 @@ Changelog
 v1.8.6 (2023-03-07)
 ...................
 * Fix error in ``udm_properties`` check for school classes (Issue #72).
+* The script ``update_openapi_client`` no longer fails due to multiple ``jar``-files (Issue id-broker-plugin#17).
 * UCS@school lib hooks were not called when the UCS@school Kelvin REST API was called. This has been fixed (Issue #61).
 
 v1.8.5 (2023-02-22)

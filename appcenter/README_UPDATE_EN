@@ -6,6 +6,7 @@
 <h2>v1.8.6 (2023-03-07)</h2>
 <ul>
     <li>Fix error in <code>udm_properties</code> check for school classes (Issue #72).</li>
+    <li>The script <code>update_openapi_client</code> no longer fails due to multiple <code>jar</code>-files.</li>
     <li>UCS@school lib hooks were not called when the UCS@school Kelvin REST API was called. This has been fixed (Issue #61).</li>
 </ul>
 
