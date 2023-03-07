@@ -81,7 +81,7 @@ echo "Removing obsolete openapi-generator versions..."
 files_to_remove=$(find ./build/ | grep ./build/openapi-generator-cli-.*.jar | grep -v $OPENAPI_GENERATOR_VERSION)
 for FILE in $files_to_remove; do
   echo "Removing ${FILE}"
-  rm FILE
+  rm ${FILE}
 done
 
 echo "Downloading OpenAPI Generator JAR file..."
