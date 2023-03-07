@@ -74,10 +74,14 @@ done
 
 
 echo "Downloading OpenAPI Generator JAR file..."
-OPENAPI_CLIENT_GENERATOR_JAR="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/5.4.0/openapi-generator-cli-5.4.0.jar"
+OPENAPI_CLIENT_GENERATOR_VERSION="5.4.0"
+OPENAPI_CLIENT_GENERATOR_JAR="openapi-generator-cli-$OPENAPI_CLIENT_GENERATOR_VERSION.jar"
+OPENAPI_CLIENT_GENERATOR_JAR_URL="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/$OPENAPI_CLIENT_GENERATOR_VERSION/$OPENAPI_CLIENT_GENERATOR_JAR"
+find build/ -name 'openapi-generator-cli*' ! -name "$OPENAPI_CLIENT_GENERATOR_JAR" -delete -print
 if ! ls -l build/openapi-generator-cli-5.4.0.jar 2>/dev/null; then
-  wget -P build/ "${OPENAPI_CLIENT_GENERATOR_JAR//\"}"
+  wget -P build/ "${OPENAPI_CLIENT_GENERATOR_JAR_URL//\"}"
 fi
+ls -l build/openapi-generator-cli*
 
 echo "Downloading Open Policy Agent..."
 wget https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static -O build/opa
