@@ -3,6 +3,7 @@ set -ex
 
 APP_ID="ucsschool-kelvin-rest-api"
 APP_VERSION="$(cat ../kelvin-api/VERSION.txt)"
+OPENAPI_GENERATOR_VERSION = "5.4.0"
 [ -z "$APP_VERSION" ] && exit 1
 DOCKERFILE="$(basename "$(readlink -f Dockerfile)")"
 BASE_IMG="$(egrep ^FROM "$DOCKERFILE" | cut -d ' ' -f 2-)"
@@ -72,10 +73,20 @@ for FILE in global user_import user_import_legacy user_import_http-api; do
 	fi
 done
 
+# TODO test, remove this
+OPENAPI_CLIENT_GENERATOR_JAR="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/5.0.0/openapi-generator-cli-5.0.0.jar"
+wget -P build/ "${OPENAPI_CLIENT_GENERATOR_JAR//\"}"
+
+echo "Removing obsolete openapi-generator versions..."
+files_to_remove=$(find ./build/ | grep ./build/openapi-generator-cli-.*.jar | grep -v $OPENAPI_GENERATOR_VERSION)
+for FILE in $files_to_remove; do
+  echo "Removing ${FILE}"
+  rm FILE
+done
 
 echo "Downloading OpenAPI Generator JAR file..."
-OPENAPI_CLIENT_GENERATOR_JAR="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/5.4.0/openapi-generator-cli-5.4.0.jar"
-if ! ls -l build/openapi-generator-cli-5.4.0.jar 2>/dev/null; then
+OPENAPI_CLIENT_GENERATOR_JAR="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/$OPENAPI_GENERATOR_VERSION/openapi-generator-cli-$OPENAPI_GENERATOR_VERSION.jar"
+if ! ls -l build/openapi-generator-cli-$OPENAPI_GENERATOR_VERSION.jar 2>/dev/null; then
   wget -P build/ "${OPENAPI_CLIENT_GENERATOR_JAR//\"}"
 fi
 
