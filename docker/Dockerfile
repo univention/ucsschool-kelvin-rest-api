@@ -39,7 +39,7 @@ CMD ["/sbin/init"]
 
 # package and Python dependency installation, base system configuration,
 # and uninstallation - all in one step to keep image small
-COPY alpine_apk_list.* opa openapi-generator-cli-*.jar requirements_all.txt /tmp/
+COPY alpine_apk_list.* opa openapi-generator-cli-5.4.0.jar requirements_all.txt /tmp/
 RUN apk add --no-cache --virtual mybuilddeps $(cat /tmp/alpine_apk_list.build) && \
     apk add --no-cache $(cat /tmp/alpine_apk_list.runtime) && \
     cp -v /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
@@ -67,7 +67,7 @@ RUN apk add --no-cache --virtual mybuilddeps $(cat /tmp/alpine_apk_list.build) &
     sed -i 's/\tcgroup_add_service/\t#cgroup_add_service/g' /lib/rc/sh/openrc-run.sh && \
     sed -i 's/VSERVER/DOCKER/Ig' /lib/rc/sh/init.sh && \
     mkdir -pv /kelvin/openapi-generator/build /kelvin/openapi-generator/jar && \
-    mv /tmp/openapi-generator-cli-*.jar /kelvin/openapi-generator/jar && \
+    mv /tmp/openapi-generator-cli-5.4.0.jar /kelvin/openapi-generator/jar && \
     # work around PEP 668 - Marking Python base environments as "externally managed" \
     # TODO: we should use a virtualenv
     rm -fv /usr/lib/python*/EXTERNALLY-MANAGED && \
