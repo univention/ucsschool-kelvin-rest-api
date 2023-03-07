@@ -3,7 +3,7 @@ set -ex
 
 APP_ID="ucsschool-kelvin-rest-api"
 APP_VERSION="$(cat ../kelvin-api/VERSION.txt)"
-OPENAPI_GENERATOR_VERSION = "5.4.0"
+OPENAPI_GENERATOR_VERSION="5.4.0"
 [ -z "$APP_VERSION" ] && exit 1
 DOCKERFILE="$(basename "$(readlink -f Dockerfile)")"
 BASE_IMG="$(egrep ^FROM "$DOCKERFILE" | cut -d ' ' -f 2-)"
