@@ -13,6 +13,9 @@ APP_IMG_NO_TEST="${APP_IMG_NO_TEST_NO_VERSION}:${APP_VERSION}"
 DOCKER_REGISTRY_SERVER="docker.knut.univention.de"
 DATE="$(date -Iseconds)"
 COMMIT="$CI_COMMIT_SHA"
+OPENAPI_CLIENT_GENERATOR_VERSION="5.4.0"
+OPENAPI_CLIENT_GENERATOR_JAR="openapi-generator-cli-$OPENAPI_CLIENT_GENERATOR_VERSION.jar"
+OPENAPI_CLIENT_GENERATOR_JAR_URL="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/$OPENAPI_CLIENT_GENERATOR_VERSION/$OPENAPI_CLIENT_GENERATOR_JAR"
 
 if [ -n "$http_proxy" ]; then
     PROXY_ARGS="--build-arg http_proxy=$http_proxy --build-arg https_proxy=$http_proxy"
@@ -72,13 +75,11 @@ for FILE in global user_import user_import_legacy user_import_http-api; do
 	fi
 done
 
-
 echo "Downloading OpenAPI Generator JAR file..."
-OPENAPI_CLIENT_GENERATOR_VERSION="5.4.0"
-OPENAPI_CLIENT_GENERATOR_JAR="openapi-generator-cli-$OPENAPI_CLIENT_GENERATOR_VERSION.jar"
-OPENAPI_CLIENT_GENERATOR_JAR_URL="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/$OPENAPI_CLIENT_GENERATOR_VERSION/$OPENAPI_CLIENT_GENERATOR_JAR"
-find build/ -name 'openapi-generator-cli*' ! -name "$OPENAPI_CLIENT_GENERATOR_JAR" -delete -print
-if ! ls -l build/openapi-generator-cli-5.4.0.jar 2>/dev/null; then
+# clean up older (cached) openapi-generator-cli*.jar files
+find build/ -name 'openapi-generator-cli*.jar' ! -name "$OPENAPI_CLIENT_GENERATOR_JAR" -delete -print
+# download new version
+if ! ls -l "build/$OPENAPI_CLIENT_GENERATOR_JAR" 2>/dev/null; then
   wget -P build/ "${OPENAPI_CLIENT_GENERATOR_JAR_URL//\"}"
 fi
 ls -l build/openapi-generator-cli*
