@@ -39,7 +39,7 @@ MACHINE_PASSWORD="\$(cat /etc/machine.secret)"
 echo "Building OpenAPI client library using host \${DOCKER_HOST_NAME}..."
 update_openapi_client \
   --generator java \
-  --jar /kelvin/openapi-generator/jar/openapi-generator-cli-*.jar \
+  --jar /kelvin/openapi-generator/jar/openapi-generator-cli-5.4.0.jar \
   --insecure \
   --username "\$MACHINE_USER" \
   --password "\$MACHINE_PASSWORD" \
