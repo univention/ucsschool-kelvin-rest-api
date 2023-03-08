@@ -37,6 +37,11 @@ class OPAClient:
 
     @classmethod
     def filter_sensitive_attributes(cls, request: Dict[str, Any]) -> Dict[str, Any]:
+        """filter sensitive attributes
+
+        note: the masking of "kelvin_password_hashes" currently
+        changes the value type from a dictionary to a string
+        """
         result = deepcopy(request)
         for attr in OPAClient._sensitive_attributes:
             if attr in result.get("data", {}):
