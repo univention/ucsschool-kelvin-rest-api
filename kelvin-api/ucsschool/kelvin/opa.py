@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any, Dict
 
 import aiohttp
@@ -18,6 +19,11 @@ class OPAClient:
 
     _instance: "OPAClient" = None
 
+    # sensitive attributes which must not be transmitted to OPA
+    # as they might be shown in the general or decision logs
+    _sensitive_attributes = ["password", "kelvin_password_hashes"]
+    _mask_value = "********"
+
     @classmethod
     def instance(cls):
         if not cls._instance:
@@ -28,6 +34,19 @@ class OPAClient:
     async def shutdown_instance(cls):
         if cls._instance:
             await cls._instance.shutdown()
+
+    @classmethod
+    def filter_sensitive_attributes(cls, request: Dict[str, Any]) -> Dict[str, Any]:
+        """filter sensitive attributes
+
+        note: the masking of "kelvin_password_hashes" currently
+        changes the value type from a dictionary to a string
+        """
+        result = deepcopy(request)
+        for attr in OPAClient._sensitive_attributes:
+            if attr in result.get("data", {}):
+                result["data"][attr] = OPAClient._mask_value
+        return result
 
     def __init__(self):
         self._session = aiohttp.ClientSession()
@@ -40,7 +59,13 @@ class OPAClient:
     ) -> Any:
         async with self._session.post(
             f"{OPA_URL}{policy}",
-            json={"input": {"token": token, "request": request, "target": target}},
+            json={
+                "input": {
+                    "token": token,
+                    "request": OPAClient.filter_sensitive_attributes(request),
+                    "target": target,
+                }
+            },
         ) as response:
             if response.status != 200:
                 return False

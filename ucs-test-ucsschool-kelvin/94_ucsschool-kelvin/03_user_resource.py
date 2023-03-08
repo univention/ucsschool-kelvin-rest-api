@@ -1038,3 +1038,54 @@ def test_modify_classes_0old_2new(
     logger.debug("*** user.school_classes without ous=%r", classes_without_ous)
     assert classes_without_ous == new_school_classes
     logger.info("*** OK: 0 classes in old and 2 classes in new")
+
+
+def test_opa_does_not_log_sensitive_attributes(
+    auth_header,
+    compare_import_user_and_resource,
+    extract_class_dns,
+    make_user_attrs,
+    schoolenv,
+    setup_import_config,
+    ucr,
+):
+    ((ou_name, ou_dn),) = schoolenv.create_multiple_ous(1, name_edudc=ucr["hostname"])
+    logger.info("*** Using OU %r.", ou_name)
+
+    create_attrs = make_user_attrs(
+        [ou_name],
+        school=ou_name,
+        schools=[ou_name],
+        partial=False,
+    )
+
+    mysecretpassword = "mysecretpassword"
+    create_attrs["password"] = mysecretpassword
+    create_attrs["kelvin_password_hashes"] = {
+        "user_password": mysecretpassword,
+        "samba_nt_password": mysecretpassword,
+        "krb_5_key": mysecretpassword,
+        "krb5_key_version_number": 1,
+        "samba_pwd_last_set": 0,
+    }
+
+    logger.info("*** create_attrs=%r", create_attrs)
+
+    create_remote_static((auth_header, create_attrs))
+
+    opa_log_file = "/var/log/univention/ucsschool-kelvin-rest-api/opa.log"
+
+    forbidden_words = [
+        mysecretpassword,
+        "user_password",
+        "samba_nt_password",
+        "krb_5_key",
+        "krb5_key_version_number",
+        "samba_pwd_last_set",
+    ]
+
+    with open(opa_log_file, "r") as f:
+        contents = f.read()
+
+        for word in forbidden_words:
+            assert word not in contents

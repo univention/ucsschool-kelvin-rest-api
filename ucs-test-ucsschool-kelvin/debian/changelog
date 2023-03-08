@@ -1,3 +1,9 @@
+ucs-test-ucsschool-kelvin (1.0.12) unstable; urgency=medium
+
+  * Issue #71: Add test which checks for sensitive information in opa logs
+
+ -- Johannes Königer <koeniger@univention.de>  Wed, 08 Mar 2023 15:54:34 +0100
+
 ucs-test-ucsschool-kelvin (1.0.11) unstable; urgency=low
 
   * Issue #56: fix tests start (pytest-rerunfailures not installed anymore)
