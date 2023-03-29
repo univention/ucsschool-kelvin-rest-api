@@ -109,7 +109,6 @@ MAPPED_UDM_PROPERTIES = [
     "phone",
     "uidNumber",
     "gidNumber",
-    "pwdChangeNextLogin",
 ]  # keep in sync with MAPPED_UDM_PROPERTIES in [ucsschool-repo(4.4|5.0)]/ucs-test-ucsschool/modules/...
 # .../univention/testing/ucsschool/conftest.py and [ucs-repo(4.4|5.0)]/test/utils/...
 # .../ucsschool_id_connector.py
