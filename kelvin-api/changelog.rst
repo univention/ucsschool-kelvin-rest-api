@@ -5,6 +5,9 @@
 Changelog
 ---------
 
+v1.8.7 (2023-03-30)
+...................
+* Prevent logging of sensitive information, such as passwords, in the OPA log (Issue #71).
 
 v1.8.6 (2023-03-07)
 ...................
