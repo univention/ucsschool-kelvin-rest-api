@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.8.8 (2023-04-10)
+...................
+* Validate usernames to avoid Windows reserved names (Bug #53519).
+
 v1.8.7 (2023-03-30)
 ...................
 * Prevent logging of sensitive information, such as passwords, in the OPA log (Issue #71).

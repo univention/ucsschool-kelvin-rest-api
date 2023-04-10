@@ -1,6 +1,10 @@
 <h1>Changelog</h1>
 
 
+<h2>v1.8.8 (2023-04-10)</h2>
+<ul>
+    <li>Validate usernames to avoid Windows reserved names (Bug #53519).</li>
+</ul>
 
 <h2>v1.8.7 (2023-03-30)</h2>
 <ul>
