@@ -43,6 +43,10 @@ msgid ""
 "The length of fully qualified domain name is greater than 63 characters."
 msgstr "Die Länge von System- und Domänennamen ist größer als 63 Zeichen."
 
+#: modules/ucsschool/lib/models/attributes.py:201
+msgid "May not be a Windows reserved name"
+msgstr "Darf kein reservierter Windows-Name sein"
+
 #: models/attributes.py:336
 msgid "Role has bad format"
 msgstr "Rolle hat falsches Format"

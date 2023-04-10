@@ -2731,6 +2731,45 @@ async def test_create_with_non_existing_school_in_workgroup_raises(
 
 
 @pytest.mark.asyncio
+async def test_create_with_windows_reserved_name_raises(
+    auth_header,
+    check_password,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    random_user_create_model,
+    random_name,
+    import_config,
+    udm_kwargs,
+    schedule_delete_user_name_using_udm,
+    new_workgroup_using_lib,
+):
+    school = await create_ou_using_python()
+    wg_dn, wg_attr = await new_workgroup_using_lib(school)
+    r_user = await random_user_create_model(school, roles=[f"{url_fragment}/roles/student"])
+    r_user.name = "com1"
+    data = r_user.json()
+    logger.debug("POST data=%r", data)
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
+    schedule_delete_user_name_using_udm(r_user.name)  # just in case
+    response = retry_http_502(
+        requests.post,
+        f"{url_fragment}/users/",
+        headers={"Content-Type": "application/json", **auth_header},
+        data=data,
+    )
+    assert response.status_code == 422, f"{response.__dict__!r}"
+    assert response.json()["detail"][0]["msg"] == "May not be a Windows reserved name", response.json()[
+        "detail"
+    ]
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
+
+
+@pytest.mark.asyncio
 async def test_complete_update_does_not_change_workgroups_if_not_passed(
     auth_header,
     check_password,
