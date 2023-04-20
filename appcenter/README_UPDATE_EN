@@ -6,6 +6,11 @@
     <li>Validate usernames to avoid Windows reserved names (Bug #53519).</li>
 </ul>
 
+<h2>v1.8.8 (2023-04-20)</h2>
+<ul>
+    <li>Return HTTP 404 for non exisitng roles, instead of 422 (Issue #83).</li>
+</ul>
+
 <h2>v1.8.7 (2023-03-30)</h2>
 <ul>
     <li>Prevent logging of sensitive information, such as passwords, in the OPA log (Issue #71).</li>
