@@ -150,13 +150,20 @@ async def search(
 @router.get("/{role_name}", response_model=RoleModel)
 async def get(
     request: Request,
-    role_name: SchoolUserRole = Query(
+    role_name: str = Query(
         ...,
         alias="name",
         title="name",
     ),
     token: str = Depends(get_token),
 ) -> RoleModel:
+    """Get a role by name.
+
+    The name must be one of the following:
+        - staff
+        - student
+        - teacher
+    """
     if not await OPAClient.instance().check_policy_true(
         policy="roles",
         token=token,
@@ -167,6 +174,14 @@ async def get(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to list roles.",
         )
+    try:
+        role_name = SchoolUserRole(role_name)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No object with name={role_name!r} found or not authorized.",
+        )
+
     return RoleModel(
         name=role_name,
         display_name=role_name,
