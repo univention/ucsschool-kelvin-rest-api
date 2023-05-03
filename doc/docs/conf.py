@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021-2023 Univention GmbH
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # -*- coding: utf-8 -*-
 #
 # Configuration file for the Sphinx documentation builder.
@@ -99,10 +103,6 @@ pygments_style = "sphinx"
 
 doc_basename = "ucsschool-kelvin-rest-api"
 
-html_context = {
-    "pdf_download_filename": f"{doc_basename}.pdf",
-}
-
 html_theme = "univention_sphinx_book_theme"
 html_last_updated_fmt = "%d. %b %Y at %H:%M (UTC%z)"
 html_show_copyright = False
@@ -114,7 +114,11 @@ html_use_index = False
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {"logo": "kelvin_rest_api_logo.svg"}
+html_theme_options = {
+    "logo": "kelvin_rest_api_logo.svg",
+    "pdf_download_filename": f"{doc_basename}.pdf",
+    "show_source_license": True,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -198,8 +202,10 @@ linkcheck_allowed_redirects = {
 # Sitemap, see https://github.com/jdillard/sphinx-sitemap
 html_baseurl = "https://docs.software-univention.de/ucsschool-kelvin-rest-api/"
 
-# See Univention Sphinx Extension for its options and information about the
-# feedback link.
+# See Univention Sphinx Extension for its options.
 # https://git.knut.univention.de/univention/documentation/univention_sphinx_extension
+# Information about the feedback link.
 univention_feedback = True
+# Information about the license statement for the source files
+univention_pdf_show_source_license = True
 univention_doc_basename = doc_basename
