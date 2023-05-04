@@ -5,10 +5,10 @@
 Changelog
 ---------
 
-v1.8.8 (2023-04-25)
+v1.8.8 (2023-05-04)
 ...................
 * Validate usernames to avoid Windows reserved names (Bug #53519).
-* Return HTTP 404 for non exisitng roles, instead of 422 (Issue #83).
+* Return HTTP 404 for non existing roles, instead of 422 (Issue #83).
 
 v1.8.7 (2023-03-30)
 ...................
