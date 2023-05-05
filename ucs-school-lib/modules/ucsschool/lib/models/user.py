@@ -602,6 +602,27 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                     )
                     await group.modify(lo)
 
+        if await self.is_administrator(lo):
+            admin_group_dns = self.get_school_admin_groups([school])
+            for dn in admin_group_dns:
+                try:
+                    admin_group = await BasicGroup.from_dn(dn, school, lo)
+                except noObject:
+                    continue
+
+                try:
+                    admin_group.users.remove(self.dn)
+                except ValueError:
+                    pass
+                else:
+                    self.logger.info(
+                        "Removing %r from group %r of school %r.",
+                        self.dn,
+                        admin_group.dn,
+                        school,
+                    )
+                    await admin_group.modify(lo)
+
     def get_group_dn(self, group_name: str, school: str) -> str:
         return Group.cache(group_name, school).dn
 
@@ -610,27 +631,35 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         await self.create_group_if_missing(dn, lo)
         return dn
 
-    def get_domain_users_groups(self) -> List[str]:
-        return [self.get_group_dn("Domain Users %s" % school, school) for school in self.schools]
+    def get_domain_users_groups(self, schools: Optional[List[str]] = None) -> List[str]:
+        return [
+            self.get_group_dn("Domain Users %s" % school, school) for school in (schools or self.schools)
+        ]
 
-    def get_students_groups(self) -> List[str]:
+    def get_students_groups(self, schools: Optional[List[str]] = None) -> List[str]:
         prefix = ucr.get("ucsschool/ldap/default/groupprefix/pupils", "schueler-")
-        return [self.get_group_dn("%s%s" % (prefix, school), school) for school in self.schools]
+        return [
+            self.get_group_dn("%s%s" % (prefix, school), school) for school in (schools or self.schools)
+        ]
 
-    def get_teachers_groups(self) -> List[str]:
+    def get_teachers_groups(self, schools: Optional[List[str]] = None) -> List[str]:
         prefix = ucr.get("ucsschool/ldap/default/groupprefix/teachers", "lehrer-")
-        return [self.get_group_dn("%s%s" % (prefix, school), school) for school in self.schools]
+        return [
+            self.get_group_dn("%s%s" % (prefix, school), school) for school in (schools or self.schools)
+        ]
 
-    def get_staff_groups(self) -> List[str]:
+    def get_staff_groups(self, schools: Optional[List[str]] = None) -> List[str]:
         prefix = ucr.get("ucsschool/ldap/default/groupprefix/staff", "mitarbeiter-")
-        return [self.get_group_dn("%s%s" % (prefix, school), school) for school in self.schools]
+        return [
+            self.get_group_dn("%s%s" % (prefix, school), school) for school in (schools or self.schools)
+        ]
 
-    def get_school_admin_groups(self) -> List[str]:
+    def get_school_admin_groups(self, schools: Optional[List[str]] = None) -> List[str]:
         prefix = self.get_search_base(self.school).group_prefix_admins
         ldap_base = env_or_ucr("ldap/base")
         return [
             "cn=%s%s,cn=ouadmins,cn=groups,%s" % (prefix, school.lower(), ldap_base)
-            for school in self.schools
+            for school in (schools or self.schools)
         ]
 
     async def groups_used(self, lo: UDM) -> List[str]:

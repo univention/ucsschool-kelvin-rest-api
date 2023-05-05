@@ -22,6 +22,7 @@ from ucsschool.lib.models.user import (
     convert_to_teacher,
     convert_to_teacher_and_staff,
 )
+from ucsschool.lib.schoolldap import SchoolSearchBase
 from udm_rest_client import UDM
 from udm_rest_client.exceptions import CreateError, ModifyError
 
@@ -856,3 +857,97 @@ async def test_unixhome(
         user = await role.klass.from_dn(user.dn, school, udm)
         udm_user = await user.get_udm_object(udm)
         assert f"/home/{school}/{unixhomes[role.name]}/{user.name}" == udm_user.props.unixhome
+
+
+@pytest.mark.asyncio
+async def test_remove_from_groups_of_school_admin_user(
+    create_multiple_ous,
+    ldap_base,
+    new_school_class_using_udm,
+    new_udm_user,
+    new_workgroup_using_udm,
+    udm_kwargs,
+):
+    # Test scenario:
+    # A user who is a teacher and an admin in two schools.
+    # When the user is removed from the second school,
+    # both the admin and teacher groups will be completely removed for the second school,
+    # leaving the first school as-is
+
+    school1_name, school2_name = await create_multiple_ous(2)
+    school_names = [school1_name, school2_name]
+
+    school1 = SchoolSearchBase([school1_name])
+    school1_domain_users = f"cn=Domain Users {school1_name},cn=groups,ou={school1_name},{ldap_base}"
+    school1_teachers = school1.teachers_group
+    school1_admins = school1.admins_group
+
+    school2 = SchoolSearchBase([school2_name])
+    school2_domain_users = f"cn=Domain Users {school2_name},cn=groups,ou={school2_name},{ldap_base}"
+    school2_teachers = school2.teachers_group
+    school2_admins = school2.admins_group
+
+    class1_dn, class1_name = await new_school_class_using_udm(school=school1_name)
+    class2_dn, class2_name = await new_school_class_using_udm(school=school2_name)
+    wg1_dn, wg1_name = await new_workgroup_using_udm(school=school1_name)
+    wg2_dn, wg2_name = await new_workgroup_using_udm(school=school2_name)
+
+    user_dn, user_name = await new_udm_user(
+        school=school1_name,
+        role="teacher",
+        schools=school_names,
+        school_classes={
+            school1_name: [class1_name],
+            school2_name: [class2_name],
+        },
+        workgroups={
+            school1_name: [wg1_name],
+            school2_name: [wg2_name],
+        },
+    )
+    async with UDM(**udm_kwargs) as udm:
+        user_udm = await udm.get("users/user").get(user_dn)
+        user_udm.options["ucsschoolAdministrator"] = True
+        user_udm.props.groups.extend(
+            [
+                school2_domain_users,
+                school2_teachers,
+                school1_admins,
+                school2_admins,
+                class1_dn,
+                class2_dn,
+                wg1_dn,
+                wg2_dn,
+            ],
+        )
+        await user_udm.save()
+
+        # Verification of pre-test state
+        expected_pre_test_groups = {
+            school1_domain_users,
+            school2_domain_users,
+            school1_teachers,
+            school2_teachers,
+            school1_admins,
+            school2_admins,
+            class1_dn,
+            class2_dn,
+            wg1_dn,
+            wg2_dn,
+        }
+        user_udm_saved = await udm.get("users/user").get(user_dn)
+        assert set(user_udm_saved.props.groups) == expected_pre_test_groups
+
+        # Testing
+        user = await User.from_dn(user_dn, school1_name, udm)
+        await user.remove_from_groups_of_school(school2_name, udm)
+
+        expected_post_test_groups = {
+            school1_domain_users,
+            school1_teachers,
+            school1_admins,
+            class1_dn,
+            wg1_dn,
+        }
+        user_udm_post_test = await udm.get("users/user").get(user_dn)
+        assert set(user_udm_post_test.props.groups) == expected_post_test_groups
