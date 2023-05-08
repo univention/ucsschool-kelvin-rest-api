@@ -80,6 +80,7 @@ class LdapUser(BaseModel):
     attributes: Optional[Dict[str, List[Any]]] = None
 
 
+@lru_cache
 def admin_group_members() -> List[str]:
     ldap_base = env_or_ucr("ldap/base")
     search_filter = f"(cn={escape_filter_chars(API_USERS_GROUP_NAME)})"
