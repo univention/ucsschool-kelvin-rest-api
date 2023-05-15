@@ -27,6 +27,7 @@ from ucsschool.lib.models.utils import (
 )
 from ucsschool.lib.roles import (
     create_ucsschool_role_string,
+    role_school_admin,
     role_school_class,
     role_school_class_share,
     role_staff,
@@ -455,6 +456,55 @@ def new_udm_user(
             schedule_delete_user_dn(user_obj.dn)
             wait_for_replication(user_obj.dn)
             logger.debug("Created new %s%s: %r", role[0].upper(), role[1:], user_obj)
+
+        return user_obj.dn, user_props
+
+    yield _func
+
+
+@pytest.fixture
+def new_udm_admin_user(
+    udm_kwargs,
+    ldap_base,
+    udm_users_user_props,
+    new_school_class_using_udm,
+    new_workgroup_using_udm,
+    schedule_delete_user_dn,
+    wait_for_replication,
+):
+    """Create a new school admin user using UDM. -> (DN, {attrs})"""
+
+    async def _func(
+        school: str,
+        udm_properties: Dict[str, Any] = None,
+        **school_user_kwargs,
+    ) -> Tuple[str, Dict[str, Any]]:
+        school_search_base = SchoolSearchBase([school])
+        extra_roles = school_user_kwargs.get("ucsschool_roles", [])
+
+        user_props = await udm_users_user_props(school, **school_user_kwargs)
+        user_props.update(udm_properties or {})
+        user_props["ucsschoolRole"] = [create_ucsschool_role_string(role_school_admin, school)]
+        user_props["ucsschoolRole"].extend(extra_roles)
+
+        async with UDM(**udm_kwargs) as udm:
+            user_obj = await udm.get("users/user").new()
+            user_obj.options["ucsschoolAdministrator"] = True
+            user_obj.position = school_search_base.admins
+            user_obj.props.update(user_props)
+            user_obj.props.primaryGroup = f"cn=Domain Users {school},cn=groups,ou={school},{ldap_base}"
+            user_obj.props.ucsschoolRecordUID = school_user_kwargs.get(
+                "record_uid", user_props["username"]
+            )
+
+            user_obj.props.ucsschoolSourceUID = school_user_kwargs.get("source_uid", "Kelvin")
+            user_obj.props.groups = [user_obj.props.primaryGroup]
+            user_obj.props.groups.append(school_search_base.admins_group)
+            await user_obj.save()
+
+            schedule_delete_user_dn(user_obj.dn)
+            wait_for_replication(user_obj.dn)
+            logger.debug("Created new Administrator: %r", user_obj)
 
         return user_obj.dn, user_props
 

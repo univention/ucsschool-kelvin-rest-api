@@ -229,11 +229,8 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         obj = await self.get_udm_object(lo)
         if not obj:
             raise noObject("Could not read %r" % (self.dn,))
-        if "ucsschoolSchool" in obj.oldattr:  # TODO: HTTP UdmObject does not have "oldattr"!
-            return object_class.encode("UTF-8") in obj.oldattr.get(
-                "objectClass", []
-            )  # TODO: see line above
-        return fallback(self.school, self.dn)
+        is_object_class = obj.options.get(object_class)
+        return is_object_class or fallback(self.school, self.dn)
 
     @classmethod
     async def get_class_for_udm_obj(cls, udm_obj: UdmObject, school: str) -> Union[None, Type["User"]]:

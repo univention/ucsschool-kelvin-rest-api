@@ -25,6 +25,7 @@ from ucsschool.lib.models.user import (
 from ucsschool.lib.schoolldap import SchoolSearchBase
 from udm_rest_client import UDM
 from udm_rest_client.exceptions import CreateError, ModifyError
+from univention.admin.uexceptions import noObject
 
 UserType = Union[Type[Staff], Type[Student], Type[Teacher], Type[TeachersAndStaff], Type[User]]
 Role = NamedTuple("Role", [("name", str), ("klass", UserType)])
@@ -951,3 +952,266 @@ async def test_remove_from_groups_of_school_admin_user(
         }
         user_udm_post_test = await udm.get("users/user").get(user_dn)
         assert set(user_udm_post_test.props.groups) == expected_post_test_groups
+
+
+@pytest.mark.asyncio
+async def test_is_student(create_ou_using_python, new_udm_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, "student")
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_student = await user.is_student(udm)
+        assert is_student
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", ("staff", "teacher", "teacher_and_staff"))
+async def test_is_student_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, role)
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_student = await user.is_student(udm)
+        assert not is_student
+
+
+@pytest.mark.asyncio
+async def test_is_student_with_fallback(create_ou_using_python, new_udm_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, "student")
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        # Let's artificially create a legacy user
+        user_udm = await user.get_udm_object(udm)
+        user_udm.options["ucsschoolStudent"] = None
+        user_udm.save()
+
+        is_student = await user.is_student(udm)
+        assert is_student
+
+
+@pytest.mark.asyncio
+async def test_is_student_with_object_does_not_exist(udm_kwargs):
+    async with UDM(**udm_kwargs) as udm:
+        user = User()
+        try:
+            await user.is_student(udm)
+            assert False, "is_student should throw error when no udm object"
+        except noObject:
+            assert True
+
+
+@pytest.mark.asyncio
+async def test_is_exam_student(create_ou_using_python, new_udm_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, "student")
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        # Let's artifically create an exam user,
+        # because the process of creating a correct ExamStudent
+        # isn't ported from ucsschool.
+        user_udm = await user.get_udm_object(udm)
+        user_udm.options["ucsschoolExam"] = True
+        user_udm.save()
+
+        is_exam_student = await user.is_exam_student(udm)
+        assert is_exam_student
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", ("student", "staff", "teacher", "teacher_and_staff"))
+async def test_is_exam_student_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, role)
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_exam_student = await user.is_exam_student(udm)
+        assert not is_exam_student
+
+
+@pytest.mark.asyncio
+async def test_is_exam_student_with_object_does_not_exist(udm_kwargs):
+    async with UDM(**udm_kwargs) as udm:
+        user = User()
+        try:
+            await user.is_exam_student(udm)
+            assert False, "is_exam_student should throw error when no UDM object"
+        except noObject:
+            assert True
+
+
+@pytest.mark.asyncio
+async def test_is_teacher(create_ou_using_python, new_udm_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, "teacher")
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_teacher = await user.is_teacher(udm)
+        assert is_teacher
+
+
+@pytest.mark.asyncio
+async def test_is_teacher_when_teacher_and_staff(create_ou_using_python, new_udm_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, "teacher_and_staff")
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_teacher = await user.is_teacher(udm)
+        assert is_teacher
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", ("student", "staff"))
+async def test_is_teacher_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, role)
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_teacher = await user.is_teacher(udm)
+        assert not is_teacher
+
+
+@pytest.mark.asyncio
+async def test_is_teacher_with_fallback(create_ou_using_python, new_udm_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, "teacher")
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        # Let's artificially create a legacy user
+        user_udm = await user.get_udm_object(udm)
+        user_udm.options["ucsschoolTeacher"] = None
+        user_udm.save()
+
+        is_teacher = await user.is_teacher(udm)
+        assert is_teacher
+
+
+@pytest.mark.asyncio
+async def test_is_teacher_with_object_does_not_exist(udm_kwargs):
+    async with UDM(**udm_kwargs) as udm:
+        user = User()
+        try:
+            await user.is_teacher(udm)
+            assert False, "is_teacher should error when no UDM object"
+        except noObject:
+            assert True
+
+
+@pytest.mark.asyncio
+async def test_is_staff(create_ou_using_python, new_udm_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, "staff")
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_staff = await user.is_staff(udm)
+        assert is_staff
+
+
+@pytest.mark.asyncio
+async def test_is_staff_when_teacher_and_staff(create_ou_using_python, new_udm_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, "teacher_and_staff")
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_staff = await user.is_staff(udm)
+        assert is_staff
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", ("student", "teacher"))
+async def test_is_staff_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, role)
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_staff = await user.is_staff(udm)
+        assert not is_staff
+
+
+@pytest.mark.asyncio
+async def test_is_staff_with_fallback(create_ou_using_python, new_udm_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, "staff")
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        # Let's artificially create a legacy user
+        user_udm = await user.get_udm_object(udm)
+        user_udm.options["ucsschoolStaff"] = None
+        user_udm.save()
+
+        is_staff = await user.is_staff(udm)
+        assert is_staff
+
+
+@pytest.mark.asyncio
+async def test_is_staff_with_object_does_not_exist(udm_kwargs):
+    async with UDM(**udm_kwargs) as udm:
+        user = User()
+        try:
+            await user.is_staff(udm)
+            assert False, "is_staff should throw an error when no UDM object"
+        except noObject:
+            assert True
+
+
+@pytest.mark.asyncio
+async def test_is_administrator(create_ou_using_python, new_udm_admin_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_admin_user(ou)
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_administrator = await user.is_administrator(udm)
+        assert is_administrator
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", ("staff", "student", "teacher", "teacher_and_staff"))
+async def test_is_administrator_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_user(ou, role)
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        is_administrator = await user.is_administrator(udm)
+        assert not is_administrator
+
+
+@pytest.mark.asyncio
+async def test_is_administrator_with_fallback(create_ou_using_python, new_udm_admin_user, udm_kwargs):
+    ou = await create_ou_using_python()
+    dn, _ = await new_udm_admin_user(ou)
+
+    async with UDM(**udm_kwargs) as udm:
+        user = await User.from_dn(dn, ou, udm)
+        # Let's artificially create a legacy user
+        user_udm = await user.get_udm_object(udm)
+        user_udm.options["ucsschoolAdministrator"] = None
+        user_udm.save()
+
+        is_administrator = await user.is_administrator(udm)
+        assert is_administrator
+
+
+@pytest.mark.asyncio
+async def test_is_administrator_with_object_does_not_exist(udm_kwargs):
+    async with UDM(**udm_kwargs) as udm:
+        user = User()
+        try:
+            await user.is_administrator(udm)
+            assert False, "is_administrator should throw error if no UDM object"
+        except noObject:
+            assert True
