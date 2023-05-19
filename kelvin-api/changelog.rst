@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.8.9 (2023-05-19)
+...................
+* Remove an admin from the groups of a school, when removing them from a school (Bug #55986).
+
 v1.8.8 (2023-05-04)
 ...................
 * Validate usernames to avoid Windows reserved names (Bug #53519).
