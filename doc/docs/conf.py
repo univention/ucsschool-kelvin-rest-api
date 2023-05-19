@@ -109,13 +109,13 @@ html_show_copyright = False
 html_show_sphinx = False
 html_show_sourcelink = False
 html_use_index = False
+html_logo = "_static/kelvin_rest_api_logo.svg"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
 html_theme_options = {
-    "logo": "kelvin_rest_api_logo.svg",
     "pdf_download_filename": f"{doc_basename}.pdf",
     "show_source_license": True,
 }
