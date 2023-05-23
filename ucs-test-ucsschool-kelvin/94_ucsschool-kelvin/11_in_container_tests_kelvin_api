@@ -11,7 +11,7 @@ APP="ucsschool-kelvin-rest-api"
 declare -a CMD=(sh -c "
 cd /kelvin/kelvin-api &&
 rm -f .coverage /tmp/junit.xml &&
-coverage run --source tests,ucsschool -m pytest --junit-xml=/tmp/junit.xml --junit-prefix=94_ucsschool-api-kelvin.10_in_container_tests_kelvin_api;
+coverage run --source tests,ucsschool -m pytest --junit-xml=/tmp/junit.xml --junit-prefix=94_ucsschool-api-kelvin.11_in_container_tests_kelvin_api;
 ls -la .coverage")
 
 echo "Running in container:" "${CMD[@]}"
