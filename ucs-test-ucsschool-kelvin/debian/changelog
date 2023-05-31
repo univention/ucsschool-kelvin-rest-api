@@ -1,3 +1,9 @@
+ucs-test-ucsschool-kelvin (1.0.13) unstable; urgency=low
+
+  * Issue #90: Run Kelvin API container tests under correct name.
+
+ -- J Leadbetter <j.leadbetter@univention.de>  Wed, 31 May 2023 09:06:24 +0200
+
 ucs-test-ucsschool-kelvin (1.0.12) unstable; urgency=medium
 
   * Issue #71: Add test which checks for sensitive information in opa logs
