@@ -29,7 +29,7 @@ from enum import Enum
 from typing import List, Type
 from urllib.parse import ParseResult, urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
 from pydantic import BaseModel, HttpUrl
 
 from ucsschool.importer.factory import Factory
@@ -150,9 +150,8 @@ async def search(
 @router.get("/{role_name}", response_model=RoleModel)
 async def get(
     request: Request,
-    role_name: str = Query(
-        ...,
-        alias="name",
+    role_name: str = Path(
+        default=...,
         title="name",
     ),
     token: str = Depends(get_token),

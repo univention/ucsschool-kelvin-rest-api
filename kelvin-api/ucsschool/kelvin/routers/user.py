@@ -35,7 +35,7 @@ from functools import lru_cache
 from operator import attrgetter
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request, Response, status
 from ldap.filter import escape_filter_chars
 from pydantic import BaseModel, Field, HttpUrl, SecretStr, ValidationError, root_validator, validator
 
@@ -697,8 +697,8 @@ async def search(  # noqa: C901
 
 @router.get("/{username}", response_model=UserModel)
 async def get(
-    username: str,
     request: Request,
+    username: str = Path(default=..., description="Name of the school user to fetch."),
     logger: logging.Logger = Depends(get_logger),
     udm: UDM = Depends(udm_ctx),
     token: str = Depends(get_token),

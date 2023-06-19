@@ -29,7 +29,17 @@ from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 from aiocache import Cache, cached
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Path,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from ldap.filter import escape_filter_chars, filter_format
 from pydantic import validator
 
@@ -247,9 +257,8 @@ async def school_search(
 @router.get("/{school_name}", response_model=SchoolModel)
 async def school_get(
     request: Request,
-    school_name: str = Query(
-        None,
-        alias="name",
+    school_name: str = Path(
+        default=...,
         description="School (OU) with this name.",
         title="name",
     ),
@@ -376,9 +385,8 @@ async def school_create(
 
 @router.head("/{school_name}")
 async def school_exists(
-    school_name: str = Query(
-        None,
-        alias="name",
+    school_name: str = Path(
+        default=...,
         description="School (OU) with this name.",
         title="name",
     ),
