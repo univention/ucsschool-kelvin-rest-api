@@ -108,7 +108,7 @@ class SchoolUserRole(str, Enum):
 
     def to_url(self, request: Request) -> HttpUrl:
         url = cached_url_for(request, "get", role_name=self.value)
-        up: ParseResult = urlparse(url)
+        up: ParseResult = urlparse(str(url))
         replaced = up._replace(scheme="https")
         return HttpUrl(replaced.geturl(), scheme="https", host=up.netloc)
 

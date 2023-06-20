@@ -331,10 +331,12 @@ class UserModel(UserBaseModel, APIAttributesMixin):
     async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
         kwargs["schools"] = sorted(
-            cls.scheme_and_quote(cached_url_for(request, "school_get", school_name=school))
+            cls.scheme_and_quote(str(cached_url_for(request, "school_get", school_name=school)))
             for school in obj.schools
         )
-        kwargs["url"] = cls.scheme_and_quote(cached_url_for(request, "get", username=kwargs["name"]))
+        kwargs["url"] = cls.scheme_and_quote(
+            str(cached_url_for(request, "get", username=kwargs["name"]))
+        )
         udm_obj = await obj.get_udm_object(udm)
         # filter out all non school role strings
         roles = sorted(
@@ -344,7 +346,7 @@ class UserModel(UserBaseModel, APIAttributesMixin):
                 if _is_school_role_string(role)
             }
         )
-        kwargs["roles"] = [cls.scheme_and_quote(role.to_url(request)) for role in roles]
+        kwargs["roles"] = [cls.scheme_and_quote(str(role.to_url(request))) for role in roles]
         kwargs["source_uid"] = udm_obj.props.ucsschoolSourceUID
         kwargs["record_uid"] = udm_obj.props.ucsschoolRecordUID
         kwargs["school_classes"] = dict(

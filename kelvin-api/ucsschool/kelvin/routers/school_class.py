@@ -91,10 +91,10 @@ class SchoolClassCreateModel(UcsSchoolBaseModel):
     ) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
         kwargs["url"] = cls.scheme_and_quote(
-            cached_url_for(request, "get", class_name=kwargs["name"], school=obj.school)
+            str(cached_url_for(request, "get", class_name=kwargs["name"], school=obj.school))
         )
         kwargs["users"] = [
-            cls.scheme_and_quote(cached_url_for(request, "get", username=name_from_dn(dn)))
+            cls.scheme_and_quote(str(cached_url_for(request, "get", username=name_from_dn(dn))))
             for dn in obj.users
         ]
         return kwargs
