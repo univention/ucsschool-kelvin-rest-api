@@ -39,7 +39,8 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import HTMLResponse, JSONResponse, ORJSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
-from fastapi_utils.timing import add_timing_middleware
+from timing_asgi import TimingClient, TimingMiddleware
+from timing_asgi.integrations import StarletteScopeToName
 
 from ucsschool.lib.models.attributes import ValidationError as SchooLibValidationError
 from ucsschool.lib.models.base import NoObject
@@ -81,7 +82,18 @@ app = FastAPI(
 )
 app.add_middleware(CorrelationIdMiddleware)
 logger = get_logger()
-add_timing_middleware(app, record=logger.info)
+
+
+class PrintTimings(TimingClient):
+    def timing(self, metric_name, timing, tags):
+        logger.warning(f"{metric_name} - {timing:.3f} s - {tags}")
+
+
+app.add_middleware(
+    TimingMiddleware,
+    client=PrintTimings(),
+    metric_namer=StarletteScopeToName(prefix="kelvin_app", starlette_app=app),
+)
 
 
 class ValidationDataFilter(logging.Filter):
