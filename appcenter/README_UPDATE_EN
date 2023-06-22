@@ -3,6 +3,7 @@
 <h2>v1.8.9 (2023-05-19)</h2>
 <ul>
     <li>Remove an admin from the groups of a school, when removing them from a school (Bug #55986).</li>
+    <li>Update upstream dependencies to fix security vulnerability (Bug #56097).</li>
 </ul>
 
 <h2>v1.8.8 (2023-05-04)</h2>
