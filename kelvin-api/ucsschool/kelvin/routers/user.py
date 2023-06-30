@@ -856,6 +856,7 @@ async def create(
                 f"record_uid={user.record_uid!r}, "
                 f"source_uid={user.source_uid!r}).",
             )
+        await user.validate(udm, validate_unlikely_changes=True, check_username=True)
         t4 = time.time()
         logger.info("Going to create %s with %r...", user, user.to_dict())
         res = await user.create(udm)  # TODO: this takes 750 ms
@@ -931,8 +932,9 @@ async def rename_user(udm: UDM, logger: logging.Logger, user: ImportUser, new_na
     old_name = user.name
     user.name = new_name
     try:
+        await user.validate(udm, validate_unlikely_changes=True, check_username=True)
         res = await user.move(udm, force=True)
-    except (LibValidationError, ModifyError, MoveError) as exc:
+    except (LibValidationError, ModifyError, MoveError, UcsSchoolImportError) as exc:
         error_msg = f"Renaming {user!r} from {old_name!r} to {user.name!r}: {exc}"
         logger.exception(error_msg)
         if isinstance(exc, ModifyError) or isinstance(exc, MoveError):

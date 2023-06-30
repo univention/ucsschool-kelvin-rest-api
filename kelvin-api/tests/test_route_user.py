@@ -709,6 +709,60 @@ async def test_create(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+async def test_create_username_checks(
+    auth_header,
+    check_password,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    random_user_create_model,
+    random_name,
+    import_config,
+    udm_kwargs,
+    schedule_delete_user_name_using_udm,
+    new_workgroup_using_lib,
+    role: Role,
+):
+    if role.name == "teacher_and_staff":
+        roles = ["staff", "teacher"]
+    else:
+        roles = [role.name]
+    school = await create_ou_using_python()
+    school_scrambled = scramble_case(school)
+    wg_dn, wg_attr = await new_workgroup_using_lib(school)
+    workgroups = {school_scrambled: [wg_attr["name"]]}
+    r_user = await random_user_create_model(
+        school_scrambled,
+        roles=[f"{url_fragment}/roles/{role_}" for role_ in roles],
+        workgroups=workgroups,
+    )
+    while len(r_user.name) < 50:
+        r_user.name += random_name()
+    r_user.school_classes = {scramble_case(ou): kls for ou, kls in r_user.school_classes.items()}
+    title = random_name()
+    r_user.udm_properties["title"] = title
+    phone = [random_name(), random_name()]
+    r_user.udm_properties["phone"] = phone
+    data = r_user.json()
+    logger.debug("POST data=%r", data)
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
+    schedule_delete_user_name_using_udm(r_user.name)
+    response = retry_http_502(
+        requests.post,
+        f"{url_fragment}/users/",
+        headers={"Content-Type": "application/json", **auth_header},
+        data=data,
+    )
+    assert response.status_code == 400, f"{response.__dict__!r}"
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+        assert len(lib_users) == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 @pytest.mark.parametrize("evaluate_password_policies", [True, False])
 async def test_user_create_password_policies(
     auth_header,
@@ -1504,6 +1558,59 @@ async def test_role_change_fails_for_student_missing_school_class_for_second_sch
         lib_users = await User.get_all(udm, ou1, f"username={user.name}")
         assert len(lib_users) == 1
         assert isinstance(lib_users[0], Teacher)  # unchanged
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ("patch", "put"))
+async def test_modify_username_checks(
+    auth_header,
+    check_password,
+    retry_http_502,
+    url_fragment,
+    new_import_user,
+    create_ou_using_python,
+    random_user_create_model,
+    random_name,
+    import_config,
+    udm_kwargs,
+    schedule_delete_user_name_using_udm,
+    import_user_to_create_model_kwargs,
+    new_workgroup_using_lib,
+    method: str,
+):
+    school = await create_ou_using_python()
+    user: ImportUser = await new_import_user(school, "teacher", schools=[school])
+    schedule_delete_user_name_using_udm(user.name)
+
+    new_username: str = ""
+    while len(new_username) < 50:
+        new_username += random_name()
+
+    user_url = f"{url_fragment}/users/{user.name}"
+    if method == "patch":
+        patch_data = {"name": new_username}
+        response = retry_http_502(
+            requests.patch,
+            user_url,
+            headers=auth_header,
+            json=patch_data,
+        )
+    elif method == "put":
+        old_data = import_user_to_create_model_kwargs(user, ["name"])
+        modified_user = UserCreateModel(name=new_username, **old_data)
+        response = retry_http_502(
+            requests.put,
+            user_url,
+            headers=auth_header,
+            data=modified_user.json(),
+        )
+    assert response.status_code == 400, response.reason
+    json_resp = response.json()
+    assert "is longer than allowed" in json_resp["detail"]
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={user.name}")
+        assert len(lib_users) == 1
+        assert lib_users[0].name == user.name  # unchanged
 
 
 @pytest.mark.asyncio
