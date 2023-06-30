@@ -67,6 +67,7 @@ main () {
     ucsschool/import/set/serverprofile/path="$(ucr get ucsschool/import/set/serverprofile/path)" \
     ucsschool/validation/logging/backupcount="$(ucr get ucsschool/validation/logging/backupcount)" \
     ucsschool/validation/logging/enabled="$(ucr get ucsschool/validation/logging/enabled)" \
+    ucsschool/validation/username/windows-check="$(ucr get ucsschool/validation/username/windows-check)" \
     ucsschool/import/generate/share/marktplatz="$(ucr get ucsschool/import/generate/share/marktplatz)" \
     ucsschool/import/generate/policy/dhcp/searchbase="$(ucr get ucsschool/import/generate/policy/dhcp/searchbase)" \
     ucsschool/import/generate/policy/dhcp/dns/set_per_ou="$(ucr get ucsschool/import/generate/policy/dhcp/dns/set_per_ou)" \
