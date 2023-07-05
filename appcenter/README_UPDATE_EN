@@ -4,6 +4,7 @@
 <ul>
     <li>Fix group membership when removing admins from schools (Bug #55986).</li>
     <li>Update upstream dependencies to fix security vulnerability (Bug #56097).</li>
+    <li>Re-enable username validation checks for creation and modification of users.</li>
 </ul>
 
 <h2>v1.8.8 (2023-05-04)</h2>
