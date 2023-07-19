@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.8.10 (2023-07-19)
+...................
+* Fix renaming users.
+
 v1.8.9 (2023-05-19)
 ...................
 * Fix group membership when removing admins from schools (Bug #55986).

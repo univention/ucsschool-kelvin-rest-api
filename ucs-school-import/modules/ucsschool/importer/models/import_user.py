@@ -1335,7 +1335,7 @@ class ImportUser(User):
                     import_user=self,
                 )
 
-            if len(self.password or "") < self.config["password_length"]:
+            if self.password and len(self.password) < self.config["password_length"]:
                 raise BadPassword(
                     "Password is shorter than {} characters.".format(self.config["password_length"]),
                     entry_count=self.entry_count,
