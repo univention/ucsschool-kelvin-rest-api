@@ -5,11 +5,14 @@
 Changelog
 ---------
 
+v1.8.10 (2023-07-20)
+...................
+* Re-enable username validation checks for creation and modification of users.
+
 v1.8.9 (2023-05-19)
 ...................
 * Fix group membership when removing admins from schools (Bug #55986).
 * Update upstream dependencies to fix security vulnerability (Bug #56097).
-* Re-enable username validation checks for creation and modification of users.
 
 v1.8.8 (2023-05-04)
 ...................
