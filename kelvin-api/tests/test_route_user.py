@@ -1669,7 +1669,10 @@ async def test_rename(
     school = await create_ou_using_python()
     if method == "patch":
         user: ImportUser = await new_import_user(school, role.name)
-        new_name = f"t.new.{random_name()}.{random_name()}"
+        new_name = f"t.new.{random_name()}.{random_name()}"[:15]
+        # dot at the end not allowed
+        if new_name[-1] == ".":
+            new_name = new_name[:-1]
         schedule_delete_user_name_using_udm(new_name)
         response = retry_http_502(
             requests.patch,
@@ -1682,7 +1685,10 @@ async def test_rename(
             exclude={"roles"}
         )
         user = (await create_random_users(school, {role.name: 1}, **user_data))[0]
-        new_name = f"t.new.{random_name()}.{random_name()}"
+        new_name = f"t.new.{random_name()}.{random_name()}"[:15]
+        # dot at the end not allowed
+        if new_name[-1] == ".":
+            new_name = new_name[:-1]
         old_data = user.dict(exclude={"name"})
         modified_user = UserCreateModel(name=new_name, **old_data)
         response = retry_http_502(
