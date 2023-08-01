@@ -36,7 +36,7 @@ from urllib.parse import SplitResult, urlsplit
 
 import pytest
 import requests
-from conftest import MAPPED_UDM_PROPERTIES
+from conftest import MAPPED_UDM_PROPERTIES, ucr
 from faker import Faker
 from ldap.filter import filter_format
 from pydantic import HttpUrl, error_wrappers
@@ -2873,13 +2873,21 @@ async def test_create_with_windows_reserved_name_raises(
         headers={"Content-Type": "application/json", **auth_header},
         data=data,
     )
-    assert response.status_code == 422, f"{response.__dict__!r}"
-    assert response.json()["detail"][0]["msg"] == "May not be a Windows reserved name", response.json()[
-        "detail"
-    ]
-    async with UDM(**udm_kwargs) as udm:
-        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
-    assert len(lib_users) == 0
+
+    win_check = ucr().get("ucsschool/validation/username/windows-check", False)
+    if win_check in ["true", "1"]:
+        assert response.status_code == 422, f"{response.__dict__!r}"
+        assert (
+            response.json()["detail"][0]["msg"] == "May not be a Windows reserved name"
+        ), response.json()["detail"]
+        async with UDM(**udm_kwargs) as udm:
+            lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+        assert len(lib_users) == 0
+    else:
+        assert response.status_code == 201, f"{response.__dict__!r}"
+        async with UDM(**udm_kwargs) as udm:
+            lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+        assert len(lib_users) == 1
 
 
 @pytest.mark.asyncio
