@@ -187,6 +187,27 @@ def udm_kwargs() -> Dict[str, Any]:
     }
 
 
+@pytest.fixture
+def set_ucr():
+    ucr_v_to_reset = []
+
+    def _set_ucr(ucr_v, value):
+        ucr().load()
+        old_value = ucr().get(ucr_v)
+        ucr_v_to_reset.append((ucr_v, old_value))
+        ucr().update({ucr_v: value})
+        ucr().save()
+        restart_kelvin_api_server()
+
+    yield _set_ucr
+
+    ucr().load()
+    for ucr_v, value in ucr_v_to_reset:
+        ucr().update({ucr_v: value})
+    ucr().save()
+    restart_kelvin_api_server()
+
+
 @pytest.fixture(scope="session")
 def url_fragment():
     return f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/v1"
