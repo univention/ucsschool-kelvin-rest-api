@@ -226,7 +226,7 @@ def school_user(mail_domain):
 
 
 @pytest.fixture
-def udm_users_user_props(school_user):
+def udm_users_user_props(school_user, ldap_base):
     """
     Attributes for an UDM user that is _almost_ a school user. -> {attrs}
 
@@ -236,6 +236,24 @@ def udm_users_user_props(school_user):
     async def _func(school: str, **school_user_kwargs) -> Dict[str, Any]:
         user = school_user(school, **school_user_kwargs)
         school = sorted(user.schools)[0]
+        groups = [f"cn=Domain Users {ou},cn=groups,ou={ou},{ldap_base}" for ou in user.schools]
+        for school_name in school_user_kwargs.get("workgroups", {}).keys():
+            groups.extend(
+                [
+                    f"cn={school_name}-{wg['name']},cn=schueler,cn=groups,ou={school_name},{ldap_base}"
+                    for wg in school_user_kwargs["workgroups"][school_name]
+                ]
+            )
+        for school_name in school_user_kwargs.get("school_classes", {}).keys():
+            groups.extend(
+                [
+                    (
+                        f"cn={school_name}-{sc['name']},cn=klassen,cn=schueler,"
+                        f"cn=groups,ou={school_name},{ldap_base}"
+                    )
+                    for sc in school_user_kwargs["school_classes"][school_name]
+                ]
+            )
         return {
             "firstname": user.firstname,
             "lastname": user.lastname,
@@ -248,8 +266,8 @@ def udm_users_user_props(school_user):
             "description": fake.text(max_nb_chars=50),
             "password": user.password,
             "disabled": user.disabled,
-            "primaryGroup": f"cn=Domain Users {school},cn=groups,ou={school},dc=uni,dc=dtr",
-            "groups": [f"cn=Domain Users {ou},cn=groups,ou={ou},dc=uni,dc=dtr" for ou in user.schools],
+            "primaryGroup": f"cn=Domain Users {school},cn=groups,ou={school},{ldap_base}",
+            "groups": groups,
         }
 
     return _func
@@ -421,13 +439,17 @@ def new_udm_user(
             "teacher_and_staff": school_search_base.teachersAndStaff,
         }[role]
         role_groups = {
-            "staff": (school_search_base.staff_group,),
-            "student": (school_search_base.students_group,),
-            "teacher": (school_search_base.teachers_group,),
-            "teacher_and_staff": (
-                school_search_base.staff_group,
-                school_search_base.teachers_group,
-            ),
+            "staff": [SchoolSearchBase([s]).staff_group for s in user_props.get("school", [school])],
+            "student": [
+                SchoolSearchBase([s]).students_group for s in user_props.get("school", [school])
+            ],
+            "teacher": [
+                SchoolSearchBase([s]).teachers_group for s in user_props.get("school", [school])
+            ],
+            "teacher_and_staff": [
+                SchoolSearchBase([s]).staff_group for s in user_props.get("school", [school])
+            ]
+            + [SchoolSearchBase([s]).teachers_group for s in user_props.get("school", [school])],
         }[role]
         user_props.update(udm_properties)
         async with UDM(**udm_kwargs) as udm:
@@ -441,7 +463,7 @@ def new_udm_user(
             )
 
             user_obj.props.ucsschoolSourceUID = school_user_kwargs.get("source_uid", "Kelvin")
-            user_obj.props.groups = [user_obj.props.primaryGroup]
+            user_obj.props.groups = user_props["groups"]
             user_obj.props.groups.extend(role_groups)
             if role != "staff" and "school_classes" not in school_user_kwargs:
                 cls_dn1, _ = await new_school_class_using_udm(school=school)
@@ -479,7 +501,6 @@ def new_udm_admin_user(
         udm_properties: Dict[str, Any] = None,
         **school_user_kwargs,
     ) -> Tuple[str, Dict[str, Any]]:
-        school_search_base = SchoolSearchBase([school])
         extra_roles = school_user_kwargs.get("ucsschool_roles", [])
 
         user_props = await udm_users_user_props(school, **school_user_kwargs)
@@ -490,7 +511,7 @@ def new_udm_admin_user(
         async with UDM(**udm_kwargs) as udm:
             user_obj = await udm.get("users/user").new()
             user_obj.options["ucsschoolAdministrator"] = True
-            user_obj.position = school_search_base.admins
+            user_obj.position = SchoolSearchBase([school]).admins
             user_obj.props.update(user_props)
             user_obj.props.primaryGroup = f"cn=Domain Users {school},cn=groups,ou={school},{ldap_base}"
             user_obj.props.ucsschoolRecordUID = school_user_kwargs.get(
@@ -499,7 +520,9 @@ def new_udm_admin_user(
 
             user_obj.props.ucsschoolSourceUID = school_user_kwargs.get("source_uid", "Kelvin")
             user_obj.props.groups = [user_obj.props.primaryGroup]
-            user_obj.props.groups.append(school_search_base.admins_group)
+            user_obj.props.groups.extend(
+                SchoolSearchBase([school]).admins_group for school in user_props.get("school", [school])
+            )
             await user_obj.save()
 
             schedule_delete_user_dn(user_obj.dn)

@@ -31,7 +31,7 @@ import itertools
 import json
 import logging
 import random
-from typing import Any, Dict, List, NamedTuple, Tuple, Type, Union
+from typing import Any, Dict, List, NamedTuple, Set, Tuple, Type, Union
 from urllib.parse import SplitResult, urlsplit
 
 import pytest
@@ -1782,6 +1782,116 @@ async def test_school_change(
     else:
         roles = {f"{role.name}:school:{ou2_name}"}
     assert set(lib_users[0].ucsschool_roles) == roles
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ("patch", "put"))
+async def test_school_change_verify_groups(
+    auth_header,
+    retry_http_502,
+    url_fragment,
+    create_random_users,
+    create_multiple_ous,
+    udm_kwargs,
+    ldap_base,
+    new_school_class_using_lib,
+    new_workgroup_using_lib,
+    method: str,
+):
+    role: Role = Role("teacher", Teacher)
+    ou1_name, ou2_name = await create_multiple_ous(2)
+    sc_dn1, sc_attr1 = await new_school_class_using_lib(ou1_name)
+    sc_dn2, sc_attr2 = await new_school_class_using_lib(ou2_name)
+    wg_dn1, wg_attr1 = await new_workgroup_using_lib(ou1_name)
+    wg_dn2, wg_attr2 = await new_workgroup_using_lib(ou2_name)
+    user = (
+        await create_random_users(
+            ou1_name,
+            {role.name: 1},
+            school=f"{url_fragment}/schools/{ou1_name}",
+            schools=[f"{url_fragment}/schools/{ou1_name}", f"{url_fragment}/schools/{ou2_name}"],
+            school_classes={ou1_name: [sc_attr1["name"]], ou2_name: [sc_attr2["name"]]},
+            workgroups={ou1_name: [wg_attr1["name"]], ou2_name: [wg_attr2["name"]]},
+        )
+    )[0]
+    async with UDM(**udm_kwargs) as udm:
+        lib_user = (await User.get_all(udm, ou1_name, f"username={user.name}"))[0]
+        udm_user = await udm.get("users/user").get(lib_user.dn)
+        udm_user.options["ucsschoolAdministrator"] = True
+        udm_user.props.groups.extend(
+            [
+                f"cn=admins-{ou1_name},cn=ouadmins,cn=groups,{ldap_base}",
+                f"cn=admins-{ou2_name},cn=ouadmins,cn=groups,{ldap_base}",
+            ]
+        )
+        await udm_user.save()
+    assert isinstance(lib_user, role.klass)
+    assert lib_user.school == ou1_name
+    assert set(lib_user.schools) == {ou1_name, ou2_name}
+    assert set(lib_user.ucsschool_roles) == {
+        f"{role.name}:school:{ou1_name}",
+        f"{role.name}:school:{ou2_name}",
+    }
+
+    if method == "patch":
+        patch_data = dict(
+            schools=[user.school],
+            school_classes={ou1_name: user.school_classes[ou1_name]},
+            workgroups={ou1_name: user.workgroups[ou1_name]},
+        )
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment}/users/{user.name}",
+            headers=auth_header,
+            json=patch_data,
+        )
+    elif method == "put":
+        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
+        modified_user = UserCreateModel(
+            school=user.school,
+            schools=[user.school],
+            school_classes={ou1_name: user.school_classes[ou1_name]},
+            workgroups={ou1_name: user.workgroups[ou1_name]},
+            **old_data,
+        )
+        response = retry_http_502(
+            requests.put,
+            f"{url_fragment}/users/{user.name}",
+            headers=auth_header,
+            data=modified_user.json(),
+        )
+    json_response = response.json()
+    assert response.status_code == 200, response.reason
+    async with UDM(**udm_kwargs) as udm:
+        async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
+            udm_user_schools = udm_user.props.school
+            assert udm_user_schools == [ou1_name]
+        api_user = UserModel(**json_response)
+        assert (
+            api_user.unscheme_and_unquote(str(api_user.school)) == f"{url_fragment}/schools/{ou1_name}"
+        )
+        lib_user = (await User.get_all(udm, ou1_name, f"username={user.name}"))[0]
+        udm_user = await udm.get("users/user").get(lib_user.dn)
+        groups = udm_user.props.groups
+    expected_groups: Set[str] = {
+        f"cn=Domain Users {ou1_name},cn=groups,ou={ou1_name},{ldap_base}",
+        f"cn=lehrer-{ou1_name},cn=groups,ou={ou1_name},{ldap_base}",
+        f"cn=admins-{ou1_name},cn=ouadmins,cn=groups,{ldap_base}",
+    }
+    for class_name in user.school_classes[ou1_name]:
+        expected_groups.add(
+            f"cn={ou1_name}-{class_name},cn=klassen,cn=schueler,cn=groups,ou={ou1_name},{ldap_base}",
+        )
+    for wg_name in user.workgroups[ou1_name]:
+        expected_groups.add(
+            f"cn={ou1_name}-{wg_name},cn=schueler,cn=groups,ou={ou1_name},{ldap_base}",
+        )
+
+    assert set(groups) == expected_groups
+    assert isinstance(lib_user, role.klass)
+    assert lib_user.school == ou1_name
+    assert lib_user.schools == [ou1_name]
+    assert set(lib_user.ucsschool_roles) == {f"{role.name}:school:{ou1_name}"}
 
 
 @pytest.mark.asyncio
