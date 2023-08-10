@@ -348,6 +348,9 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                 return
         self.schools = wanted_schools
 
+        # otherwise the old groups are still there
+        await udm_obj.reload()
+
         # remove SchoolClasses or WorkGroups the user is not part of anymore
         # ignore all others (global groups and $OU-groups)
         mandatory_groups = await self.groups_used(lo)
