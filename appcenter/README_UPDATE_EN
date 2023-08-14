@@ -3,6 +3,8 @@
 <h2>v1.8.10 (2023-07-20)</h2>
 <ul>
     <li>Re-enable username validation checks for creation and modification of users.</li>
+    <li>Remove all old school groups from user when removed from a school.</li>
+    <li>Automatically add all school groups to user when added to a school.</li>
 </ul>
 
 <h2>v1.8.9 (2023-05-19)</h2>

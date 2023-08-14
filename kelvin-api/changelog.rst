@@ -8,6 +8,8 @@ Changelog
 v1.8.10 (2023-07-20)
 ...................
 * Re-enable username validation checks for creation and modification of users.
+* Remove all old school groups from user when removed from a school.
+* Automatically add all school groups to user when added to a school.
 
 v1.8.9 (2023-05-19)
 ...................
