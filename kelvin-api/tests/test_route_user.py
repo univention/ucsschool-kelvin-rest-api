@@ -1799,11 +1799,13 @@ async def test_school_change_verify_groups(
     method: str,
 ):
     role: Role = Role("teacher", Teacher)
-    ou1_name, ou2_name = await create_multiple_ous(2)
+    ou1_name, ou2_name, ou3_name = await create_multiple_ous(3)
     sc_dn1, sc_attr1 = await new_school_class_using_lib(ou1_name)
     sc_dn2, sc_attr2 = await new_school_class_using_lib(ou2_name)
+    sc_dn3, sc_attr3 = await new_school_class_using_lib(ou3_name)
     wg_dn1, wg_attr1 = await new_workgroup_using_lib(ou1_name)
     wg_dn2, wg_attr2 = await new_workgroup_using_lib(ou2_name)
+    wg_dn3, wg_attr3 = await new_workgroup_using_lib(ou3_name)
     user = (
         await create_random_users(
             ou1_name,
@@ -1835,9 +1837,9 @@ async def test_school_change_verify_groups(
 
     if method == "patch":
         patch_data = dict(
-            schools=[user.school],
-            school_classes={ou1_name: user.school_classes[ou1_name]},
-            workgroups={ou1_name: user.workgroups[ou1_name]},
+            schools=[user.school, f"{url_fragment}/schools/{ou3_name}"],
+            school_classes={ou1_name: user.school_classes[ou1_name], ou3_name: [sc_attr3["name"]]},
+            workgroups={ou1_name: user.workgroups[ou1_name], ou3_name: [wg_attr3["name"]]},
         )
         response = retry_http_502(
             requests.patch,
@@ -1849,9 +1851,9 @@ async def test_school_change_verify_groups(
         old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(
             school=user.school,
-            schools=[user.school],
-            school_classes={ou1_name: user.school_classes[ou1_name]},
-            workgroups={ou1_name: user.workgroups[ou1_name]},
+            schools=[user.school, f"{url_fragment}/schools/{ou3_name}"],
+            school_classes={ou1_name: user.school_classes[ou1_name], ou3_name: [sc_attr3["name"]]},
+            workgroups={ou1_name: user.workgroups[ou1_name], ou3_name: [wg_attr3["name"]]},
             **old_data,
         )
         response = retry_http_502(
@@ -1865,7 +1867,7 @@ async def test_school_change_verify_groups(
     async with UDM(**udm_kwargs) as udm:
         async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
             udm_user_schools = udm_user.props.school
-            assert udm_user_schools == [ou1_name]
+            assert udm_user_schools == [ou1_name, ou3_name]
         api_user = UserModel(**json_response)
         assert (
             api_user.unscheme_and_unquote(str(api_user.school)) == f"{url_fragment}/schools/{ou1_name}"
@@ -1877,21 +1879,27 @@ async def test_school_change_verify_groups(
         f"cn=Domain Users {ou1_name},cn=groups,ou={ou1_name},{ldap_base}",
         f"cn=lehrer-{ou1_name},cn=groups,ou={ou1_name},{ldap_base}",
         f"cn=admins-{ou1_name},cn=ouadmins,cn=groups,{ldap_base}",
+        f"cn=Domain Users {ou3_name},cn=groups,ou={ou3_name},{ldap_base}",
+        f"cn=lehrer-{ou3_name},cn=groups,ou={ou3_name},{ldap_base}",
     }
-    for class_name in user.school_classes[ou1_name]:
-        expected_groups.add(
-            f"cn={ou1_name}-{class_name},cn=klassen,cn=schueler,cn=groups,ou={ou1_name},{ldap_base}",
-        )
-    for wg_name in user.workgroups[ou1_name]:
-        expected_groups.add(
-            f"cn={ou1_name}-{wg_name},cn=schueler,cn=groups,ou={ou1_name},{ldap_base}",
-        )
+    for ou in (ou1_name, ou3_name):
+        for class_name in lib_user.school_classes[ou]:
+            expected_groups.add(
+                f"cn={class_name},cn=klassen,cn=schueler,cn=groups,ou={ou},{ldap_base}",
+            )
+        for wg_name in lib_user.workgroups[ou]:
+            expected_groups.add(
+                f"cn={wg_name},cn=schueler,cn=groups,ou={ou},{ldap_base}",
+            )
 
     assert set(groups) == expected_groups
     assert isinstance(lib_user, role.klass)
     assert lib_user.school == ou1_name
-    assert lib_user.schools == [ou1_name]
-    assert set(lib_user.ucsschool_roles) == {f"{role.name}:school:{ou1_name}"}
+    assert lib_user.schools == [ou1_name, ou3_name]
+    assert set(lib_user.ucsschool_roles) == {
+        f"{role.name}:school:{ou1_name}",
+        f"{role.name}:school:{ou3_name}",
+    }
 
 
 @pytest.mark.asyncio

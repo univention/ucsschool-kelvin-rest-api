@@ -955,7 +955,7 @@ async def test_remove_from_groups_of_school_admin_user(
 
 
 @pytest.mark.asyncio
-async def test_remove_from_groups_of_school_admin_user_with_modify(
+async def test_add_and_remove_from_groups_of_school_on_school_change_with_modify(
     create_multiple_ous,
     ldap_base,
     new_school_class_using_udm,
@@ -968,8 +968,10 @@ async def test_remove_from_groups_of_school_admin_user_with_modify(
     # When the user is removed from the second school,
     # both the admin and teacher groups will be completely removed for the second school,
     # leaving the first school as-is
+    # Aditionally, the user is added to a thrid schools,
+    # and the expected groups should be added for it automatically (Domain users, lehrer, ...)
 
-    school1_name, school2_name = await create_multiple_ous(2)
+    school1_name, school2_name, school3_name = await create_multiple_ous(3)
     school_names = [school1_name, school2_name]
 
     school1 = SchoolSearchBase([school1_name])
@@ -982,22 +984,28 @@ async def test_remove_from_groups_of_school_admin_user_with_modify(
     school2_teachers = school2.teachers_group
     school2_admins = school2.admins_group
 
-    class1_dn, class1_name = await new_school_class_using_udm(school=school1_name)
-    class2_dn, class2_name = await new_school_class_using_udm(school=school2_name)
-    wg1_dn, wg1_name = await new_workgroup_using_udm(school=school1_name)
-    wg2_dn, wg2_name = await new_workgroup_using_udm(school=school2_name)
+    school3 = SchoolSearchBase([school3_name])
+    school3_domain_users = f"cn=Domain Users {school3_name},cn=groups,ou={school3_name},{ldap_base}"
+    school3_teachers = school3.teachers_group
+
+    class1_dn, class1_attr = await new_school_class_using_udm(school=school1_name)
+    class2_dn, class2_attr = await new_school_class_using_udm(school=school2_name)
+    class3_dn, class3_attr = await new_school_class_using_udm(school=school3_name)
+    wg1_dn, wg1_attr = await new_workgroup_using_udm(school=school1_name)
+    wg2_dn, wg2_attr = await new_workgroup_using_udm(school=school2_name)
+    wg3_dn, wg3_attr = await new_workgroup_using_udm(school=school3_name)
 
     user_dn, user_name = await new_udm_user(
         school=school1_name,
         role="teacher",
         schools=school_names,
         school_classes={
-            school1_name: [class1_name],
-            school2_name: [class2_name],
+            school1_name: [class1_attr],
+            school2_name: [class2_attr],
         },
         workgroups={
-            school1_name: [wg1_name],
-            school2_name: [wg2_name],
+            school1_name: [wg1_attr],
+            school2_name: [wg2_attr],
         },
     )
     async with UDM(**udm_kwargs) as udm:
@@ -1029,9 +1037,11 @@ async def test_remove_from_groups_of_school_admin_user_with_modify(
 
         # Testing
         user = await User.from_dn(user_dn, school1_name, udm)
-        user.schools = [school1_name]
+        user.schools = [school1_name, school3_name]
         del user.school_classes[school2_name]
         del user.workgroups[school2_name]
+        user.school_classes[school3_name] = [class3_attr["name"]]
+        user.workgroups[school3_name] = [wg3_attr["name"]]
         await user.modify(udm)
 
         expected_post_test_groups = {
@@ -1040,6 +1050,10 @@ async def test_remove_from_groups_of_school_admin_user_with_modify(
             school1_admins,
             class1_dn,
             wg1_dn,
+            school3_domain_users,
+            school3_teachers,
+            class3_dn,
+            wg3_dn,
         }
         user_udm_post_test = await udm.get("users/user").get(user_dn)
         assert set(user_udm_post_test.props.groups) == expected_post_test_groups
