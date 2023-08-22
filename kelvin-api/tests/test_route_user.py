@@ -36,7 +36,7 @@ from urllib.parse import SplitResult, urlsplit
 
 import pytest
 import requests
-from conftest import MAPPED_UDM_PROPERTIES, ucr
+from conftest import MAPPED_UDM_PROPERTIES
 from faker import Faker
 from ldap.filter import filter_format
 from pydantic import HttpUrl, error_wrappers
@@ -2844,6 +2844,7 @@ async def test_create_with_non_existing_school_in_workgroup_raises(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("windows_check", ("false", "true"))
 async def test_create_with_windows_reserved_name_raises(
     auth_header,
     check_password,
@@ -2856,7 +2857,10 @@ async def test_create_with_windows_reserved_name_raises(
     udm_kwargs,
     schedule_delete_user_name_using_udm,
     new_workgroup_using_lib,
+    set_ucr,
+    windows_check,
 ):
+    set_ucr("ucsschool/validation/username/windows-check", windows_check)
     school = await create_ou_using_python()
     wg_dn, wg_attr = await new_workgroup_using_lib(school)
     r_user = await random_user_create_model(school, roles=[f"{url_fragment}/roles/student"])
@@ -2874,8 +2878,7 @@ async def test_create_with_windows_reserved_name_raises(
         data=data,
     )
 
-    win_check = ucr().get("ucsschool/validation/username/windows-check", False)
-    if win_check in ["true", "1"]:
+    if windows_check == "true":
         assert response.status_code == 422, f"{response.__dict__!r}"
         assert (
             response.json()["detail"][0]["msg"] == "May not be a Windows reserved name"
