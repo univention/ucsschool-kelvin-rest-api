@@ -174,7 +174,17 @@ async def test_get(auth_header, create_ou_using_python, ldap_base, udm_kwargs):
 
 @pytest.mark.parametrize("exists", [True, False])
 @pytest.mark.asyncio
-async def test_head(auth_header, create_ou_using_python, ldap_base, udm_kwargs, exists, random_ou_name):
+async def test_head(
+    auth_header,
+    create_ou_using_python,
+    ldap_base,
+    udm_kwargs,
+    exists,
+    random_ou_name,
+    docker_host_name,
+    delete_ou_using_ssh,
+    delete_ou_cleanup,
+):
     ou_name = random_ou_name()
     if exists:
         await create_ou_using_python(ou_name=ou_name, cache=False)
@@ -185,6 +195,18 @@ async def test_head(auth_header, create_ou_using_python, ldap_base, udm_kwargs, 
         assert not response.text
     else:
         assert response.status_code == 404
+    # Test that the cache gets cleared
+    if exists:
+        await delete_ou_using_ssh(ou_name, docker_host_name)
+        await delete_ou_cleanup(ou_name)
+    else:
+        await create_ou_using_python(ou_name=ou_name, cache=False)
+    response = client.head(app.url_path_for("school_exists", school_name=ou_name), headers=auth_header)
+    if exists:
+        assert response.status_code == 404
+        assert not response.text
+    else:
+        assert response.status_code == 200
 
 
 @pytest.mark.asyncio

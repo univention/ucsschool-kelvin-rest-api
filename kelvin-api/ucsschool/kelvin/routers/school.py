@@ -439,6 +439,6 @@ async def search_schools_in_ldap(ou: str, *, raise404: bool = False) -> List[str
 
 
 async def _remove_ou_from_cache(ou: str) -> None:
-    cache = Cache(Cache.MEMORY, namespace=OU_CACHE_NAMESPACE)
+    cache = _search_schools_in_ldap.cache
     cache_key = ou_cache_key(_search_schools_in_ldap, ou)
     await cache.delete(cache_key, namespace=OU_CACHE_NAMESPACE)
