@@ -22,9 +22,12 @@ stages:
   - merge
   - production
 
+# todo: add renovate
+
 variables:
   DOCS_DIR: "doc/docs"
   APP_ID: "ucsschool-kelvin-rest-api"
+  APP_NAME: "4.5/$APP_ID"
   PACKAGE: "ucs-test-ucsschool-kelvin"
   UCS_VERSION: "503"
   UCS_RELEASE: "5.0"
@@ -33,7 +36,7 @@ variables:
   DOC_TARGET_PATH: $DOC_TARGET_NAME
   DEB_IMAGE: docker-registry.knut.univention.de/phahn/ucs-debbase:$UCS_VERSION
   UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/ucs
-
+  APPCENTER_CONTROL_IMAGE: "docker-registry.knut.univention.de/knut/univention-appcenter-control"
 
 # This would use an image with the same name as the one
 # used in build_docker_image. IMAGE_TAG can only be set once and
@@ -249,3 +252,16 @@ ucs_test_deb_repo_build:
       -r ${UCS_RELEASE}-0-0
       -s $SCOPE
       -p $PACKAGE
+
+upload_appcenter_scripts_to_test_appcenter:
+  stage: production
+  image: $APPCENTER_CONTROL_IMAGE
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - appcenter/**
+  script:
+    - APP_VERSION="$(cat kelvin-api/VERSION.txt)"
+    - cd appcenter
+    - echo "updating $APP_NAME=$APP_VERSION"
+    - univention-appcenter-control upload "$APP_NAME=$APP_VERSION" configure env inst README_UPDATE_DE README_UPDATE_EN restore_data_after_setup settings store_data uinst preinst listener_trigger
