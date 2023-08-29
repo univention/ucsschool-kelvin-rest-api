@@ -55,7 +55,7 @@ At least the `README_UPDATE_*` files which contain the version should have been 
 #### Publish packages from Test AppCenter to Production AppCenter
 
 
-This code should be run **on dimma or omar**:
+This code should be run **on omar**:
 ```shell
 cd /mnt/omar/vmwares/mirror/appcenter
 ./copy_from_appcenter.test.sh 4.4
@@ -161,7 +161,7 @@ pip install -e kelvin-api/ -r kelvin-api/requirements.txt -r kelvin-api/requirem
 ## Running pre-commit
 
 The pipeline for this repository has a pre-commit job which prevents code from being merged which does not conform to the pre-commit programs and configuration.
-If you would like to run pre-commit checks before push you can use either pre-commit in a python3.11 environment or use docker.
+You should run pre-commit checks before push you can use either pre-commit in a python3.11 environment or use docker. This will save you and your co-workers from having much headache.
 
 ### Without Docker
 
