@@ -89,7 +89,7 @@ for more information regarding the documentation pipeline.
 
 #### Create a new unpublished version in the appcenter
 
-In the [SelfService Center](https://selfservice.software-univention.de/univention/management/#module=appcenter-selfservice) overview, right click the "UCS@school Kelvin REST API" app and choose "New app version".
+In the [provider portal](https://selfservice.software-univention.de/univention/management/#module=appcenter-selfservice) overview, right click the "UCS@school Kelvin REST API" app and choose "New app version".
 Update the "Target app version" to the next release number and hit "Create".
 Set the "Docker Image" in the configuration tab in the SelfService Center should to `gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:latest`.
 
@@ -106,6 +106,13 @@ This allows for the following development flow:
 - If applicable create a new Kelvin version in the Test Appcenter and set the docker image to the branch image, like:
   `gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:branch-$CLI_COMMIT_REF_SLUG`
 - After each commit and pipeline run you can install the app with the new docker image. You will find the name in the build pipeline.
+
+## Use custom images in Jenkins jobs
+
+The Jenkins job [kelvin API tests](https://jenkins2022.knut.univention.de/job/UCSschool-5.0/job/kelvin%20API%20(branch%20main)/) and [kelvin API tests](https://jenkins2022.knut.univention.de/job/UCSschool-5.0/view/Daily%20Tests/job/kelvin%20API/) can be configured to use a custom image.
+In the 'Build with parameters' page, insert your image name into the `UCS_ENV_KELVIN_IMAGE` configuration variable.
+One source for images is the pipeline `build_docker_image`, which is run for a feature branch if it changed sufficiently.
+To find the image name, scroll to the bottom of the job log and look for `Pushing image to ...`.
 
 
 ## Use custom images on test vm
