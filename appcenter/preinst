@@ -43,7 +43,7 @@ while [ $# -gt 0 ]; do
 done
 
 udm_output="$(udm users/user)"
-grep -q "ucsschoolStudent" <<< "$udm_output"
+echo "$udm_output" | grep -q "ucsschoolStudent"
 if [ "$?" -ne 0 ]
 then
   message="The application 'UCS@school Kelvin REST API' requires the core 'UCS@school' application to be installed."
