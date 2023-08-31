@@ -83,7 +83,7 @@ def test_ini_settings(ini_url: str):
     if version >= 20210902124852:
         exp.add("/etc/ucsschool/kelvin:/etc/ucsschool/kelvin")
     assert {v.strip() for v in config.get("Application", "DockerVolumes").split(",")} == exp
-    if version <= 20200804122304:
+    if version <= 20200804122304 or version >= 20230824114906:
         assert config.get("Application", "RequiredApps") == "ucsschool"
     else:
         assert config.get("Application", "RequiredApps") == ""
