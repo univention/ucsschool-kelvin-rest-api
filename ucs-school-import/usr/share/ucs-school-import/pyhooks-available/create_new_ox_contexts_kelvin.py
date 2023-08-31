@@ -2,7 +2,7 @@ from ucsschool.importer.utils.user_pyhook import UserPyHook
 from ucsschool.lib.models.utils import ucr
 from udm_rest_client import CreateError
 
-DEFAULT_CONTEXT_ID = "10"
+DEFAULT_CONTEXT_ID = 10
 
 
 class CreateNewContexts(UserPyHook):
@@ -23,6 +23,7 @@ class CreateNewContexts(UserPyHook):
         if not ctx_id:
             self.logger.info("No OX context set for user %r.", user)
             return
+        ctx_id = int(ctx_id)
         self.logger.info("User %r has OX context %r.", user, ctx_id)
 
         # `self.udm` will be refreshed for each hook call, get fresh mod each time
