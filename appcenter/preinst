@@ -29,6 +29,29 @@
 # Script that runs in docker host before installing the app.
 #
 
+while [ $# -gt 0 ]; do
+    case "$1" in
+        "--error-file")
+            shift
+            errorfile="$1"
+            shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+udm_output="$(udm users/user)"
+echo "$udm_output" | grep -q "ucsschoolStudent"
+if [ "$?" -ne 0 ]
+then
+  message="The application 'UCS@school Kelvin REST API' requires the core 'UCS@school' application to be installed."
+  echo "$message" > "$errorfile"
+  exit 1
+fi
+
+
 KELVIN_IMPORTUSER_HOOKS_PATH="/var/lib/ucs-school-import/kelvin-hooks"
 KELVIN_SCHOOL_LIB_HOOKS_PATH="/var/lib/ucs-school-lib/kelvin-hooks"
 KELVIN_CONFIG_PATH="/etc/ucsschool/kelvin"
@@ -43,6 +66,8 @@ if ! [ -e "$KELVIN_CONFIG_PATH" ]; then
     mkdir -pv -m 755 "$KELVIN_CONFIG_PATH"
     echo "{}" > "$KELVIN_CONFIG_PATH/mapped_udm_properties.json"
 fi
+
+
 
 # restart UDM REST API to ensure the OpenAPI schema is up to date
 service univention-directory-manager-rest restart
