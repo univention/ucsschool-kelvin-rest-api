@@ -24,7 +24,6 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
-
 import base64
 import datetime
 import inspect
@@ -33,6 +32,7 @@ import logging
 import os
 import random
 import shutil
+import socket
 import subprocess
 import time
 from functools import lru_cache
@@ -208,9 +208,38 @@ def set_ucr():
     restart_kelvin_api_server()
 
 
+@pytest.fixture
+def set_processes_to_one():
+    """Set the number of worker processes to 1"""
+    old_process_number = ucr().get("ucsschool/kelvin/processes")
+    ucr().update({"ucsschool/kelvin/processes": "1"})
+    ucr().save()
+    restart_kelvin_api_server()
+    yield
+    ucr().update({"ucsschool/kelvin/processes": old_process_number})
+    ucr().save()
+    restart_kelvin_api_server()
+
+
 @pytest.fixture(scope="session")
 def url_fragment():
     return f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/v1"
+
+
+@pytest.fixture(scope="session")
+def url_fragment_ip():
+    addrinfo = socket.getaddrinfo(
+        os.environ["DOCKER_HOST_NAME"], "http", family=socket.AF_INET, proto=socket.IPPROTO_TCP
+    )
+    ip = addrinfo[0][4][0]
+    return f"http://{ip}/ucsschool/kelvin/v1"
+
+
+@pytest.fixture(scope="session")
+def url_fragment_scrambled_hostname():
+    hostname = os.environ["DOCKER_HOST_NAME"]
+    res = "".join(random.choice((str.upper, str.lower))(char) for char in hostname)
+    return f"http://{res}/ucsschool/kelvin/v1"
 
 
 @pytest.fixture(scope="session")

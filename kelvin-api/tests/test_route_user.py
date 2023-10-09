@@ -3394,3 +3394,32 @@ async def test_fix_case_of_ous(create_multiple_ous, school_user):
     assert set(user.schools) == {school1_ori, school2_ori}
     assert set(user.school_classes) == {school1_ori, school2_ori}
     assert set(user.workgroups) == {school1_ori, school2_ori}
+
+
+@pytest.mark.asyncio
+async def test_fqdn_is_case_insensitive(
+    url_fragment_scrambled_hostname,
+    retry_http_502,
+    auth_header,
+    create_ou_using_python,
+    random_user_create_model,
+):
+    """The FQDN should not be case-sensitive
+
+    Bug #54305
+    """
+    school = await create_ou_using_python()
+
+    roles = ["student"]
+
+    r_user = await random_user_create_model(
+        school,
+        roles=[f"{url_fragment_scrambled_hostname}/roles/{role_}" for role_ in roles],
+    )
+    response = retry_http_502(
+        requests.post,
+        f"{url_fragment_scrambled_hostname}/users/",
+        headers={"Content-Type": "application/json", **auth_header},
+        data=r_user.json(),
+    )
+    assert response.status_code == 201, response.reason
