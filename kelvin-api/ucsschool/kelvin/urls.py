@@ -41,7 +41,9 @@ from .ldap import get_dn_of_user
 
 @cached(
     cache=LRUCache(maxsize=10240),
-    key=lambda request, name, **path_params: hashkey(name, tuple(sorted(path_params.items()))),
+    key=lambda request, name, **path_params: hashkey(
+        name, request.headers.get("host", None), tuple(sorted(path_params.items()))
+    ),
 )
 def cached_url_for(request: Request, name: str, **path_params: Any) -> URL:
     """Cached drop-in replacement for `request.url_for()`."""
