@@ -41,13 +41,15 @@ from .ldap import get_dn_of_user
 
 @cached(
     cache=LRUCache(maxsize=10240),
-    key=lambda request, name, **path_params: hashkey(name, tuple(sorted(path_params.items()))),
+    key=lambda request, name, **path_params: hashkey(
+        name, request.headers.get("host", None), tuple(sorted(path_params.items()))
+    ),
 )
-def cached_url_for(request: Request, name: str, **path_params: Any) -> str:
+def cached_url_for(request: Request, name: str, **path_params: Any) -> URL:
     """Cached drop-in replacement for `request.url_for()`."""
     # Using `cachetools`, because `lru_cache` does not support dropping a function argument. And we
     # don't want the `request` object to be part of the cache key.
-    return request.url_for(name, **path_params)
+    return URL(str(request.url_for(name, **path_params)))
 
 
 @cached(
@@ -64,25 +66,22 @@ def url_to_name(request: Request, obj_type: str, url: Union[str, HttpUrl]) -> st
     """
     if not url:
         return url
-    if isinstance(url, HttpUrl):
-        url = str(url)
-    if url.startswith("https"):
-        raise RuntimeError(f"Missed unscheme_and_unquote() for URL {url!r}.")
-    no_object_exception = NoObject(f"Could not find object of type {obj_type!r} with URL {url!r}.")
+    url = URL(str(url))
+    if url.scheme == "https":
+        raise RuntimeError(f"Missed unscheme_and_unquote() for {url!r}.")
+    no_object_exception = NoObject(f"Could not find object of type {obj_type!r} with {url!r}.")
+    name = url.path.rstrip("/").split("/")[-1]
     if obj_type == "school":
-        name = URL(url).path.rstrip("/").split("/")[-1]
         calc_url = cached_url_for(request, "school_get", school_name=name)
-        if url != calc_url:
+        if url.path != calc_url.path:
             raise no_object_exception
     elif obj_type == "user":
-        name = URL(url).path.rstrip("/").split("/")[-1]
         calc_url = cached_url_for(request, "get", username=name)
-        if url != calc_url:
+        if url.path != calc_url.path:
             raise no_object_exception
     elif obj_type == "role":
-        name = URL(url).path.rstrip("/").split("/")[-1]
         calc_url = cached_url_for(request, "get", role_name=name)
-        if url != calc_url:
+        if url.path != calc_url.path:
             raise no_object_exception
     else:
         raise no_object_exception
