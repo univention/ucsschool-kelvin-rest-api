@@ -70,18 +70,16 @@ def url_to_name(request: Request, obj_type: str, url: Union[str, HttpUrl]) -> st
     if url.scheme == "https":
         raise RuntimeError(f"Missed unscheme_and_unquote() for {url!r}.")
     no_object_exception = NoObject(f"Could not find object of type {obj_type!r} with {url!r}.")
+    name = url.path.rstrip("/").split("/")[-1]
     if obj_type == "school":
-        name = url.path.rstrip("/").split("/")[-1]
         calc_url = cached_url_for(request, "school_get", school_name=name)
         if url.path != calc_url.path:
             raise no_object_exception
     elif obj_type == "user":
-        name = url.path.rstrip("/").split("/")[-1]
         calc_url = cached_url_for(request, "get", username=name)
         if url.path != calc_url.path:
             raise no_object_exception
     elif obj_type == "role":
-        name = url.path.rstrip("/").split("/")[-1]
         calc_url = cached_url_for(request, "get", role_name=name)
         if url.path != calc_url.path:
             raise no_object_exception
