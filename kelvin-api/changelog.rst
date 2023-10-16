@@ -5,6 +5,12 @@
 Changelog
 ---------
 
+v1.8.11 (2023-10-16)
+...................
+* The hostname for objects in the Kelvin API is no longer case sensitive (Bug #54305).
+* The UCS@school Kelvin REST API UCS@school app can now only be installed if the UCS@school app is locally installed. (Bug #54333).
+* Fixed a cache issue where a correct object URL could still lead to a 404 response (Bug #56699).
+
 v1.8.10 (2023-08-24)
 ...................
 * Re-enable username validation checks for creation and modification of users (Issue #98).
