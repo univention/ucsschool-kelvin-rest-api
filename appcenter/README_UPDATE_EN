@@ -1,6 +1,6 @@
 <h1>Changelog</h1>
 
-<h2>v1.8.11 (2023-10-16)</h2>
+<h2>v1.9.0 (2023-10-17)</h2>
 <ul>
     <li>The hostname for objects in the Kelvin API is no longer case sensitive (Bug #54305).</li>
     <li>The UCS@school Kelvin REST API UCS@school app can now only be installed if the UCS@school app is locally installed. (Bug #54333).</li>
