@@ -27,7 +27,7 @@ stages:
 variables:
   DOCS_DIR: "doc/docs"
   APP_ID: "ucsschool-kelvin-rest-api"
-  APP_NAME: "4.5/$APP_ID"
+  APP_NAME: "4.4/$APP_ID"
   PACKAGE: "ucs-test-ucsschool-kelvin"
   UCS_VERSION: "503"
   UCS_RELEASE: "5.0"
