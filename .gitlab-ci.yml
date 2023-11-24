@@ -37,6 +37,8 @@ variables:
   DEB_IMAGE: docker-registry.knut.univention.de/phahn/ucs-debbase:$UCS_VERSION
   UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/ucs
   APPCENTER_CONTROL_IMAGE: "docker-registry.knut.univention.de/knut/univention-appcenter-control"
+  UCS_SCHOOL_LIB_COVERAGE_LIMIT: 34
+  KELVIN_COVERAGE_LIMIT: 37
 
 
 run_pre_commit:
@@ -157,7 +159,24 @@ test ucs-school-lib:
     - job: build_docker_image
   image: $IMAGE_TAG
   script:
-    - cd ${CI_PROJECT_DIR}/ucs-school-lib/modules/ucsschool/lib && python3 -m pytest -lvv --asyncio-mode=auto tests
+    - cp ucs-school-import/modules/ucsschool/lib/create_ou.py ucs-school-lib/modules/ucsschool/lib/
+    - cd ucs-school-lib/modules
+    - >
+      python3 -m pytest -lvv
+      --asyncio-mode=auto
+      --junitxml=${CI_PROJECT_DIR}/report.xml
+      --cov=ucsschool.lib
+      --cov-report term-missing
+      --cov-fail-under="$UCS_SCHOOL_LIB_COVERAGE_LIMIT"
+      --cov-report xml:${CI_PROJECT_DIR}/coverage.xml
+      ucsschool/lib/tests
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
 
 test kelvin-api:
   stage: tests
@@ -168,7 +187,23 @@ test kelvin-api:
     - job: build_docker_image
   image: $IMAGE_TAG
   script:
-    - cd ${CI_PROJECT_DIR}/kelvin-api && python3 -m pytest -lvv --asyncio-mode=auto tests
+    - cd ${CI_PROJECT_DIR}/kelvin-api
+    - >
+      python3 -m pytest -lvv
+      --asyncio-mode=auto
+      --junitxml=${CI_PROJECT_DIR}/report.xml
+      --cov=ucsschool.kelvin
+      --cov-report term-missing
+      --cov-fail-under="$KELVIN_COVERAGE_LIMIT"
+      --cov-report xml:${CI_PROJECT_DIR}/coverage.xml
+      tests
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
 
 ucs_test_deb_lint:
   stage: lint
