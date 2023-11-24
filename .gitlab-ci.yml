@@ -148,17 +148,26 @@ build_docker_image:
       KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/docker/build/"
       KANIKO_ARGS: --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
 
-tests:
+test ucs-school-lib:
   stage: tests
   rules:
     - changes:
-        - kelvin-api/**/*
         - ucs-school-lib/**/*
   needs:
     - job: build_docker_image
   image: $IMAGE_TAG
   script:
     - cd ${CI_PROJECT_DIR}/ucs-school-lib/modules/ucsschool/lib && python3 -m pytest -lvv --asyncio-mode=auto tests
+
+test kelvin-api:
+  stage: tests
+  rules:
+    - changes:
+        - kelvin-api/**/*
+  needs:
+    - job: build_docker_image
+  image: $IMAGE_TAG
+  script:
     - cd ${CI_PROJECT_DIR}/kelvin-api && python3 -m pytest -lvv --asyncio-mode=auto tests
 
 ucs_test_deb_lint:
