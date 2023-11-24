@@ -57,7 +57,7 @@ prepare:
         - univention-directory-manager-modules-slim/**/*
         - univention-lib-slim/**/*
   image:
-    name: python:3.9-bullseye
+    name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.9-bullseye
   artifacts:
     paths:
     - docker/build/
