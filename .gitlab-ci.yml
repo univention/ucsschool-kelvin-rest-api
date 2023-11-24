@@ -38,31 +38,12 @@ variables:
   UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/ucs
   APPCENTER_CONTROL_IMAGE: "docker-registry.knut.univention.de/knut/univention-appcenter-control"
 
-# This would use an image with the same name as the one
-# used in build_docker_image. IMAGE_TAG can only be set once and
-# can not be reset. The image has to be built manually until then.!reference:
-# todo: fix this
-#build_pre_commit:
-#  stage: prepare
-#  rules:
-#    - changes:
-#      - .gitlab-ci/Dockerfile.pre-commit
-#      - .bandit
-#      - .black
-#      - .dockerignore
-#      - .flake8
-#      - .isort.cfg
-#      - .pre-commit-config.yaml
-#  extends: .kaniko
-#  variables:
-#    DOCKERFILE_PATH: .gitlab-ci/Dockerfile.pre-commit
-#    KANIKO_ARGS: --cache=true
 
 run_pre_commit:
   stage: lint
   extends: .pre-commit
   variables:
-    PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit-opa-python3.11"
+    PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit-opa:latest"
 
 
 prepare:
