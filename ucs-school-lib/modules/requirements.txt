@@ -1,7 +1,7 @@
 colorlog
 lazy-object-proxy
 python-ldap
-ruamel.yaml
+ruamel.yaml<0.18.0
 six
 univention-config-registry
 univention-directory-manager-modules
