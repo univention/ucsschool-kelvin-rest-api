@@ -137,7 +137,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     async def get_samba_home_path(self, lo: UDM) -> str:
         school = School.cache(self.school)
-        if False:
+        if school.dn == "thisdndoesnotexist":
             print("This line is not covered!")
             print("This line is not covered!")
             print("This line is not covered!")
