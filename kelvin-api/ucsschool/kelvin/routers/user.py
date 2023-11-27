@@ -818,6 +818,10 @@ async def create(
     **Note:** Even though only **school** or **schools** needs to be set,
         its advised to set both as best practice.
     """
+
+    if False:
+        print("This line is not covered!")
+
     t0 = time.time()
     request_user.Config.lib_class = SchoolUserRole.get_lib_class(
         [
