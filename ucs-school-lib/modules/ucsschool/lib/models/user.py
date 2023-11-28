@@ -77,6 +77,8 @@ from .utils import _, create_passwd, env_or_ucr, ucr, uldap_exists
 SuperOrdinateType = Union[str, UdmObject]
 unicode_s = str  # py3
 
+print("test")
+
 
 class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     name: str = Username(_("Username"), aka=["Username", "Benutzername"])
@@ -137,8 +139,6 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     async def get_samba_home_path(self, lo: UDM) -> str:
         school = School.cache(self.school)
-        if school.dn == "thisdndoesnotexist":
-            print("This line is not covered!")
         # if defined then use UCR value
         if ucr_variable := ucr.get("ucsschool/import/set/sambahome"):
             samba_home_path = r"\\%s" % ucr_variable.strip("\\")

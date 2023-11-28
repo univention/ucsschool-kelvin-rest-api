@@ -85,6 +85,8 @@ from .base import (
 from .role import SchoolUserRole
 from .school import search_schools_in_ldap
 
+print("test")
+
 router = APIRouter()
 
 
@@ -828,9 +830,6 @@ async def create(
     )
     user: ImportUser = request_user.as_lib_model(request)
     await fix_case_of_ous(user)
-
-    if hasattr(user, "this attr does not exist!"):
-        print("This line is not covered!")
 
     if not await OPAClient.instance().check_policy_true(
         policy="users",
