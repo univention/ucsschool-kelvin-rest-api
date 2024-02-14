@@ -41,7 +41,7 @@ from collections import OrderedDict
 from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import lru_cache
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import WatchedFileHandler
 from pathlib import Path
 from random import choice, shuffle
 from typing import IO, Any, Dict, List, Sequence, Tuple, Union
@@ -54,9 +54,7 @@ from asgi_correlation_id.context import correlation_id
 from pkg_resources import resource_stream
 from six import string_types
 from uldap3 import LdapConfig, LdapRead, LdapWrite
-
 from univention.config_registry import ConfigRegistry, handler_set
-
 # from univention.lib.policy_result import policy_result
 from univention.lib.i18n import Translation
 
@@ -191,21 +189,17 @@ def _remove_password_from_log_record(record: logging.LogRecord) -> logging.LogRe
     return record
 
 
-class UniFileHandler(TimedRotatingFileHandler):
+class UniFileHandler(WatchedFileHandler):
     """
-    TimedRotatingFileHandler that can set file permissions and removes
-    password entries from from dicts in args.
+    Handler that can set file permissions and removes
+    password entries from dicts in args.
     """
 
     def __init__(
         self,
         filename: str,
-        when: str = "h",
-        interval: int = 1,
-        backupCount: int = 0,
         encoding: str = None,
         delay: bool = False,
-        utc: bool = False,
         fuid: int = None,
         fgid: int = None,
         fmode: int = None,
@@ -213,23 +207,10 @@ class UniFileHandler(TimedRotatingFileHandler):
         self._fuid = fuid or os.geteuid()
         self._fgid = fgid or os.getegid()
         self._fmode = fmode or 0o600
-        super(UniFileHandler, self).__init__(filename, when, interval, backupCount, encoding, delay, utc)
-
-    def _open(self):
-        """set file permissions on log file"""
-        parent_dir = os.path.dirname(self.baseFilename)
-        if not os.path.exists(parent_dir):
-            mkdir_p(parent_dir, self._fuid, self._fgid, 0o755)
-        stream = super(UniFileHandler, self)._open()
-        file_stat = os.fstat(stream.fileno())
-        if file_stat.st_uid != self._fuid or file_stat.st_gid != self._fgid:
-            os.fchown(stream.fileno(), self._fuid, self._fgid)
-        if file_stat.st_mode != self._fmode:
-            os.fchmod(stream.fileno(), self._fmode)
-        return stream
+        super(UniFileHandler, self).__init__(filename=filename, encoding=encoding, delay=delay)
 
     def emit(self, record):
-        """remove password from from dicts in args"""
+        """remove password from dicts in args"""
         _remove_password_from_log_record(record)
         super(UniFileHandler, self).emit(record)
 
@@ -483,7 +464,10 @@ def get_file_handler(
     datefmt = datefmt or str(LOG_DATETIME_FORMAT)
     formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
     handler = UniFileHandler(
-        filename, when=when, backupCount=backupCount, fuid=uid, fgid=gid, fmode=mode
+        filename,
+        #when=when, backupCount=backupCount,
+        fuid=uid, fgid=gid,
+        #fmode=mode
     )
     handler.setFormatter(formatter)
     cid_filter = CorrelationIdFilter(uuid_length=10)
