@@ -36,7 +36,7 @@ from asgi_correlation_id.context import correlation_id
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import HTMLResponse, JSONResponse, ORJSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, ORJSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from timing_asgi import TimingClient, TimingMiddleware
@@ -57,6 +57,7 @@ from .constants import (
     STATIC_FILE_README,
     STATIC_FILES_PATH,
     URL_API_PREFIX,
+    URL_KELVIN_BASE,
     URL_TOKEN_BASE,
 )
 from .import_config import get_import_config
@@ -214,6 +215,11 @@ async def login_for_access_token(
     access_token = await create_access_token(data={"sub": sub_data}, expires_delta=access_token_expires)
     logger.debug("User %r retrieved access_token.", user.username)
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get(f"{URL_KELVIN_BASE}")
+async def docs_redirect():
+    return RedirectResponse(url=app.docs_url)
 
 
 @app.get(f"{URL_API_PREFIX}/changelog", response_class=HTMLResponse)
