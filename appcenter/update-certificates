@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright 2020-2022 Univention GmbH
+# Copyright 2024 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -27,10 +27,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-# restore ucr values from previous app version
-bak_files="/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/data/backup/base*.conf"
-for bak_files in $bak_files
-do
- filename=$(basename "$bak_files")
- [ ! -f "$bak_files" ] || mv -v "$bak_files" "/etc/univention/$filename"
-done
+# Restart kelvin because we need the ucs certificate to connect to the ldap server
+# without the certificate the kelvin service crashes with a certificate error
+echo "Restarting UCS@school Kelvin REST API server..."
+univention-app shell ucsschool-kelvin-rest-api /etc/init.d/ucsschool-kelvin-rest-api restart
