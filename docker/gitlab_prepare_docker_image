@@ -64,6 +64,8 @@ rsync -a --delete \
    ucsschool-kelvin-rest-api.initd \
    logrotate_opa_info \
    logrotate_opa_template \
+   logrotate_kelvin_info \
+   logrotate_kelvin_template \
    ../fix_nt_acl_on_shares \
  build/
 

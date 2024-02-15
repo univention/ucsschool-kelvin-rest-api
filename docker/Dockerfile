@@ -111,6 +111,8 @@ COPY opa.initd /tmp/
 COPY opa /usr/bin
 COPY logrotate_opa_info /etc/univention/templates/info/opa.info
 COPY logrotate_opa_template /etc/univention/templates/files/etc/logrotate.d/opa
+COPY logrotate_kelvin_info /etc/univention/templates/info/ucsschool-kelvin-rest-api.info
+COPY logrotate_kelvin_template /etc/univention/templates/files/etc/logrotate.d/ucsschool-kelvin-rest-api
 COPY kelvin-api/ /kelvin/kelvin-api
 RUN	mv -v /tmp/ucsschool-kelvin-rest-api.initd /etc/init.d/ucsschool-kelvin-rest-api && \
     apk add --no-cache logrotate && \

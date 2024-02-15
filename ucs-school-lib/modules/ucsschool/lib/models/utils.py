@@ -54,7 +54,9 @@ from asgi_correlation_id.context import correlation_id
 from pkg_resources import resource_stream
 from six import string_types
 from uldap3 import LdapConfig, LdapRead, LdapWrite
+
 from univention.config_registry import ConfigRegistry, handler_set
+
 # from univention.lib.policy_result import policy_result
 from univention.lib.i18n import Translation
 
@@ -465,9 +467,10 @@ def get_file_handler(
     formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
     handler = UniFileHandler(
         filename,
-        #when=when, backupCount=backupCount,
-        fuid=uid, fgid=gid,
-        #fmode=mode
+        # when=when, backupCount=backupCount,
+        fuid=uid,
+        fgid=gid,
+        # fmode=mode
     )
     handler.setFormatter(formatter)
     cid_filter = CorrelationIdFilter(uuid_length=10)
