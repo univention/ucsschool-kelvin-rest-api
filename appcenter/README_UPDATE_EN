@@ -1,5 +1,10 @@
 <h1>Changelog</h1>
 
+<h2>v1.10.0 (2024-02-15)</h2>
+<ul>
+    <li>Changed: The api base url, for example the portal link, now redirects to the openapi docs page (Bug #55556).</li>
+</ul>
+
 <h2>v1.9.0 (2023-10-17)</h2>
 <ul>
     <li>The hostname for objects in the Kelvin API is no longer case sensitive (Bug #54305).</li>
