@@ -62,12 +62,12 @@ rsync -a --delete \
    Dockerfile \
    opa.initd \
    ucsschool-kelvin-rest-api.initd \
-   logrotate_opa_info \
-   logrotate_opa_template \
-   logrotate_kelvin_info \
-   logrotate_kelvin_template \
-   logrotate_validation_info \
-   logrotate_validation_template \
+   ../appcenter/logrotate_opa_info \
+   ../appcenter/logrotate_opa_template \
+   ../appcenter/logrotate_kelvin_info \
+   ../appcenter/logrotate_kelvin_template \
+   ../appcenter/logrotate_validation_info \
+   ../appcenter/logrotate_validation_template \
    ../fix_nt_acl_on_shares \
  build/
 
