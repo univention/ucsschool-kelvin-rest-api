@@ -42,6 +42,7 @@ from fastapi import (
 )
 from ldap.filter import escape_filter_chars, filter_format
 from pydantic import validator
+from uldap3.exceptions import NoObject
 
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.lib.create_ou import create_ou
@@ -113,15 +114,17 @@ class SchoolModel(SchoolCreateModel, APIAttributesMixin):
         return kwargs
 
 
-@lru_cache(maxsize=1024)
 def computer_dn2name(dn: str) -> Optional[str]:
     if not dn:
         return None
     uldap = uldap_admin_read_local()
     filter_s, base = dn.split(",", 1)
     filter_s = f"({filter_s})"
-    for entry in uldap.search(search_filter=filter_s, search_base=base, attributes=["cn"]):
-        return entry["cn"].value
+    try:
+        for entry in uldap.search(search_filter=filter_s, search_base=base, attributes=["cn"]):
+            return entry["cn"].value
+    except NoObject:
+        pass
     return None
 
 
