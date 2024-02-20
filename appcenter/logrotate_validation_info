@@ -1,6 +1,12 @@
 Type: file
 File: etc/logrotate.d/ucs-school-validation
-Variables: logrotate/.*
 Variables: logrotate/ucs-school-validation/.*
+Variables: logrotate/compress
+Variables: logrotate/rotate/weeks
+Variables: logrotate/rotates
+Variables: logrotate/rotate/count
+Variables: logrotate/rotate
+Variables: logrotate/rotate/create
+Variables: logrotate/rotate/missingok
+Variables: logrotate/rotate/notifempty
 Variables: ucsschool/validation/logging/backupcount
-Variables: ucsschool/validation/logging/enabled
