@@ -1,0 +1,6 @@
+Type: file
+File: etc/logrotate.d/ucs-school-validation
+Variables: logrotate/.*
+Variables: logrotate/ucs-school-validation/.*
+Variables: ucsschool/validation/logging/backupcount
+Variables: ucsschool/validation/logging/enabled

@@ -57,6 +57,10 @@ main () {
     logrotate/opa/notifempty="$(ucr get logrotate/opa/notifempty)" \
     logrotate/opa/rotate/count="30" \
     logrotate/opa/rotate="daily" \
+    logrotate/http/rotate/count="30" \
+    logrotate/http/rotate="daily" \
+    logrotate/ucs-school-validation/rotate/count="60" \ # TODO: What if the UCRV "validation.../backupcount" is set on the host (only if fresh app install)?
+    logrotate/ucs-school-validation/rotate="daily" \
     ldap/server/name="$(ucr get ldap/server/name)" \
     ldap/server/port="$(ucr get ldap/server/port)" \
     dhcpd/ldap/base="$(ucr get dhcpd/ldap/base)" \

@@ -1,0 +1,20 @@
+@%@UCRWARNING=# @%@
+
+@!@
+import univention.lib.ucrLogrotate
+
+name = "ucs-school-validation"
+settings = univention.lib.ucrLogrotate.getLogrotateConfig(name, configRegistry)
+
+print("/var/log/univention/ucsschool-kelvin-rest-api/%s.log {" % name)
+backup_count = ucr.get("ucsschool/validation/logging/backupcount", "").strip()
+
+for setting in sorted(settings):
+    if setting == "rotate/count" and backup_count:
+        print("\trotate %s" % backup_count)
+        continue
+    print("\t%s" % settings[setting])
+
+print("}")
+
+@!@

@@ -66,6 +66,8 @@ rsync -a --delete \
    logrotate_opa_template \
    logrotate_kelvin_info \
    logrotate_kelvin_template \
+   logrotate_validation_info \
+   logrotate_validation_template \
    ../fix_nt_acl_on_shares \
  build/
 

@@ -289,4 +289,10 @@ upload_appcenter_scripts_to_test_appcenter:
     - APP_VERSION="$(cat kelvin-api/VERSION.txt)"
     - cd appcenter
     - echo "updating $APP_NAME=$APP_VERSION"
+#    - sed -i -e "/%LOGROTATE-TEMPLATE-HTTP%/r ../files/logrotate.d/ucsschool-kelvin-rest-api" -e "/%LOGROTATE-TEMPLATE-HTTP%/d" preinst;
+#    - sed -i -e "/%LOGROTATE-TEMPLATE-OPA%/r ../files/logrotate.d/opa" -e "/%LOGROTATE-TEMPLATE-OPA%/d" preinst;
+#    - sed -i -e "/%LOGROTATE-TEMPLATE-VALIDATION%/r ../files/logrotate.d/ucs-school-validation" -e "/%LOGROTATE-TEMPLATE-VALIDATION%/d" preinst;
+#    - sed -i -e "/%UCSSCHOOL-KELVIN-REST-API-INFO%/r ../files/logrotate_kelvin_info" -e "/%UCSSCHOOL-KELVIN-REST-API-INFO%/d" preinst;
+#    - sed -i -e "/%OPA-INFO%/r ../files/logrotate_opa_info" -e "/%OPA-INFO%/d" preinst;
+#    - sed -i -e "/%VALIDATION-INFO%/r ../files/ucsschool-validation.univention-config-registry" -e "/%VALIDATION-INFO%/d" preinst;
     - univention-appcenter-control upload "$APP_NAME=$APP_VERSION" configure env inst README_UPDATE_DE README_UPDATE_EN restore_data_after_setup settings store_data uinst preinst listener_trigger

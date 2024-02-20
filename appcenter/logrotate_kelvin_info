@@ -1,6 +1,6 @@
 Type: file
-File: etc/logrotate.d/ucsschool-kelvin-rest-api
-Variables: logrotate/ucsschool-kelvin-rest-api/http/.*
+File: etc/logrotate.d/http
+Variables: logrotate/http/.*
 Variables: logrotate/compress
 Variables: logrotate/rotate/weeks
 Variables: logrotate/rotates
@@ -9,4 +9,3 @@ Variables: logrotate/rotate
 Variables: logrotate/rotate/create
 Variables: logrotate/rotate/missingok
 Variables: logrotate/rotate/notifempty
-Variables: ucsschool/validation/logging/backupcount

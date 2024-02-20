@@ -3,10 +3,10 @@
 @!@
 import univention.lib.ucrLogrotate
 
-name = "ucsschool-kelvin-rest-api/http"
+name = "http"
 settings = univention.lib.ucrLogrotate.getLogrotateConfig(name, configRegistry)
 
-print("/var/log/univention/%s.log {" % name)
+print("/var/log/univention/ucsschool-kelvin-rest-api/%s.log {" % name)
 for setting in sorted(settings):
     print("\t%s" % settings[setting])
 
