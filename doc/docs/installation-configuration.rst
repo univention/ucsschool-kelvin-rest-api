@@ -76,10 +76,19 @@ Log level
 
 The minimum severity for log messages written to :file:`/var/log/univention/ucsschool-kelvin-rest-api/http.log` can be configured. The default is ``INFO``. The value can be changed through the *app settings* of the *UCS\@school Kelvin REST API* app in the *Univention App Center* UMC module.
 
+Log rotation settings
+^^^^^^^^^^^^^^^^^^^^^
+
+The log rotation of the ``http.log``, ``opa.log`` and the ``ucs-school-validation.log`` is handled inside of the docker container. The settings for the log rotation can be changed by setting the correspondent UCR-V inside of the docker container.
+
 Backup count of validation logging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The UCR variable ``ucsschool/validation/logging/backupcount`` sets the amount of copies of the log file ``ucs-school-validation.log``, which should be kept in rotation. The default is ``60``. The host's UCR-V is copied into the Docker container during the join script.
 To change it for the *UCS\@school Kelvin REST API*, it has to be modified inside the Docker container.
+
+.. hint::
+
+    Changing ``ucsschool/validation/logging/backupcount`` or any UCR-V inside the Docker container can be done using the command line with ``univention-app configure ucsschool-kelvin-rest-api --set ucsschool/validation/logging/backupcount=30``
 
 Configuration of user object management (import configuration)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
