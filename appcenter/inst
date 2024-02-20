@@ -59,7 +59,7 @@ main () {
     logrotate/opa/rotate="daily" \
     logrotate/http/rotate/count="30" \
     logrotate/http/rotate="daily" \
-    logrotate/ucs-school-validation/rotate/count="60" \ # TODO: What if the UCRV "validation.../backupcount" is set on the host (only if fresh app install)?
+    logrotate/ucs-school-validation/rotate/count="$(ucr get ucsschool/validation/logging/backupcount)" \
     logrotate/ucs-school-validation/rotate="daily" \
     ldap/server/name="$(ucr get ldap/server/name)" \
     ldap/server/port="$(ucr get ldap/server/port)" \
@@ -80,6 +80,13 @@ main () {
     groups/default/domainusers="$(ucr get groups/default/domainusers)" \
     ucsschool/ldap/default/dcs="$(ucr get ucsschool/ldap/default/dcs)" \
     ucsschool/import/generate/policy/dhcp/dns/clearou="$(ucr get ucsschool/import/generate/policy/dhcp/dns/clearou)"
+
+    if [[ "$(ucr get ucsschool/validation/logging/backupcount)" == "" ]]; then
+      docker exec $appcenter_apps_ucsschool_kelvin_rest_api_container /usr/bin/univention-config-registry set \
+      logrotate/ucs-school-validation/rotate/count="60"
+
+    docker exec $appcenter_apps_ucsschool_kelvin_rest_api_container \
+    chmod 0640 /etc/logrotate.d/http /etc/logrotate.d/opa /etc/logrotate.d/ucs-school-validation
 
     if ! [ -e "$TOKEN_SIGN_SECRET_FILE" ]; then
         echo "Storing token key in $TOKEN_SIGN_SECRET_FILE."
