@@ -113,9 +113,6 @@ async def test_search_no_filter(auth_header, udm_kwargs):
         )
 
 
-76
-
-
 @pytest.mark.asyncio
 async def test_search_with_filter(auth_header, create_ou_using_python, random_ou_name, udm_kwargs):
     common_name = random_ou_name()[:8]
@@ -166,6 +163,27 @@ async def test_get(auth_header, create_ou_using_python, ldap_base, udm_kwargs):
     api_obj = SchoolModel(**json_resp)
     assert api_obj.udm_properties["description"] == f"{ou_name}-description"
     await compare_lib_api_obj(lib_obj, api_obj)
+    assert (
+        api_obj.unscheme_and_unquote(api_obj.url)
+        == f"{client.base_url}{app.url_path_for('school_get', school_name=lib_obj.name)}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_missing_fileserver(auth_header, create_ou_using_python, ldap_base, udm_kwargs):
+    ou_name = await create_ou_using_python()
+    async with UDM(**udm_kwargs) as udm:
+        lib_obj = await School.from_dn(f"ou={ou_name},{ldap_base}", ou_name, udm)
+        lib_obj.class_share_file_server = f"cn=deleted-server,cn=dc,ou=deleted,{ldap_base}"
+        lib_obj.home_share_file_server = f"cn=deleted-server,cn=dc,ou=deleted,{ldap_base}"
+        await lib_obj.modify(udm)
+    client = TestClient(app, base_url="http://test.server")
+    response = client.get(app.url_path_for("school_get", school_name=ou_name), headers=auth_header)
+    json_resp = response.json()
+    assert response.status_code == 200
+    api_obj = SchoolModel(**json_resp)
+    assert api_obj.class_share_file_server is None
+    assert api_obj.home_share_file_server is None
     assert (
         api_obj.unscheme_and_unquote(api_obj.url)
         == f"{client.base_url}{app.url_path_for('school_get', school_name=lib_obj.name)}"
