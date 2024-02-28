@@ -107,9 +107,13 @@ class SchoolModel(SchoolCreateModel, APIAttributesMixin):
         kwargs["url"] = cls.scheme_and_quote(
             str(cached_url_for(request, "school_get", school_name=kwargs["name"]))
         )
-        kwargs["administrative_servers"] = [computer_dn2name(dn) for dn in obj.administrative_servers]
+        kwargs["administrative_servers"] = [
+            name for name in [computer_dn2name(dn) for dn in obj.administrative_servers] if name
+        ]
         kwargs["class_share_file_server"] = computer_dn2name(obj.class_share_file_server)
-        kwargs["educational_servers"] = [computer_dn2name(dn) for dn in obj.educational_servers]
+        kwargs["educational_servers"] = [
+            name for name in [computer_dn2name(dn) for dn in obj.educational_servers] if name
+        ]
         kwargs["home_share_file_server"] = computer_dn2name(obj.home_share_file_server)
         return kwargs
 

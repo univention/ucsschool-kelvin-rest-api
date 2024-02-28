@@ -25,7 +25,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from typing import Dict, Iterable, Set, Tuple
+from typing import Any, Dict, Iterable, Set, Tuple
 
 import pytest
 from fastapi.testclient import TestClient
@@ -170,7 +170,23 @@ async def test_get(auth_header, create_ou_using_python, ldap_base, udm_kwargs):
 
 
 @pytest.mark.asyncio
-async def test_get_missing_fileserver(auth_header, create_ou_using_python, ldap_base, udm_kwargs):
+async def test_get_missing_fileserver(
+    auth_header, create_ou_using_python, ldap_base, udm_kwargs, monkeypatch
+):
+    _from_lib_model_kwargs = ucsschool.kelvin.routers.school.SchoolModel._from_lib_model_kwargs
+
+    async def _from_lib_model_kwargs_mock(obj, request, udm) -> Dict[str, Any]:
+        # This can happen if the school was cached in kelvin and the server has been deleted
+        # Mock this here to get reliable test results independent from the cache
+        obj.administrative_servers = [f"cn=deleted-server,cn=dc,ou=deleted,{ldap_base}"]
+        obj.educational_servers = [f"cn=deleted-server,cn=dc,ou=deleted,{ldap_base}"]
+        return await _from_lib_model_kwargs(obj, request, udm)
+
+    monkeypatch.setattr(
+        ucsschool.kelvin.routers.school.SchoolModel,
+        "_from_lib_model_kwargs",
+        _from_lib_model_kwargs_mock,
+    )
     ou_name = await create_ou_using_python()
     async with UDM(**udm_kwargs) as udm:
         lib_obj = await School.from_dn(f"ou={ou_name},{ldap_base}", ou_name, udm)
@@ -195,8 +211,6 @@ async def test_get_missing_fileserver(auth_header, create_ou_using_python, ldap_
 async def test_head(
     auth_header,
     create_ou_using_python,
-    ldap_base,
-    udm_kwargs,
     exists,
     random_ou_name,
     docker_host_name,
