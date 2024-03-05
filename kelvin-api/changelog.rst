@@ -5,9 +5,9 @@
 Changelog
 ---------
 
-v1.10.0 (2024-03-95)
+v1.10.0 (2024-03-05)
 ....................
-* Changed: The API base url, for example the portal link, now redirects to the openapi docs page (Bug #55556).
+* Changed: The API base url, for example the portal link, now redirects to the OpenAPI docs page (Bug #55556).
 * Fix: The HEAD endpoint for schools could return an outdated result due to a caching issue (Issue #108).
 * Fix: The GET endpoint for schools does now return "None" for non-existing file servers instead of raising an error (Issue #137).
 
