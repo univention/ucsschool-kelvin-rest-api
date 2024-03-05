@@ -5,9 +5,9 @@
 Changelog
 ---------
 
-v1.10.0 (2024-02-15)
+v1.10.0 (2024-03-95)
 ....................
-* Changed: The api base url, for example the portal link, now redirects to the openapi docs page (Bug #55556).
+* Changed: The API base url, for example the portal link, now redirects to the openapi docs page (Bug #55556).
 * Fix: The HEAD endpoint for schools could return an outdated result due to a caching issue (Issue #108).
 * Fix: The GET endpoint for schools does now return "None" for non-existing file servers instead of raising an error (Issue #137).
 
@@ -19,7 +19,7 @@ v1.9.0 (2023-10-17)
 * Disable OPA telemetry (Bug #56193).
 
 v1.8.10 (2023-08-24)
-...................
+....................
 * Re-enable username validation checks for creation and modification of users (Issue #98).
 * Remove all old school groups from user when removed from a school (Bug #56121).
 * Automatically add all school groups to user when added to a school (Bug #56121).
