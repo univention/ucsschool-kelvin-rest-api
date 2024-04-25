@@ -38,6 +38,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Typ
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request, Response, status
 from ldap.filter import escape_filter_chars
 from pydantic import BaseModel, Field, HttpUrl, SecretStr, ValidationError, root_validator, validator
+from uldap3.exceptions import ModifyError as UModifyError, NoObject as UNoObject
 
 from ucsschool.importer.default_user_import_factory import DefaultUserImportFactory
 from ucsschool.importer.exceptions import UcsSchoolImportError
@@ -1424,11 +1425,11 @@ async def set_password_hashes(dn: str, kelvin_password_hashes: PasswordsHashes) 
     pw_hashes["krb5Key"] = kelvin_password_hashes.krb_5_key_as_bytes
     for key, value in pw_hashes.items():
         pw_hashes[key] = value if isinstance(value, list) else [value]
-    res = uldap.modify(dn, pw_hashes)
-    if res:
+    try:
+        uldap.modify(dn, pw_hashes)
         logger.info("Successfully set password hashes of %r.", dn)
-    else:
-        logger.error("Error modifying password hashes of %r.", dn)
+    except (UModifyError, UNoObject) as exc:
+        logger.error("Error modifiying password hashes of %r: %s", dn, exc)
 
 
 async def fix_case_of_ous(user: User) -> None:
