@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.10.1 (2024-04-30)
+....................
+* Fixed a bug that would lead to misleading log messages when changing the password hashes of a user (Bug #56590).
+
 v1.10.0 (2024-03-05)
 ....................
 * Changed: The API base url, for example the portal link, now redirects to the OpenAPI docs page (Bug #55556).
