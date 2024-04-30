@@ -41,6 +41,7 @@ from faker import Faker
 from ldap.filter import filter_format
 from pydantic import HttpUrl, error_wrappers
 from uldap3 import BindError
+from uldap3.exceptions import ModifyError as UModifyError, NoObject as UNoObject
 
 import ucsschool.kelvin.constants
 import univention.admin.uldap
@@ -2019,6 +2020,23 @@ async def test_change_password(
         )
     assert response.status_code == 200, response.reason
     await check_password(user.dn, new_password)
+
+
+@pytest.mark.asyncio
+async def test_set_password_hashes_uldap3_error(create_ou_using_python, new_school_user, password_hash):
+    role = random.choice(USER_ROLES)
+    school = await create_ou_using_python()
+    user: User = await new_school_user(school, role.name, disabled=False, school_classes={})
+    assert user.disabled is False
+    user_dn = get_dn_of_user(user.name)
+    password_new, password_new_hashes = await password_hash()
+    # replace uid
+    uid = user_dn[user_dn.find("=") + 1 : user_dn.find(",")]
+    new_user_dn = user_dn.replace(uid, "does.not.exist", 1)
+    try:
+        await set_password_hashes(new_user_dn, password_new_hashes)
+    except (UModifyError, UNoObject) as exc:
+        logger.debug("OK: Expected exception and error got thrown: %s", exc)
 
 
 @pytest.mark.asyncio
