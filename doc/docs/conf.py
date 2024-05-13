@@ -16,11 +16,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
 import sys
-
-# sys.path.insert(0, os.path.abspath('.'))
-
 
 # -- Project information -----------------------------------------------------
 
@@ -104,7 +100,6 @@ pygments_style = "sphinx"
 doc_basename = "ucsschool-kelvin-rest-api"
 
 html_theme = "univention_sphinx_book_theme"
-html_last_updated_fmt = "%d. %b %Y at %H:%M (UTC%z)"
 html_show_copyright = False
 html_show_sphinx = False
 html_show_sourcelink = False
@@ -122,6 +117,7 @@ html_theme_options = {
     "typesense_document": doc_basename,
     "typesense_document_version": "latest",
     "univention_matomo_tracking": True,
+    "univention_docs_deployment": True,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -205,6 +201,7 @@ linkcheck_allowed_redirects = {
 
 # Sitemap, see https://github.com/jdillard/sphinx-sitemap
 html_baseurl = "https://docs.software-univention.de/ucsschool-kelvin-rest-api/"
+sitemap_url_scheme = "{link}"
 
 # See Univention Sphinx Extension for its options.
 # https://git.knut.univention.de/univention/documentation/univention_sphinx_extension
