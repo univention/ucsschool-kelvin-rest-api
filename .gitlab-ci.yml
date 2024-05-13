@@ -33,7 +33,6 @@ variables:
   UCS_RELEASE: "5.0"
   SCOPE: "ucs-school-5.0"
   DOC_TARGET_NAME: $APP_ID
-  DOC_TARGET_PATH: $DOC_TARGET_NAME
   DEB_IMAGE: docker-registry.knut.univention.de/phahn/ucs-debbase:$UCS_VERSION
   UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/ucs
   APPCENTER_CONTROL_IMAGE: "docker-registry.knut.univention.de/knut/univention-appcenter-control"
@@ -95,12 +94,6 @@ docs-linkcheck:
 
 docs-spelling:
   extends: .sphinx-spelling-template
-  rules:
-    - changes:
-      - $DOCS_DIR/**/*
-
-docs-warnings:
-  extends: .sphinx-warnings-template
   rules:
     - changes:
       - $DOCS_DIR/**/*
