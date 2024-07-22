@@ -5,9 +5,10 @@
 Changelog
 ---------
 
-v1.10.1 (2024-04-30)
+v1.10.1 (2024-07-25)
 ....................
 * Fixed a bug that would lead to misleading log messages when changing the password hashes of a user (Bug #56590).
+* Swagger UI dependencies are now served statically instead of using CDNs (Bug #56314).
 
 v1.10.0 (2024-03-05)
 ....................

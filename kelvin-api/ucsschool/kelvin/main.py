@@ -36,6 +36,7 @@ from asgi_correlation_id.context import correlation_id
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exception_handlers import http_exception_handler
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
 from fastapi.responses import HTMLResponse, JSONResponse, ORJSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
@@ -76,8 +77,8 @@ app = FastAPI(
     title="Kelvin API",
     description="UCS@school Kelvin REST API",
     version=str(APP_VERSION),
-    docs_url=f"{URL_API_PREFIX}/docs",
-    redoc_url=f"{URL_API_PREFIX}/redoc",
+    docs_url=None,
+    redoc_url=None,
     openapi_url=f"{URL_API_PREFIX}/openapi.json",
     default_response_class=ORJSONResponse,
 )
@@ -217,9 +218,34 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+@app.get(f"{URL_API_PREFIX}/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Swagger UI",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url=f"{URL_API_PREFIX}/static/swagger-ui-bundle-5.17.14.js",
+        swagger_css_url=f"{URL_API_PREFIX}/static/swagger-ui-5.17.14.css",
+    )
+
+
+@app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
+
+
+@app.get(f"{URL_API_PREFIX}/redoc", include_in_schema=False)
+async def redoc_html():
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - ReDoc",
+        redoc_js_url=f"{URL_API_PREFIX}/static/redoc.standalone-2.0.0-rc.75.js",
+    )
+
+
 @app.get(f"{URL_KELVIN_BASE}")
 async def docs_redirect():
-    return RedirectResponse(url=app.docs_url)
+    return RedirectResponse(url=f"{URL_API_PREFIX}/docs")
 
 
 @app.get(f"{URL_API_PREFIX}/changelog", response_class=HTMLResponse)

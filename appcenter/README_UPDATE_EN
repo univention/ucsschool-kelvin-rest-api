@@ -1,8 +1,9 @@
 <h1>Changelog</h1>
 
-<h2>v1.10.1 (2024-04-30)</h2>
+<h2>v1.10.1 (2024-07-25)</h2>
 <ul>
     <li>Fixed a bug that would lead to misleading log messages when changing the password hashes of a user (Bug #56590).</li>
+    <li>Swagger UI dependencies are now served statically instead of using CDNs (Bug #56314).</li>
 </ul>
 
 <h2>v1.10.0 (2024-03-05)</h2>
