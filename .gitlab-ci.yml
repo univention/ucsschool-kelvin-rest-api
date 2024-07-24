@@ -39,6 +39,12 @@ variables:
   APPCENTER_CONTROL_IMAGE: "docker-registry.knut.univention.de/knut/univention-appcenter-control"
   UCS_SCHOOL_LIB_COVERAGE_LIMIT: 34
   KELVIN_COVERAGE_LIMIT: 37
+  FORCE_APPCENTER:
+    value: "false"
+    options:
+      - "true"
+      - "false"
+    description: "Force appcenter upload"
 
 
 run_pre_commit:
@@ -289,6 +295,8 @@ upload_appcenter_scripts_to_test_appcenter:
   stage: appcenter
   image: $APPCENTER_CONTROL_IMAGE
   rules:
+    - if: $FORCE_APPCENTER == "true"
+      when: always
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - appcenter/**
