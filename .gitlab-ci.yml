@@ -19,6 +19,7 @@ stages:
   - lint
   - build
   - tests
+  - appcenter
   - merge
   - production
 
@@ -285,7 +286,7 @@ ucs_test_deb_repo_build:
       -p $PACKAGE
 
 upload_appcenter_scripts_to_test_appcenter:
-  stage: production
+  stage: appcenter
   image: $APPCENTER_CONTROL_IMAGE
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
