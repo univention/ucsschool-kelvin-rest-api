@@ -27,7 +27,8 @@ author = "Univention GmbH"
 # The short X.Y version
 version = ""
 # The full version, including alpha/beta/rc tags
-release = "1.10.1"
+with open("../../kelvin-api/VERSION.txt", "r") as fp:
+    release = fp.read().strip("\n")
 
 
 # -- General configuration ---------------------------------------------------

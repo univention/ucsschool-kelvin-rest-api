@@ -295,4 +295,5 @@ upload_appcenter_scripts_to_test_appcenter:
     - APP_VERSION="$(cat kelvin-api/VERSION.txt)"
     - cd appcenter
     - echo "updating $APP_NAME=$APP_VERSION"
-    - univention-appcenter-control upload "$APP_NAME=$APP_VERSION" configure env inst README_UPDATE_DE README_UPDATE_EN restore_data_after_setup settings store_data uinst preinst listener_trigger update-certificates
+    - sed -i "s/%VERSION%/$APP_VERSION/g" ucsschool-kelvin-rest-api.ini
+    - univention-appcenter-control upload "$APP_NAME=$APP_VERSION" configure env inst README_UPDATE_DE README_UPDATE_EN restore_data_after_setup settings store_data uinst preinst listener_trigger update-certificates ucsschool-kelvin-rest-api.ini
