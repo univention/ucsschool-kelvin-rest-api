@@ -36,7 +36,7 @@ start() {
 
 stop() {
     ebegin "Stopping $description"
-    start-stop-daemon --stop -p $pidfile --exec $command
+    start-stop-daemon --stop --retry 30 -p $pidfile --exec $command
     eend $?
 }
 status () {
