@@ -5,6 +5,10 @@
 Changelog
 ---------
 
+v1.10.2 (2024-09-16)
+....................
+* Fixed: When restarting the OPA service, a crash was possible when the API is under high load (Bug #57000).
+
 v1.10.1 (2024-07-25)
 ....................
 * Fixed a bug that would lead to misleading log messages when changing the password hashes of a user (Bug #56590).
