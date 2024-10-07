@@ -5,7 +5,7 @@
 Changelog
 ---------
 
-v1.10.2 (2024-09-16)
+v1.10.2 (2024-10-07)
 ....................
 * Fixed: When restarting the OPA service, a crash was possible when the API is under high load (Bug #57000).
 

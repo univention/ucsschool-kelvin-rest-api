@@ -1,6 +1,6 @@
 <h1>Changelog</h1>
 
-<h2>v1.10.2 (2024-09-16)</h2>
+<h2>v1.10.2 (2024-10-07)</h2>
 <ul>
     <li>Fixed: When restarting the OPA service, a crash was possible when the API is under high load (Bug #57000).</li>
 </ul>
