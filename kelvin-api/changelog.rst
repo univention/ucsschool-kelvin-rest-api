@@ -72,14 +72,13 @@ v1.8.3 (2023-01-16)
 v1.8.2 (2022-12-20)
 ...................
 * Speed up validation when creating or changing users (Bug #55384).
-* Use the LDAP client library ``uldap3`` instead of a custom implementation
-to get better support and improved performance during direct LDAP calls (Issue #50).
+* Use the LDAP client library ``uldap3`` instead of a custom implementation to get better support and improved performance during direct LDAP calls (Issue #50).
 
 v1.8.1 (2022-12-07)
 ...................
 * Compare OU names case insensitive (Bug #55472).
 * Calculate group names using OU names from LDAP (Bug #55456).
-* Bugfix: Setting UCS@school roles with context type school in PATCH led to inconsistent UCS@school Users (Issue #47).
+* Fixed: Setting UCS@school roles with context type school in PATCH led to inconsistent UCS@school Users (Issue #47).
 
 v1.8.0 (2022-11-11)
 ...................
@@ -118,7 +117,7 @@ v1.5.5 (2022-06-23)
 * Allow the creation of school classes without share (Bug #54875).
 * Entering an invalid school URL does result in HTTP error-code 422 instead of 500 (Bug #52895).
 * Enable log rotation of the Open Policy Agent (Bug #54247).
-* The validation was adapted to prevent invalid school names in multiserver environments (Bug #54793).
+* The validation was adapted to prevent invalid school names in multi-server environments (Bug #54793).
 * An error has been fixed, which was raised by invalid UCS@school roles during the validation (Bug #54653).
 * Improve date validation error messages (Bug #54812).
 * Added documentation for the classes resource (Bug #52734).
@@ -151,7 +150,7 @@ v1.5.1 (2021-11-30)
 
 v1.5.0 (2021-09-10)
 ...................
-* Unixhomes are now set correctly for users. (Bug #52926)
+* Unix homes are now set correctly for users. (Bug #52926)
 * The Kelvin API now supports udm properties on all Kelvin resources except roles. (Bug #53744)
 
 v1.4.4 (2021-06-29)
@@ -166,7 +165,7 @@ v1.4.3 (2021-06-16)
 
 v1.4.2 (2021-05-26)
 ...................
-* Support for hooks for objekts managed by classes from the package ``ucsschool.lib.models`` was added. See manual section `Python hooks for pre- and post-object-modification actions <https://docs.software-univention.de/ucsschool-kelvin-rest-api/installation-configuration.html#python-hooks-for-pre-and-post-object-modification-actions>`_ for details (Bug #49557).
+* Support for hooks for objects managed by classes from the package ``ucsschool.lib.models`` was added. See manual section `Python hooks for pre- and post-object-modification actions <https://docs.software-univention.de/ucsschool-kelvin-rest-api/installation-configuration.html#python-hooks-for-pre-and-post-object-modification-actions>`_ for details (Bug #49557).
 * An error when creating usernames with templates was fixed (Bug #52925).
 
 v1.4.1 (2021-05-03)
@@ -206,7 +205,7 @@ v1.1.1 (2020-06-15)
 ...................
 * The validation of the ``name`` attribute of the ``SchoolClass`` resource has been fixed to allow short class names like ``1``.
 * The ``password`` attribute of the ``User`` resource has been fixed.
-* The signatures of the ``UserPyHook`` methods have been adapted to be able to ``await`` async methods.
+* The signatures of the ``UserPyHook`` methods have been adapted to be able to await asynchronous methods.
 * The UCS CA is now added to the ``certifi`` SSL certification store.
 * Support for the ``school_admin`` role was added.
 

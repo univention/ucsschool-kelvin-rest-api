@@ -21,4 +21,5 @@ Welcome to UCS\@school Kelvin REST API's documentation!
    resources
    known-issues
    kelvin-client-compatibility
+   changelog
    bibliography
