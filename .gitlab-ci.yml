@@ -86,24 +86,28 @@ docs-html:
   rules:
     - changes:
       - $DOCS_DIR/**/*
+      - kelvin-api/changelog.rst
 
 docs-pdf:
   extends: .sphinx-pdf-template
   rules:
     - changes:
       - $DOCS_DIR/**/*
+      - kelvin-api/changelog.rst
 
 docs-linkcheck:
   extends: .sphinx-linkcheck-template
   rules:
     - changes:
       - $DOCS_DIR/**/*
+      - kelvin-api/changelog.rst
 
 docs-spelling:
   extends: .sphinx-spelling-template
   rules:
     - changes:
       - $DOCS_DIR/**/*
+      - kelvin-api/changelog.rst
 
 docs-merge-to-one-artifact:
   extends: .sphinx-merge-template
@@ -118,9 +122,11 @@ docs-merge-to-one-artifact:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       changes:
       - $DOCS_DIR/**/*
+      - kelvin-api/changelog.rst
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
       - $DOCS_DIR/**/*
+      - kelvin-api/changelog.rst
       when: manual
 
 docs-review:
@@ -131,9 +137,11 @@ docs-review:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       changes:
       - $DOCS_DIR/**/*
+      - kelvin-api/changelog.rst
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
       - $DOCS_DIR/**/*
+      - kelvin-api/changelog.rst
       when: manual
 
 # The template has inherit:variables:false to prevent the passing of pipeline
@@ -146,6 +154,7 @@ docs-create-production-merge-request:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
       - doc/docs/**/*
+      - kelvin-api/changelog.rst
 
 
 build_docker_image:
