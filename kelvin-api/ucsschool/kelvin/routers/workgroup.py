@@ -143,18 +143,10 @@ class WorkGroupPatchDocument(BaseModel):
         )
 
     async def to_modify_kwargs(self, school, request: Request) -> Dict[str, Any]:
-        res = {}
-        if self.school:
-            res["school"] = self.school
-        if self.name:
+        res = self.dict(exclude_unset=True)
+        if "name" in res:
             res["name"] = f"{school}-{self.name}"
-        if self.description:
-            res["description"] = self.description
-        if self.ucsschool_roles:
-            res["ucsschool_roles"] = self.ucsschool_roles
-        if self.udm_properties:
-            res["udm_properties"] = self.udm_properties
-        if self.users:
+        if "users" in res:
             res["users"] = [
                 url_to_dn(request, "user", UcsSchoolBaseModel.unscheme_and_unquote(user))
                 for user in (self.users or [])

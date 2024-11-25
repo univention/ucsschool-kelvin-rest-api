@@ -26,7 +26,8 @@
 # <http://www.gnu.org/licenses/>.
 
 # TODO: set to specific alpine version (>=3.18?) that includes Python 3.11 or migarte to Debian image
-FROM alpine:3.18.4
+ARG DOCKER_PROXY
+FROM ${DOCKER_PROXY}alpine:3.18.9
 
 VOLUME /var/log
 
