@@ -11,6 +11,8 @@ MIN_COVERAGE=70
 declare -a CMD=(sh -c "
 cd /kelvin/kelvin-api &&
 ls -la .coverage &&
+mkdir -p /var/lib/univention-appcenter/apps/$APP/data/coverage &&
+coverage html --directory=/var/lib/univention-appcenter/apps/$APP/data/coverage &&
 coverage report --show-missing --fail-under=$MIN_COVERAGE")
 
 echo "Running in container:" "${CMD[@]}"
