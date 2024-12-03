@@ -386,6 +386,7 @@ async def test_patch(
     )
 
 
+@pytest.mark.parametrize("empty_value", [[], None])
 @pytest.mark.asyncio
 async def test_patch_clear_members(
     auth_header,
@@ -395,6 +396,7 @@ async def test_patch_clear_members(
     udm_kwargs,
     new_workgroup_using_lib,
     new_school_users,
+    empty_value,
 ):
     school = await create_ou_using_python()
     users: List[User] = await new_school_users(
@@ -409,7 +411,7 @@ async def test_patch_clear_members(
             requests.patch,
             f"{url_fragment}/workgroups/{school}/{wg1_attr['name']}",
             headers={"Content-Type": "application/json", **auth_header},
-            json={"users": []},
+            json={"users": empty_value},
         )
         assert response.status_code == 200, f"{response.__dict__!r}"
         assert len(response.json()["users"]) == 0
