@@ -312,27 +312,21 @@ async def partial_update(
 
     **Request Body**
 
-    - **name**: name of the school class (**required**)
-    - **school**: school the class belongs to (**required**)
-        **ATTENTION: The original school (set on creation) cannot be changed!**
-    - **description**: additional text (optional)
-    - **users**: list of URLs to User resources (optional)
+    All attributes are **optional**
+
+    - **name**: name of the school class
+    - **description**: additional text
+    - **users**: list of URLs to User resources
     - **ucsschool_roles**: list of tags of the form
-        $ROLE:$CONTEXT_TYPE:$CONTEXT (optional)
-    - **udm_properties**: object with UDM properties (optional, e.g.
+        $ROLE:$CONTEXT_TYPE:$CONTEXT
+    - **udm_properties**: object with UDM properties (e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
 
     **JSON Example:**
 
         {
-            "udm_properties": {},
-            "name": "EXAMPLE_CLASS",
-            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
-            "description": "Example description",
-            "users": [
-                "http://<fqdn>/ucsschool/kelvin/v1/users/EXAMPLE_STUDENT"
-            ]
+            "description": "Changed example description"
         }
     """
     if not await OPAClient.instance().check_policy_true(

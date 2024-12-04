@@ -114,11 +114,13 @@ class WorkGroupModel(WorkGroupCreateModel, APIAttributesMixin):
 
 
 class WorkGroupPatchDocument(BaseModel):
-    school: str = None
     name: str = None
     description: str = None
     ucsschool_roles: List[str] = Field(None, title="Roles of this object. Don't change if unsure.")
     users: List[HttpUrl] = None
+    email: str = None
+    allowed_email_senders_users: List[str] = []
+    allowed_email_senders_groups: List[str] = []
     udm_properties: Dict[str, Any] = None
 
     class Config(UcsSchoolBaseModel.Config):
@@ -325,18 +327,14 @@ async def partial_update(
 
     **Request Body**
 
-    - **name**: name of the school workgroup (**required**)
-    - **school**: **URL** of the school the workgroup belongs to (**required**)
-        **ATTENTION: Once created, the school cannot be changed!**
-    - **description**: additional text (optional)
-    - **users**: list of **URLs** of User resources (optional)
-    - **create_share**: whether a share should be created for the workgroup
-        (optional)
-    - **email**: workgroup's email (optional)
+    - **name**: name of the school workgroup
+    - **description**: additional text
+    - **users**: list of **URLs** of User resources
+    - **email**: workgroup's email
     - **allowed_email_senders_users**: users that are allowed to send e-mails
-        to the workgroup (optional)
+        to the workgroup
     - **allowed_email_senders_groups**: groups that are allowed to send e-mails
-        to the workgroup (optional)
+        to the workgroup
     - **ucsschool_roles**: list of tags of the form
         $ROLE:$CONTEXT_TYPE:$CONTEXT (optional)
     - **udm_properties**: object with UDM properties (optional, e.g.
@@ -346,16 +344,7 @@ async def partial_update(
     **JSON Example:**
 
         {
-            "udm_properties": {},
-            "name": "EXAMPLE_WORKGROUP",
-            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
-            "description": "Example description",
-            "users": [
-                "http://<fqdn>/ucsschool/kelvin/v1/users/EXAMPLE_STUDENT"
-            ],
-            "email": null,
-            "allowed_email_senders_users": [],
-            "allowed_email_senders_groups": []
+            "description": "New example description"
         }
     """
     if not await OPAClient.instance().check_policy_true(
@@ -373,7 +362,6 @@ async def partial_update(
     for attr, new_value in (await workgroup.to_modify_kwargs(school, request)).items():
         current_value = getattr(sc_current, attr)
         if new_value != current_value:
-            _validate_change(attr)
             setattr(sc_current, attr, new_value)
             changed = True
     if changed:

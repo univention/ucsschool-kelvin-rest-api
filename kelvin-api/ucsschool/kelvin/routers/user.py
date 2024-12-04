@@ -1008,32 +1008,32 @@ async def partial_update(  # noqa: C901
 
     **Request Body**
 
-    - **name**: name of the user (**required**)
-    - **firstname**: given name of the user (**required**)
-    - **lastname**: family name of the user (**required**)
-    - **school**: **URL** of the school resource (**OU**) the user belongs to (**required unless
-        schools is set**)
-    - **schools**: list of **URLs** of school resources the user belongs to (**required unless
-        school is set**)
+    All attributes are **optional**
+
+    - **name**: name of the user
+    - **firstname**: given name of the user
+    - **lastname**: family name of the user
+    - **school**: **URL** of the school resource (**OU**) the user belongs to
+    - **schools**: list of **URLs** of school resources the user belongs to
     - **roles**: list of **URLs** of **role** resources, either type: *staff*, *student*,
-        *teacher* or *teacher and staff* (**required**)
-    - **password**: users password, if unset random generated (optional)
+        *teacher* or *teacher and staff*
+    - **password**: users password, if unset random generated
     - **email**: the users email address (**mailPrimaryAddress**)
-    - **expiration_date**: date of password expiration (optional, format: **YYYY-MM-DD**,
+    - **expiration_date**: date of password expiration (format: **YYYY-MM-DD**,
         valid range: 1961-01-01 to 2099-12-31)
     - **record_uid**: identifier unique to the upstream database referenced by **source_uid**
-    - **source_uid**: identifier of the upstream database)
+    - **source_uid**: identifier of the upstream database
     - **school_classes**: school classes the user is a member of (format: **{"school1": ["class1",
         "class2"], "school2": ["class3"]}**)
     - **workgroups**: workgroups the user is a member of (format: **{"school1": ["workgroup1",
         "workgroup2"], "school2": ["workgroup3"]}**)
-    - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
-    - **disabled**: whether the user should be created deactivated (default: **false**)
+    - **birthday**: birthday of user (format: **YYYY-MM-DD**)
+    - **disabled**: whether the user should be created deactivated
     - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to
         ucsschool_roles with context_type school which are auto-managed by the system.
         ucsschool_role strings with context type school are ignored. Format is
         **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
-    - **udm_properties**: object with UDM properties (optional, e.g.
+    - **udm_properties**: object with UDM properties (e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
     - **kelvin_password_hashes**: password hashes to be stored unchanged in OpenLDAP
@@ -1041,38 +1041,10 @@ async def partial_update(  # noqa: C901
     **JSON Example**:
 
         {
-            "name": "EXAMPLE_STUDENT",
-            "firstname": "EXAMPLE",
-            "lastname": "STUDENT",
-            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
-            "schools": [
-                "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL"
-            ],
-            "roles": [
-                "https://<fqdn>/ucsschool/kelvin/v1/roles/student"
-            ],
-            "password": "examplepassword",
-            "email": "example@email.com",
-            "record_uid": "EXAMPLE_RECORD_UID",
-            "source_uid": "EXAMPLE_SOURCE_UID",
-            "school_classes": {
-                "EXAMPLE_SCHOOL": [
-                    "EXAMPLE_SCHOOL_CLASS"
-                ]
-            },
-            "workgroups": {
-                "EXAMPLE_SCHOOL": [
-                    "EXAMPLE_WORKGROUP"
-                ]
-            },
-            "birthday": "YYYY-MM-DD",
-            "expiration_date": "YYYY-MM-DD",
-            "disabled": false,
-            "udm_properties": {}
+            "password": "changed-examplepassword",
+            "email": "changed-example@email.com"
         }
 
-    **Note:** Although only **school** or **schools** needs to be set,
-        its advised to set both as best practice.
     """
     async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
         break
