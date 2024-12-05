@@ -145,11 +145,21 @@ class SchoolClassPatchDocument(BaseModel):
         res = self.dict(exclude_unset=True)
         if "name" in res:
             res["name"] = f"{school}-{self.name}"
+
+        logger = get_logger()
+
         if "users" in res:
-            res["users"] = [
-                url_to_dn(request, "user", UcsSchoolBaseModel.unscheme_and_unquote(user))
-                for user in (self.users or [])
-            ]  # this is expensive :/
+            if res["users"] is None:
+                logger.warning(
+                    "Setting the users attribute to None is deprecated."
+                    " None is ignored and will not delete users from the school class."
+                )
+                del res["users"]
+            else:
+                res["users"] = [
+                    url_to_dn(request, "user", UcsSchoolBaseModel.unscheme_and_unquote(user))
+                    for user in (self.users or [])
+                ]  # this is expensive :/
         return res
 
 
