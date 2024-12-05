@@ -510,7 +510,10 @@ async def test_workgroup_school_cant_change(
         headers=auth_header,
         json=change_data,
     )
-    assert response.status_code == 422, response.__dict__
+    if operation == "put":
+        assert response.status_code == 422, response.__dict__
+    else:
+        assert response.json()["school"] == school  # Parameter is ignored in patch
 
 
 @pytest.mark.asyncio
