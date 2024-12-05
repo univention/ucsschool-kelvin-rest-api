@@ -37,7 +37,16 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Typ
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request, Response, status
 from ldap.filter import escape_filter_chars
-from pydantic import BaseModel, Field, HttpUrl, SecretStr, ValidationError, root_validator, validator
+from pydantic import (
+    BaseModel,
+    Field,
+    HttpUrl,
+    SecretStr,
+    ValidationError,
+    conlist,
+    root_validator,
+    validator,
+)
 from uldap3.exceptions import ModifyError as UModifyError, NoObject as UNoObject
 
 from ucsschool.importer.default_user_import_factory import DefaultUserImportFactory
@@ -76,7 +85,6 @@ from ..token_auth import get_token
 from ..urls import cached_url_for, url_to_name
 from .base import (
     APIAttributesMixin,
-    BasePatchModel,
     UcsSchoolBaseModel,
     get_lib_obj,
     get_logger,
@@ -369,7 +377,7 @@ class UserModel(UserBaseModel, APIAttributesMixin):
         return kwargs
 
 
-class UserPatchModel(BasePatchModel):
+class UserPatchModel(BaseModel):
     name: str = None
     firstname: str = None
     lastname: str = None
@@ -379,9 +387,9 @@ class UserPatchModel(BasePatchModel):
     expiration_date: datetime.date = None
     password: SecretStr = None
     record_uid: str = None
-    roles: List[HttpUrl] = None
+    roles: conlist(HttpUrl, min_items=1) = None
     school: HttpUrl = None
-    schools: List[HttpUrl] = None
+    schools: conlist(HttpUrl, min_items=1) = None
     school_classes: Dict[str, List[str]] = None
     workgroups: Dict[str, List[str]] = None
     source_uid: str = None
@@ -407,61 +415,51 @@ class UserPatchModel(BasePatchModel):
         _validate_date_range(v)
         return v
 
+    @validator(
+        "school",
+        "disabled",
+        "school_classes",
+        "workgroups",
+        "password",
+        "schools",
+        "roles",
+        "kelvin_password_hashes",
+    )
+    def validate_null_values(cls, v: Optional[Any]) -> Any:
+        if v is None:
+            raise ValueError("Null value in property.")
+        return v
+
     @validator("udm_properties")
     def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
+        if udm_properties is None:
+            raise ValueError("Null value in property.")
         configured_properties = set(UDM_MAPPING_CONFIG.user or [])
         return only_known_udm_properties(
             udm_properties, configured_properties, UserBaseModel.Config.config_id
         )
 
     async def to_modify_kwargs(self, request: Request) -> Dict[str, Any]:  # noqa: C901
-        kwargs = await super().to_modify_kwargs(request)
-        for key, value in kwargs.items():
-            if key == "schools":
-                if not isinstance(value, list) or value == []:
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail="No or empty list of school URLs in 'schools' property.",
-                    )
-                kwargs["schools"] = [
-                    url_to_name(request, "school", UserCreateModel.unscheme_and_unquote(school))
-                    for school in value
-                ]
-            elif key == "school":
-                if not value:
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail="No school URL in 'school' property.",
-                    )
-                kwargs["school"] = url_to_name(
-                    request, "school", UserCreateModel.unscheme_and_unquote(value)
-                )
-            elif key in ("birthday", "expiration_date"):
-                kwargs[key] = str(value) if value else None
-            elif key == "disabled":
-                if not isinstance(value, bool):
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail="Non-boolean value in 'disabled' property.",
-                    )
-            elif key in ("school_classes", "udm_properties", "workgroups"):
-                if not isinstance(value, dict):
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=f"Non-object/dict value in {key!r} property.",
-                    )
-            elif key == "password" and isinstance(value, SecretStr):
-                kwargs[key] = value.get_secret_value()
-            elif key == "roles":
-                if not isinstance(value, list) or value == []:
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail="No or empty list of role URLs in 'roles' property.",
-                    )
-                kwargs["roles"] = [
-                    url_to_name(request, "role", UserCreateModel.unscheme_and_unquote(role))
-                    for role in value
-                ]
+        kwargs = self.dict(exclude_unset=True)
+        if "schools" in kwargs:
+            kwargs["schools"] = [
+                url_to_name(request, "school", UserCreateModel.unscheme_and_unquote(school))
+                for school in kwargs["schools"]
+            ]
+        if "school" in kwargs:
+            kwargs["school"] = url_to_name(
+                request, "school", UserCreateModel.unscheme_and_unquote(kwargs["school"])
+            )
+        for key in ("birthday", "expiration_date"):
+            if key in kwargs:
+                kwargs[key] = str(kwargs[key]) if kwargs[key] else None
+        if "password" in kwargs:
+            kwargs["password"] = kwargs["password"].get_secret_value()
+        if "roles" in kwargs:
+            kwargs["roles"] = [
+                url_to_name(request, "role", UserCreateModel.unscheme_and_unquote(role))
+                for role in kwargs["roles"]
+            ]
         return kwargs
 
 
@@ -1010,32 +1008,32 @@ async def partial_update(  # noqa: C901
 
     **Request Body**
 
-    - **name**: name of the user (**required**)
-    - **firstname**: given name of the user (**required**)
-    - **lastname**: family name of the user (**required**)
-    - **school**: **URL** of the school resource (**OU**) the user belongs to (**required unless
-        schools is set**)
-    - **schools**: list of **URLs** of school resources the user belongs to (**required unless
-        school is set**)
+    All attributes are **optional**
+
+    - **name**: name of the user
+    - **firstname**: given name of the user
+    - **lastname**: family name of the user
+    - **school**: **URL** of the school resource (**OU**) the user belongs to
+    - **schools**: list of **URLs** of school resources the user belongs to
     - **roles**: list of **URLs** of **role** resources, either type: *staff*, *student*,
-        *teacher* or *teacher and staff* (**required**)
-    - **password**: users password, if unset random generated (optional)
+        *teacher* or *teacher and staff*
+    - **password**: users password, if unset random generated
     - **email**: the users email address (**mailPrimaryAddress**)
-    - **expiration_date**: date of password expiration (optional, format: **YYYY-MM-DD**,
+    - **expiration_date**: date of password expiration (format: **YYYY-MM-DD**,
         valid range: 1961-01-01 to 2099-12-31)
     - **record_uid**: identifier unique to the upstream database referenced by **source_uid**
-    - **source_uid**: identifier of the upstream database)
+    - **source_uid**: identifier of the upstream database
     - **school_classes**: school classes the user is a member of (format: **{"school1": ["class1",
         "class2"], "school2": ["class3"]}**)
     - **workgroups**: workgroups the user is a member of (format: **{"school1": ["workgroup1",
         "workgroup2"], "school2": ["workgroup3"]}**)
-    - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
-    - **disabled**: whether the user should be created deactivated (default: **false**)
+    - **birthday**: birthday of user (format: **YYYY-MM-DD**)
+    - **disabled**: whether the user should be created deactivated
     - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to
         ucsschool_roles with context_type school which are auto-managed by the system.
         ucsschool_role strings with context type school are ignored. Format is
         **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
-    - **udm_properties**: object with UDM properties (optional, e.g.
+    - **udm_properties**: object with UDM properties (e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
     - **kelvin_password_hashes**: password hashes to be stored unchanged in OpenLDAP
@@ -1043,38 +1041,10 @@ async def partial_update(  # noqa: C901
     **JSON Example**:
 
         {
-            "name": "EXAMPLE_STUDENT",
-            "firstname": "EXAMPLE",
-            "lastname": "STUDENT",
-            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
-            "schools": [
-                "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL"
-            ],
-            "roles": [
-                "https://<fqdn>/ucsschool/kelvin/v1/roles/student"
-            ],
-            "password": "examplepassword",
-            "email": "example@email.com",
-            "record_uid": "EXAMPLE_RECORD_UID",
-            "source_uid": "EXAMPLE_SOURCE_UID",
-            "school_classes": {
-                "EXAMPLE_SCHOOL": [
-                    "EXAMPLE_SCHOOL_CLASS"
-                ]
-            },
-            "workgroups": {
-                "EXAMPLE_SCHOOL": [
-                    "EXAMPLE_WORKGROUP"
-                ]
-            },
-            "birthday": "YYYY-MM-DD",
-            "expiration_date": "YYYY-MM-DD",
-            "disabled": false,
-            "udm_properties": {}
+            "password": "changed-examplepassword",
+            "email": "changed-example@email.com"
         }
 
-    **Note:** Although only **school** or **schools** needs to be set,
-        its advised to set both as best practice.
     """
     async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
         break

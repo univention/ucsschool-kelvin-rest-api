@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v1.10.3 (2024-12-09)
+--------------------
+* Fixed: The patch endpoint for school classes and work groups now accepts an empty list to clear all members (:uv:bug:`57771`).
+
 v1.10.2 (2024-10-07)
 --------------------
 * Fixed: When restarting the OPA service, a crash was possible when the API is under high load (:uv:bug:`57000`).

@@ -142,20 +142,24 @@ class SchoolClassPatchDocument(BaseModel):
         )
 
     async def to_modify_kwargs(self, school, request: Request) -> Dict[str, Any]:
-        res = {}
-        if self.name:
+        res = self.dict(exclude_unset=True)
+        if "name" in res:
             res["name"] = f"{school}-{self.name}"
-        if self.description:
-            res["description"] = self.description
-        if self.ucsschool_roles:
-            res["ucsschool_roles"] = self.ucsschool_roles
-        if self.udm_properties:
-            res["udm_properties"] = self.udm_properties
-        if self.users:
-            res["users"] = [
-                url_to_dn(request, "user", UcsSchoolBaseModel.unscheme_and_unquote(user))
-                for user in (self.users or [])
-            ]  # this is expensive :/
+
+        logger = get_logger()
+
+        if "users" in res:
+            if res["users"] is None:
+                logger.warning(
+                    "Setting the users attribute to None is deprecated."
+                    " None is ignored and will not delete users from the school class."
+                )
+                del res["users"]
+            else:
+                res["users"] = [
+                    url_to_dn(request, "user", UcsSchoolBaseModel.unscheme_and_unquote(user))
+                    for user in (self.users or [])
+                ]  # this is expensive :/
         return res
 
 
@@ -318,27 +322,21 @@ async def partial_update(
 
     **Request Body**
 
-    - **name**: name of the school class (**required**)
-    - **school**: school the class belongs to (**required**)
-        **ATTENTION: The original school (set on creation) cannot be changed!**
-    - **description**: additional text (optional)
-    - **users**: list of URLs to User resources (optional)
+    All attributes are **optional**
+
+    - **name**: name of the school class
+    - **description**: additional text
+    - **users**: list of URLs to User resources
     - **ucsschool_roles**: list of tags of the form
-        $ROLE:$CONTEXT_TYPE:$CONTEXT (optional)
-    - **udm_properties**: object with UDM properties (optional, e.g.
+        $ROLE:$CONTEXT_TYPE:$CONTEXT
+    - **udm_properties**: object with UDM properties (e.g.
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
 
     **JSON Example:**
 
         {
-            "udm_properties": {},
-            "name": "EXAMPLE_CLASS",
-            "school": "http://<fqdn>/ucsschool/kelvin/v1/schools/EXAMPLE_SCHOOL",
-            "description": "Example description",
-            "users": [
-                "http://<fqdn>/ucsschool/kelvin/v1/users/EXAMPLE_STUDENT"
-            ]
+            "description": "Changed example description"
         }
     """
     if not await OPAClient.instance().check_policy_true(

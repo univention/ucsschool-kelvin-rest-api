@@ -261,19 +261,6 @@ class UcsSchoolBaseModel(LibModelHelperMixin):
         return value
 
 
-class BasePatchModel(BaseModel):
-    _guard = object()
-
-    async def to_modify_kwargs(self, request: Request) -> Dict[str, Any]:
-        json_body = await request.json()
-        # ignore (default) None values unless explicitly requested
-        return {
-            key: value
-            for key, value in self.dict().items()
-            if value is not None or json_body.get(key, self._guard) is None
-        }
-
-
 def get_language_from_header(request: Request) -> str:
     language = request.headers.get("Accept-Language")
     language = language if language else request.headers.get("accept-language")

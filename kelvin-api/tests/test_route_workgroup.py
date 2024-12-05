@@ -278,6 +278,9 @@ async def change_operation(
         change_data = {
             "description": fake.text(max_nb_chars=50),
             "users": [f"{url_fragment}/users/{user.name}" for user in users],
+            "email": f"test_change@{mail_domain}",
+            "allowed_email_senders_users": ["uid=test_u1,dc=test", "uid=test_u2,dc=test"],
+            "allowed_email_senders_groups": ["cn=test_g1,dc=test", "cn=test_g2,dc=test"],
         }
         if operation == "put":
             change_data["name"] = sc1_attr["name"]
@@ -387,6 +390,55 @@ async def test_patch(
 
 
 @pytest.mark.asyncio
+async def test_patch_clear_values(
+    auth_header,
+    create_ou_using_python,
+    retry_http_502,
+    url_fragment,
+    udm_kwargs,
+    new_workgroup_using_lib,
+    new_school_users,
+    mail_domain,
+):
+    school = await create_ou_using_python()
+    users: List[User] = await new_school_users(
+        school, {"student": 2, "teacher": 1, "teacher_and_staff": 1}
+    )
+    wg1_dn, wg1_attr = await new_workgroup_using_lib(
+        school,
+        users=[user.dn for user in users],
+        email=f"test@{mail_domain}",
+        allowed_email_senders_users=["uid=test_u1,dc=test", "uid=test_u2,dc=test"],
+        allowed_email_senders_groups=["cn=test_g1,dc=test", "cn=test_g2,dc=test"],
+    )
+    async with UDM(**udm_kwargs) as udm:
+        lib_obj: WorkGroup = await WorkGroup.from_dn(wg1_dn, school, udm)
+        assert await lib_obj.exists(udm) is True
+        assert len(lib_obj.users) > 0
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment}/workgroups/{school}/{wg1_attr['name']}",
+            headers={"Content-Type": "application/json", **auth_header},
+            json={
+                "users": [],
+                "allowed_email_senders_users": [],
+                "allowed_email_senders_groups": [],
+                "email": None,
+            },
+        )
+        assert response.status_code == 200, f"{response.__dict__!r}"
+        assert len(response.json()["users"]) == 0
+        assert len(response.json()["allowed_email_senders_users"]) == 0
+        assert len(response.json()["allowed_email_senders_groups"]) == 0
+        assert response.json()["email"] is None
+        lib_obj: WorkGroup = await WorkGroup.from_dn(wg1_dn, school, udm)
+        assert len(lib_obj.users) == 0
+        assert len(lib_obj.allowed_email_senders_users) == 0
+        assert len(lib_obj.allowed_email_senders_groups) == 0
+        assert lib_obj.email is None
+
+
+@pytest.mark.asyncio
 async def test_delete(
     auth_header,
     create_ou_using_python,
@@ -456,7 +508,10 @@ async def test_workgroup_school_cant_change(
         headers=auth_header,
         json=change_data,
     )
-    assert response.status_code == 422, response.__dict__
+    if operation == "put":
+        assert response.status_code == 422, response.__dict__
+    else:
+        assert response.json()["school"].endswith(f"/schools/{school}")  # Parameter is ignored in patch
 
 
 @pytest.mark.asyncio

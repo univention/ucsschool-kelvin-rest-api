@@ -414,6 +414,37 @@ async def test_patch(
 
 
 @pytest.mark.asyncio
+async def test_patch_clear_members(
+    auth_header,
+    create_ou_using_python,
+    retry_http_502,
+    url_fragment,
+    udm_kwargs,
+    new_school_class_using_lib,
+    new_school_users,
+):
+    school = await create_ou_using_python()
+    users: List[User] = await new_school_users(
+        school, {"student": 2, "teacher": 1, "teacher_and_staff": 1}
+    )
+    sc1_dn, sc1_attr = await new_school_class_using_lib(school, users=[user.dn for user in users])
+    async with UDM(**udm_kwargs) as udm:
+        lib_obj: SchoolClass = await SchoolClass.from_dn(sc1_dn, school, udm)
+        assert await lib_obj.exists(udm) is True
+        assert len(lib_obj.users) > 0
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment}/classes/{school}/{sc1_attr['name']}",
+            headers={"Content-Type": "application/json", **auth_header},
+            json={"users": []},
+        )
+        assert response.status_code == 200, f"{response.__dict__!r}"
+        assert len(response.json()["users"]) == 0
+        lib_obj: SchoolClass = await SchoolClass.from_dn(sc1_dn, school, udm)
+        assert len(lib_obj.users) == 0
+
+
+@pytest.mark.asyncio
 async def test_delete(
     auth_header,
     create_ou_using_python,

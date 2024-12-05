@@ -1276,6 +1276,7 @@ async def test_patch(
     new_import_user,
     random_user_create_model,
     random_name,
+    mail_domain,
     import_config,
     udm_kwargs,
     role: Role,
@@ -1290,10 +1291,13 @@ async def test_patch(
         school,
         roles=old_user_data["roles"],
         disabled=False,
+        email=f"{random_name()}mail{fake.pyint()}@{mail_domain}".lower(),
         school=old_user_data["school"],
         schools=old_user_data["schools"],
     )
-    new_user_data = user_create_model.dict(exclude={"name", "record_uid", "source_uid"})
+    new_user_data = user_create_model.dict(
+        exclude={"name", "record_uid", "source_uid", "kelvin_password_hashes"}
+    )
     new_user_data["birthday"] = str(new_user_data["birthday"])
     new_user_data["expiration_date"] = str(new_user_data["expiration_date"])
     for key in random.sample(list(new_user_data.keys()), random.randint(1, len(new_user_data.keys()))):
@@ -1310,13 +1314,14 @@ async def test_patch(
         headers=auth_header,
         json=new_user_data,
     )
-    assert response.status_code == 200, response.reason
+    assert response.status_code == 200, f"{response.__dict__!r}"
     api_user = UserModel(**response.json())
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={user.name}")
         assert len(lib_users) == 1
         assert isinstance(lib_users[0], role.klass)
         assert api_user.udm_properties["title"] == title
+        assert getattr(lib_users[0], null_value) is None
         assert set(api_user.udm_properties["phone"]) == set(phone)
         udm_props = (await lib_users[0].get_udm_object(udm)).props
         assert udm_props.title == title
@@ -2087,20 +2092,25 @@ async def test_not_password_and_password_hashes(
 
     user_data.password = fake.password()
     user_data.kelvin_password_hashes = None
-    model(**user_data.dict())
-    model(**user_data.dict())
+    if issubclass(model, UserPatchModel):
+        model(password=user_data.password)
+    else:
+        model(**user_data.dict())
 
     user_data.password = None
     user_data.kelvin_password_hashes = password_new_hashes
-    model(**user_data.dict())
-    model(**user_data.dict())
+    if issubclass(model, UserPatchModel):
+        model(kelvin_password_hashes=user_data.kelvin_password_hashes)
+    else:
+        model(**user_data.dict())
 
     user_data.password = fake.password()
     user_data.kelvin_password_hashes = password_new_hashes
     with pytest.raises(ValueError):
-        model(**user_data.dict())
-    with pytest.raises(ValueError):
-        model(**user_data.dict())
+        if issubclass(model, UserPatchModel):
+            model(password=user_data.password, kelvin_password_hashes=user_data.kelvin_password_hashes)
+        else:
+            model(**user_data.dict())
 
 
 @pytest.mark.asyncio
