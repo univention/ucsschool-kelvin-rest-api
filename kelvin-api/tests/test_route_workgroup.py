@@ -279,8 +279,8 @@ async def change_operation(
             "description": fake.text(max_nb_chars=50),
             "users": [f"{url_fragment}/users/{user.name}" for user in users],
             "email": f"test_change@{mail_domain}",
-            "allowed_email_senders_users": ["test_u1", "test_u2"],
-            "allowed_email_senders_groups": ["test_g1", "test_g2"],
+            "allowed_email_senders_users": ["uid=test_u1,dc=test", "uid=test_u2,dc=test"],
+            "allowed_email_senders_groups": ["cn=test_g1,dc=test", "cn=test_g2,dc=test"],
         }
         if operation == "put":
             change_data["name"] = sc1_attr["name"]
@@ -410,8 +410,8 @@ async def test_patch_clear_values(
         school,
         users=[user.dn for user in users],
         email=f"test@{mail_domain}",
-        allowed_email_senders_users=["test_u1", "test_u2"],
-        allowed_email_senders_groups=["test_g1", "test_g2"],
+        allowed_email_senders_users=["uid=test_u1,dc=test", "uid=test_u2,dc=test"],
+        allowed_email_senders_groups=["cn=test_g1,dc=test", "cn=test_g2,dc=test"],
     )
     async with UDM(**udm_kwargs) as udm:
         lib_obj: WorkGroup = await WorkGroup.from_dn(wg1_dn, school, udm)
@@ -423,8 +423,8 @@ async def test_patch_clear_values(
             headers={"Content-Type": "application/json", **auth_header},
             json={
                 "users": empty_value,
-                "allowed_email_senders_users": empty_value,
-                "allowed_email_senders_groups": empty_value,
+                "allowed_email_senders_users": [],
+                "allowed_email_senders_groups": [],
                 "email": None,
             },
         )
