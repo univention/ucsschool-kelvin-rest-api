@@ -1,8 +1,8 @@
 <h1>Changelog</h1>
 
-<h2>v1.10.23 (2024-12-09)</h2>
+<h2>v1.10.3 (2024-12-09)</h2>
 <ul>
-    <li>Fixed: The patch endpoint for school classes and work groups now accepts an empty list to clear all members (Bug #57771).</li>
+    <li>Fixed: The PATCH endpoint for school classes and work groups now accepts an empty list to clear all members (Bug #57771).</li>
 </ul>
 
 <h2>v1.10.2 (2024-10-07)</h2>
