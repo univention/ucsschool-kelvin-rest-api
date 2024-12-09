@@ -69,6 +69,20 @@ exchange `COMPONENT_ID` with the target component id.
 https://appcenter.software-univention.de/univention-repository/5.0/maintained/component/COMPONENT_ID/
 ```
 
+#### Release Mail
+
+```
+Hello,
+
+the UCS@school Kelvin REST API version <version> has been released.
+
+For changes, see https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html
+
+Best regards
+
+UCS@school Team
+```
+
 #### Publish documentation
 
 The documentation is build automatically when changes are pushed in `doc/docs/**/*`.
