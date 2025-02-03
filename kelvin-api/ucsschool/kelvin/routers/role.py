@@ -46,8 +46,8 @@ from ucsschool.lib.roles import (
 )
 
 from ..import_config import init_ucs_school_import_framework
-from ..opa import OPAClient
-from ..token_auth import get_token
+from ..ldap import LdapUser
+from ..token_auth import get_kelvin_admin
 from ..urls import cached_url_for
 
 router = APIRouter()
@@ -121,22 +121,11 @@ class RoleModel(BaseModel):
 
 @router.get("/", response_model=List[RoleModel])
 async def search(
-    request: Request,
-    token: str = Depends(get_token),
+    request: Request, kelvin_admin: LdapUser = Depends(get_kelvin_admin)
 ) -> List[RoleModel]:
     """
     List all available roles.
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="roles",
-        token=token,
-        request=dict(method="GET", path=["roles"]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to list roles.",
-        )
     return [
         RoleModel(name=role.name, display_name=role.name, url=role.to_url(request))
         for role in (
@@ -154,7 +143,7 @@ async def get(
         default=...,
         title="name",
     ),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> RoleModel:
     """Get a role by name.
 
@@ -163,16 +152,6 @@ async def get(
         - student
         - teacher
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="roles",
-        token=token,
-        request=dict(method="GET", path=["roles", role_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to list roles.",
-        )
     try:
         role_name = SchoolUserRole(role_name)
     except ValueError:

@@ -125,3 +125,9 @@ async def get_current_active_user(
     if current_user.disabled:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
     return current_user
+
+
+async def get_kelvin_admin(user: LdapUser = Depends(get_current_active_user)) -> LdapUser:
+    if not user.kelvin_admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    return user

@@ -53,9 +53,8 @@ from ucsschool.lib.schoolldap import name_from_dn
 from udm_rest_client import UDM
 
 from ...lib.models.base import UDMPropertiesError
-from ..ldap import uldap_admin_read_local
-from ..opa import OPAClient
-from ..token_auth import get_token
+from ..ldap import LdapUser, uldap_admin_read_local
+from ..token_auth import get_kelvin_admin
 from ..urls import cached_url_for
 from .base import APIAttributesMixin, LibModelHelperMixin, udm_ctx
 
@@ -234,7 +233,7 @@ async def school_search(
     ),
     logger: logging.Logger = Depends(get_logger),
     udm: UDM = Depends(udm_ctx),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> List[SchoolModel]:
     """
     Search for schools (OUs).
@@ -243,16 +242,6 @@ async def school_search(
     searches. No other properties can be used to filter.
     """
     logger.debug("Searching for schools with: name_filter=%r", name_filter)
-    if not await OPAClient.instance().check_policy_true(
-        policy="schools",
-        token=token,
-        request=dict(method="GET", path=["schools"]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to list schools.",
-        )
     if name_filter:
         filter_str = "ou={}".format(escape_filter_chars(name_filter).replace(r"\2a", "*"))
     else:
@@ -270,23 +259,13 @@ async def school_get(
         title="name",
     ),
     udm: UDM = Depends(udm_ctx),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> SchoolModel:
     """
     Fetch a specific school (OU).
 
     - **name**: name of the school (**required**)
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="schools",
-        token=token,
-        request=dict(method="GET", path=["schools", school_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to list schools.",
-        )
     await search_schools_in_ldap(school_name, raise404=True)  # shortcut for case OU doesn't exist
     school = await School.from_dn(School(name=school_name).dn, None, udm)
     return await SchoolModel.from_lib_model(school, request, udm)
@@ -300,7 +279,7 @@ async def school_create(
     alter_dhcpd_base: Optional[bool] = None,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> SchoolModel:
     """
     Create a school (OU) with all the information:
@@ -336,16 +315,6 @@ async def school_create(
             "display_name": "Example School"
         }
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="schools",
-        token=token,
-        request=dict(method="POST", path=["schools"]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to create schools.",
-        )
     school_obj: School = school.as_lib_model(request)
     if await school_obj.exists(udm):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="School exists.")
@@ -397,23 +366,13 @@ async def school_exists(
         description="School (OU) with this name.",
         title="name",
     ),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ):
     """
     Check if school (OU) with a provided name exists.
 
     - **name**: name of the school (**required**)
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="schools",
-        token=token,
-        request=dict(method="HEAD", path=["schools", school_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to see schools.",
-        )
 
     # Always do a fresh LDAP search for this resource. Don't use value from cache.
     # (As a side effect, this will add/update the cache entry for `school_name`.)
