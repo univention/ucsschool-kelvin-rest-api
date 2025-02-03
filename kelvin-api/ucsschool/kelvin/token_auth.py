@@ -28,6 +28,7 @@
 # <http://www.gnu.org/licenses/>.
 
 from datetime import datetime, timedelta
+from typing import Any
 
 import aiofiles
 import jwt
@@ -107,13 +108,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> LdapUser:
     )
     try:
         payload = jwt.decode(token, await get_secret_key(), algorithms=[TOKEN_HASH_ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        sub: dict[str, Any] = payload.get("sub")
+        username = sub.get("username", "")
+        if not username:
             raise credentials_exception
         token_data = TokenData(username=username)
     except PyJWTError:
         raise credentials_exception
-    user = await get_user(username=token_data.username, school_only=False)
+    user = get_user(username=token_data.username, school_only=False)
+    user.kelvin_admin = sub.get("kelvin_admin", False)
     if user is None:
         raise credentials_exception
     return user
@@ -125,3 +128,9 @@ async def get_current_active_user(
     if current_user.disabled:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
     return current_user
+
+
+async def get_kelvin_admin(user: LdapUser = Depends(get_current_active_user)) -> LdapUser:
+    if not user.kelvin_admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    return user

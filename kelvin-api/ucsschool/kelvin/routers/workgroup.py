@@ -38,8 +38,8 @@ from ucsschool.lib.schoolldap import name_from_dn
 from udm_rest_client import UDM, CreateError, ModifyError
 
 from ..config import UDM_MAPPING_CONFIG
-from ..opa import OPAClient
-from ..token_auth import get_token
+from ..ldap import LdapUser
+from ..token_auth import get_kelvin_admin
 from ..urls import cached_url_for, url_to_dn, url_to_name
 from .base import (
     APIAttributesMixin,
@@ -181,7 +181,7 @@ async def search(
         title="name",
     ),
     udm: UDM = Depends(udm_ctx),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> List[WorkGroupModel]:
     """
     Search for school workgroups.
@@ -191,16 +191,6 @@ async def search(
     - **name**: names of school workgroups to look for, use ``*`` for inexact
         search (optional)
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="workgroups",
-        token=token,
-        request=dict(method="GET", path=["workgroups"]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to list school workgroups.",
-        )
     if workgroup_name:
         filter_str = f"name={school}-{workgroup_name}"
     else:
@@ -215,18 +205,8 @@ async def get(
     school: str,
     request: Request,
     udm: UDM = Depends(udm_ctx),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> WorkGroupModel:
-    if not await OPAClient.instance().check_policy_true(
-        policy="workgroups",
-        token=token,
-        request=dict(method="GET", path=["workgroups", workgroup_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to list school workgroups.",
-        )
     sc = await get_lib_obj(udm, WorkGroup, f"{school}-{workgroup_name}", school)
     return await WorkGroupModel.from_lib_model(sc, request, udm)
 
@@ -237,7 +217,7 @@ async def create(
     request: Request,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> WorkGroupModel:
     """
     Create a **workgroup** with all the information:
@@ -277,16 +257,6 @@ async def create(
             "allowed_email_senders_groups": []
         }
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="workgroups",
-        token=token,
-        request=dict(method="POST", path=["workgroups"]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to create school workgroups.",
-        )
     sc: WorkGroup = workgroup.as_lib_model(request)
     if await sc.exists(udm):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="school workgroup exists.")
@@ -322,7 +292,7 @@ async def partial_update(
     request: Request,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> WorkGroupModel:
     """
     Update a **workgroup** with all the information:
@@ -355,16 +325,6 @@ async def partial_update(
             "description": "New example description"
         }
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="workgroups",
-        token=token,
-        request=dict(method="PATCH", path=["workgroups", workgroup_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to edit school workgroups.",
-        )
     sc_current = await get_lib_obj(udm, WorkGroup, f"{school}-{workgroup_name}", school)
     changed = False
     for attr, new_value in (await workgroup.to_modify_kwargs(school, request)).items():
@@ -403,7 +363,7 @@ async def complete_update(
     request: Request,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> WorkGroupModel:
     """
     Update a **workgroup** with all the information:
@@ -449,16 +409,6 @@ async def complete_update(
             "allowed_email_senders_groups": []
         }
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="workgroups",
-        token=token,
-        request=dict(method="PUT", path=["workgroups", workgroup_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to edit school workgroups.",
-        )
     if school != url_to_name(
         request, "school", UcsSchoolBaseModel.unscheme_and_unquote(workgroup.school)
     ):
@@ -500,18 +450,8 @@ async def delete(
     school: str,
     request: Request,
     udm: UDM = Depends(udm_ctx),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> Response:
-    if not await OPAClient.instance().check_policy_true(
-        policy="workgroups",
-        token=token,
-        request=dict(method="DELETE", path=["workgroups", workgroup_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to delete school workgroups.",
-        )
     sc = await get_lib_obj(udm, WorkGroup, f"{school}-{workgroup_name}", school)
     await sc.remove(udm)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

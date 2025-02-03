@@ -37,13 +37,5 @@ repos:
     -   id: bandit
         entry: bandit -c .bandit
         exclude: ^kelvin-api/tests/|^ucs-school-lib/modules/ucsschool/lib/tests/
--   repo: https://github.com/anderseknert/pre-commit-opa
-    rev: v1.5.1
-    hooks:
-    -   id: opa-fmt
-    -   id: opa-check
-        args: ['kelvin-api/opa_policies']
-    -   id: opa-test
-        args: ['kelvin-api/opa_policies']
 default_language_version:
     python: python3.11

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# .py -*- coding: utf-8 -*-
 
 # Copyright 2020-2022 Univention GmbH
 #
