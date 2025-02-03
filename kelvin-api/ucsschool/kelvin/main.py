@@ -63,7 +63,6 @@ from .constants import (
 )
 from .import_config import get_import_config
 from .ldap import check_auth_and_get_user
-from .opa import OPAClient
 from .routers import role, school, school_class, user, workgroup
 from .token_auth import Token, create_access_token, get_token_ttl
 
@@ -101,11 +100,6 @@ app.add_middleware(
 class ValidationDataFilter(logging.Filter):
     def filter(self, record):
         return record.name != VALIDATION_LOGGER
-
-
-@app.on_event("shutdown")
-async def shutdown_opa_client() -> None:
-    await OPAClient.shutdown_instance()
 
 
 @app.on_event("startup")

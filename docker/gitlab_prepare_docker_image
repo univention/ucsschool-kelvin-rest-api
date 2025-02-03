@@ -60,10 +60,7 @@ rsync -a --delete \
    ../ucs-school-import \
    alpine_apk_list.* \
    Dockerfile \
-   opa.initd \
    ucsschool-kelvin-rest-api.initd \
-   logrotate_opa_info \
-   logrotate_opa_template \
    ../fix_nt_acl_on_shares \
  build/
 
@@ -83,10 +80,6 @@ if ! ls -l "build/$OPENAPI_CLIENT_GENERATOR_JAR" 2>/dev/null; then
   wget -P build/ "${OPENAPI_CLIENT_GENERATOR_JAR_URL//\"}"
 fi
 ls -l build/openapi-generator-cli*
-
-echo "Downloading Open Policy Agent..."
-wget https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static -O build/opa
-chmod +x build/opa
 
 echo "Collecting all Python dependencies..."
 # ... to minimize Docker image by installing and uninstalling in one step

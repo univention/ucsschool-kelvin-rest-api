@@ -38,8 +38,8 @@ from ucsschool.lib.schoolldap import name_from_dn
 from udm_rest_client import UDM, CreateError, ModifyError
 
 from ..config import UDM_MAPPING_CONFIG
-from ..opa import OPAClient
-from ..token_auth import get_token
+from ..ldap import LdapUser
+from ..token_auth import get_kelvin_admin
 from ..urls import cached_url_for, url_to_dn, url_to_name
 from .base import (
     APIAttributesMixin,
@@ -180,7 +180,7 @@ async def search(
         title="name",
     ),
     udm: UDM = Depends(udm_ctx),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> List[SchoolClassModel]:
     """
     Search for school classes.
@@ -190,16 +190,6 @@ async def search(
     - **name**: names of school classes to look for, use ``*`` for inexact
         search (optional)
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="classes",
-        token=token,
-        request=dict(method="GET", path=["classes"]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to list school classes.",
-        )
     if class_name:
         filter_str = f"name={school}-{class_name}"
     else:
@@ -215,18 +205,8 @@ async def get(
     school: str,
     request: Request,
     udm: UDM = Depends(udm_ctx),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> SchoolClassModel:
-    if not await OPAClient.instance().check_policy_true(
-        policy="classes",
-        token=token,
-        request=dict(method="GET", path=["classes", class_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to list school classes.",
-        )
     sc = await get_lib_obj(udm, SchoolClass, f"{school}-{class_name}", school)
     return await SchoolClassModel.from_lib_model(sc, request, udm)
 
@@ -237,7 +217,7 @@ async def create(
     request: Request,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> SchoolClassModel:
     """
     Create a **school class** with all the information:
@@ -270,16 +250,6 @@ async def create(
             ]
         }
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="classes",
-        token=token,
-        request=dict(method="POST", path=["classes"]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to create school classes.",
-        )
     sc: SchoolClass = school_class.as_lib_model(request)
     ou_names = await search_schools_in_ldap(sc.school, raise404=True)
     sc.school = ou_names[0]  # use OU name from LDAP, not from request (Bug #55456)
@@ -309,7 +279,7 @@ async def partial_update(
     request: Request,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> SchoolClassModel:
     """
     Update a **school class** with all the information:
@@ -339,16 +309,6 @@ async def partial_update(
             "description": "Changed example description"
         }
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="classes",
-        token=token,
-        request=dict(method="PATCH", path=["classes", class_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to edit school classes.",
-        )
     ou_names = await search_schools_in_ldap(school, raise404=True)
     school = ou_names[0]  # use OU name from LDAP, not from request (Bug #55456)
     sc_current = await get_lib_obj(udm, SchoolClass, f"{school}-{class_name}", school)
@@ -389,7 +349,7 @@ async def complete_update(
     request: Request,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> SchoolClassModel:
     """
     Update a **school class** with all the information:
@@ -425,16 +385,6 @@ async def complete_update(
             ]
         }
     """
-    if not await OPAClient.instance().check_policy_true(
-        policy="classes",
-        token=token,
-        request=dict(method="PUT", path=["classes", class_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to edit school classes.",
-        )
     ou_names = await search_schools_in_ldap(school, raise404=True)
     school = ou_names[0]  # use OU name from LDAP, not from request (Bug #55456)
     school_class_school = url_to_name(
@@ -484,18 +434,8 @@ async def delete(
     school: str,
     request: Request,
     udm: UDM = Depends(udm_ctx),
-    token: str = Depends(get_token),
+    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
 ) -> Response:
-    if not await OPAClient.instance().check_policy_true(
-        policy="classes",
-        token=token,
-        request=dict(method="DELETE", path=["classes", class_name]),
-        target={},
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authorized to delete school classes.",
-        )
     sc = await get_lib_obj(udm, SchoolClass, f"{school}-{class_name}", school)
     await sc.remove(udm)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -24,10 +24,6 @@ name=ucsschool-kelvin-rest-api
 description="UCS@school Kelvin REST API server"
 pidfile="/var/run/kelvin.pid"
 
-depend() {
-    need opa
-}
-
 start() {
     ebegin "Starting $description"
     start-stop-daemon --start --background -m -p $pidfile --name "$name" --exec $command -- $command_args
