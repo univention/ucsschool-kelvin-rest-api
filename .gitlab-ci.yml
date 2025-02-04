@@ -51,7 +51,7 @@ run_pre_commit:
   stage: lint
   extends: .pre-commit
   variables:
-    PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit-opa:latest"
+    PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit:latest"
 
 
 prepare:

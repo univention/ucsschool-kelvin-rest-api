@@ -40,7 +40,7 @@ CMD ["/sbin/init"]
 
 # package and Python dependency installation, base system configuration,
 # and uninstallation - all in one step to keep image small
-COPY alpine_apk_list.* opa openapi-generator-cli-*.jar requirements_all.txt /tmp/
+COPY alpine_apk_list.* openapi-generator-cli-*.jar requirements_all.txt /tmp/
 RUN apk add --no-cache --virtual mybuilddeps $(cat /tmp/alpine_apk_list.build) && \
     apk add --no-cache $(cat /tmp/alpine_apk_list.runtime) && \
     cp -v /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
@@ -108,15 +108,9 @@ RUN python3 -m pip install --no-cache-dir --compile -i https://test.pypi.org/sim
 COPY ucs-school-lib/ /kelvin/ucs-school-lib
 COPY ucs-school-import/ /kelvin/ucs-school-import
 COPY ucsschool-kelvin-rest-api.initd /tmp/
-COPY opa.initd /tmp/
-COPY opa /usr/bin
-COPY logrotate_opa_info /etc/univention/templates/info/opa.info
-COPY logrotate_opa_template /etc/univention/templates/files/etc/logrotate.d/opa
 COPY kelvin-api/ /kelvin/kelvin-api
 RUN	mv -v /tmp/ucsschool-kelvin-rest-api.initd /etc/init.d/ucsschool-kelvin-rest-api && \
     apk add --no-cache logrotate && \
-	mv -v /tmp/opa.initd /etc/init.d/opa && \
-	rc-update add opa default && \
 	rc-update add ucsschool-kelvin-rest-api default && \
     rc-update add crond default && \
 	cp -v /kelvin/ucs-school-import/modules/ucsschool/lib/create_ou.py /kelvin/ucs-school-lib/modules/ucsschool/lib/ && \
