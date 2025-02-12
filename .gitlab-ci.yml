@@ -28,11 +28,11 @@ stages:
 variables:
   DOCS_DIR: "doc/docs"
   APP_ID: "ucsschool-kelvin-rest-api"
-  APP_NAME: "4.4/$APP_ID"
+  APP_NAME: "5.2/$APP_ID"
   PACKAGE: "ucs-test-ucsschool-kelvin"
-  UCS_VERSION: "503"
-  UCS_RELEASE: "5.0"
-  SCOPE: "ucs-school-5.0"
+  UCS_VERSION: "520"
+  UCS_RELEASE: "5.2"
+  SCOPE: "ucs-school-5.2"
   DOC_TARGET_NAME: $APP_ID
   DEB_IMAGE: docker-registry.knut.univention.de/phahn/ucs-debbase:$UCS_VERSION
   UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/ucs

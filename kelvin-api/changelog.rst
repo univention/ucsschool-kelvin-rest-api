@@ -5,6 +5,11 @@
 Changelog
 =========
 
+v2.0.0 (2025-00-00)
+-------------------
+* The Kelvin API now validates user names by default to avoid that they contain Windows reserved names (Issue :spelling:ignore:`univention/ucsschool#1052`).
+  See `Microsoft Documentation <https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file>`_ for more information about the affected reserved names.
+
 v1.10.3 (2024-12-09)
 --------------------
 * Fixed: The patch endpoint for school classes and work groups now accepts an empty list to clear all members (:uv:bug:`57771`).
