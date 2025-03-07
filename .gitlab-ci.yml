@@ -5,6 +5,8 @@ include:
     file:
     - kaniko.yml
     - pre-commit.yml
+  - project: univention/internal/ucsschool-ci-utils
+    file: fragments/misc.yaml
 
 workflow:
   rules:
@@ -16,11 +18,11 @@ workflow:
 
 stages:
   - prepare
-  - lint
   - build
   - tests
   - appcenter
   - merge
+  - lint
   - production
 
 # todo: add renovate
@@ -49,9 +51,18 @@ variables:
 
 run_pre_commit:
   stage: lint
+  needs: []
   extends: .pre-commit
   variables:
     PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit:latest"
+
+
+lint_commit_messages:
+  stage: lint
+  needs: []
+  variables:
+    HOOK_IDS: "conventional-pre-commit issue-reference"
+  extends: .lint_commit_messages
 
 
 prepare:
