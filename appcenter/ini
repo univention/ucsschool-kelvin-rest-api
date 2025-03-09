@@ -1,7 +1,7 @@
 [Application]
 ID = ucsschool-kelvin-rest-api
 Code = 0J
-Version = %VERSION%
+Version = 0.0.0-staging
 Name = UCS@school Kelvin REST API
 Vendor = Univention GmbH
 DockerScriptRestoreDataAfterSetup = /usr/share/univention-docker-container-mode/restore_data_after_setup_custom

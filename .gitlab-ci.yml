@@ -6,7 +6,9 @@ include:
     - kaniko.yml
     - pre-commit.yml
   - project: univention/internal/ucsschool-ci-utils
-    file: fragments/misc.yaml
+    file:
+    - fragments/misc.yaml
+    - fragments/appcenter.yaml
 
 workflow:
   rules:
@@ -24,10 +26,12 @@ stages:
   - merge
   - lint
   - production
+  - cleanup
 
 # todo: add renovate
 
 variables:
+  APP_UCS_VERSION: "5.2"
   DOCS_DIR: "doc/docs"
   APP_ID: "ucsschool-kelvin-rest-api"
   APP_NAME: "5.2/$APP_ID"
@@ -38,7 +42,7 @@ variables:
   DOC_TARGET_NAME: $APP_ID
   DEB_IMAGE: docker-registry.knut.univention.de/phahn/ucs-debbase:$UCS_VERSION
   UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/ucs
-  APPCENTER_CONTROL_IMAGE: "docker-registry.knut.univention.de/knut/univention-appcenter-control"
+  APPCENTER_CONTROL_IMAGE: "gitregistry.knut.univention.de/univention/internal/ucsschool-ci-utils/univention-appcenter-control"
   UCS_SCHOOL_LIB_COVERAGE_LIMIT: 34
   KELVIN_COVERAGE_LIMIT: 37
   FORCE_APPCENTER:
@@ -64,6 +68,18 @@ lint_commit_messages:
     HOOK_IDS: "conventional-pre-commit issue-reference"
   extends: .lint_commit_messages
 
+create_app_version:
+  stage: prepare
+  extends: .create_app_version
+
+update_appcenter:
+  stage: build
+  extends: .update_appcenter
+  needs: [create_app_version, build_docker_image]
+
+delete_app_version:
+  stage: cleanup
+  extends: .delete_app_version
 
 prepare:
   stage: prepare
@@ -310,19 +326,3 @@ ucs_test_deb_repo_build:
       -r ${UCS_RELEASE}-0-0
       -s $SCOPE
       -p $PACKAGE
-
-upload_appcenter_scripts_to_test_appcenter:
-  stage: appcenter
-  image: $APPCENTER_CONTROL_IMAGE
-  rules:
-    - if: $FORCE_APPCENTER == "true"
-      when: always
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - appcenter/**
-  script:
-    - APP_VERSION="$(cat kelvin-api/VERSION.txt)"
-    - cd appcenter
-    - echo "updating $APP_NAME=$APP_VERSION"
-    - sed -i "s/%VERSION%/$APP_VERSION/g" ucsschool-kelvin-rest-api.ini
-    - univention-appcenter-control upload "$APP_NAME=$APP_VERSION" configure env inst README_UPDATE_DE README_UPDATE_EN restore_data_after_setup settings store_data uinst preinst listener_trigger update-certificates ucsschool-kelvin-rest-api.ini
