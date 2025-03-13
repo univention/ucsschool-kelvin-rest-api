@@ -27,6 +27,7 @@
 
 import base64
 import binascii
+import calendar
 import datetime
 import logging
 import time
@@ -468,7 +469,7 @@ def userexpiry_to_shadowExpire(user_expiry: datetime.date) -> str:
 
     Taken from _modlist_shadow_expire() in UDM-modules/modules/univention/admin/handlers/users/user.py.
     """
-    return str(int(time.mktime(user_expiry.timetuple()) / 3600 / 24 + 1))
+    return str(int(calendar.timegm(user_expiry.timetuple()) / 3600 / 24))
 
 
 def all_query_params(
