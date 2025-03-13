@@ -32,6 +32,7 @@ stages:
 # todo: add renovate
 
 variables:
+  APP_BASE_VERSION: "999.0.0-staging"
   APP_UCS_VERSION: "5.2"
   DOCS_DIR: "doc/docs"
   APP_ID: "ucsschool-kelvin-rest-api"
