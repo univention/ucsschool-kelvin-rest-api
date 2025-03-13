@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-# Copyright (C) 2020 Univention GmbH <http://www.univention.de/>
+# Copyright (C) 2020-2025 Univention GmbH <http://www.univention.de/>
 #
 # All rights reserved.
 #
@@ -34,6 +34,11 @@ while [ $# -gt 0 ]; do
         "--error-file")
             shift
             errorfile="$1"
+            shift
+            ;;
+        "--old-version")
+            shift
+            old_version="$1"
             shift
             ;;
         *)
@@ -71,3 +76,8 @@ fi
 
 # restart UDM REST API to ensure the OpenAPI schema is up to date
 service univention-directory-manager-rest restart
+
+if [ -n "$old_version" ] && [ "${old_version::2}" = "1." ]; then
+    # Restart needed in case we just updated from 5.0 to 5.2
+    univention-app restart ucsschool-kelvin-rest-api
+fi
