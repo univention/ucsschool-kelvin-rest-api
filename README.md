@@ -185,7 +185,6 @@ You should run pre-commit checks before push you can use either pre-commit in a 
 
 ### Without Docker
 
-Download [OPA](https://www.openpolicyagent.org/docs/latest/#running-opa) and put the `opa` executable in a directory which is listed in your $PATH.
 For the following steps, an installation of Python 3.11 is required.
 In your cloned ucsschool-kelvin-rest-api repository, you can install `pre-commit` like this:
 
@@ -213,7 +212,7 @@ Note: Installing and using pre-commit system-wide may work, but some developers 
 ```
 docker run -v ".:/ucsschool-kelvin-rest-api" \
     -w "/ucsschool-kelvin-rest-api" \
-    -it docker-registry.knut.univention.de/knut/pre-commit-opa-python3.11 \
+    -it docker-registry.knut.univention.de/knut/pre-commit \
     /bin/bash -c "git config --global --add safe.directory /ucsschool-kelvin-rest-api && pre-commit run -a"
 ```
 

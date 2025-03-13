@@ -71,10 +71,7 @@ lint: linters lint-coverage ## check source code style
 pytest: ## run pytests (with the current active Python interpreter)
 	python3 -m pytest -l -v
 
-opatest: ## run opa test on opa policies
-	opa test opa_policies
-
-test: pytest opatest
+test: pytest
 
 .coverage: $(PY_FILES)
 	coverage run --source tests,ucsschool -m pytest  --junit-xml=/tmp/junit.xml --junit-prefix=94_ucsschool-api-kelvin.10_in_container_tests_kelvin_api
