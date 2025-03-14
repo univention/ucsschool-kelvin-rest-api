@@ -1,9 +1,12 @@
 <h1>Changelog</h1>
 
-<h2>v2.0.0 (2025-00-00)</h2>
+<h2>v2.0.0 (2025-03-14)</h2>
 <ul>
     <li>The Kelvin API now validates user names by default to avoid that they contain Windows reserved names (Issue univention/ucsschool#1052).
         See <a href="https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file" target="_blank">Microsoft Documentation</a> for more information about the affected reserved names.
+    </li>
+    <li>
+        Removed dependency on internal OPA service. No changes in behavior (Issue univention/components/ucsschool-kelvin-rest-api#145).
     </li>
 </ul>
 
