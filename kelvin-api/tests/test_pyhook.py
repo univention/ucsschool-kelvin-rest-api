@@ -219,7 +219,7 @@ class ExpirationDateUCSSchoolLibPyHook(Hook):
         await self._hook_func(user, "post_remove")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def _create_pyhook_file(restart_kelvin_api_server_module):
     """
     creates a hook file the specified path and cleans up
@@ -255,7 +255,7 @@ def _create_pyhook_file(restart_kelvin_api_server_module):
     restart_kelvin_api_server_module()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def create_ucsschool_lib_pyhook(_create_pyhook_file):
     def func(role: Role) -> str:
         text = f"""
@@ -281,7 +281,7 @@ from ucsschool.lib.models.utils import env_or_ucr
     yield func
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def create_format_pyhook(_create_pyhook_file):
     text = f"""from typing import Any, Dict
 from ucsschool.importer.utils.format_pyhook import FormatPyHook
@@ -295,7 +295,7 @@ from ucsschool.importer.utils.format_pyhook import FormatPyHook
     )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def create_user_import_pyhook(_create_pyhook_file):
     text = f"""
 import inspect
@@ -340,156 +340,163 @@ def check_all_hooks_called_and_clean_up(user: User | ImportUser) -> None:
     assert all(hooks_called), f"Not all hooks were called: {dict(zip(hook_phases, hooks_called))}"
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
-async def test_format_pyhook(
-    auth_header,
-    retry_http_502,
-    url_fragment,
-    udm_kwargs,
-    create_ou_using_python,
-    random_user_create_model,
-    schedule_delete_user_name_using_udm,
-    create_format_pyhook,
-    role: Role,
-):
-    roles = ["staff", "teacher"] if role.name == "teacher_and_staff" else [role.name]
-    ou = await create_ou_using_python()
-    lastname = (
-        f"{fake.unique.last_name()}-{fake.unique.last_name()}"  # extra long name for reduced flakiness
-    )
-    r_user = await random_user_create_model(
-        ou,
-        roles=[f"{url_fragment}/roles/{role_}" for role_ in roles],
-        lastname=lastname,
-    )
-    data = r_user.json(exclude={"record_uid"})
-    logger.debug("POST data=%r", data)
-    async with UDM(**udm_kwargs) as udm:
-        lib_users = await User.get_all(udm, ou, f"username={r_user.name}")
-    assert len(lib_users) == 0
-    schedule_delete_user_name_using_udm(r_user.name)
-    response = retry_http_502(
-        requests.post,
-        f"{url_fragment}/users/",
-        headers={"Content-Type": "application/json", **auth_header},
-        data=data,
-    )
-    assert response.status_code == 201, f"{response.__dict__!r}"
-    response_json = response.json()
-    api_user = UserModel(**response_json)
-    if role.name in ("staff", "teacher"):
+class TestFormatPyhook:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+    async def test_format_pyhook(
+        self,
+        auth_header,
+        retry_http_502,
+        url_fragment,
+        udm_kwargs,
+        create_ou_using_python,
+        random_user_create_model,
+        schedule_delete_user_name_using_udm,
+        create_format_pyhook,
+        role: Role,
+    ):
+        roles = ["staff", "teacher"] if role.name == "teacher_and_staff" else [role.name]
+        ou = await create_ou_using_python()
+        # extra long name for reduced flakiness
+        lastname = f"{fake.unique.last_name()}-{fake.unique.last_name()}"
+        r_user = await random_user_create_model(
+            ou,
+            roles=[f"{url_fragment}/roles/{role_}" for role_ in roles],
+            lastname=lastname,
+        )
+        data = r_user.json(exclude={"record_uid"})
+        logger.debug("POST data=%r", data)
+        async with UDM(**udm_kwargs) as udm:
+            lib_users = await User.get_all(udm, ou, f"username={r_user.name}")
+        assert len(lib_users) == 0
+        schedule_delete_user_name_using_udm(r_user.name)
+        response = retry_http_502(
+            requests.post,
+            f"{url_fragment}/users/",
+            headers={"Content-Type": "application/json", **auth_header},
+            data=data,
+        )
+        assert response.status_code == 201, f"{response.__dict__!r}"
+        response_json = response.json()
+        api_user = UserModel(**response_json)
+        if role.name in ("staff", "teacher"):
+            assert api_user.record_uid == api_user.lastname
+        else:
+            assert api_user.record_uid != api_user.lastname
+            assert api_user.record_uid.lower() == api_user.lastname.lower()
+
+
+class TestImportPyHook:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+    async def test_user_import_pyhook(
+        self,
+        auth_header,
+        retry_http_502,
+        url_fragment,
+        udm_kwargs,
+        create_ou_using_python,
+        random_user_create_model,
+        schedule_delete_user_name_using_udm,
+        create_user_import_pyhook,
+        schedule_delete_file,
+        role: Role,
+    ):
+        roles = ["staff", "teacher"] if role.name == "teacher_and_staff" else [role.name]
+        ou = await create_ou_using_python()
+        r_user = await random_user_create_model(
+            ou, roles=[f"{url_fragment}/roles/{role_}" for role_ in roles]
+        )
+        schedule_delete_file(Path("/tmp", r_user.name))
+        data = r_user.json()
+        logger.debug("POST data=%r", data)
+        async with UDM(**udm_kwargs) as udm:
+            lib_users = await User.get_all(udm, ou, f"username={r_user.name}")
+        assert len(lib_users) == 0
+        schedule_delete_user_name_using_udm(r_user.name)
+        response = retry_http_502(
+            requests.post,
+            f"{url_fragment}/users/",
+            headers={"Content-Type": "application/json", **auth_header},
+            data=data,
+        )
+        assert response.status_code == 201, f"{response.__dict__!r}"
+        response_json = response.json()
+        api_user = UserModel(**response_json)
+        assert api_user.birthday == datetime.date.today()
+
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment}/users/{r_user.name}",
+            headers=auth_header,
+            json={"birthday": "2013-12-11"},
+        )
+        assert response.status_code == 200, response.reason
+        api_user = UserModel(**response.json())
         assert api_user.record_uid == api_user.lastname
-    else:
-        assert api_user.record_uid != api_user.lastname
-        assert api_user.record_uid.lower() == api_user.lastname.lower()
+
+        response = retry_http_502(
+            requests.delete,
+            f"{url_fragment}/users/{r_user.name}",
+            headers=auth_header,
+        )
+        assert response.status_code == 204, response.reason
+        async with UDM(**udm_kwargs) as udm:
+            lib_users = await User.get_all(udm, ou, f"username={r_user.name}")
+        assert len(lib_users) == 0
+        check_all_hooks_called_and_clean_up(r_user)
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
-async def test_user_import_pyhook(
-    auth_header,
-    retry_http_502,
-    url_fragment,
-    udm_kwargs,
-    create_ou_using_python,
-    random_user_create_model,
-    schedule_delete_user_name_using_udm,
-    create_user_import_pyhook,
-    schedule_delete_file,
-    role: Role,
-):
-    roles = ["staff", "teacher"] if role.name == "teacher_and_staff" else [role.name]
-    ou = await create_ou_using_python()
-    r_user = await random_user_create_model(
-        ou, roles=[f"{url_fragment}/roles/{role_}" for role_ in roles]
-    )
-    schedule_delete_file(Path("/tmp", r_user.name))
-    data = r_user.json()
-    logger.debug("POST data=%r", data)
-    async with UDM(**udm_kwargs) as udm:
-        lib_users = await User.get_all(udm, ou, f"username={r_user.name}")
-    assert len(lib_users) == 0
-    schedule_delete_user_name_using_udm(r_user.name)
-    response = retry_http_502(
-        requests.post,
-        f"{url_fragment}/users/",
-        headers={"Content-Type": "application/json", **auth_header},
-        data=data,
-    )
-    assert response.status_code == 201, f"{response.__dict__!r}"
-    response_json = response.json()
-    api_user = UserModel(**response_json)
-    assert api_user.birthday == datetime.date.today()
-
-    response = retry_http_502(
-        requests.patch,
-        f"{url_fragment}/users/{r_user.name}",
-        headers=auth_header,
-        json={"birthday": "2013-12-11"},
-    )
-    assert response.status_code == 200, response.reason
-    api_user = UserModel(**response.json())
-    assert api_user.record_uid == api_user.lastname
-
-    response = retry_http_502(
-        requests.delete,
-        f"{url_fragment}/users/{r_user.name}",
-        headers=auth_header,
-    )
-    assert response.status_code == 204, response.reason
-    async with UDM(**udm_kwargs) as udm:
-        lib_users = await User.get_all(udm, ou, f"username={r_user.name}")
-    assert len(lib_users) == 0
-    check_all_hooks_called_and_clean_up(r_user)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
-async def test_user_ucsschool_lib_pyhook(
-    auth_header,
-    retry_http_502,
-    url_fragment,
-    create_ou_using_python,
-    random_user_create_model,
-    schedule_delete_user_name_using_udm,
-    create_ucsschool_lib_pyhook,
-    schedule_delete_file,
-    role: Role,
-):
-    create_ucsschool_lib_pyhook(role)
-    roles = ["staff", "teacher"] if role.name == "teacher_and_staff" else [role.name]
-    ou = await create_ou_using_python()
-    r_user = await random_user_create_model(
-        ou, roles=[f"{url_fragment}/roles/{role_}" for role_ in roles]
-    )
-    schedule_delete_file(Path("/tmp", r_user.name))
-    data = r_user.json()
-    logger.debug("POST data=%r", data)
-    schedule_delete_user_name_using_udm(r_user.name)
-    response = retry_http_502(
-        requests.post,
-        f"{url_fragment}/users/",
-        headers={"Content-Type": "application/json", **auth_header},
-        data=data,
-    )
-    assert response.status_code == 201, f"{response.reason}: {response.__dict__!r}"
-    response_json = response.json()
-    api_user = User(**response_json)
-    assert api_user.expiration_date == (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
-    response = retry_http_502(
-        requests.patch,
-        f"{url_fragment}/users/{r_user.name}",
-        headers=auth_header,
-        json={"birthday": "2013-12-11"},
-    )
-    assert response.status_code == 200, response.reason
-    api_user = User(**response.json())
-    assert api_user.disabled is True
-    response = retry_http_502(
-        requests.delete,
-        f"{url_fragment}/users/{r_user.name}",
-        headers=auth_header,
-    )
-    assert response.status_code == 204, response.reason
-    check_all_hooks_called_and_clean_up(r_user)
+class TestSchoolLibPyHook:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+    async def test_user_ucsschool_lib_pyhook(
+        self,
+        auth_header,
+        retry_http_502,
+        url_fragment,
+        create_ou_using_python,
+        random_user_create_model,
+        schedule_delete_user_name_using_udm,
+        create_ucsschool_lib_pyhook,
+        schedule_delete_file,
+        role: Role,
+    ):
+        create_ucsschool_lib_pyhook(role)
+        roles = ["staff", "teacher"] if role.name == "teacher_and_staff" else [role.name]
+        ou = await create_ou_using_python()
+        r_user = await random_user_create_model(
+            ou, roles=[f"{url_fragment}/roles/{role_}" for role_ in roles]
+        )
+        schedule_delete_file(Path("/tmp", r_user.name))
+        data = r_user.json()
+        logger.debug("POST data=%r", data)
+        schedule_delete_user_name_using_udm(r_user.name)
+        response = retry_http_502(
+            requests.post,
+            f"{url_fragment}/users/",
+            headers={"Content-Type": "application/json", **auth_header},
+            data=data,
+        )
+        assert response.status_code == 201, f"{response.reason}: {response.__dict__!r}"
+        response_json = response.json()
+        api_user = User(**response_json)
+        assert (
+            api_user.expiration_date == (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+        )
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment}/users/{r_user.name}",
+            headers=auth_header,
+            json={"birthday": "2013-12-11"},
+        )
+        assert response.status_code == 200, response.reason
+        api_user = User(**response.json())
+        assert api_user.disabled is True
+        response = retry_http_502(
+            requests.delete,
+            f"{url_fragment}/users/{r_user.name}",
+            headers=auth_header,
+        )
+        assert response.status_code == 204, response.reason
+        check_all_hooks_called_and_clean_up(r_user)
