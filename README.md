@@ -13,19 +13,14 @@ _You may copy this to a gitlab release issue_
 - [ ] Check contents of [kelvin-api/changelog.rst](./kelvin-api/changelog.rst)
 - [ ] Check contents of [appcenter/README_UPDATE_EN](./appcenter/README_UPDATE_EN)
 - [ ] Update version in [kelvin-api/VERSION.txt](./kelvin-api/VERSION.txt)
-- [ ] Verify the changes have been uploaded to the test appcenter
-- [ ] Transfer/Tag the latest docker image [with this jenkins job](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCS-5.0/job/Apps/job/ucsschool-kelvin-rest-api/job/App%20Autotest%20MultiEnv/)
 - [ ] Kelvin [Jenkins tests](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCSschool-5.0/view/Daily%20Tests/job/kelvin%20API%20(branch%20main)/) OK
 - [ ] Kelvin client [Jenkins test](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCSschool-5.0/view/Daily%20Tests/job/Kelvin-client-daily) OK
 - [ ] Jenkins in [test appcenter](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCSschool-5.0/view/Daily%20Tests/job/kelvin%20API)
+- [ ] Create git tag with version you want to publish
+- [ ] Monitor the pipeline and follow instructions in manual steps
 - [ ] API still works (smoke test)
-- [ ] Tag commit in gitlab
-- [ ] Release application
-- [ ] Release documentation (changelog number)
 - [ ] Release QA (upgrade and smoke test)
-- [ ] Create new application version in provider portal
 - [ ] Close issues & bugs
-- [ ] Release mail & chat announcement
 
 ### Details
 
