@@ -41,42 +41,12 @@ https://appcenter-test.software-univention.de/univention-repository/5.0/maintain
 
 At least the `README_UPDATE_*` files which contain the version should have been updated by the gitlab job.
 
-#### Update the docker image in Test AppCenter
+#### Release a new app version
 
-- In the provider portal under the configuration section, set the docker image to `gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:latest`.
-- Run the [docker-update](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCS-5.0/job/Apps/job/ucsschool-kelvin-rest-api/job/App%20Autotest%20MultiEnv/SambaVersion=s4,Systemrolle=docker-update/) job of the `ucsschool-kelvin-rest-api` app test. The job will pull the current docker image, tag it to `docker.software-univention.de/$APP_ID:$APP_VERSION`, upload the image and finally change the apps ini to use `docker.software-univention.de/$APP_ID:$APP_VERSION` as docker image.
-
-#### Publish packages from Test AppCenter to Production AppCenter
-
-
-This code should be run **on omar**:
-```shell
-cd /mnt/omar/vmwares/mirror/appcenter
-./copy_from_appcenter.test.sh 4.4
-./copy_from_appcenter.test.sh 4.4 "$COMPONENT_ID"  # copies the given version to public app center on local mirror! Exchange the component id!
-sudo update_mirror.sh -v appcenter  # syncs the local mirror to the public download server!
-```
-
-You can verify that the app has been synced to the public download server by looking at the following URL,
-exchange `COMPONENT_ID` with the target component id.
-
-```text
-https://appcenter.software-univention.de/univention-repository/5.0/maintained/component/COMPONENT_ID/
-```
-
-#### Release Mail
-
-```
-Hello,
-
-the UCS@school Kelvin REST API version <version> has been released.
-
-For changes, see https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html
-
-Best regards
-
-UCS@school Team
-```
+* Create a new tag with the version number you want to release, e.g.: 1.1.0
+* Wait for the tag pipeline until it reaches the `do_release` job
+* Is everything looking good so far? The next will make the new version public!
+* Start the `do_release` job
 
 #### Publish documentation
 
@@ -97,9 +67,7 @@ for more information regarding the documentation pipeline.
 
 #### Create a new unpublished version in the appcenter
 
-In the [provider portal](https://selfservice.software-univention.de/univention/management/#module=appcenter-selfservice) overview, right click the "UCS@school Kelvin REST API" app and choose "New app version".
-Update the "Target app version" to the next release number and hit "Create".
-Set the "Docker Image" in the configuration tab in the SelfService Center should to `gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:latest`.
+A new app version is created for the default branch and merge requests through a pipeline job.
 
 ## Automatic Docker image build
 
