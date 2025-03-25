@@ -82,6 +82,10 @@ update_appcenter:
     - job: build_docker_image
       optional: true
 
+do_release:
+  stage: production
+  extends: .do_release
+
 announce_app_chat:
   stage: cleanup
   rules:
@@ -100,6 +104,7 @@ announce_app_mail:
   variables:
     SUBJECT: "App Release: UCS@school Kelvin REST API"
     RECIPIENT: "app-announcement@univention.de"
+    SENDER: "ucsschool-maintainers@univention.de"
   before_script:
     - |
       cat >mail.txt<< EOF
@@ -114,22 +119,23 @@ announce_app_mail:
       EOF
 
 check_release:
-  image: gitregistry.knut.univention.de/univention/internal/ucsschool-ci-utils/univention-appcenter-control
   stage: production
-  rules:
-    - if: "$CI_COMMIT_TAG"
-      when: manual
-      allow_failure: false
-  manual_confirmation: "Did you publish the app on omar (see: https://git.knut.univention.de/univention/components/ucsschool-kelvin-rest-api#publish-packages-from-test-appcenter-to-production-appcenter)?"
-  script:
-    - echo "Checking if $APP_NAME was released in $APP_VERSION"
-    - curl --fail "https://appcenter.software-univention.de/meta-inf/$APP_UCS_VERSION/$APP_ID/$APP_COMPONENT_ID.ini"
+  needs: [do_release, create_app_version]
+  extends: .check_release
 
+create_gitlab_release:
+  stage: production
+  extends: .create_gitlab_release
+  needs: [do_release]
+  release:
+    assets:
+      links:
+        - name: "Changelog"
+          url: "https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html"
 
 delete_app_version:
   stage: cleanup
   extends: .delete_app_version
-
 
 prepare:
   stage: prepare
