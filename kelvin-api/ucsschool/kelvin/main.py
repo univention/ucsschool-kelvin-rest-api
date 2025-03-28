@@ -26,6 +26,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 from datetime import timedelta
 from functools import lru_cache
 from typing import Any, Dict, List
@@ -297,6 +298,69 @@ app.include_router(
     prefix=f"{URL_API_PREFIX}/users",
     tags=["users"],
 )
+
+if os.getenv("KELVIN_PROFILING", False) == "yes":
+    import pyinstrument
+
+    logger.warning("Profiling is enabled.")
+
+    from pathlib import Path
+
+    PROFILE_PATH = Path("/kelvin/kelvin-api/profiling")
+
+    if not PROFILE_PATH.exists():
+        PROFILE_PATH.mkdir()
+
+    @app.middleware("http")
+    async def profile_request(request: Request, call_next):
+        """Profile the request handling for a single request and write profile information to disk
+
+        This middleware will enable profiling with pyinstrument and write the results to
+        /kelvin/kelvin-api/profiling/<path>/<method>/profile.html
+        and the request information to /kelvin/kelvin-api/profiling/<path>/<method>/index.html
+        The profiling results are embedded in the index.html so it is enough to open
+        /kelvin/kelvin-api/profiling/<path>/<method>.
+        """
+        if "profiling" in str(request.url.path) or URL_API_PREFIX not in str(request.url.path):
+            # do not profile the access of the static profiling
+            # files + paths which do not have the URL_API_PREFIX
+            return await call_next(request)
+
+        profiling_path_dir = PROFILE_PATH.joinpath(
+            Path(request.url.path).relative_to(URL_API_PREFIX), request.method
+        )
+        if not profiling_path_dir.exists():
+            profiling_path_dir.mkdir(parents=True, exist_ok=True)
+
+        # The options pyinstrument gives to adjust the overhead (interval and use_timing_thread)
+        # did not show any big impact for the user search endpoint.
+        with pyinstrument.Profiler(interval=0.001, async_mode="enabled") as profiler:
+            response = await call_next(request)
+
+        with open(profiling_path_dir.joinpath("profile.html"), "w") as out:
+            out.write(profiler.output_html())
+        with open(profiling_path_dir.joinpath("index.html"), "w") as out:
+            request_plaintext = (
+                f"{request.method=}<br>{request.url=}<br>"
+                f"{request.headers=}<br>{request.query_params=}"
+                f"<br>{request.path_params=}<br>{await request.body()=}"
+            )
+            html = (
+                f"<html><body><h3>pyinstrument profiling for {request.method}"
+                f'at {request.url.path}</h3><p style="font-size:80%;">{request_plaintext}</p>'
+                '<iframe width="100%" height="85%" src="./profile.html" title="description">'
+                "</iframe></body></html>"
+            )
+            out.write(html)
+        return response
+
+    app.mount(
+        f"{URL_API_PREFIX}/profiling",
+        StaticFiles(directory=str(PROFILE_PATH), html=True),
+        name="profiling",
+    )
+
+
 app.mount(
     f"{URL_API_PREFIX}/static",
     StaticFiles(directory=str(STATIC_FILES_PATH)),

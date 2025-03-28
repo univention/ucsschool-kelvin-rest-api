@@ -3,3 +3,4 @@ coverage>=5.3
 docutils>=0.16
 flake8==3.9.2
 isort==5.10.1
+pyinstrument>=5.0.1
