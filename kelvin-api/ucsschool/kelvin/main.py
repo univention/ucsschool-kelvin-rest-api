@@ -26,6 +26,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 from datetime import timedelta
 from functools import lru_cache
 from typing import Any, Dict, List
@@ -297,6 +298,142 @@ app.include_router(
     prefix=f"{URL_API_PREFIX}/users",
     tags=["users"],
 )
+
+KELVIN_PROFILING = os.getenv("KELVIN_PROFILING", "")
+
+if KELVIN_PROFILING == "PYINSTRUMENT":
+    # pyinstrument has to be installed manually
+    import pyinstrument
+
+    logger.warning("Profiling is enabled.")
+
+    from pathlib import Path
+
+    PROFILE_PATH = Path("/kelvin/kelvin-api/pyinstrument")
+
+    if not PROFILE_PATH.exists():
+        PROFILE_PATH.mkdir()
+
+    @app.middleware("http")
+    async def profile_request_pyinstrument(request: Request, call_next):
+        """Profile the request handling for a single request and write profile information to disk
+
+        This middleware will enable profiling with pyinstrument and write the results to
+        /kelvin/kelvin-api/pyinstrument/<path>/<method>/profile.html
+        and the request information to /kelvin/kelvin-api/pyinstrument/<path>/<method>/index.html
+        The profiling results are embedded in the index.html so it is enough to open
+        /kelvin/kelvin-api/pyinstrument/<path>/<method>.
+        """
+        if "pyinstrument" in str(request.url.path) or URL_API_PREFIX not in str(request.url.path):
+            # do not profile the access of the static profiling
+            # files + paths which do not have the URL_API_PREFIX
+            return await call_next(request)
+
+        profiling_path_dir = PROFILE_PATH.joinpath(
+            Path(request.url.path).relative_to(URL_API_PREFIX), request.method
+        )
+        if not profiling_path_dir.exists():
+            profiling_path_dir.mkdir(parents=True, exist_ok=True)
+
+        # The options pyinstrument gives to adjust the overhead (interval and use_timing_thread)
+        # did not show any big impact for the user search endpoint.
+        with pyinstrument.Profiler(interval=0.001, async_mode="enabled") as profiler:
+            response = await call_next(request)
+
+        with open(profiling_path_dir.joinpath("profile.html"), "w") as out:
+            out.write(profiler.output_html())
+        with open(profiling_path_dir.joinpath("index.html"), "w") as out:
+            request_plaintext = (
+                f"{request.method=}<br>{request.url=}<br>"
+                f"{request.headers=}<br>{request.query_params=}"
+                f"<br>{request.path_params=}"
+            )
+            html = (
+                f"<html><body><h3>pyinstrument profiling for {request.method}"
+                f'at {request.url.path}</h3><p style="font-size:80%;">{request_plaintext}</p>'
+                '<iframe width="100%" height="85%" src="./profile.html" title="description">'
+                "</iframe></body></html>"
+            )
+            out.write(html)
+        return response
+
+    app.mount(
+        f"{URL_API_PREFIX}/pyinstrument",
+        StaticFiles(directory=str(PROFILE_PATH), html=True),
+        name="pyinstrument",
+    )
+
+if KELVIN_PROFILING.startswith("YAPPI"):
+    # yappi has to be installed manually `pip install yappi`
+    # gprof2dot has to be installed `pip install gprof2dot`
+    # graphviz has to be installed `apt install graphviz`
+    import yappi
+
+    logger.warning("Profiling with is enabled.")
+
+    from pathlib import Path
+
+    PROFILE_PATH = Path("/kelvin/kelvin-api/yappi")
+
+    if not PROFILE_PATH.exists():
+        PROFILE_PATH.mkdir()
+
+    @app.middleware("http")
+    async def profile_request_yappi(request: Request, call_next):
+        """Profile the request handling for a single request and write profile information to disk
+
+        This middleware will enable profiling with yappi and write the results to
+        /kelvin/kelvin-api/yappi/<path>/<method>/graph.png
+        and the request information to /kelvin/kelvin-api/yappi/<path>/<method>/index.html
+        The profiling results are embedded in the index.html so it is enough to open
+        /kelvin/kelvin-api/yappi/<path>/<method>.
+        """
+        if "profiling" in str(request.url.path) or URL_API_PREFIX not in str(request.url.path):
+            # do not profile the access of the static profiling
+            # files + paths which do not have the URL_API_PREFIX
+            return await call_next(request)
+
+        profiling_path_dir = PROFILE_PATH.joinpath(
+            Path(request.url.path).relative_to(URL_API_PREFIX), request.method
+        )
+        if not profiling_path_dir.exists():
+            profiling_path_dir.mkdir(parents=True, exist_ok=True)
+
+        if KELVIN_PROFILING.endswith("CPU"):
+            yappi.set_clock_type("cpu")
+        elif KELVIN_PROFILING.endswith("WALL"):
+            yappi.set_clock_type("wall")
+        with yappi.run():
+            response = await call_next(request)
+
+        profile_path = profiling_path_dir.joinpath("profile.pstat")
+        graph_path = profiling_path_dir.joinpath("graph.png")
+        yappi.get_func_stats().save(profile_path, type="pstat")
+        os.system(
+            f"/usr/bin/gprof2dot -n1.0 -f pstats {profile_path}"
+            f" | /usr/bin/dot -Gdpi=150 -Tpng -o {graph_path}"
+        )
+        with open(profiling_path_dir.joinpath("index.html"), "w") as out:
+            request_plaintext = (
+                f"{request.method=}<br>{request.url=}<br>"
+                f"{request.headers=}<br>{request.query_params=}"
+                f"<br>{request.path_params=}"
+            )
+            html = (
+                f"<html><body><h3>yappi profiling for {request.method}"
+                f'at {request.url.path}</h3><p style="font-size:80%;">{request_plaintext}</p>'
+                f'<img src="graph.png" alt="Graph">'
+            )
+            out.write(html)
+        return response
+
+    app.mount(
+        f"{URL_API_PREFIX}/yappi",
+        StaticFiles(directory=str(PROFILE_PATH), html=True),
+        name="yappi",
+    )
+
+
 app.mount(
     f"{URL_API_PREFIX}/static",
     StaticFiles(directory=str(STATIC_FILES_PATH)),
