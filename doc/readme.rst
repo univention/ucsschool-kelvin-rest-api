@@ -27,7 +27,7 @@ Start a Docker container that will build and serve the docs at http://127.0.0.1:
 
 To stop the container hit ``Ctrl-C``.
 
-Further information about the tooling for documentation can be found [here](https://git.knut.univention.de/univention/documentation/sphinx-docker)
+Further information about the tooling for documentation can be found [here](https://git.knut.univention.de/univention/dev/docs/sphinx-docker)
 
 Publish HTML documentation
 --------------------------
