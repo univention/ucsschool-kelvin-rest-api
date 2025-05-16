@@ -1,7 +1,7 @@
 include:
   - project: 'univention/dev/docs/sphinx-docker'
     file: 'pipeline/sphinx.yml'
-  - project: univention/dist/docker-services
+  - project: univention/infrastructure/docker-services
     file:
     - kaniko.yml
     - pre-commit.yml
