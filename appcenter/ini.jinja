@@ -1,7 +1,7 @@
 [Application]
 ID = ucsschool-kelvin-rest-api
 Code = 0J
-Version = %VERSION%
+Version = {{ APP_VERSION }}
 Name = UCS@school Kelvin REST API
 Vendor = Univention GmbH
 DockerScriptRestoreDataAfterSetup = /usr/share/univention-docker-container-mode/restore_data_after_setup_custom
@@ -19,7 +19,7 @@ RequiredApps = ucsschool
 WebInterfacePortHttp = 8911
 WebInterfaceProxyScheme = http
 SupportedUcsVersions = 5.2-0
-DockerImage = gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:latest
+DockerImage = {{ IMAGE_TAG }}
 ServerRole = domaincontroller_master, domaincontroller_backup
 WebInterfacePortHttps = 8911
 DockerShellCommand = /bin/ash
