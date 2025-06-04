@@ -8,6 +8,8 @@ include:
   - project: univention/internal/ucsschool-ci-utils
     file:
     - fragments/misc.yaml
+  - project: univention/internal/ucsschool-ci-utils
+    file: fragments/openstack.yaml
   - component: $CI_SERVER_FQDN/univention/internal/ucsschool-ci-utils/app-release@2
     inputs:
       app_id: "ucsschool-kelvin-rest-api"
@@ -283,7 +285,7 @@ ucs_test_deb_build_git:
     - apt-get -q --assume-yes build-dep .
     - dpkg-buildpackage -us -uc
     - install -d -m 755 build
-    - mv ../*.tar.*z ../*.dsc ../*.deb ../*.buildinfo ../*.changes build/
+    - mv ../*.deb
   artifacts:
     paths:
       - ucs-test-ucsschool-kelvin/build/
@@ -328,3 +330,25 @@ ucs_test_deb_repo_build:
       -r ${UCS_RELEASE}-0-0
       -s $SCOPE
       -p $PACKAGE
+
+integration-tests:
+  stage: tests
+  extends: .run_openstack_cfg
+  timeout: 2h
+  needs:
+    - job: ucs_test_deb_build_git
+      optional: true
+    - job: create_app_version
+    - job: update_appcenter
+  rules:
+    - when: manual
+      allow_failure: true
+  variables:
+    TARGET_VERSION: "5.2-1"
+    OPENSTACK_CFG_FILE: ".gitlab-ci/integration_tests.cfg"
+    UCSSCHOOL_KELVIN_REST_API_VERSION: $APP_VERSION
+    SSH_KEY: $SSH_PRIVATE_KEY_TECH
+  artifacts:
+    when: always
+    reports:
+      junit: "*junit.xml"
