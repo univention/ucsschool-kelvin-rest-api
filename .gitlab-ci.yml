@@ -8,7 +8,18 @@ include:
   - project: univention/internal/ucsschool-ci-utils
     file:
     - fragments/misc.yaml
-    - fragments/appcenter.yaml
+  - component: $CI_SERVER_FQDN/univention/internal/ucsschool-ci-utils/app-release@2
+    inputs:
+      app_id: "ucsschool-kelvin-rest-api"
+      mail_sender: "ucsschool-maintainers@univention.de"
+      author_alias: "UCS@school Team"
+      changelog_link: "https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html"
+      mail_recipient: "app-announcement@univention.de"
+      chat_destination: "#ucsschool"
+      ucs_base_version: "5.2"
+      additional_update_appcenter_needs:
+        - job: build_docker_image
+      release_tag_prefix: "release-"
 
 workflow:
   rules:
@@ -26,14 +37,13 @@ stages:
   - appcenter
   - merge
   - lint
+  - release
   - production
   - cleanup
 
 # todo: add renovate
 
 variables:
-  APP_BASE_VERSION: "999.0.0-staging"
-  APP_UCS_VERSION: "5.2"
   DOCS_DIR: "doc/docs"
   APP_ID: "ucsschool-kelvin-rest-api"
   APP_NAME: "5.2/$APP_ID"
@@ -44,15 +54,8 @@ variables:
   DOC_TARGET_NAME: $APP_ID
   DEB_IMAGE: docker-registry.knut.univention.de/phahn/ucs-debbase:$UCS_VERSION
   UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/ucs
-  APPCENTER_CONTROL_IMAGE: "gitregistry.knut.univention.de/univention/internal/ucsschool-ci-utils/univention-appcenter-control"
   UCS_SCHOOL_LIB_COVERAGE_LIMIT: 34
   KELVIN_COVERAGE_LIMIT: 37
-  FORCE_APPCENTER:
-    value: "false"
-    options:
-      - "true"
-      - "false"
-    description: "Force appcenter upload"
 
 
 run_pre_commit:
@@ -70,84 +73,12 @@ lint_commit_messages:
     HOOK_IDS: "conventional-pre-commit issue-reference"
   extends: .lint_commit_messages
 
-create_app_version:
-  stage: prepare
-  extends: .create_app_version
-
-update_appcenter:
-  stage: build
-  extends: .update_appcenter
-  needs:
-    - job: create_app_version
-    - job: build_docker_image
-      optional: true
-
-do_release:
-  stage: production
-  extends: .do_release
-
-announce_app_chat:
-  stage: cleanup
-  rules:
-    - if: "$CI_COMMIT_TAG"
-  extends: .send_chat_message
-  variables:
-    ALIAS: "UCS@school Team"
-    DESTINATION: "#ucsschool"
-    MESSAGE: "The UCS@school Kelvin app was released in version $APP_VERSION. Changes can be found in the [Changelog](https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html)."
-
-announce_app_mail:
-  stage: cleanup
-  rules:
-    - if: "$CI_COMMIT_TAG"
-  extends: .send_mail
-  variables:
-    SUBJECT: "App Release: UCS@school Kelvin REST API"
-    RECIPIENT: "app-announcement@univention.de"
-    SENDER: "ucsschool-maintainers@univention.de"
-  before_script:
-    - |
-      cat >mail.txt<< EOF
-      Hello,
-      the UCS@school Kelvin REST API has been released in version ${APP_VERSION}.
-
-      For changes, see https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html
-
-      Best regards
-
-      The UCS@school Team
-      EOF
-
-check_release:
-  stage: production
-  needs: [do_release, create_app_version]
-  extends: .check_release
-
-create_gitlab_release:
-  stage: production
-  extends: .create_gitlab_release
-  needs: [do_release]
-  release:
-    assets:
-      links:
-        - name: "Changelog"
-          url: "https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html"
-
-delete_app_version:
-  stage: cleanup
-  extends: .delete_app_version
-
 prepare:
   stage: prepare
   rules:
     - if: "$CI_COMMIT_TAG"
-    - changes:
-        - docker/*
-        - kelvin-api/**/*
-        - ucs-school-import/**/*
-        - ucs-school-lib/**/*
-        - univention-directory-manager-modules-slim/**/*
-        - univention-lib-slim/**/*
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
   image:
     name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.9-bullseye
   artifacts:
@@ -252,13 +183,8 @@ build_docker_image:
       variables:
         REGISTRY: "artifacts.software-univention.de"
         REGISTRY_IMAGE: "$REGISTRY/ucsschool/ucsschool-kelvin-rest-api"
-    - changes:
-        - docker/*
-        - kelvin-api/**/*
-        - ucs-school-import/**/*
-        - ucs-school-lib/**/*
-        - univention-directory-manager-modules-slim/**/*
-        - univention-lib-slim/**/*
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
   extends: .kaniko
   variables:
       KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/docker/build/"
