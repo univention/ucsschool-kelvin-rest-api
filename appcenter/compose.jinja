@@ -1,0 +1,22 @@
+# Copyright (C) 2024 Univention GmbH
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+version: '3.1'
+services:
+  ucsschool-kelvin-rest-api:
+    container_name: ucsschool-kelvin-rest-api
+    image: {{ IMAGE_TAG }}
+    security_opt:
+      - seccomp:/etc/docker/seccomp-systemd.json
+    restart: unless-stopped
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - /var/log/univention/ucsschool-kelvin-rest-api:/var/log/univention/ucsschool-kelvin-rest-api
+      - /var/lib/ucs-school-import/configs:/var/lib/ucs-school-import/configs
+      - /var/lib/ucs-school-import/kelvin-hooks:/var/lib/ucs-school-import/kelvin-hooks
+      - /var/lib/ucs-school-lib/kelvin-hooks:/var/lib/ucs-school-lib/kelvin-hooks
+      - /etc/ucsschool/kelvin:/etc/ucsschool/kelvin
+    environment:
+      REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
