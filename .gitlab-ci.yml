@@ -8,6 +8,8 @@ include:
   - project: univention/internal/ucsschool-ci-utils
     file:
     - fragments/misc.yaml
+  - project: univention/internal/ucsschool-ci-utils
+    file: fragments/openstack.yaml
   - component: $CI_SERVER_FQDN/univention/internal/ucsschool-ci-utils/app-release@2
     inputs:
       app_id: "ucsschool-kelvin-rest-api"
@@ -94,7 +96,6 @@ prepare:
     - apt-get install -y git rsync
     - cd ${CI_PROJECT_DIR}/docker
     - ./gitlab_prepare_docker_image
-
 
 docs-html:
   extends: .sphinx-html-template
@@ -273,7 +274,19 @@ ucs_test_deb_build_git:
     - apt-get -q --assume-yes build-dep .
     - dpkg-buildpackage -us -uc
     - install -d -m 755 build
-    - mv ../*.tar.*z ../*.dsc ../*.deb ../*.buildinfo ../*.changes build/
+    - mv ../*.deb build/
+  artifacts:
+    paths:
+      - ucs-test-ucsschool-kelvin/build/
+
+ucs_test_artifact:
+  stage: build
+  needs:
+    - job: ucs_test_deb_build_git
+      optional: true
+  script:
+    - mkdir -p ucs-test-ucsschool-kelvin/build/
+    - touch ucs-test-ucsschool-kelvin/build/FILE_TO_COPY
   artifacts:
     paths:
       - ucs-test-ucsschool-kelvin/build/
@@ -318,3 +331,24 @@ ucs_test_deb_repo_build:
       -r ${UCS_RELEASE}-0-0
       -s $SCOPE
       -p $PACKAGE
+
+integration-tests:
+  stage: tests
+  extends: .run_openstack_cfg
+  timeout: 2h
+  needs:
+    - job: ucs_test_artifact
+    - job: create_app_version
+    - job: update_appcenter
+  rules:
+    - when: manual
+      allow_failure: true
+  variables:
+    TARGET_VERSION: "5.2-1"
+    OPENSTACK_CFG_FILE: ".gitlab-ci/integration_tests.cfg"
+    UCSSCHOOL_KELVIN_REST_API_VERSION: $APP_VERSION
+
+  artifacts:
+    when: always
+    reports:
+      junit: results/**/test-reports/**/*.xml
