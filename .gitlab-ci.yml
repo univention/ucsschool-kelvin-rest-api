@@ -98,7 +98,6 @@ prepare:
     - cd ${CI_PROJECT_DIR}/docker
     - ./gitlab_prepare_docker_image
 
-
 docs-html:
   extends: .sphinx-html-template
   rules:
@@ -282,6 +281,18 @@ ucs_test_deb_build_git:
     paths:
       - ucs-test-ucsschool-kelvin/build/
 
+ucs_test_artifact:
+  stage: build
+  needs:
+    - job: ucs_test_deb_build_git
+      optional: true
+  script:
+    - mkdir -p ucs-test-ucsschool-kelvin/build/
+    - touch ucs-test-ucsschool-kelvin/build/FILE_TO_COPY
+  artifacts:
+    paths:
+      - ucs-test-ucsschool-kelvin/build/
+
 ucs_test_deb_repo_import:
   stage: build
   variables:
@@ -328,8 +339,7 @@ integration-tests:
   extends: .run_openstack_cfg
   timeout: 2h
   needs:
-    - job: ucs_test_deb_build_git
-      optional: true
+    - job: ucs_test_artifact
     - job: create_app_version
     - job: update_appcenter
   rules:
@@ -340,7 +350,8 @@ integration-tests:
     OPENSTACK_CFG_FILE: ".gitlab-ci/integration_tests.cfg"
     UCSSCHOOL_KELVIN_REST_API_VERSION: $APP_VERSION
     SSH_KEY: $SSH_PRIVATE_KEY_TECH
+
   artifacts:
     when: always
     reports:
-      junit: "*junit.xml"
+      junit: results/**/test-reports/**/*.xml
