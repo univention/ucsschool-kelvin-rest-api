@@ -2,8 +2,9 @@ include:
   - project: 'univention/dev/docs/sphinx-docker'
     file: 'pipeline/sphinx.yml'
   - project: univention/infrastructure/docker-services
+    ref: juern/buildkit
     file:
-    - kaniko.yml
+    - buildkit.yml
     - pre-commit.yml
   - project: univention/internal/ucsschool-ci-utils
     file:
@@ -79,13 +80,8 @@ prepare:
   stage: prepare
   rules:
     - if: "$CI_COMMIT_TAG"
-    - changes:
-        - docker/*
-        - kelvin-api/**/*
-        - ucs-school-import/**/*
-        - ucs-school-lib/**/*
-        - univention-directory-manager-modules-slim/**/*
-        - univention-lib-slim/**/*
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
   image:
     name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.9-bullseye
   artifacts:
@@ -192,10 +188,11 @@ build_docker_image:
         REGISTRY_IMAGE: "$REGISTRY/ucsschool/ucsschool-kelvin-rest-api"
     - if: $CI_MERGE_REQUEST_ID
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
-  extends: .kaniko
+  extends: .buildkit
   variables:
-      KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/docker/build/"
-      KANIKO_ARGS: --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
+      #DOCKERFILE_PATH: "$CI_PROJECT_DIR/docker/Dockerfile"
+      BUILDKIT_BUILD_CONTEXT: "$CI_PROJECT_DIR/docker/build"
+      BUILDKIT_ARGS: --opt build-arg:app_id="$APP_ID" --opt build-arg:commit="$CI_COMMIT_SHA" --opt build-arg:date="$CI_JOB_STARTED_AT" --import-cache type=registry,ref=$CI_REGISTRY_IMAGE/cache --export-cache type=registry,ref=$CI_REGISTRY_IMAGE/cache
 
 
 test ucs-school-lib:
