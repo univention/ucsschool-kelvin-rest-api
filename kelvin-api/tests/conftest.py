@@ -289,17 +289,18 @@ def setup_environ(monkeypatch):  # pragma: no cover
     Required for running unittests on outside Docker container (on developer
     machine).
     """
+
     if "DOCKER_HOST_NAME" not in os.environ:
         monkeypatch.setenv("DOCKER_HOST_NAME", "localhost")
-    if "ldap_base" not in os.environ:
+    if "LDAP_BASE" not in os.environ:
         monkeypatch.setenv("LDAP_BASE", "dc=foo,dc=bar")
-    if "ldap_base" not in os.environ:
+    if "LDAP_HOSTDN" not in os.environ:
         monkeypatch.setenv("LDAP_HOSTDN", "localhost")
-    if "ldap_base" not in os.environ:
+    if "LDAP_MASTER" not in os.environ:
         monkeypatch.setenv("LDAP_MASTER", "localhost")
-    if "ldap_server_name" not in os.environ:
+    if "LDAP_SERVER_NAME" not in os.environ:
         monkeypatch.setenv("LDAP_SERVER_NAME", "localhost")
-    if "ldap_server_port" not in os.environ:
+    if "LDAP_SERVER_PORT" not in os.environ:
         monkeypatch.setenv("LDAP_SERVER_PORT", "7389")
 
 
