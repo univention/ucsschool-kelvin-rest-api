@@ -55,7 +55,7 @@ variables:
   SCOPE: "ucs-school-5.2"
   DOC_TARGET_NAME: $APP_ID
   DEB_IMAGE: docker-registry.knut.univention.de/phahn/ucs-debbase:$UCS_VERSION
-  UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/ucs
+  UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/dev/ucs
   UCS_SCHOOL_LIB_COVERAGE_LIMIT: 34
   KELVIN_COVERAGE_LIMIT: 37
 
