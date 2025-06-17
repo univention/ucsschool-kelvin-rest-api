@@ -5,6 +5,12 @@
 Changelog
 =========
 
+v3.0.0 (t.b.d.)
+-------------------
+* Removed: The Application architecture has been reworked. A common, but not officially supported functionality was the setting of Docker parameters via ``ucr``, for example
+  ``ucr set appcenter/apps/ucsschool-kelvin-rest-api/docker/params='-e ENVVAR1=test'``. With 3.0.0, this is no longer possible for the Kelvin REST API application.
+  For an alternative workaround for setting environment variables, see _`this help article <https://help.univention.com/t/how-to-env-persistent-environment-variables-for-docker-apps/22962>`.
+
 v2.0.0 (2025-03-14)
 -------------------
 * The Kelvin API now validates user names by default to avoid that they contain Windows reserved names (Issue :spelling:ignore:`univention/ucsschool#1052`).
