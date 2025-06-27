@@ -9,6 +9,7 @@ include:
     file:
     - fragments/misc.yaml
     - fragments/appcenter.yaml
+  - local: .gitlab-ci/SonarQube.yml
 
 workflow:
   rules:
