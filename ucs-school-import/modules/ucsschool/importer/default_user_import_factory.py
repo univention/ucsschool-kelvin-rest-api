@@ -175,9 +175,16 @@ class DefaultUserImportFactory(object):
             was empty
         :rtype: ImportUser
         """
-        from ucsschool.lib.roles import role_pupil, role_staff, role_student, role_teacher
+        from ucsschool.lib.roles import (
+            role_pupil,
+            role_school_admin,
+            role_staff,
+            role_student,
+            role_teacher,
+        )
 
         from .models.import_user import (
+            ImportSchoolAdmin,
             ImportStaff,
             ImportStudent,
             ImportTeacher,
@@ -194,8 +201,12 @@ class DefaultUserImportFactory(object):
                 return ImportTeachersAndStaff(*arg, **kwargs)
             else:
                 return ImportTeacher(*arg, **kwargs)
-        else:
+        if role_staff in cur_user_roles:
             return ImportStaff(*arg, **kwargs)
+        if role_school_admin in cur_user_roles:
+            return ImportSchoolAdmin(*arg, **kwargs)
+        logging.error("Unable to determine user role %r. Returning ImportUser.", cur_user_roles)
+        return ImportUser(*arg, **kwargs)
 
     def make_mass_importer(self, dry_run=True):
         # type: (Optional[bool]) -> "ucsschool.importer.mass_import.mass_import.MassImport"

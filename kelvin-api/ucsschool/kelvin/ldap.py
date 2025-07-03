@@ -139,6 +139,7 @@ def get_user(
             f"(objectClass=ucsschoolStaff)"
             f"(objectClass=ucsschoolStudent)"
             f"(objectClass=ucsschoolTeacher)"
+            f"(objectClass=ucsschoolAdministrator)"
             f"))"
         )
     uldap = uldap_admin_read_local().user_account(user=bind_dn, password=bind_pw)

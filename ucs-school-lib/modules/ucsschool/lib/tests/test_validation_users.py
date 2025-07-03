@@ -43,6 +43,7 @@ SchoolSearchBase._load_containers_and_prefixes()
 staff_group_regex = SchoolSearchBase.get_is_staff_group_regex()
 student_group_regex = SchoolSearchBase.get_is_student_group_regex()
 teachers_group_regex = SchoolSearchBase.get_is_teachers_group_regex()
+school_admin_group_regex = SchoolSearchBase.get_is_admins_group_regex()
 
 ou = fake.user_name()[:10]
 School.get_search_base(ou)
@@ -282,7 +283,7 @@ def teacher_and_staff_user() -> Dict[str, Any]:
     return user
 
 
-def admin_user():  # type: () -> Dict[str, Any]
+def school_admin_user():  # type: () -> Dict[str, Any]
     firstname = fake.first_name()
     lastname = fake.last_name()
     user = base_user(firstname, lastname)
@@ -314,7 +315,7 @@ all_user_role_objects = [
     staff_user(),
     exam_user(),
     teacher_and_staff_user(),
-    admin_user(),
+    school_admin_user(),
 ]
 all_user_role_generators = [
     student_user,
@@ -322,7 +323,7 @@ all_user_role_generators = [
     staff_user,
     exam_user,
     teacher_and_staff_user,
-    admin_user,
+    school_admin_user,
 ]
 
 all_user_roles_names = [
@@ -429,7 +430,7 @@ def test_correct_object(caplog, dict_obj, random_logger):
         (student_user, "pupils", "schueler-"),
         (teacher_user, "teachers", "lehrer-"),
         (staff_user, "staff", "mitarbeiter-"),
-        (admin_user, "admins", "admins-"),
+        (school_admin_user, "admins", "admins-"),
     ],
     ids=[
         "altered_student_group_prefix",
@@ -525,7 +526,7 @@ def test_students_exclusive_role(caplog, dict_obj, random_logger, disallowed_rol
         (staff_user, teacher_user),
         (exam_user, teacher_user),
         (teacher_and_staff_user, student_user),
-        (admin_user, student_user),
+        (school_admin_user, student_user),
     ],
     ids=all_user_roles_names,
 )
@@ -569,8 +570,9 @@ def test_missing_exam_context_role(caplog, random_logger):
         (SchoolSearchBase._containerStudents, student_user()),
         (SchoolSearchBase._containerTeachers, teacher_user()),
         (SchoolSearchBase._containerStaff, staff_user()),
+        (SchoolSearchBase._containerAdmins, school_admin_user()),
     ],
-    ids=[role_student, role_teacher, role_staff],
+    ids=[role_student, role_teacher, role_staff, role_school_admin],
 )
 def test_missing_role_group(caplog, dict_obj, container, random_logger):
     role_group = "dummy"
@@ -635,8 +637,8 @@ def test_missing_domain_users_group(caplog, dict_obj, random_logger):
 )
 @pytest.mark.parametrize(
     "get_dict_obj",
-    [student_user, teacher_user, staff_user, exam_user, teacher_and_staff_user],
-    ids=[role_student, role_teacher, role_staff, role_exam_user, "teacher_and_staff"],
+    [student_user, teacher_user, staff_user, exam_user, teacher_and_staff_user, school_admin_user],
+    ids=[role_student, role_teacher, role_staff, role_exam_user, "teacher_and_staff", role_school_admin],
 )
 def test_missing_required_attribute(caplog, get_dict_obj, random_logger, required_attribute):
     dict_obj = get_dict_obj()
@@ -676,8 +678,8 @@ def test_student_missing_class(caplog, dict_obj, random_logger):
         (teacher_user, staff_user),
         (exam_user, teacher_user),
         (teacher_and_staff_user, student_user),
-        (student_user, admin_user),
-        (exam_user, admin_user),
+        (student_user, school_admin_user),
+        (exam_user, school_admin_user),
     ],
     ids=[
         "student_has_teacher_groups",

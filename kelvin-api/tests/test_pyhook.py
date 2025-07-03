@@ -43,7 +43,7 @@ from ucsschool.importer.utils.format_pyhook import FormatPyHook
 from ucsschool.importer.utils.user_pyhook import KelvinUserHook, UserPyHook
 from ucsschool.kelvin.routers.user import UserModel
 from ucsschool.lib.models.hook import Hook
-from ucsschool.lib.models.user import Staff, Student, Teacher, TeachersAndStaff, User
+from ucsschool.lib.models.user import SchoolAdmin, Staff, Student, Teacher, TeachersAndStaff, User
 from ucsschool.lib.models.utils import env_or_ucr
 from udm_rest_client import UDM
 
@@ -59,7 +59,8 @@ USER_ROLES: List[Role] = [
     Role("student", Student),
     Role("teacher", Teacher),
     Role("teacher_and_staff", TeachersAndStaff),
-]  # User.role_sting -> User
+    Role("school_admin", SchoolAdmin),
+]  # User.role_string -> User
 random.shuffle(USER_ROLES)
 fake = Faker()
 logger = logging.getLogger(__name__)
@@ -165,7 +166,7 @@ class ExpirationDateUCSSchoolLibPyHook(Hook):
         "pre_remove": 10,
         "post_remove": 10,
     }
-    # MODEL_NAME # will be replaced in fixture to write hook with Student, Teacher or Staff
+    # MODEL_NAME # will be replaced in fixture to write hook with Student, Teacher, Staff or SchoolAdmin
 
     def __init__(
         self,
@@ -265,7 +266,7 @@ import univention.admin.uldap_docker
 from pathlib import Path
 from udm_rest_client import UDM
 from ucsschool.lib.models.hook import Hook
-from ucsschool.lib.models.user import Student, Teacher, Staff, User
+from ucsschool.lib.models.user import Student, Teacher, Staff, SchoolAdmin, User
 from ucsschool.lib.models.utils import env_or_ucr
 
 {inspect.getsource(ExpirationDateUCSSchoolLibPyHook)}
@@ -378,7 +379,7 @@ async def test_format_pyhook(
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
     api_user = UserModel(**response_json)
-    if role.name in ("staff", "teacher"):
+    if role.name in ("school_admin", "staff", "teacher"):
         assert api_user.record_uid == api_user.lastname
     else:
         assert api_user.record_uid != api_user.lastname

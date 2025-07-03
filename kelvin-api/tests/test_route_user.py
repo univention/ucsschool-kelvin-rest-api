@@ -60,7 +60,8 @@ from ucsschool.kelvin.routers.user import (
     userexpiry_to_shadowExpire,
 )
 from ucsschool.lib.models.school import School
-from ucsschool.lib.models.user import Staff, Student, Teacher, TeachersAndStaff, User
+from ucsschool.lib.models.user import SchoolAdmin, Staff, Student, Teacher, TeachersAndStaff, User
+from ucsschool.lib.roles import role_school_admin, role_student
 from udm_rest_client import UDM
 
 pytestmark = pytest.mark.skipif(
@@ -77,7 +78,8 @@ USER_ROLES: List[Role] = [
     Role("student", Student),
     Role("teacher", Teacher),
     Role("teacher_and_staff", TeachersAndStaff),
-]  # User.role_sting -> User
+    Role("school_admin", SchoolAdmin),
+]  # User.role_string -> User
 random.shuffle(USER_ROLES)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -168,11 +170,13 @@ def compare_ldap_json_obj(dn, json_resp, url_fragment):  # noqa: C901
         elif attr == "birthday" and "univentionBirthday" in ldap_obj:
             assert value == ldap_obj["univentionBirthday"][0].decode("utf-8")
         elif attr == "expiration_date" and "shadowExpire" in ldap_obj:
-            if value:
+            if json_resp["disabled"]:
+                check_value = "1"
+            elif value:
                 dt = datetime.datetime.strptime(value, "%Y-%m-%d").date()
                 check_value = userexpiry_to_shadowExpire(dt)
             else:
-                check_value = "1" if json_resp["disabled"] is True else "0"
+                check_value = "0"
             assert check_value == ldap_obj["shadowExpire"][0].decode("utf-8")
         elif attr == "firstname" and "givenName" in ldap_obj:
             assert value == ldap_obj["givenName"][0].decode("utf-8")
@@ -259,7 +263,7 @@ async def test_search_no_filter(
     ou_name = await create_ou_using_python()
     users: List[User] = await new_school_users(
         ou_name,
-        {"student": 2, "teacher": 2, "staff": 2, "teacher_and_staff": 2},
+        {"student": 2, "teacher": 2, "staff": 2, "teacher_and_staff": 2, "school_admin": 2},
         disabled=False,
     )
     async with UDM(**udm_kwargs) as udm:
@@ -301,6 +305,7 @@ async def test_search_no_filter(
         "roles_student",
         "roles_teacher",
         "roles_teacher_and_staff",
+        # "roles_school_admin",
         "school",
     ),
 )
@@ -320,7 +325,7 @@ async def test_search_filter(  # noqa: C901
     if filter_param.startswith("roles_"):
         filter_param, role = filter_param.split("_", 1)
     else:
-        role = random.choice(("staff", "student", "teacher", "teacher_and_staff"))
+        role = random.choice(("staff", "student", "teacher", "teacher_and_staff", "school_admin"))
     if filter_param == "source_uid":
         create_kwargs = {"source_uid": random_name()}
     elif filter_param == "disabled-true":
@@ -345,7 +350,7 @@ async def test_search_filter(  # noqa: C901
         create_kwargs["expiration_date"] = None
     user: ImportUser = await new_import_user(ou_name, role, **create_kwargs)
     assert ou_name == user.school
-    assert user.role_sting == role  # TODO: add 'r' when #47210 is fixed
+    assert user.role_string == role
     if filter_param == "school":
         assert ou_name == ou2_name
         assert {school.rsplit("/", 1)[-1] for school in user.schools} == {ou1_name, ou2_name}
@@ -419,10 +424,10 @@ async def test_search_filter_udm_properties(
         create_kwargs = {"udm_properties": {filter_param: [random_name(), filter_value, random_name()]}}
     else:
         create_kwargs = {}
-    role = random.choice(("student", "teacher", "staff", "teacher_and_staff"))
+    role = random.choice(("student", "teacher", "staff", "teacher_and_staff", "school_admin"))
     school = await create_ou_using_python()
     user: ImportUser = await new_import_user(school, role, **create_kwargs)
-    assert user.role_sting == role  # TODO: add 'r' when #47210 is fixed
+    assert user.role_string == role
     async with UDM(**udm_kwargs) as udm:
         udm_user = await user.get_udm_object(udm)
     if filter_param in {"uidNumber", "gidNumber"}:
@@ -459,7 +464,7 @@ async def test_search_filter_udm_properties(
 async def test_search_user_without_firstname(
     auth_header, create_ou_using_python, retry_http_502, url_fragment, new_school_user, udm_kwargs
 ):
-    role = random.choice(("student", "teacher", "staff", "teacher_and_staff"))
+    role = random.choice(("student", "teacher", "staff", "teacher_and_staff", "school_admin"))
     school = await create_ou_using_python()
     lib_user: User = await new_school_user(school, role)
     assert lib_user.firstname
@@ -1390,7 +1395,12 @@ async def test_patch_with_password_hashes(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("roles", itertools.product(USER_ROLES, USER_ROLES), ids=two_roles_id)
+@pytest.mark.parametrize(
+    "roles",
+    set(itertools.product(USER_ROLES, USER_ROLES))
+    - {(Role(role_school_admin, SchoolAdmin), Role(role_student, Student))},
+    ids=two_roles_id,
+)
 @pytest.mark.parametrize("method", ("patch", "put"))
 async def test_role_change(
     auth_header,
@@ -1409,15 +1419,16 @@ async def test_role_change(
     create_multiple_ous,
 ):
     role_from, role_to = roles
+
     ou1, ou2 = await create_multiple_ous(2)
     user: ImportUser = await new_import_user(ou1, role_from.name, schools=[ou1, ou2])
     if role_to.name == "teacher_and_staff":
-        roles_ulrs = [
+        roles_urls = [
             f"{url_fragment}/roles/staff",
             f"{url_fragment}/roles/teacher",
         ]
     else:
-        roles_ulrs = [f"{url_fragment}/roles/{role_to.name}"]
+        roles_urls = [f"{url_fragment}/roles/{role_to.name}"]
     user_url = f"{url_fragment}/users/{user.name}"
     schedule_delete_user_name_using_udm(user.name)
     wg_dn2, wg_attr2 = await new_workgroup_using_lib(ou2)
@@ -1435,7 +1446,7 @@ async def test_role_change(
     else:
         school_classes = {}
     if method == "patch":
-        patch_data = {"roles": roles_ulrs}
+        patch_data = {"roles": roles_urls}
         if school_classes:
             patch_data["school_classes"] = school_classes
         if workgroups:
@@ -1452,22 +1463,83 @@ async def test_role_change(
             old_data["school_classes"] = school_classes
         if workgroups:
             old_data["workgroups"] = workgroups
-        modified_user = UserCreateModel(roles=roles_ulrs, **old_data)
+        modified_user = UserCreateModel(roles=roles_urls, **old_data)
         response = retry_http_502(
             requests.put,
             user_url,
             headers=auth_header,
             data=modified_user.json(),
         )
+    else:
+        raise RuntimeError(f"Unknown method: {method}")
     assert response.status_code == 200, response.reason
     json_resp = response.json()
     assert set(UserCreateModel.unscheme_and_unquote(role_url) for role_url in json_resp["roles"]) == set(
-        roles_ulrs
+        roles_urls
     )
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, ou1, f"username={user.name}")
         assert len(lib_users) == 1
         assert isinstance(lib_users[0], role_to.klass)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ("patch", "put"))
+async def test_failing_role_change_school_admin_to_student(
+    auth_header,
+    retry_http_502,
+    import_user_to_create_model_kwargs,
+    url_fragment,
+    new_import_user,
+    import_config,
+    udm_kwargs,
+    schedule_delete_user_name_using_udm,
+    new_school_class_using_lib,
+    new_workgroup_using_lib,
+    random_name,
+    method: str,
+    create_multiple_ous,
+):
+    role_from, role_to = Role(role_school_admin, SchoolAdmin), Role(role_student, Student)
+
+    ou1, ou2 = await create_multiple_ous(2)
+    user: ImportUser = await new_import_user(ou1, role_from.name, schools=[ou1, ou2])
+    roles_urls = [f"{url_fragment}/roles/{role_to.name}"]
+    user_url = f"{url_fragment}/users/{user.name}"
+    schedule_delete_user_name_using_udm(user.name)
+    wg_dn2, wg_attr2 = await new_workgroup_using_lib(ou2)
+    workgroups = {ou2: [wg_attr2["name"]]}
+    sc_dn2, sc_attr2 = await new_school_class_using_lib(ou2)
+    school_classes = {ou2: [sc_attr2["name"]]}
+    school_classes = {}
+    if method == "patch":
+        patch_data = {"roles": roles_urls}
+        if school_classes:
+            patch_data["school_classes"] = school_classes
+        if workgroups:
+            patch_data["workgroups"] = workgroups
+        response = retry_http_502(
+            requests.patch,
+            user_url,
+            headers=auth_header,
+            json=patch_data,
+        )
+    elif method == "put":
+        old_data = import_user_to_create_model_kwargs(user, ["roles"])
+        if school_classes:
+            old_data["school_classes"] = school_classes
+        if workgroups:
+            old_data["workgroups"] = workgroups
+        modified_user = UserCreateModel(roles=roles_urls, **old_data)
+        response = retry_http_502(
+            requests.put,
+            user_url,
+            headers=auth_header,
+            data=modified_user.json(),
+        )
+    else:
+        raise RuntimeError(f"Unknown method: {method}")
+    assert response.status_code == 400
 
 
 @pytest.mark.asyncio
@@ -1486,11 +1558,11 @@ async def test_role_change_fails_for_student_without_school_class(
 ):
     school = await create_ou_using_python()
     user: ImportUser = await new_import_user(school, "staff")  # staff has no school classes
-    roles_ulrs = [f"{url_fragment}/roles/student"]
+    roles_urls = [f"{url_fragment}/roles/student"]
     user_url = f"{url_fragment}/users/{user.name}"
     schedule_delete_user_name_using_udm(user.name)
     if method == "patch":
-        patch_data = {"roles": roles_ulrs}
+        patch_data = {"roles": roles_urls}
         response = retry_http_502(
             requests.patch,
             user_url,
@@ -1499,13 +1571,15 @@ async def test_role_change_fails_for_student_without_school_class(
         )
     elif method == "put":
         old_data = import_user_to_create_model_kwargs(user, ["roles"])
-        modified_user = UserCreateModel(roles=roles_ulrs, **old_data)
+        modified_user = UserCreateModel(roles=roles_urls, **old_data)
         response = retry_http_502(
             requests.put,
             user_url,
             headers=auth_header,
             data=modified_user.json(),
         )
+    else:
+        raise RuntimeError("method must be patch or put")
     assert response.status_code == 400, response.reason
     json_resp = response.json()
     assert "requires at least one school class per school" in json_resp["detail"]
@@ -1537,11 +1611,11 @@ async def test_role_change_fails_for_student_missing_school_class_for_second_sch
         assert len(lib_users) == 1
         assert lib_users[0].school_classes[ou1]
         assert not lib_users[0].school_classes.get(ou2)
-    roles_ulrs = [f"{url_fragment}/roles/student"]
+    roles_urls = [f"{url_fragment}/roles/student"]
     user_url = f"{url_fragment}/users/{user.name}"
     schedule_delete_user_name_using_udm(user.name)
     if method == "patch":
-        patch_data = {"roles": roles_ulrs}
+        patch_data = {"roles": roles_urls}
         response = retry_http_502(
             requests.patch,
             user_url,
@@ -1550,13 +1624,15 @@ async def test_role_change_fails_for_student_missing_school_class_for_second_sch
         )
     elif method == "put":
         old_data = import_user_to_create_model_kwargs(user, ["roles"])
-        modified_user = UserCreateModel(roles=roles_ulrs, **old_data)
+        modified_user = UserCreateModel(roles=roles_urls, **old_data)
         response = retry_http_502(
             requests.put,
             user_url,
             headers=auth_header,
             data=modified_user.json(),
         )
+    else:
+        raise RuntimeError("method must be patch or put")
     assert response.status_code == 400, response.reason
     json_resp = response.json()
     assert "requires at least one school class per school" in json_resp["detail"]
@@ -1610,6 +1686,8 @@ async def test_modify_username_checks(
             headers=auth_header,
             data=modified_user.json(),
         )
+    else:
+        raise RuntimeError("Method not supported")
     assert response.status_code == 400, response.reason
     json_resp = response.json()
     assert "is longer than allowed" in json_resp["detail"]
@@ -1703,6 +1781,8 @@ async def test_rename(
             headers=auth_header,
             data=modified_user.json(),
         )
+    else:
+        raise RuntimeError("method not supported")
     assert response.status_code == 200, f"{response.reason} -- {response.content[:4096]}"
     api_user = UserModel(**response.json())
     assert api_user.name == new_name
@@ -1868,6 +1948,8 @@ async def test_school_change_verify_groups(
             headers=auth_header,
             data=modified_user.json(),
         )
+    else:
+        raise RuntimeError(f"Unknown method: {method}")
     json_response = response.json()
     assert response.status_code == 200, response.reason
     async with UDM(**udm_kwargs) as udm:
@@ -2201,11 +2283,7 @@ async def test_create_with_multiple_schools(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "role",
-    [
-        Role("student", Student),
-        Role("teacher", Teacher),
-        Role("teacher_and_staff", TeachersAndStaff),
-    ],
+    [role for role in USER_ROLES if role.name != "staff"],
     ids=role_id,
 )
 @pytest.mark.parametrize("method", ("patch", "put", "putwithschool"))
@@ -2326,11 +2404,7 @@ async def test_add_additional_schools(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "role",
-    [
-        Role("student", Student),
-        Role("teacher", Teacher),
-        Role("teacher_and_staff", TeachersAndStaff),
-    ],
+    [role for role in USER_ROLES if role.name != "staff"],
     ids=role_id,
 )
 @pytest.mark.parametrize("method", ("patch", "put"))
@@ -2449,11 +2523,7 @@ async def test_set_school_with_multiple_schools(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "role",
-    [
-        Role("student", Student),
-        Role("teacher", Teacher),
-        Role("teacher_and_staff", TeachersAndStaff),
-    ],
+    [role for role in USER_ROLES if role.name != "staff"],
     ids=role_id,
 )
 @pytest.mark.parametrize("method", ("patch", "put"))
@@ -2533,6 +2603,8 @@ async def test_change_school_with_multiple_schools(
             headers=auth_header,
             data=modified_user.json(),
         )
+    else:
+        raise RuntimeError(f"method {method} not supported")
     json_response = response.json()
     logger.debug("RESPONSE")
     logger.debug(json_response)
@@ -2588,11 +2660,7 @@ async def test_change_school_with_multiple_schools(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "role",
-    [
-        Role("student", Student),
-        Role("teacher", Teacher),
-        Role("teacher_and_staff", TeachersAndStaff),
-    ],
+    [role for role in USER_ROLES if role.name != "staff"],
     ids=role_id,
 )
 @pytest.mark.parametrize("method", ("patch", "put"))
@@ -2669,6 +2737,8 @@ async def test_change_school_and_schools(
             headers=auth_header,
             data=modified_user.json(exclude={"school"}),
         )
+    else:
+        raise RuntimeError(f"method {method} not supported")
     json_response = response.json()
     expected_school = sorted([school2, school3])[0]
     assert response.status_code == 200, response.reason
@@ -2719,11 +2789,7 @@ async def test_change_school_and_schools(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "role",
-    [
-        Role("student", Student),
-        Role("teacher", Teacher),
-        Role("teacher_and_staff", TeachersAndStaff),
-    ],
+    [role for role in USER_ROLES if role.name != "staff"],
     ids=role_id,
 )
 @pytest.mark.parametrize("method", ("patch", "put"))

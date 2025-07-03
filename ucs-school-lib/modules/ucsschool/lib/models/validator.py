@@ -131,7 +131,7 @@ class SchoolValidator(object):
         roles = [r.lower() for r in roles]
         missing_roles = [role for role in expected_roles if role.lower() not in roles]
         if missing_roles:
-            return "is missing roles {!r}".format(missing_roles)
+            return "is missing roles {!r} (current roles={!r})".format(missing_roles, roles)
 
     @classmethod
     def roles_at_school(cls, schools: List[str]) -> List[str]:

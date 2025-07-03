@@ -413,7 +413,7 @@ def new_udm_user(
         udm_properties: Dict[str, Any] = None,
         **school_user_kwargs,
     ) -> Tuple[str, Dict[str, Any]]:
-        assert role in ("staff", "student", "teacher", "teacher_and_staff")
+        assert role in ("staff", "student", "teacher", "teacher_and_staff", "school_admin")
         udm_properties = udm_properties or {}
         user_props = await udm_users_user_props(school, **school_user_kwargs)
         if role == "teacher_and_staff":
@@ -431,12 +431,14 @@ def new_udm_user(
             "student": ("ucsschoolStudent",),
             "teacher": ("ucsschoolTeacher",),
             "teacher_and_staff": ("ucsschoolStaff", "ucsschoolTeacher"),
+            "school_admin": ("ucsschoolAdministrator",),
         }[role]
         position = {
             "staff": school_search_base.staff,
             "student": school_search_base.students,
             "teacher": school_search_base.teachers,
             "teacher_and_staff": school_search_base.teachersAndStaff,
+            "school_admin": school_search_base.admins,
         }[role]
         role_groups = {
             "staff": [SchoolSearchBase([s]).staff_group for s in user_props.get("school", [school])],
@@ -450,6 +452,9 @@ def new_udm_user(
                 SchoolSearchBase([s]).staff_group for s in user_props.get("school", [school])
             ]
             + [SchoolSearchBase([s]).teachers_group for s in user_props.get("school", [school])],
+            "school_admin": [
+                SchoolSearchBase([s]).admins_group for s in user_props.get("school", [school])
+            ],
         }[role]
         user_props.update(udm_properties)
         async with UDM(**udm_kwargs) as udm:
@@ -644,6 +649,7 @@ def role2class():
         "student": ucsschool.lib.models.user.Student,
         "teacher": ucsschool.lib.models.user.Teacher,
         "teacher_and_staff": ucsschool.lib.models.user.TeachersAndStaff,
+        "school_admin": ucsschool.lib.models.user.SchoolAdmin,
     }
 
 

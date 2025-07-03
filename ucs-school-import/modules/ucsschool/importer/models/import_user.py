@@ -49,6 +49,7 @@ from ucsschool.lib.models.base import NoObject, UDMPropertiesError, WrongObjectT
 from ucsschool.lib.models.group import WorkGroup
 from ucsschool.lib.models.user import (
     ConcreteUserClass,
+    SchoolAdmin,
     Staff,
     Student,
     Teacher,
@@ -58,8 +59,10 @@ from ucsschool.lib.models.user import (
 )
 from ucsschool.lib.models.utils import create_passwd, ucr
 from ucsschool.lib.roles import (
+    InvalidUcsschoolRoleString,
     create_ucsschool_role_string,
     role_pupil,
+    role_school_admin,
     role_staff,
     role_student,
     role_teacher,
@@ -300,14 +303,14 @@ class ImportUser(User):
         """
         hooks = get_import_pyhooks(FormatPyHook)  # result is cached on the lib side
         res = fields
-        for func in hooks.get("patch_fields_{}".format(self.role_sting), []):
+        for func in hooks.get("patch_fields_{}".format(self.role_string), []):
             hook_class = func.__self__.__class__
             if prop_name not in hook_class.properties:
                 # ignore properties not in Hook.properties
                 continue
             self.logger.debug(
                 "Running patch_fields_%s hook %s for property name %r for user %s...",
-                self.role_sting,
+                self.role_string,
                 func,
                 prop_name,
                 self,
@@ -434,6 +437,8 @@ class ImportUser(User):
             roles = (role_pupil,)
         elif cls.config["user_role"] == "teacher_and_staff":
             roles = (role_teacher, role_staff)
+        elif cls.config["user_role"] == "school_admin":
+            roles = (role_school_admin,)
         else:
             roles = (cls.config["user_role"],)
         a_user = cls.factory.make_import_user(roles)
@@ -902,14 +907,14 @@ class ImportUser(User):
             return self.disabled
 
         try:
-            activate = self.config["activate_new_users"][self.role_sting]
+            activate = self.config["activate_new_users"][self.role_string]
         except KeyError:
             try:
                 activate = self.config["activate_new_users"]["default"]
             except KeyError:
                 raise UnknownDisabledSetting(
                     "Cannot find 'disabled' ('activate_new_users') setting for role '{}' or "
-                    "'default'.".format(self.role_sting),
+                    "'default'.".format(self.role_string),
                     self.entry_count,
                     import_user=self,
                 )
@@ -1501,11 +1506,11 @@ class ImportUser(User):
         self._purge_ts = ts
 
     @property
-    def role_sting(self):  # type: () -> str
+    def role_string(self):  # type: () -> str
         """
         Mapping from self.roles to string used in configuration.
 
-        :return: one of `staff`, `student`, `teacher`, `teacher_and_staff`
+        :return: one of `staff`, `student`, `teacher`, `teacher_and_staff`, 'school_admin'
         :rtype: str
         """
         if role_pupil in self.roles or role_student in self.roles:
@@ -1515,8 +1520,14 @@ class ImportUser(User):
                 return "teacher_and_staff"
             else:
                 return "teacher"
-        else:
+        elif role_staff in self.roles:
             return "staff"
+        elif role_school_admin in self.roles:
+            return "school_admin"
+        else:
+            raise InvalidUcsschoolRoleString(f"There is no valid role in {self.roles!r}.")
+
+    role_sting = role_string  # Bug 47210: backward-compatible typo fix
 
     @property
     def school_classes_as_str(self):  # type: () -> str
@@ -1555,14 +1566,14 @@ class ImportUser(User):
         :rtype: str
         """
         try:
-            scheme = self.config["scheme"]["username"][self.role_sting]
+            scheme = self.config["scheme"]["username"][self.role_string]
         except KeyError:
             try:
                 scheme = self.config["scheme"]["username"]["default"]
             except KeyError:
                 raise NoUsernameAtAll(
                     "Cannot find scheme to create username for role '{}' or 'default'.".format(
-                        self.role_sting
+                        self.role_string
                     ),
                     self.entry_count,
                     import_user=self,
@@ -1691,6 +1702,8 @@ class ImportUser(User):
             return ImportStaff
         elif issubclass(klass, Student):
             return ImportStudent
+        elif issubclass(klass, SchoolAdmin):
+            return ImportSchoolAdmin
         else:
             return None
 
@@ -1737,7 +1750,7 @@ class ImportUser(User):
     @property
     def username_max_length(self):  # type: () -> int
         try:
-            return self.config["username"]["max_length"][self.role_sting]
+            return self.config["username"]["max_length"][self.role_string]
         except KeyError:
             return self.config["username"]["max_length"]["default"]
 
@@ -1792,6 +1805,10 @@ class ImportUser(User):
         return workgroup
 
 
+class ImportSchoolAdmin(ImportUser, SchoolAdmin):
+    pass
+
+
 class ImportStaff(ImportUser, Staff):
     pass
 
@@ -1809,7 +1826,12 @@ class ImportTeachersAndStaff(ImportUser, TeachersAndStaff):
 
 
 ConcreteImportUserClass = TypeVar(
-    "ConcreteImportUserClass", ImportStaff, ImportStudent, ImportTeacher, ImportTeachersAndStaff
+    "ConcreteImportUserClass",
+    ImportStaff,
+    ImportStudent,
+    ImportTeacher,
+    ImportTeachersAndStaff,
+    ImportSchoolAdmin,
 )
 
 
@@ -1837,6 +1859,17 @@ class ImportUserTypeConverter(UserTypeConverter):
         record_uid = udm_user.props.ucsschoolRecordUID
         source_uid = udm_user.props.ucsschoolSourceUID
         return f"{res} record_uid: {record_uid!r} source_uid: {source_uid!r}"
+
+
+async def convert_to_school_admin(
+    user: ConcreteUserClass,
+    udm: UDM,
+    additional_classes: Dict[str, List[str]] = None,
+    additional_workgroups: Dict[str, List[str]] = None,
+) -> ImportSchoolAdmin:
+    return await ImportUserTypeConverter.convert(
+        user, ImportSchoolAdmin, udm, additional_classes, additional_workgroups
+    )
 
 
 async def convert_to_staff(

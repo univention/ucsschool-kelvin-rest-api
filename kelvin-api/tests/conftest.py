@@ -447,13 +447,13 @@ def create_random_users(
         for role, amount in roles.items():
             for _ in range(amount):
                 if role == "teacher_and_staff":
-                    roles_ulrs = [
+                    roles_urls = [
                         f"{url_fragment}/roles/staff",
                         f"{url_fragment}/roles/teacher",
                     ]
                 else:
-                    roles_ulrs = [f"{url_fragment}/roles/{role}"]
-                user_data = await random_user_create_model(ou_name, roles=roles_ulrs, **data_kwargs)
+                    roles_urls = [f"{url_fragment}/roles/{role}"]
+                user_data = await random_user_create_model(ou_name, roles=roles_urls, **data_kwargs)
                 response = retry_http_502(
                     requests.post,
                     f"{url_fragment}/users/",

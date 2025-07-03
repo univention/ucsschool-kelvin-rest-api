@@ -101,7 +101,8 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     type_name: str = None
     type_filter = (
-        "(|(objectClass=ucsschoolTeacher)(objectClass=ucsschoolStaff)(objectClass=ucsschoolStudent))"
+        "(|(objectClass=ucsschoolAdministrator)(objectClass=ucsschoolTeacher)"
+        "(objectClass=ucsschoolStaff)(objectClass=ucsschoolStudent))"
     )
 
     _profile_path_cache: Dict[str, str] = {}
@@ -248,18 +249,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         if "ucsschoolAdministrator" in ocs:
             return SchoolAdmin
 
-        # legacy DN based checks
-        if cls._legacy_is_student(school, udm_obj.dn):
-            return Student
-        if cls._legacy_is_teacher(school, udm_obj.dn):
-            if cls._legacy_is_staff(school, udm_obj.dn):
-                return TeachersAndStaff
-            return Teacher
-        if cls._legacy_is_staff(school, udm_obj.dn):
-            return Staff
-        if cls._legacy_is_exam_student(school, udm_obj.dn):
-            return ExamStudent
-
+        cls.logger.error("Cannot determine class for user object %r" % (udm_obj,))
         return User
 
     @classmethod
@@ -934,7 +924,7 @@ class ExamStudent(Student):
         return await cls.from_dn(dn, school, lo)
 
 
-ConcreteUserClass = TypeVar("ConcreteUserClass", Staff, Student, Teacher, TeachersAndStaff)
+ConcreteUserClass = TypeVar("ConcreteUserClass", Staff, Student, Teacher, TeachersAndStaff, SchoolAdmin)
 
 
 class UserTypeConverter:
@@ -943,12 +933,14 @@ class UserTypeConverter:
         "student": (role_student,),
         "teacher": (role_teacher,),
         "teacher_and_staff": (role_staff, role_teacher),
+        "school_admin": (role_school_admin,),
     }
     roles_rm = {
-        "staff": (role_student, role_teacher),
-        "student": (role_staff, role_teacher),
-        "teacher": (role_staff, role_student),
-        "teacher_and_staff": (role_student,),
+        "staff": (role_student, role_teacher, role_school_admin),
+        "student": (role_staff, role_teacher, role_school_admin),
+        "teacher": (role_staff, role_student, role_school_admin),
+        "teacher_and_staff": (role_student, role_school_admin),
+        "school_admin": (role_student, role_teacher, role_staff),
     }
 
     @classmethod
@@ -979,18 +971,25 @@ class UserTypeConverter:
                     "Type conversion to 'Student' requires at least one school class per school in old "
                     "user or passed in additionally."
                 )
-        if issubclass(new_cls, Staff) and additional_classes:
-            logger.warning("Additional school classes will be ignored during conversion to 'Staff'.")
+        if issubclass(new_cls, (Staff,)) and additional_classes:
+            logger.warning("Additional school classes will be ignored during conversion to {new_cls!r}.")
         new_cls_name = new_cls.__name__
         if set(user.roles) == set(new_cls.roles):
             logger.debug("No type conversion necessary, user type is already %r: %r", new_cls_name, user)
             return user
         udm_obj = await user.get_udm_object(udm)
-        if issubclass(new_cls, Student) and udm_obj.options.get("ucsschoolAdministrator", False):
+        if issubclass(new_cls, Student) and udm_obj.options.get(
+            "ucsschoolAdministrator", False
+        ):  # Why is this?
             raise TypeError(f"Conversion to {new_cls_name!r} is not allowed for school administrator.")
         logger.info("Converting to %r: %r...", new_cls_name, user)
         logger.debug("Data before conversion:\n%s", cls._dump_user_data(udm_obj))
-        options = {"ucsschoolStaff": False, "ucsschoolStudent": False, "ucsschoolTeacher": False}
+        options = {
+            "ucsschoolStaff": False,
+            "ucsschoolStudent": False,
+            "ucsschoolTeacher": False,
+            "ucsschoolAdministrator": False,
+        }
         options.update(dict((opt, True) for opt in new_cls.get_default_options()))
         position = new_cls.get_container(user.school)
         groups = cls._groups(user, udm_obj, new_cls, additional_classes, additional_workgroups)
@@ -1037,23 +1036,29 @@ class UserTypeConverter:
         additional_classes: Dict[str, List[str]],
         additional_workgroups: Dict[str, List[str]],
     ) -> List[str]:
-        if issubclass(new_cls, Staff):
+        if issubclass(new_cls, SchoolAdmin):
+            add_groups = user.get_school_admin_groups()
+            rm_groups = user.get_students_groups() + user.get_teachers_groups() + user.get_staff_groups()
+        elif issubclass(new_cls, Staff):
             add_groups = user.get_staff_groups()
-            rm_groups = user.get_students_groups() + user.get_teachers_groups()
+            rm_groups = (
+                user.get_students_groups() + user.get_teachers_groups() + user.get_school_admin_groups()
+            )
         elif issubclass(new_cls, Student):
             add_groups = user.get_students_groups()
-            rm_groups = user.get_staff_groups() + user.get_teachers_groups()
+            rm_groups = (
+                user.get_staff_groups() + user.get_teachers_groups() + user.get_school_admin_groups()
+            )
         elif issubclass(new_cls, TeachersAndStaff):
             add_groups = user.get_staff_groups() + user.get_teachers_groups()
-            rm_groups = user.get_students_groups()
-        else:
-            if not issubclass(new_cls, Teacher):
-                raise RuntimeError(
-                    f"Variable 'new_cls' should be [a subclass of] Teacher, but is: {new_cls!r} "
-                    f"({type(new_cls)!r})."
-                )
+            rm_groups = user.get_students_groups() + user.get_school_admin_groups()
+        elif issubclass(new_cls, Teacher):
             add_groups = user.get_teachers_groups()
-            rm_groups = user.get_staff_groups() + user.get_students_groups()
+            rm_groups = (
+                user.get_staff_groups() + user.get_students_groups() + user.get_school_admin_groups()
+            )
+        else:
+            raise RuntimeError(f"Unknown class defined: {new_cls!r} " f"({type(new_cls)!r}).")
         # not beautiful, but keeps lower/upper case intact:
         rm_groups = set(g.lower() for g in rm_groups)
         if issubclass(new_cls, Staff):
@@ -1078,7 +1083,10 @@ class UserTypeConverter:
 
     @classmethod
     def _roles(cls, user: User, new_cls: Type[User]) -> List[str]:
-        if issubclass(new_cls, Staff):
+        if issubclass(new_cls, SchoolAdmin):
+            _add_roles = cls.roles_add["school_admin"]
+            _rm_roles = cls.roles_rm["school_admin"]
+        elif issubclass(new_cls, Staff):
             _add_roles = cls.roles_add["staff"]
             _rm_roles = cls.roles_rm["staff"]
         elif issubclass(new_cls, Student):
@@ -1100,6 +1108,17 @@ class UserTypeConverter:
             create_ucsschool_role_string(role, school) for role in _add_roles for school in user.schools
         )
         return sorted(ucsschool_roles)
+
+
+async def convert_to_school_admin(
+    user: ConcreteUserClass,
+    udm: UDM,
+    additional_classes: Dict[str, List[str]] = None,
+    additional_workgroups: Dict[str, List[str]] = None,
+) -> SchoolAdmin:
+    return await UserTypeConverter.convert(
+        user, SchoolAdmin, udm, additional_classes, additional_workgroups
+    )
 
 
 async def convert_to_staff(

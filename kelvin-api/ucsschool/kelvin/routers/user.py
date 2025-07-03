@@ -55,18 +55,21 @@ from ucsschool.importer.exceptions import UcsSchoolImportError
 from ucsschool.importer.factory import Factory
 from ucsschool.importer.mass_import.user_import import UserImport
 from ucsschool.importer.models.import_user import (
+    ImportSchoolAdmin,
     ImportStaff,
     ImportStudent,
     ImportTeacher,
     ImportTeachersAndStaff,
     ImportUser,
     WorkgroupDoesNotExistError,
+    convert_to_school_admin,
     convert_to_staff,
     convert_to_student,
     convert_to_teacher,
     convert_to_teacher_and_staff,
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
+from ucsschool.lib.models.base import WrongModel
 from ucsschool.lib.models.user import User
 from ucsschool.lib.models.utils import uldap_admin_write_primary
 from ucsschool.lib.roles import (
@@ -594,7 +597,7 @@ async def search(  # noqa: C901
     - **firstname**: given name of users to look for
     - **lastname**: family name of users to look for
     - **roles**: **list** of roles the user should have, **allowed values:
-        ["staff"], ["student"], ["teacher"], ["staff", "teacher"]**
+        ["staff"], ["student"], ["teacher"], ["staff", "teacher"], ["school_admin"]**
     - **additional query parameters**: additionally to the above parameters,
         any UDM property can be used to filter, e.g.
         **?uidNumber=12345&city=Bremen**
@@ -633,6 +636,7 @@ async def search(  # noqa: C901
         {SchoolUserRole.student},
         {SchoolUserRole.teacher},
         {SchoolUserRole.staff, SchoolUserRole.teacher},
+        {SchoolUserRole.school_admin},
     ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -659,7 +663,18 @@ async def search(  # noqa: C901
     t0 = time.time()
     udm_objs = [udm_obj async for udm_obj in udm.get("users/user").search(udm_filter)]
     t1 = time.time()
-    users: List[ImportUser] = [await user_class.from_udm_obj(udm_obj, None, udm) for udm_obj in udm_objs]
+    users: List[ImportUser] = []
+    for udm_obj in udm_objs:
+        try:
+            users.append(await user_class.from_udm_obj(udm_obj, None, udm))
+        except WrongModel as exc:
+            msg = f"Wrong ImportUser model when reading user {udm_obj.dn!r}: {exc!s}"
+            logger.error(msg)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=msg)
+        except Exception as exc:
+            msg = f"Unknown error when reading user {udm_objs.dn!r}: {exc!s}"
+            logger.error(msg)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=msg)
     t2 = time.time()
     users.sort(key=attrgetter("name"))
     t3 = time.time()
@@ -731,7 +746,7 @@ async def create(
         schools is set**, URL of a **school** resource)
     - **schools**: list of schools the user belongs to (**required unless
         school is set**, list of URLs to **school** resources)
-    - **roles**: user type, one of staff, student, teacher or teacher and staff
+    - **roles**: user type, one of school_admin, staff, student, teacher or teacher and staff
         (**required**, list of URLs to **role** resources)
     - **password**: users password, a random one will be generated if unset
         (optional)
@@ -928,6 +943,7 @@ conversion_target_to_func = {
     ImportStudent: convert_to_student,
     ImportTeacher: convert_to_teacher,
     ImportTeachersAndStaff: convert_to_teacher_and_staff,
+    ImportSchoolAdmin: convert_to_school_admin,
 }
 
 
@@ -985,7 +1001,7 @@ async def partial_update(  # noqa: C901
     - **school**: **URL** of the school resource (**OU**) the user belongs to
     - **schools**: list of **URLs** of school resources the user belongs to
     - **roles**: list of **URLs** of **role** resources, either type: *staff*, *student*,
-        *teacher* or *teacher and staff*
+        *teacher*, *teacher and staff* or *school admin*
     - **password**: users password, if unset random generated
     - **email**: the users email address (**mailPrimaryAddress**)
     - **expiration_date**: date of password expiration (format: **YYYY-MM-DD**,
@@ -1153,7 +1169,7 @@ async def complete_update(  # noqa: C901
     - **schools**: list of **URLs** of school resources the user belongs to (**required unless
         school is set**)
     - **roles**: list of **URLs** of **role** resources, either type: *staff*, *student*,
-        *teacher* or *teacher and staff* (**required**)
+        *teacher*, *teacher and staff* or *school admin* (**required**)
     - **password**: users password, if unset random generated (optional)
     - **email**: the users email address (**mailPrimaryAddress**), used only
         when the email domain is hosted on UCS, not to be confused with the

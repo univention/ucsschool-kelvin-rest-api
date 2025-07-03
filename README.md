@@ -111,6 +111,35 @@ Everything here is optional.
 
 If you have a Kelvin installation on a UCS VM, you can update this instance with locally changed code, by using the script `autoupdate-kelvin-container`.
 
+## Fast development and test execution in VM and docker container
+
+Setup a UCS@school primary node and install the docker container of your feature branch:
+
+``` shell
+notebook# ssh root@10.201.2.135
+uasvm# univention-install univention-appcenter-dev ; univention-app dev-use-test-appcenter
+uasvm# univention-app install ucsschool-kelvin-rest-api=0.0.0-sschwardt-school-admins
+```
+
+Then grab a new shell and start the autoupdater helper, that is using `rsync` and `inotifycopy` from our toolshed repo:
+
+``` shell
+notebook:~/git/edu/ucsschool-kelvin-rest-api$ ./autoupdate-kelvin-container 10.201.2.135
+[helper keeps running]
+```
+
+Now you can edit the code easily on your notebook and the script `autoupdate-kelvin-container` automatically copies the new code into the container:
+
+``` shell
+notebook# ssh root@10.201.2.135
+root@uasvm# univention-app shell ucsschool-kelvin-rest-api
+container# cd /kelvin/kelvin-api/
+container# ucr set ucsschool/kelvin/log_level=DEBUG
+container# /etc/init.d/ucsschool-kelvin-rest-api restart
+container# pytest-3 -lvv tests/test_route_user.py -k "test_create and not udm" 2>&1 | tee test.log
+container#
+```
+
 ## Installation of python packages
 
 It is useful to have all packages installed during development, so that the IDE can autocomplete and lint correctly.
@@ -118,6 +147,7 @@ Please be aware that python-ldap is a dependency of univention-lib-slim. This py
 some additional requirements. Please follow the instructions provided [here](https://www.python-ldap.org/en/python-ldap-3.4.3/installing.html#installing-from-pypi)
 
 ```shell
+apt-get install libsasl2-dev libldap-dev  # required for univention-directory-manager-modules-slim
 python3 -m venv venv
 . venv/bin/activate
 pip install -U pip wheel

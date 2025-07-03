@@ -11,23 +11,28 @@ from ucsschool.lib.models.attributes import ValidationError
 from ucsschool.lib.models.group import SchoolClass
 from ucsschool.lib.models.user import (
     ExamStudent,
+    SchoolAdmin,
     Staff,
     Student,
     Teacher,
     TeachersAndStaff,
     User,
     UserTypeConverter,
+    convert_to_school_admin,
     convert_to_staff,
     convert_to_student,
     convert_to_teacher,
     convert_to_teacher_and_staff,
 )
+from ucsschool.lib.roles import role_school_admin
 from ucsschool.lib.schoolldap import SchoolSearchBase
 from udm_rest_client import UDM
 from udm_rest_client.exceptions import CreateError, ModifyError
 from univention.admin.uexceptions import noObject
 
-UserType = Union[Type[Staff], Type[Student], Type[Teacher], Type[TeachersAndStaff], Type[User]]
+UserType = Union[
+    Type[Staff], Type[Student], Type[Teacher], Type[TeachersAndStaff], Type[SchoolAdmin], Type[User]
+]
 Role = NamedTuple("Role", [("name", str), ("klass", UserType)])
 
 
@@ -49,6 +54,7 @@ USER_ROLES: List[Role] = [
     Role("student", Student),
     Role("teacher", Teacher),
     Role("teacher_and_staff", TeachersAndStaff),
+    Role("school_admin", SchoolAdmin),
 ]
 random.shuffle(USER_ROLES)
 
@@ -383,7 +389,12 @@ async def test_modify_check_password_policies(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("roles", itertools.product(USER_ROLES, USER_ROLES), ids=two_roles_id)
+@pytest.mark.parametrize(
+    "roles",
+    set(itertools.product(USER_ROLES, USER_ROLES))
+    - {(Role("school_admin", SchoolAdmin), Role("student", Student))},
+    ids=two_roles_id,
+)
 async def test_modify_role(
     ldap_base,
     new_school_class_using_udm,
@@ -410,14 +421,18 @@ async def test_modify_role(
             "student": "schueler",
             "teacher": "lehrer",
             "teacher_and_staff": "mitarbeiter",
+            "school_admin": "admins",
         }[role_from.name]
         ou2_group_cn = f"cn=groups,ou={ou2},{ldap_base}"
+        role_groupdn_suffix = (
+            f"cn=ouadmins,cn=groups,{ldap_base}" if role_from.name == "school_admin" else ou2_group_cn
+        )
         use_old_udm.props.groups.extend(
             [
                 cls_dn1,
                 cls_dn3,
                 f"cn=Domain Users {ou2},{ou2_group_cn}",
-                f"cn={role_group_prefix}-{ou2.lower()},{ou2_group_cn}",
+                f"cn={role_group_prefix}-{ou2.lower()},{role_groupdn_suffix}",
             ]
         )
         non_school_role = f"{fake.first_name()}:{fake.last_name()}:{fake.user_name()}"
@@ -438,9 +453,13 @@ async def test_modify_role(
             user_new = await convert_to_student(user_old, udm, addition_class)
         elif issubclass(role_to.klass, TeachersAndStaff):
             user_new = await convert_to_teacher_and_staff(user_old, udm, addition_class)
-        else:
-            assert issubclass(role_to.klass, Teacher)
+        elif issubclass(role_to.klass, Teacher):
             user_new = await convert_to_teacher(user_old, udm, addition_class)
+        elif issubclass(role_to.klass, SchoolAdmin):
+            user_new = await convert_to_school_admin(user_old, udm, addition_class)
+        else:
+            raise RuntimeError(f"Unknown user class: {role_to.klass!r}")
+
         schedule_delete_user_dn(user_new.dn)
 
         if role_from.klass == role_to.klass:
@@ -468,12 +487,15 @@ async def test_modify_role(
             assert user_new_udm.options.get("ucsschoolStaff") is True
             assert user_new_udm.options.get("ucsschoolStudent", False) is False
             assert user_new_udm.options.get("ucsschoolTeacher", False) is False
+            assert user_new_udm.options.get("ucsschoolAdministrator", False) is False
             # check position
             assert user_new_udm.position == f"cn=mitarbeiter,cn=users,ou={user_new.school},{ldap_base}"
             # check roles
             assert {f"staff:school:{ou}" for ou in user_new.schools}.issubset(user_new_ucsschool_roles)
             assert {
-                f"{role}:school:{ou}" for ou in user_new.schools for role in ("student", "teacher")
+                f"{role}:school:{ou}"
+                for ou in user_new.schools
+                for role in ("student", "teacher", "school_admin")
             }.isdisjoint(user_new_ucsschool_roles)
         elif isinstance(user_new, Student):
             assert cls_dn1.lower() in new_groups
@@ -497,6 +519,7 @@ async def test_modify_role(
             assert user_new_udm.options.get("ucsschoolStaff") is True
             assert user_new_udm.options.get("ucsschoolTeacher") is True
             assert user_new_udm.options.get("ucsschoolStudent", False) is False
+            assert user_new_udm.options.get("ucsschoolAdministrator", False) is False
             assert (
                 user_new_udm.position == f"cn=lehrer und mitarbeiter,cn=users,ou={user_new.school},"
                 f"{ldap_base}"
@@ -504,22 +527,43 @@ async def test_modify_role(
             assert {
                 f"{role}:school:{ou}" for ou in user_new.schools for role in ("staff", "teacher")
             }.issubset(user_new_ucsschool_roles)
-            assert {f"student:school:{ou}" for ou in user_new.schools}.isdisjoint(
-                user_new_ucsschool_roles
-            )
-        else:
-            assert isinstance(user_new, Teacher)
+            assert {
+                f"{role}:school:{ou}" for ou in user_new.schools for role in ("student", "school_admin")
+            }.isdisjoint(user_new_ucsschool_roles)
+        elif isinstance(user_new, Teacher):
             assert cls_dn1.lower() in new_groups
             assert cls_dn2.lower() in new_groups
             assert cls_dn3.lower() in new_groups
             assert user_new_udm.options.get("ucsschoolTeacher") is True
             assert user_new_udm.options.get("ucsschoolStaff", False) is False
             assert user_new_udm.options.get("ucsschoolStudent", False) is False
+            assert user_new_udm.options.get("ucsschoolAdministrator", False) is False
             assert user_new_udm.position == f"cn=lehrer,cn=users,ou={user_new.school},{ldap_base}"
             assert {f"teacher:school:{ou}" for ou in user_new.schools}.issubset(user_new_ucsschool_roles)
             assert {
-                f"{role}:school:{ou}" for ou in user_new.schools for role in ("student", "staff")
+                f"{role}:school:{ou}"
+                for ou in user_new.schools
+                for role in ("student", "staff", "school_admin")
             }.isdisjoint(user_new_ucsschool_roles)
+        elif isinstance(user_new, SchoolAdmin):
+            assert cls_dn1.lower() in new_groups
+            assert cls_dn2.lower() in new_groups
+            assert cls_dn3.lower() in new_groups
+            assert user_new_udm.options.get("ucsschoolTeacher", False) is False
+            assert user_new_udm.options.get("ucsschoolStaff", False) is False
+            assert user_new_udm.options.get("ucsschoolStudent", False) is False
+            assert user_new_udm.options.get("ucsschoolAdministrator") is True
+            assert user_new_udm.position == f"cn=admins,cn=users,ou={user_new.school},{ldap_base}"
+            assert {f"{role_school_admin}:school:{ou}" for ou in user_new.schools}.issubset(
+                user_new_ucsschool_roles
+            )
+            assert {
+                f"{role}:school:{ou}"
+                for ou in user_new.schools
+                for role in ("student", "staff", "teacher")
+            }.isdisjoint(user_new_ucsschool_roles)
+        else:
+            raise RuntimeError(f"Unknown user class: {user_new!r}")
 
 
 @pytest.mark.asyncio
@@ -541,8 +585,8 @@ async def test_modify_role_forbidden(
             new_user_obj = await convert_to_staff(sc_obj, udm)
             schedule_delete_user_dn(new_user_obj.dn)
 
-        dn, attr = await new_udm_user(ou1, "teacher")
-        user_obj = await Teacher.from_dn(dn, ou1, udm)
+        dn, attr = await new_udm_user(ou1, "school_admin")
+        user_obj = await SchoolAdmin.from_dn(dn, ou1, udm)
         user_udm = await user_obj.get_udm_object(udm)
         user_udm.options["ucsschoolAdministrator"] = True
         with pytest.raises(TypeError, match=r"not allowed for school administrator"):
@@ -817,6 +861,7 @@ unixhomes = {
     "teacher": "lehrer",
     "staff": "mitarbeiter",
     "teacher_and_staff": "lehrer",
+    "school_admin": "admins",  # TODO FIXME this has never been defined yet!
 }
 
 
@@ -1071,7 +1116,7 @@ async def test_is_student(create_ou_using_python, new_udm_user, udm_kwargs):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("role", ("staff", "teacher", "teacher_and_staff"))
+@pytest.mark.parametrize("role", ("staff", "teacher", "teacher_and_staff", "school_admin"))
 async def test_is_student_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
     ou = await create_ou_using_python()
     dn, _ = await new_udm_user(ou, role)
@@ -1092,7 +1137,7 @@ async def test_is_student_with_fallback(create_ou_using_python, new_udm_user, ud
         # Let's artificially create a legacy user
         user_udm = await user.get_udm_object(udm)
         user_udm.options["ucsschoolStudent"] = None
-        user_udm.save()
+        await user_udm.save()
 
         is_student = await user.is_student(udm)
         assert is_student
@@ -1128,7 +1173,7 @@ async def test_is_exam_student(create_ou_using_python, new_udm_user, udm_kwargs)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("role", ("student", "staff", "teacher", "teacher_and_staff"))
+@pytest.mark.parametrize("role", ("student", "staff", "teacher", "teacher_and_staff", "school_admin"))
 async def test_is_exam_student_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
     ou = await create_ou_using_python()
     dn, _ = await new_udm_user(ou, role)
@@ -1173,7 +1218,7 @@ async def test_is_teacher_when_teacher_and_staff(create_ou_using_python, new_udm
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("role", ("student", "staff"))
+@pytest.mark.parametrize("role", ("student", "staff", "school_admin"))
 async def test_is_teacher_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
     ou = await create_ou_using_python()
     dn, _ = await new_udm_user(ou, role)
@@ -1234,7 +1279,7 @@ async def test_is_staff_when_teacher_and_staff(create_ou_using_python, new_udm_u
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("role", ("student", "teacher"))
+@pytest.mark.parametrize("role", ("student", "teacher", "school_admin"))
 async def test_is_staff_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
     ou = await create_ou_using_python()
     dn, _ = await new_udm_user(ou, role)

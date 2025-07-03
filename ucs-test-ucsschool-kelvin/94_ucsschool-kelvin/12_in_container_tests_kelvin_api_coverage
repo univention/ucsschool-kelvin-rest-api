@@ -1,5 +1,5 @@
 #!/usr/share/ucs-test/runner bash
-## desc: coverage of the previous kelvin api tests (requires 10_in_container_tests_kelvin_api to have run)
+## desc: coverage of the previous kelvin api tests (requires 11_in_container_tests_kelvin_api to have run)
 ## tags: [ucs_school_kelvin]
 ## exposure: dangerous
 ## packages: []

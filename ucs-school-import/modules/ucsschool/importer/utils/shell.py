@@ -71,6 +71,7 @@ from ..exceptions import UcsSchoolImportFatalError as _UcsSchoolImportFatalError
 from ..factory import setup_factory as _setup_factory
 from ..frontend.user_import_cmdline import UserImportCommandLine as _UserImportCommandLine
 from ..models.import_user import (
+    ImportSchoolAdmin,
     ImportStaff,
     ImportStudent,
     ImportTeacher,
@@ -87,6 +88,7 @@ assert ImportStaff
 assert ImportStudent
 assert ImportTeacher
 assert ImportTeachersAndStaff
+assert ImportSchoolAdmin
 assert ImportUser
 
 _config_args = {

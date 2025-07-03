@@ -52,8 +52,14 @@ class InvalidUcsschoolRoleString(UcsschoolRoleStringError):
 role_pupil = "pupil"  # attention: there is also "role_student"
 role_teacher = "teacher"
 role_staff = "staff"
+role_school_admin = "school_admin"
 
-supported_roles = (role_pupil, role_teacher, role_staff)  # note: pupil SHOULD come first here for checks
+supported_roles = (
+    role_pupil,
+    role_teacher,
+    role_staff,
+    role_school_admin,
+)  # note: pupil SHOULD come first here for checks
 
 role_computer_room = "computer_room"
 role_dc_backup = "dc_backup"
@@ -73,7 +79,6 @@ role_memberserver = "memberserver"
 role_memberserver_admin = "memberserver_admin"
 role_memberserver_edu = "memberserver_edu"
 role_school = "school"
-role_school_admin = "school_admin"
 role_school_admin_group = "school_admin_group"
 role_school_domain_group = "school_domain_group"
 role_school_teacher_group = "school_teacher_group"

@@ -40,7 +40,7 @@ fake = Faker()
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("role_name", ["staff", "student", "teacher"])
+@pytest.mark.parametrize("role_name", ["staff", "student", "teacher", "school_admin"])
 async def test_get_existing_role(auth_header, retry_http_502, url_fragment, role_name):
     response = retry_http_502(
         requests.get,
