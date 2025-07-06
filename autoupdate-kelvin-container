@@ -1,0 +1,40 @@
+#!/bin/bash
+#
+# This is a script for development.
+
+
+TARGET="$1"
+
+for tool in jq ssh ; do
+	which "$tool" > /dev/null || {
+		echo "ERROR: cannot find tool '$tool'."
+		exit 1
+	}
+done
+
+[ -z "$TARGET" ] && {
+	echo "syntax: $(basename "$0") <host>"
+	echo "Please specify the hostname or IP address as first argument."
+	exit 1
+}
+
+[ ! -d .git ] && {
+	echo "Please change to the root directory of the repo 'ucsschool-kelvin-rest-api'."
+	exit 1
+}
+
+INSTANCE="$(ssh "root@$TARGET" docker ps | grep "gitregistry.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api:" | cut -d" " -f1)"
+TARGETDIR="$(ssh "root@$TARGET" docker inspect "$INSTANCE" | jq .[0].GraphDriver.Data.MergedDir -r)"
+echo "Container: $INSTANCE"
+echo "Container dir: $TARGETDIR"
+
+inotifycopy \
+	-a kelvin-api/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ \
+	-a kelvin-api/tests/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/tests/ \
+	-a kelvin-api/ucsschool/kelvin/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ucsschool/kelvin/ \
+	-a kelvin-api/ucsschool/kelvin/routers/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ucsschool/kelvin/routers/ \
+	-a ucs-school-import/modules/ucsschool/importer/models/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/models/ \
+	-a ucs-school-import/modules/ucsschool/importer/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/ \
+	-a ucs-school-lib/modules/ucsschool/lib/models/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-lib/modules/ucsschool/lib/models/ \
+	-a ucs-school-lib/modules/ucsschool/lib/tests/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-lib/modules/ucsschool/lib/tests/ \
+	-i
