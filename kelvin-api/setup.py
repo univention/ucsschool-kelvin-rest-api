@@ -40,14 +40,8 @@ from typing import Iterable
 
 import setuptools
 
-with (Path(__file__).parent / "requirements.txt").open("r") as fp:
+with (Path(__file__).parent / "requirements_all.txt").open("r") as fp:
     requirements = fp.read().splitlines()
-
-with (Path(__file__).parent / "requirements_dev.txt").open("r") as fp:
-    requirements_dev = fp.read().splitlines()
-
-with (Path(__file__).parent / "requirements_test.txt").open("r") as fp:
-    requirements_test = fp.read().splitlines()
 
 with (Path(__file__).parent / "VERSION.txt").open("r") as fp:
     version = fp.read().strip()
@@ -110,8 +104,7 @@ setuptools.setup(
     url="https://www.univention.de/",
     install_requires=requirements,
     setup_requires=["docutils", "pytest-runner"],
-    tests_require=requirements_test,
-    extras_require={"development": set(requirements + requirements_dev + requirements_test)},
+    extras_require={"development": requirements},
     packages=["ucsschool.kelvin", "ucsschool.kelvin.routers"],
     dependency_links=["https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple"],
     python_requires=">=3.7",

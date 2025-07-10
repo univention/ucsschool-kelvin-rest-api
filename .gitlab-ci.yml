@@ -1,14 +1,14 @@
 include:
-  - project: 'univention/dev/docs/sphinx-docker'
-    file: 'pipeline/sphinx.yml'
+  - project: "univention/dev/docs/sphinx-docker"
+    file: "pipeline/sphinx.yml"
   - project: univention/infrastructure/docker-services
     file:
-    - kaniko.yml
-    - pre-commit.yml
+      - kaniko.yml
+      - pre-commit.yml
   - project: univention/dev/internal/ucsschool-ci-utils
     file:
-    - fragments/misc.yaml
-    - fragments/appcenter.yaml
+      - fragments/misc.yaml
+      - fragments/appcenter.yaml
   - local: .gitlab-ci/SonarQube.yml
 
 workflow:
@@ -18,7 +18,6 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "web"
     - if: $CI_PIPELINE_SOURCE == "webide"
     - if: $CI_COMMIT_TAG
-
 
 stages:
   - prepare
@@ -55,14 +54,12 @@ variables:
       - "false"
     description: "Force appcenter upload"
 
-
 run_pre_commit:
   stage: lint
   needs: []
   extends: .pre-commit
   variables:
     PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit:latest"
-
 
 lint_commit_messages:
   stage: lint
@@ -108,16 +105,16 @@ announce_app_mail:
     SENDER: "ucsschool-maintainers@univention.de"
   before_script:
     - |
-      cat >mail.txt<< EOF
-      Hello,
-      the UCS@school Kelvin REST API has been released in version ${APP_VERSION}.
+        cat >mail.txt<< EOF
+        Hello,
+        the UCS@school Kelvin REST API has been released in version ${APP_VERSION}.
 
-      For changes, see https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html
+        For changes, see https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html
 
-      Best regards
+        Best regards
 
-      The UCS@school Team
-      EOF
+        The UCS@school Team
+        EOF
 
 check_release:
   stage: production
@@ -138,61 +135,33 @@ delete_app_version:
   stage: cleanup
   extends: .delete_app_version
 
-prepare:
-  stage: prepare
-  rules:
-    - if: "$CI_COMMIT_TAG"
-    - changes:
-        - docker/*
-        - kelvin-api/**/*
-        - ucs-school-import/**/*
-        - ucs-school-lib/**/*
-        - univention-directory-manager-modules-slim/**/*
-        - univention-lib-slim/**/*
-  image:
-    name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.9-bullseye
-  artifacts:
-    paths:
-    - docker/build/
-    expire_in: 1 day
-  cache:
-    - key: "$CI_COMMIT_REF_SLUG"
-      paths:
-        - docker/build/
-  script:
-    - apt-get update
-    - apt-get install -y git rsync
-    - cd ${CI_PROJECT_DIR}/docker
-    - ./gitlab_prepare_docker_image
-
-
 docs-html:
   extends: .sphinx-html-template
   rules:
     - changes:
-      - $DOCS_DIR/**/*
-      - kelvin-api/changelog.rst
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
 
 docs-pdf:
   extends: .sphinx-pdf-template
   rules:
     - changes:
-      - $DOCS_DIR/**/*
-      - kelvin-api/changelog.rst
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
 
 docs-linkcheck:
   extends: .sphinx-linkcheck-template
   rules:
     - changes:
-      - $DOCS_DIR/**/*
-      - kelvin-api/changelog.rst
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
 
 docs-spelling:
   extends: .sphinx-spelling-template
   rules:
     - changes:
-      - $DOCS_DIR/**/*
-      - kelvin-api/changelog.rst
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
 
 docs-merge-to-one-artifact:
   extends: .sphinx-merge-template
@@ -206,12 +175,12 @@ docs-merge-to-one-artifact:
   rules:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       changes:
-      - $DOCS_DIR/**/*
-      - kelvin-api/changelog.rst
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
-      - $DOCS_DIR/**/*
-      - kelvin-api/changelog.rst
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
       when: manual
 
 docs-review:
@@ -221,12 +190,12 @@ docs-review:
   rules:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       changes:
-      - $DOCS_DIR/**/*
-      - kelvin-api/changelog.rst
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
-      - $DOCS_DIR/**/*
-      - kelvin-api/changelog.rst
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
       when: manual
 
 # The template has inherit:variables:false to prevent the passing of pipeline
@@ -236,15 +205,14 @@ docs-create-production-merge-request:
   needs:
     - job: docs-merge-to-one-artifact
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
       changes:
-      - doc/docs/**/*
-      - kelvin-api/changelog.rst
-    - if: '$CI_COMMIT_TAG'
+        - doc/docs/**/*
+        - kelvin-api/changelog.rst
+    - if: "$CI_COMMIT_TAG"
       changes:
-      - doc/docs/**/*
-      - kelvin-api/changelog.rst
-
+        - doc/docs/**/*
+        - kelvin-api/changelog.rst
 
 build_docker_image:
   stage: build
@@ -262,9 +230,9 @@ build_docker_image:
         - univention-lib-slim/**/*
   extends: .kaniko
   variables:
-      KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/docker/build/"
-      KANIKO_ARGS: --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
-
+    KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/"
+    DOCKERFILE_PATH: docker/Dockerfile
+    KANIKO_ARGS: --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
 
 test ucs-school-lib:
   stage: tests
@@ -278,14 +246,14 @@ test ucs-school-lib:
     - cp ucs-school-import/modules/ucsschool/lib/create_ou.py ucs-school-lib/modules/ucsschool/lib/
     - cd ucs-school-lib/modules
     - >
-      python3 -m pytest -lvv
-      --asyncio-mode=auto
-      --junitxml=${CI_PROJECT_DIR}/report.xml
-      --cov=ucsschool.lib
-      --cov-report term-missing
-      --cov-fail-under="$UCS_SCHOOL_LIB_COVERAGE_LIMIT"
-      --cov-report xml:${CI_PROJECT_DIR}/coverage.xml
-      ucsschool/lib/tests
+        python3 -m pytest -lvv
+        --asyncio-mode=auto
+        --junitxml=${CI_PROJECT_DIR}/report.xml
+        --cov=ucsschool.lib
+        --cov-report term-missing
+        --cov-fail-under="$UCS_SCHOOL_LIB_COVERAGE_LIMIT"
+        --cov-report xml:${CI_PROJECT_DIR}/coverage.xml
+        ucsschool/lib/tests
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
@@ -305,14 +273,14 @@ test kelvin-api:
   script:
     - cd ${CI_PROJECT_DIR}/kelvin-api
     - >
-      python3 -m pytest -lvv
-      --asyncio-mode=auto
-      --junitxml=${CI_PROJECT_DIR}/report.xml
-      --cov=ucsschool.kelvin
-      --cov-report term-missing
-      --cov-fail-under="$KELVIN_COVERAGE_LIMIT"
-      --cov-report xml:${CI_PROJECT_DIR}/coverage.xml
-      tests
+        python3 -m pytest -lvv
+        --asyncio-mode=auto
+        --junitxml=${CI_PROJECT_DIR}/report.xml
+        --cov=ucsschool.kelvin
+        --cov-report term-missing
+        --cov-fail-under="$KELVIN_COVERAGE_LIMIT"
+        --cov-report xml:${CI_PROJECT_DIR}/coverage.xml
+        tests
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:
@@ -325,7 +293,7 @@ ucs_test_deb_lint:
   stage: lint
   rules:
     - changes:
-      - ucs-test-ucsschool-kelvin/**/*
+        - ucs-test-ucsschool-kelvin/**/*
   image:
     name: $UCSLINT_IMAGE
     entrypoint: [""]
@@ -365,13 +333,13 @@ ucs_test_deb_repo_import:
     - omar
   script:
     - >
-      repo_admin.py
-      -G $CI_REPOSITORY_URL
-      -b $CI_COMMIT_BRANCH
-      -P ucs-test-ucsschool-kelvin
-      -r ${UCS_RELEASE}-0-0
-      -s $SCOPE
-      -p $PACKAGE
+        repo_admin.py
+        -G $CI_REPOSITORY_URL
+        -b $CI_COMMIT_BRANCH
+        -P ucs-test-ucsschool-kelvin
+        -r ${UCS_RELEASE}-0-0
+        -s $SCOPE
+        -p $PACKAGE
 
 ucs_test_deb_repo_build:
   stage: build
@@ -388,8 +356,8 @@ ucs_test_deb_repo_build:
     - ladda
   script:
     - >
-      build-package-ng
-      --no-pbuilder-update
-      -r ${UCS_RELEASE}-0-0
-      -s $SCOPE
-      -p $PACKAGE
+        build-package-ng
+        --no-pbuilder-update
+        -r ${UCS_RELEASE}-0-0
+        -s $SCOPE
+        -p $PACKAGE
