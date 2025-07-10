@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "ucs-school-lib"
+version = "12.2.11"
+description = ""
+authors = ["Jürn Brodersen <brodersen@univention.de>"]
+packages = [
+    { include = "ucsschool" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+colorlog = "^6.9.0"
+lazy-object-proxy = "^1.11.0"
+python-ldap = "^3.4.4"
+ruamel-yaml = "<0.18.0"
+six = "^1.17.0"
+univention-directory-manager-modules = {path = "../../univention-directory-manager-modules-slim"}
+univention-lib = {path = "../../univention-lib-slim"}
+udm-rest-client = ">=1.0.8"
+uldap3 = {git = "https://git.knut.univention.de/univention/dev/libraries/uldap3.git"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

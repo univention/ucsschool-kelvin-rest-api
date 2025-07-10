@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "ucs-school-import"
+version = "17.0.52"
+description = ""
+authors = ["Jürn Brodersen <brodersen@univention.de>"]
+packages = [
+    { include = "ucsschool" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+python-magic = "^0.4.27"
+ucs-school-lib = {path = "../../ucs-school-lib/modules"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

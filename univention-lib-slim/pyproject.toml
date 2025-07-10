@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "univention-lib"
+version = "1.0.0"
+description = ""
+authors = ["Jürn Brodersen <brodersen@univention.de>"]
+packages = [
+    { include = "univention" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+six = "^1.17.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

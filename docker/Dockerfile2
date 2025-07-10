@@ -1,0 +1,74 @@
+# Copyright 2020-2023 Univention GmbH
+#
+# http://www.univention.de/
+#
+# All rights reserved.
+#
+# The source code of this program is made available
+# under the terms of the GNU Affero General Public License version 3
+# (GNU AGPL V3) as published by the Free Software Foundation.
+#
+# Binary versions of this program provided by Univention to you as
+# well as other copyrighted, protected or trademarked materials like
+# Logos, graphics, fonts, specific documentations and configurations,
+# cryptographic keys etc. are subject to a license agreement between
+# you and Univention and not subject to the GNU AGPL V3.
+#
+# In the case you use this program under the terms of the GNU AGPL V3,
+# the program is provided in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License with the Debian GNU/Linux or Univention distribution in file
+# /usr/share/common-licenses/AGPL-3; if not, see
+# <http://www.gnu.org/licenses/>.
+
+# TODO: set to specific alpine version (>=3.18?) that includes Python 3.11 or migarte to Debian image
+ARG DOCKER_PROXY
+
+FROM ${DOCKER_PROXY}alpine:3.18.9
+
+VOLUME /var/log
+
+WORKDIR /kelvin
+
+EXPOSE 7890
+
+ENV PYTHONUNBUFFERED=1
+ENV POETRY_NO_INTERACTION=1
+ENV POETRY_VIRTUALENVS_CREATE=false
+ENV PIPX_BIN_DIR="/usr/local/bin"
+ENV VIRTUAL_ENV="/venv"
+
+RUN apk add python3 openjdk17
+RUN apk add gcc linux-headers python3-dev musl-dev openldap-dev git py3-pip py3-virtualenv
+
+COPY kelvin-api ./kelvin-api
+COPY ucs-school-import ./ucs-school-import
+COPY ucs-school-lib ./ucs-school-lib
+COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
+COPY univention-lib-slim ./univention-lib-slim
+COPY openapi-client-udm-1.0.2.tar.gz /kelvin/
+
+WORKDIR /kelvin/kelvin-api
+
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+RUN pip install pipx
+RUN pipx install poetry
+RUN poetry install
+
+CMD ["gunicorn" ,"--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8911", "ucsschool.kelvin.main:app"]
+
+ARG app_id
+ARG commit
+ARG date
+ARG version
+
+LABEL "description"="Image of UCS app 'UCS@school Kelvin REST API' ('$app_id')." \
+    "url"="https://www.univention.com/products/univention-app-center/app-catalog/$app_id/" \
+    "version"="$version" \
+    "release date"="$date" \
+    "commit"="$commit"

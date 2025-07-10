@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "kelvin-api"
+version = "2.0.0"
+description = ""
+authors = ["Jürn Brodersen <brodersen@univention.de>"]
+packages = [
+    { include = "ucsschool" },
+]
+
+[tool.poetry.dependencies]
+python = "~=3.11.0"
+aiocache = ">=0.11.1,<0.13"
+asgi-correlation-id = ">=3.0.1"
+fastapi = ">=0.95.2,<0.98.0"
+aiofiles = "^24.1.0"
+async-property = "^0.2.2"
+cachetools = "^6.1.0"
+diskcache = "^5.6.3"
+timing-asgi = ">=0.3.0,<0.4.0"
+httpx = "<0.28.0"
+lazy-object-proxy = "^1.11.0"
+psutil = "^7.0.0"
+pyasn1-modules = ">=0.2.7"
+pyasn1 = ">=0.4.6,<0.6.0"
+pydantic = {version = "<2", extras = ["dotenv", "email"]}
+pyjwt = "^2.10.1"
+python-multipart = "^0.0.20"
+orjson = ">=3.8.4"
+uvicorn = "^0.35.0"
+gunicorn = "^23.0.0"
+uldap3 = {git = "https://git.knut.univention.de/univention/dev/libraries/uldap3.git"}
+univention-directory-manager-modules = {path = "../univention-directory-manager-modules-slim"}
+ucs-school-lib = {path = "../ucs-school-lib/modules"}
+ucs-school-import = {path = "../ucs-school-import/modules"}
+univention-debhelper = {git = "https://git.knut.univention.de/univention/dev/ucs.git", subdirectory = "packaging/univention-debhelper/"}
+univention-configuration-registry = {git = "https://git.knut.univention.de/univention/dev/ucs.git", subdirectory = "base/univention-config-registry"}
+setuptools = "^80.9.0"
+openapi-client-udm = {path = "../openapi-client-udm-1.0.2.tar.gz"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
