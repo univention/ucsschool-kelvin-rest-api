@@ -3,7 +3,6 @@ lazy-object-proxy
 python-ldap
 ruamel.yaml<0.18.0
 six
-univention-config-registry
 univention-directory-manager-modules
 univention-lib
 udm-rest-client>=1.0.8
