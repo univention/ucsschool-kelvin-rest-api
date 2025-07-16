@@ -1,4 +1,17 @@
 include:
+  - component: $CI_SERVER_FQDN/univention/dev/internal/ucsschool-ci-utils/app-release@2.1.4
+    inputs:
+      app_id: "ucsschool-kelvin-rest-api"
+      mail_sender: "ucsschool-maintainers@univention.de"
+      author_alias: "UCS@school Team"
+      changelog_link: "https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html"
+      mail_recipient: "app-announcement@univention.de"
+      chat_destination: "#ucsschool"
+      ucs_base_version: "5.2"
+      additional_update_appcenter_needs:
+        - job: build_docker_image
+          optional: true
+      appcenter_file_dir: "appcenter/"
   - project: "univention/dev/docs/sphinx-docker"
     file: "pipeline/sphinx.yml"
   - project: univention/infrastructure/docker-services
@@ -23,10 +36,9 @@ stages:
   - prepare
   - build
   - tests
-  - appcenter
   - merge
-  - lint
   - production
+  - release
   - cleanup
 
 # todo: add renovate
@@ -55,85 +67,18 @@ variables:
     description: "Force appcenter upload"
 
 run_pre_commit:
-  stage: lint
+  stage: build
   needs: []
   extends: .pre-commit
   variables:
     PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit:latest"
 
 lint_commit_messages:
-  stage: lint
+  stage: build
   needs: []
   variables:
     HOOK_IDS: "conventional-pre-commit issue-reference"
   extends: .lint_commit_messages
-
-create_app_version:
-  stage: prepare
-  extends: .create_app_version
-
-update_appcenter:
-  stage: build
-  extends: .update_appcenter
-  needs:
-    - job: create_app_version
-    - job: build_docker_image
-      optional: true
-
-do_release:
-  stage: production
-  extends: .do_release
-
-announce_app_chat:
-  stage: cleanup
-  rules:
-    - if: "$CI_COMMIT_TAG"
-  extends: .send_chat_message
-  variables:
-    ALIAS: "UCS@school Team"
-    DESTINATION: "#ucsschool"
-    MESSAGE: "The UCS@school Kelvin app was released in version $APP_VERSION. Changes can be found in the [Changelog](https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html)."
-
-announce_app_mail:
-  stage: cleanup
-  rules:
-    - if: "$CI_COMMIT_TAG"
-  extends: .send_mail
-  variables:
-    SUBJECT: "App Release: UCS@school Kelvin REST API"
-    RECIPIENT: "app-announcement@univention.de"
-    SENDER: "ucsschool-maintainers@univention.de"
-  before_script:
-    - |
-        cat >mail.txt<< EOF
-        Hello,
-        the UCS@school Kelvin REST API has been released in version ${APP_VERSION}.
-
-        For changes, see https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html
-
-        Best regards
-
-        The UCS@school Team
-        EOF
-
-check_release:
-  stage: production
-  needs: [do_release, create_app_version]
-  extends: .check_release
-
-create_gitlab_release:
-  stage: production
-  extends: .create_gitlab_release
-  needs: [do_release]
-  release:
-    assets:
-      links:
-        - name: "Changelog"
-          url: "https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html"
-
-delete_app_version:
-  stage: cleanup
-  extends: .delete_app_version
 
 docs-html:
   extends: .sphinx-html-template
@@ -290,7 +235,7 @@ test kelvin-api:
         path: coverage.xml
 
 ucs_test_deb_lint:
-  stage: lint
+  stage: build
   rules:
     - changes:
         - ucs-test-ucsschool-kelvin/**/*
