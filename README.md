@@ -43,10 +43,10 @@ At least the `README_UPDATE_*` files which contain the version should have been 
 
 #### Release a new app version
 
-* Create a new tag with the version number you want to release, e.g.: 1.1.0
-* Wait for the tag pipeline until it reaches the `do_release` job
-* Is everything looking good so far? The next will make the new version public!
-* Start the `do_release` job
+- Create a new tag with the version number you want to release, e.g.: `release-1.1.0`
+- Wait for the tag pipeline until it reaches the `do_release` job
+- Is everything looking good so far? The next will make the new version public!
+- Start the `do_release` job
 
 #### Publish documentation
 
@@ -54,7 +54,7 @@ The documentation is build automatically when changes are pushed in `doc/docs/**
 The job to copy the documentation `docs-production` to the repository `docs.univention.de` must be triggered manually.
 
 The pipeline rule definition has two conditions in **one** rule. The
-*docs-production* is only created when the files below `doc/docs/**/*` changed
+_docs-production_ is only created when the files below `doc/docs/**/*` changed
 **AND** when the branch is the default branch. This means, you need to develop
 your documentation changes in a feature branch. And after the merge to the
 default branch, the job starts, because it is in the default branch and
@@ -73,54 +73,43 @@ A new app version is created for the default branch and merge requests through a
 
 The docker images are automatically built in the project's [docker registry](https://git.knut.univention.de/univention/components/ucsschool-kelvin-rest-api/container_registry).
 The following rules apply:
+
 - If you commit on **any** branch an image will be built with the tag `branch-$CI_COMMIT_REF_SLUG`. These images will be
   cleaned up after 30 days
 - If you create a tag on **any** branch an image will be built with the tag as the tag. These images will not be cleaned up.
 
 This allows for the following development flow:
+
 - Create a new feature branch for your work
 - If applicable create a new Kelvin version in the Test Appcenter and set the docker image to the branch image, like:
   `gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:branch-$CLI_COMMIT_REF_SLUG`
 - After each commit and pipeline run you can install the app with the new docker image. You will find the name in the build pipeline.
 
-## Use custom images in Jenkins jobs
+## Use custom app version in Jenkins jobs
 
-The Jenkins job [kelvin API tests](https://jenkins2022.knut.univention.de/job/UCSschool-5.0/job/kelvin%20API%20(branch%20main)/) and [kelvin API tests](https://jenkins2022.knut.univention.de/job/UCSschool-5.0/view/Daily%20Tests/job/kelvin%20API/) can be configured to use a custom image.
-In the 'Build with parameters' page, insert your image name into the `UCS_ENV_KELVIN_IMAGE` configuration variable.
-One source for images is the pipeline `build_docker_image`, which is run for a feature branch if it changed sufficiently.
-To find the image name, scroll to the bottom of the job log and look for `Pushing image to ...`.
+The Jenkins job [kelvin API tests](https://jenkins2022.knut.univention.de/job/UCSschool-5.0/job/kelvin%20API%20(branch%20main)/) and [kelvin API tests](https://jenkins2022.knut.univention.de/job/UCSschool-5.0/view/Daily%20Tests/job/kelvin%20API/) can be configured to use a custom app version.
+In the 'Build with parameters' page, insert your app version into the `UCSSCHOOL_KELVIN_REST_API_VERSION` configuration variable.
+One source for custom app versions is the app release component pipelines, which are run for a merge request.
+To find the app version, scroll to the bottom of the job log of the job `create_app_version`.
 
-
-## Use custom images on test vm
+## Use custom app versions on test vm
 
 For this, you need to activate the Test Appcenter.
 
-To install the Kelvin application with the new branch docker image you can temporarily
-change the App's docker image setting:
+To install the Kelvin application with the new merge request app version you just install the custom version:
 
 ```
-image="gitregistry.knut.univention.de/univention/components/ucsschool-kelvin-rest-api:branch-handleuldap3binderror"
-
-univention-install univention-appcenter-dev
-univention-app dev-set \
-    4.4/ucsschool-kelvin-rest-api=1.5.4 \
-    "DockerImage"="DockerImage=$image"
-univention-app install \
-    4.4/ucsschool-kelvin-rest-api=1.5.4
+univention-app install ucsschool-kelvin-rest-api='$APP_VERSION'
 ```
-or you can update an existing app by running:
-
-```
-docker pull "$image"
-univention-app dev-set ucsschool-kelvin-rest-api "DockerImage=$image"
-univention-app reinitialize ucsschool-kelvin-rest-api
-```
-
 
 # Development Setup
 
 This section gathers information for development setup.
 Everything here is optional.
+
+## Update remote Kelvin installation
+
+If you have a Kelvin installation on a UCS VM, you can update this instance with locally changed code, by using the script `autoupdate-kelvin-container`.
 
 ## Installation of python packages
 
@@ -138,7 +127,7 @@ pip install -e univention-lib-slim/
 pip install -e univention-directory-manager-modules-slim/
 pip install -e ucs-school-lib/modules/
 pip install -e ucs-school-import/modules/
-pip install -e kelvin-api/ -r kelvin-api/requirements.txt -r kelvin-api/requirements_dev.txt -r kelvin-api/requirements_test.txt
+pip install -e kelvin-api/ -r kelvin-api/requirements_all.txt
 ```
 
 ## Running pre-commit
@@ -169,7 +158,6 @@ Other means of creating virtual enviroments for Python should of course also wor
 
 Note: Installing and using pre-commit system-wide may work, but some developers reported problems with it.
 
-
 ### With Docker
 
 ```
@@ -178,4 +166,3 @@ docker run -v ".:/ucsschool-kelvin-rest-api" \
     -it docker-registry.knut.univention.de/knut/pre-commit \
     /bin/bash -c "git config --global --add safe.directory /ucsschool-kelvin-rest-api && pre-commit run -a"
 ```
-
