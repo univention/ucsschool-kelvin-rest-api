@@ -1,18 +1,8 @@
-#!/bin/sh
-
+#!/usr/bin/env bash
 # ENV VARS:
-#
-#   DEV: for auto-reload during development set it to 1 (DEV=1)
 #
 #   TRUSTED_PROXY_IPS: Optional. Comma-separated IPs/CIDRs trusted for
 #   X-Forwarded-* headers. If unset, Gunicorn ignores forwarded headers.
-
-
-if [ "$DEV" = 1 ]; then
-    RELOAD="--reload"
-else
-    RELOAD=""
-fi
 
 num_workers="$(ucr get ucsschool/kelvin/processes)"
 if [ "$num_workers" = "" ]; then
@@ -42,10 +32,9 @@ if [ $? -eq 1 ]; then
         "$DOCKER_HOST_NAME"
 fi
 
-exec /usr/bin/gunicorn \
+exec gunicorn \
     --workers "$num_workers" \
     --worker-class uvicorn.workers.UvicornWorker \
     ${TRUSTED_PROXY_IPS:+--forwarded-allow-ips="$TRUSTED_PROXY_IPS"} \
-    $RELOAD \
     --bind 0.0.0.0:8911 \
     ucsschool.kelvin.main:app

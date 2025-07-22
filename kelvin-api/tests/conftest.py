@@ -235,7 +235,7 @@ def url_fragment():
 @pytest.fixture(scope="session")
 def url_fragment_ip():
     addrinfo = socket.getaddrinfo(
-        os.environ["DOCKER_HOST_NAME"], "http", family=socket.AF_INET, proto=socket.IPPROTO_TCP
+        os.environ["DOCKER_HOST_NAME"], 80, family=socket.AF_INET, proto=socket.IPPROTO_TCP
     )
     ip = addrinfo[0][4][0]
     return f"http://{ip}/ucsschool/kelvin/v1"
@@ -624,7 +624,7 @@ async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kw
 def restart_kelvin_api_server() -> None:
     logger.debug("Reloading Kelvin API server...")
     # Send HUP signal to gunicorn master process to reload workers
-    subprocess.check_call(["pkill", "-HUP", "-f", "gunicorn: master \\[ucsschool.kelvin.main:app\\]"])
+    subprocess.check_call(["kill", "-HUP", "1"])
 
     # Wait for the service to be ready
     while True:
