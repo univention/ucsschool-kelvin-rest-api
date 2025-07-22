@@ -34,11 +34,11 @@ if [ "$(cat /tmp/update)" = "$$" ]; then
     MACHINE_PASSWORD=$(cat /etc/machine.secret)
     UPDATE_LOCKFILE="/tmp/update_openapi_client_lock"
     /usr/bin/flock "$UPDATE_LOCKFILE" \
-        /usr/bin/update_openapi_client \
+        update_openapi_client \
         --generator java \
         --jar /kelvin/openapi-generator/jar/openapi-generator-cli-*.jar \
         --username "$MACHINE_USER" \
         --password "$MACHINE_PASSWORD" \
         "$DOCKER_HOST_NAME"
-    pkill -HUP -f "gunicorn: master \[ucsschool.kelvin.main:app\]"
+    kill -HUP 1
 fi

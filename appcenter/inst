@@ -140,10 +140,10 @@ The "__pycache__" directory can be safely ignored.
 
 check_openapi_client_knows_ucssschool() {
   OPENAPI_TEST_CODE="import sys; from openapi_client_udm import UsersUserOptions; sys.exit(0 if 'ucsschool_administrator' in UsersUserOptions.openapi_types else 1)"
-  if ! univention-app shell "$APP_ID" /usr/bin/python3 -c "$OPENAPI_TEST_CODE"; then
+  if ! univention-app shell "$APP_ID" /venv/bin/python3 -c "$OPENAPI_TEST_CODE"; then
     echo "Building OpenAPI client library in Docker container..."
     univention-app shell "$APP_ID" "$UDM_CLIENT_UPDATE_SCRIPT"
-    if univention-app shell "$APP_ID" /usr/bin/python3 -c "$OPENAPI_TEST_CODE"; then
+    if univention-app shell "$APP_ID" /venv/bin/python3 -c "$OPENAPI_TEST_CODE"; then
       echo "OK: OpenAPI client library now knows UCS@school types."
     else
       die "FAIL: OpenAPI client library in Docker container still not usable!"
