@@ -10,3 +10,4 @@ docker/ucs/
 **/venv*
 **/build
 **/dist
+dev/_vm_config

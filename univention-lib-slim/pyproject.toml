@@ -1,0 +1,19 @@
+[project]
+name = "univention-lib"
+version = "1.0.0"
+description = ""
+authors = [
+    { name = "Univention", email = "ucsschool-maintainers@univention.de" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "six>=1.17.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+module-name = ["univention.lib"]

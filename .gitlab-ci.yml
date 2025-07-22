@@ -183,12 +183,14 @@ test ucs-school-lib:
         - ucs-school-lib/**/*
   needs:
     - job: build_docker_image
-  image: $IMAGE_TAG
+  image:
+    name: $IMAGE_TAG
+    entrypoint: [""]
   script:
     - cp ucs-school-import/modules/ucsschool/lib/create_ou.py ucs-school-lib/modules/ucsschool/lib/
     - cd ucs-school-lib/modules
     - >
-        python3 -m pytest -lvv
+        pytest -lvv
         --asyncio-mode=auto
         --junitxml=${CI_PROJECT_DIR}/report.xml
         --cov=ucsschool.lib
@@ -211,11 +213,14 @@ test kelvin-api:
         - kelvin-api/**/*
   needs:
     - job: build_docker_image
-  image: $IMAGE_TAG
+  image:
+    name: $IMAGE_TAG
+    entrypoint: [ "" ]
   script:
     - cd ${CI_PROJECT_DIR}/kelvin-api
+    - export LDAP_BASE="foo" LDAP_HOSTDN="" LDAP_SERVER_NAME="" LDAP_SERVER_PORT=0
     - >
-        python3 -m pytest -lvv
+        pytest -lvv
         --asyncio-mode=auto
         --junitxml=${CI_PROJECT_DIR}/report.xml
         --cov=ucsschool.kelvin

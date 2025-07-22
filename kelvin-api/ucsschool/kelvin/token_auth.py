@@ -113,8 +113,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> LdapUser:
         if not username:
             raise credentials_exception
         token_data = TokenData(username=username)
-    except PyJWTError:
-        raise credentials_exception
+    except PyJWTError as exc:
+        raise credentials_exception from exc
     user = get_user(username=token_data.username, school_only=False)
     user.kelvin_admin = sub.get("kelvin_admin", False)
     if user is None:

@@ -106,38 +106,19 @@ univention-app install ucsschool-kelvin-rest-api='$APP_VERSION'
 This section gathers information for development setup.
 Everything here is optional.
 
-## Update remote Kelvin installation
+Many dev tasks are collected in a [Justfile](./.justfile), which can be run with the [just software](https://github.com/casey/just).
+Just run `just` in the project directory, to get an overview over available recipes.
 
-If you have a Kelvin installation on a UCS VM, you can update this instance with locally changed code, by using the script `autoupdate-kelvin-container`.
+## Run Kelvin locally
 
-## Fast development and test execution in VM and docker container
+For fast development, you can run the Kelvin container locally on your notebook.
+A proper UCS instance is still required for the UDM REST API and some credentials.
+To run the container locally you have to do the following:
 
-Setup a UCS@school primary node and install the docker container of your feature branch:
-
-``` shell
-notebook# ssh root@10.201.2.135
-uasvm# univention-install univention-appcenter-dev ; univention-app dev-use-test-appcenter
-uasvm# univention-app install ucsschool-kelvin-rest-api=0.0.0-sschwardt-school-admins
-```
-
-Then grab a new shell and start the autoupdater helper, that is using `rsync` and `inotifycopy` from our toolshed repo:
-
-``` shell
-notebook:~/git/edu/ucsschool-kelvin-rest-api$ ./autoupdate-kelvin-container 10.201.2.135
-[helper keeps running]
-```
-
-Now you can edit the code easily on your notebook and the script `autoupdate-kelvin-container` automatically copies the new code into the container:
-
-``` shell
-notebook# ssh root@10.201.2.135
-root@uasvm# univention-app configure ucsschool-kelvin-rest-api
-root@uasvm# univention-app shell ucsschool-kelvin-rest-api
-container# cd /kelvin/kelvin-api/
-container# ucr set ucsschool/kelvin/log_level=DEBUG
-container# pkill -HUP -f "gunicorn: master \[ucsschool.kelvin.main:app\]"
-container# pytest-3 -lvvs tests/test_route_user.py -k "test_create and not udm" 2>&1 | tee test.log
-container#
+```shell
+TARGET="IP OF UCS WHERE KELVIN WOULD BE INSTALLED"
+just fetch-vm-data "$TARGET"
+just dev-server
 ```
 
 ## Installation of python packages
@@ -146,53 +127,17 @@ It is useful to have all packages installed during development, so that the IDE 
 Please be aware that python-ldap is a dependency of univention-lib-slim. This python package requires to build some C-extensions and has
 some additional requirements. Please follow the instructions provided [here](https://www.python-ldap.org/en/python-ldap-3.4.3/installing.html#installing-from-pypi)
 
-```shell
-apt-get install libsasl2-dev libldap-dev  # required for univention-directory-manager-modules-slim
-python3 -m venv venv
-. venv/bin/activate
-pip install -U pip wheel
-pip install -i https://test.pypi.org/simple/ univention-config-registry
-pip install -i https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple uldap3
-pip install -e univention-lib-slim/
-pip install -e univention-directory-manager-modules-slim/
-pip install -e ucs-school-lib/modules/
-pip install -e ucs-school-import/modules/
-pip install -e kelvin-api/ -r kelvin-api/requirements_all.txt
-```
+The Kelvin project uses [uv](https://docs.astral.sh/uv/) as a project manager. To get a virtual environment with all required packages installed,
+simply run `uv sync`. To run any command within this venv, simply run `uv run $COMMAND`.
 
-## Running pre-commit
+## pre-commit
 
-The pipeline for this repository has a pre-commit job which prevents code from being merged which does not conform to the pre-commit programs and configuration.
-You should run pre-commit checks before push you can use either pre-commit in a python3.11 environment or use docker. This will save you and your co-workers from having much headache.
+The pipeline for this repository has a [pre-commit]() job which prevents code from being merged which does not conform to the pre-commit programs and configuration.
+You should run pre-commit checks before push you can use either pre-commit in a python3.11 environment or use docker.
+This will save you and your co-workers from having much headache.
 
-### Without Docker
-
-For the following steps, an installation of Python 3.11 is required.
-In your cloned ucsschool-kelvin-rest-api repository, you can install `pre-commit` like this:
-
-```
-virtualenv -p 3.11 venv
-. ./venv/bin/activate
-
-pip install pre-commit
-pre-commit install
-```
-
-To test if everything works fine, run pre-commit with the `-a` option:
+To test if everything works fine, just run pre-commit with the `-a` option:
 
 ```
 pre-commit run -a
-```
-
-Other means of creating virtual enviroments for Python should of course also work.
-
-Note: Installing and using pre-commit system-wide may work, but some developers reported problems with it.
-
-### With Docker
-
-```
-docker run -v ".:/ucsschool-kelvin-rest-api" \
-    -w "/ucsschool-kelvin-rest-api" \
-    -it docker-registry.knut.univention.de/knut/pre-commit \
-    /bin/bash -c "git config --global --add safe.directory /ucsschool-kelvin-rest-api && pre-commit run -a"
 ```

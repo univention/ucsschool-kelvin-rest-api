@@ -1,0 +1,23 @@
+[project]
+name = "ucs-school-import"
+version = "17.0.52"
+description = ""
+authors = [
+    { name = "Univention", email = "ucsschool-maintainers@univention.de" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "python-magic>=0.4.27",
+    "ucs-school-lib",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = "modules"
+module-name = ["ucsschool.importer", "ucsschool.http_api"]
+
+[tool.uv.sources]
+ucs-school-lib = { workspace = true }

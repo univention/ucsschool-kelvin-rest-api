@@ -1,0 +1,77 @@
+[project]
+name = "ucsschool-kelvin-rest-api"
+version = "2.0.0"
+description = ""
+authors = [
+    { name = "Univention", email = "ucsschool-maintainers@univention.de" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "aiocache>=0.12.3",
+    "aiofiles>=24.1.0",
+    "asgi-correlation-id>=4.3.4",
+    "async-property>=0.2.2",
+    "cachetools>=6.1.0",
+    "diskcache>=5.6.3",
+    "fastapi>=0.116.1",
+    "gunicorn>=23.0.0",
+    "httpx<0.28.0",
+    "lazy-object-proxy>=1.11.0",
+    "openapi-client-udm",
+    "orjson>=3.11.0",
+    "pip>=25.1.1",
+    "psutil>=7.0.0",
+    "pyasn1>=0.6.1",
+    "pyasn1-modules>=0.4.2",
+    "pydantic[dotenv,email]<2",
+    "pyjwt<2.10",
+    "python-multipart>=0.0.20",
+    "setuptools<81",
+    "timing-asgi>=0.3.1",
+    "ucs-school-import",
+    "ucs-school-lib",
+    "uldap3",
+    "univention-configuration-registry",
+    "univention-debhelper",
+    "univention-directory-manager-modules",
+    "uvicorn>=0.35.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = "kelvin-api"
+module-name = ["ucsschool.kelvin"]
+
+[tool.uv.workspace]
+members = [
+    "univention-lib-slim",
+    "univention-directory-manager-modules-slim",
+    "ucs-school-lib",
+    "ucs-school-import",
+]
+
+[tool.uv.sources]
+uldap3 = { git = "https://git.knut.univention.de/univention/dev/libraries/uldap3.git" }
+univention-directory-manager-modules = { workspace = true }
+ucs-school-lib = { workspace = true }
+ucs-school-import = { workspace = true }
+openapi-client-udm = { path = "openapi-client-udm-1.0.2.tar.gz" }
+univention-configuration-registry = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/58bb70d7c4c23bf4fce4d097457f640fba5897c9/ucs-58bb70d7c4c23bf4fce4d097457f640fba5897c9.tar.gz?path=base/univention-config-registry", subdirectory = "base/univention-config-registry" }
+univention-debhelper = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/58bb70d7c4c23bf4fce4d097457f640fba5897c9/ucs-58bb70d7c4c23bf4fce4d097457f640fba5897c9.tar.gz?path=packaging/univention-debhelper", subdirectory = "packaging/univention-debhelper" }
+
+[dependency-groups]
+dev = [
+    "coverage>=5.3",
+    "coverage~=6.5.0",
+    "factory_boy>=3.1.0",
+    "Faker~=15.0.0",
+    "pytest~=6.2.5",
+    "pytest-asyncio~=0.19.0",
+    "pytest-cov~=4.0.0",
+    "pytest-mock",
+    "pyfakefs~=4.7.0",
+    "tenacity>=9.1.2",
+]
