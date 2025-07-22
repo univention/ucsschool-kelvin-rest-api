@@ -25,43 +25,66 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-# TODO: set to specific alpine version (>=3.18?) that includes Python 3.11 or migarte to Debian image
-ARG DOCKER_PROXY
-
-FROM ${DOCKER_PROXY}alpine:3.18.9
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-522:0.19.0 AS base
 
 ARG OPENAPI_CLIENT_GENERATOR_VERSION="5.4.0"
 ARG OPENAPI_CLIENT_GENERATOR_JAR="openapi-generator-cli-$OPENAPI_CLIENT_GENERATOR_VERSION.jar"
 ARG OPENAPI_CLIENT_GENERATOR_JAR_URL="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/$OPENAPI_CLIENT_GENERATOR_VERSION/$OPENAPI_CLIENT_GENERATOR_JAR"
 
-VOLUME /var/log
+ENV PYTHONUNBUFFERED=1
+ENV VIRTUAL_ENV="/venv"
+
+ADD $OPENAPI_CLIENT_GENERATOR_JAR_URL /kelvin/openapi-generator/jar/
 
 WORKDIR /kelvin
 
-EXPOSE 7890
+FROM base AS builder
 
-CMD ["/sbin/init"]
+ENV UV_SYSTEM_PYTHON=1
+ENV UV_PROJECT_ENVIRONMENT="/venv"
+ENV UV_VERSION=0.8.0
+ENV PIPX_BIN_DIR="/usr/local/bin"
+RUN apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev
+RUN pipx install uv=="$UV_VERSION"
+
+COPY uv.lock .
+COPY pyproject.toml .
+COPY kelvin-api ./kelvin-api
+COPY ucs-school-import ./ucs-school-import
+COPY ucs-school-lib ./ucs-school-lib
+COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
+COPY univention-lib-slim ./univention-lib-slim
+COPY openapi-client-udm-1.0.2.tar.gz .
+
+RUN uv sync --locked
 
 
-# package and Python dependency installation, base system configuration,
-# and uninstallation - all in one step to keep image small
-COPY docker/build.sh /tmp/
-COPY docker/alpine_apk_list.* kelvin-api/requirements_all.txt /tmp/
-ADD $OPENAPI_CLIENT_GENERATOR_JAR_URL /tmp/
+FROM base AS prod
 
-# install univention libraries
-COPY univention-lib-slim/ /tmp/univention-lib-slim
-COPY univention-directory-manager-modules-slim/ /tmp/univention-directory-manager-modules-slim
+RUN apt-get install -y libldap-2.5-0 openjdk-17-jre-headless
+RUN mkdir /etc/univention/
+RUN mkdir -pv /var/lib/ucs-school-import/kelvin-hooks
+COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
+COPY uv.lock .
+COPY pyproject.toml .
+COPY kelvin-api ./kelvin-api
+COPY ucs-school-import ./ucs-school-import
+COPY ucs-school-lib ./ucs-school-lib
+COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
+COPY univention-lib-slim ./univention-lib-slim
+COPY openapi-client-udm-1.0.2.tar.gz .
+COPY ucs-school-import/usr/share/ucs-school-import/configs/ /usr/share/ucs-school-import/configs/
+COPY ucs-school-import/modules/ucsschool/lib/create_ou.py ucs-school-lib/modules/ucsschool/lib/create_ou.py
+COPY kelvin-api/usr/share/ucs-school-import/checks/*.py /usr/share/ucs-school-import/checks/
+COPY kelvin-api/empty_configs /var/lib/ucs-school-import/configs
+COPY kelvin-api/usr/share/ucs-school-import/configs/kelvin_defaults.json /usr/share/ucs-school-import/configs/
 
-# copy and install project - separate last step for fast image rebuilds
-# install packages 'editable', so we can work directly on them
-COPY ucs-school-lib/ /kelvin/ucs-school-lib
-COPY ucs-school-import/ /kelvin/ucs-school-import
-COPY docker/ucsschool-kelvin-rest-api.initd /tmp/
-COPY kelvin-api/ /kelvin/kelvin-api
-COPY ./fix_nt_acl_on_shares /kelvin/fix_nt_acl_on_shares
 
-RUN /tmp/build.sh
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENTRYPOINT ["gunicorn" ,"--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8911", "ucsschool.kelvin.main:app"]
+VOLUME /var/log
+VOLUME /etc/univention
+EXPOSE 8911
 
 ARG app_id
 ARG commit
