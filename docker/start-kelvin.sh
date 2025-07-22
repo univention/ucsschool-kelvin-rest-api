@@ -1,13 +1,4 @@
-#!/bin/sh
-
-# for auto-reload during development run:
-# export DEV=1
-
-if [ "$DEV" = 1 ]; then
-    RELOAD="--reload"
-else
-    RELOAD=""
-fi
+#!/usr/bin/env bash
 
 num_workers="$(ucr get ucsschool/kelvin/processes)"
 if [ "$num_workers" = "" ]; then
@@ -21,4 +12,4 @@ while [ ! -f "/etc/machine.secret" ]; do
     sleep 1
 done
 
-exec /usr/bin/gunicorn --workers "$num_workers" --worker-class uvicorn.workers.UvicornWorker $RELOAD --bind 0.0.0.0:8911 ucsschool.kelvin.main:app
+exec gunicorn --workers "$num_workers" --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8911 ucsschool.kelvin.main:app

@@ -1,0 +1,26 @@
+[project]
+name = "univention-directory-manager-modules"
+version = "14.0.13"
+description = ""
+authors = [
+    { name = "Univention", email = "ucsschool-maintainers@univention.de" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "ipaddr>=2.2.0",
+    "python-ldap>=3.4.4",
+    "requests>=2.32.4",
+    "unidecode>=1.4.0",
+    "univention-lib",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+module-name = ["univention.admin"]
+
+[tool.uv.sources]
+univention-lib = { workspace = true }

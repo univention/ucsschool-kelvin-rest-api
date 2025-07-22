@@ -719,7 +719,7 @@ def installed_ssh():
     if not Path("/usr/bin/ssh").exists() or not Path("/usr/bin/sshpass").exists():
         logger.debug("Installing 'ssh' and 'sshpass'...")
         returncode, stdout, stderr = exec_cmd(
-            ["apk", "add", "--no-cache", "openssh", "sshpass"], log=True
+            ["apt-get", "install", "--assume-yes", "--no-install-recommends", "ssh", "sshpass"], log=True
         )
         logger.debug("stdout=%s", stdout or "<empty>")
         logger.debug("stderr=%s", stderr or "<empty>")
