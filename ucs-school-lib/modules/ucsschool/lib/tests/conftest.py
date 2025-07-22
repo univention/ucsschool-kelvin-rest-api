@@ -820,7 +820,7 @@ def create_ou_kwargs(ou_name: str = None) -> Dict[str, Any]:
     short_ou_name = f"{ou_name}"[:10]
     is_single_master = ucr.is_true("ucsschool/singlemaster")
     master_hostname = env_or_ucr("ldap/master").split(".", 1)[0]
-    edu_name = master_hostname if is_single_master else f"edu{short_ou_name}"
+    edu_name = f"edu{short_ou_name}"
     admin_name = f"adm{short_ou_name}"
     hostname = master_hostname if is_single_master else None
     return {
