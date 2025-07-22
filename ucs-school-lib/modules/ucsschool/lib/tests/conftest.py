@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Set, Tuple
 
 import factory
 import pytest
-import pytest_asyncio
 from aiohttp import ClientOSError
 from faker import Faker
 from uldap3 import NoObject
@@ -181,7 +180,7 @@ class UserFactory(factory.Factory):
     workgroups = factory.Dict({})
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def mail_domain(udm_kwargs, wait_for_replication) -> str:
     async with UDM(**udm_kwargs) as udm:
         mod = udm.get("mail/domain")
@@ -275,7 +274,7 @@ def udm_users_user_props(school_user, ldap_base):
     return _func
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs, wait_for_replication):
     """Create a new school class. -> (DN, {attrs})"""
     created_school_classes = []
@@ -339,7 +338,7 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs, 
             logger.debug("Deleted ClassShare %r through UDM.", dn)
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs, wait_for_replication):
     """Create a new work group. -> (DN, {attrs})"""
     created_workgroups = []
@@ -612,7 +611,7 @@ def new_school_users(new_school_user):
     return _func
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def schedule_delete_udm_obj(udm_kwargs):
     objs: List[Tuple[str, str]] = []
 
@@ -633,7 +632,7 @@ async def schedule_delete_udm_obj(udm_kwargs):
             logger.debug("Deleted UDM %r object %r through UDM.", udm_mod_name, dn)
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def schedule_delete_user_dn(schedule_delete_udm_obj):
     def _func(dn: str):
         schedule_delete_udm_obj(dn, "users/user")
@@ -641,7 +640,7 @@ async def schedule_delete_user_dn(schedule_delete_udm_obj):
     yield _func
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def schedule_delete_user_name_using_udm(udm_kwargs):
     usernames = []
 
@@ -679,7 +678,7 @@ def cn_attrs(ldap_base):
     raise NotImplementedError
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def new_cn(udm_kwargs, ldap_base, cn_attrs, wait_for_replication):
     """Create a new container"""
     created_cns = []
@@ -727,7 +726,7 @@ def installed_ssh():
     if not Path("/usr/bin/ssh").exists() or not Path("/usr/bin/sshpass").exists():
         logger.debug("Installing 'ssh' and 'sshpass'...")
         returncode, stdout, stderr = exec_cmd(
-            ["apk", "add", "--no-cache", "openssh", "sshpass"], log=True
+            ["apt-get", "install", "--assume-yes", "--no-install-recommends", "ssh", "sshpass"], log=True
         )
         logger.debug("stdout=%s", stdout or "<empty>")
         logger.debug("stderr=%s", stderr or "<empty>")
@@ -815,7 +814,7 @@ def delete_ou_cleanup(ldap_base, udm_kwargs):
     return _func
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def schedule_delete_ou_using_ssh(delete_ou_using_ssh, delete_ou_cleanup):
     ous_created: List[Tuple[str, str]] = []
 
@@ -829,7 +828,7 @@ async def schedule_delete_ou_using_ssh(delete_ou_using_ssh, delete_ou_cleanup):
         await delete_ou_cleanup(ou_name)
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest.fixture(scope="session")
 async def schedule_delete_ou_using_ssh_at_end_of_session(delete_ou_using_ssh, delete_ou_cleanup):
     def _func(ou_name: str, host: str):
         _cached_ous.add((ou_name, host))

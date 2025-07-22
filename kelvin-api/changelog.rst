@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v3.2.1 (TBD)
+-------------------
+* Changed the application Docker base image from Alpine to the standard UCS base image (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#147`).
+
 v3.2.0 (2026-02-10)
 -------------------
 * Fixed: Kelvin sometimes failed to create a school when installed on a backup directory node (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#89`).
