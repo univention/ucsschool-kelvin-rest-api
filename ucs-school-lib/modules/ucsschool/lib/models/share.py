@@ -35,7 +35,7 @@ from typing import List, Optional, Type
 from ldap.filter import filter_format
 from six import iteritems
 
-from udm_rest_client import UDM, NoObject as UdmNoObject, UdmObject
+from udm_rest_client import UDM, APICommunicationError, NoObject as UdmNoObject, UdmObject
 from univention.admin.uldap import getMachineConnection
 from univention.lib.misc import custom_groupname
 
@@ -234,10 +234,13 @@ class Share(UCSSchoolHelperAbstractClass):
 
     @staticmethod
     async def get_server_udm_object(dn: str, lo: UDM) -> Optional[UdmObject]:
-        mod = lo.get("computers/domaincontroller_slave")
         try:
-            return await mod.get(dn)
-        except UdmNoObject:
+            mod = lo.get("computers/domaincontroller_slave")
+            try:
+                return await mod.get(dn)
+            except UdmNoObject:
+                pass
+        except APICommunicationError:
             pass
         mod = lo.get("computers/domaincontroller_master")
         try:

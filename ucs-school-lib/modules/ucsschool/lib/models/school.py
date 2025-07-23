@@ -376,7 +376,10 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             if uldap_exists(
                 filter_format(
                     "(&"
+                    "(|"
                     "(univentionObjectType=computers/computer)"
+                    "(univentionObjectType=computers/domaincontroller_master)"
+                    ")"
                     "(objectClass=univentionDomainController)"
                     "(cn=%s)"
                     "(|(univentionServerRole=backup)(univentionServerRole=master))"
