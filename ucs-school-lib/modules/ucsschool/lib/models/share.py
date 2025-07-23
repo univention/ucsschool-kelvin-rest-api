@@ -234,10 +234,13 @@ class Share(UCSSchoolHelperAbstractClass):
 
     @staticmethod
     async def get_server_udm_object(dn: str, lo: UDM) -> Optional[UdmObject]:
-        mod = lo.get("computers/domaincontroller_slave")
         try:
-            return await mod.get(dn)
-        except UdmNoObject:
+            mod = lo.get("computers/domaincontroller_slave")
+            try:
+                return await mod.get(dn)
+            except UdmNoObject:
+                pass
+        except BadRequest:
             pass
         mod = lo.get("computers/domaincontroller_master")
         try:
