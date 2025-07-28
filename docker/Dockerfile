@@ -58,6 +58,7 @@ COPY univention-directory-manager-modules-slim/ /tmp/univention-directory-manage
 COPY ucs-school-lib/ /kelvin/ucs-school-lib
 COPY ucs-school-import/ /kelvin/ucs-school-import
 COPY docker/ucsschool-kelvin-rest-api.initd /tmp/
+COPY docker/logsocket.initd /tmp/
 COPY kelvin-api/ /kelvin/kelvin-api
 COPY ./fix_nt_acl_on_shares /kelvin/fix_nt_acl_on_shares
 

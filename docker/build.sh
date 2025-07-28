@@ -59,6 +59,7 @@ python3 -m pip install --no-cache-dir --compile /tmp/univention-directory-manage
 mkdir -p /var/cache/univention-config
 
 mv -v /tmp/ucsschool-kelvin-rest-api.initd /etc/init.d/ucsschool-kelvin-rest-api
+mv -v /tmp/logsocket.initd /etc/init.d/logsocket
 apk add --no-cache logrotate
 rc-update add ucsschool-kelvin-rest-api default
 rc-update add crond default
