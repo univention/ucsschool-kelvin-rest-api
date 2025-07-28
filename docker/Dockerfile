@@ -108,10 +108,13 @@ RUN python3 -m pip install --no-cache-dir --compile -i https://test.pypi.org/sim
 COPY ucs-school-lib/ /kelvin/ucs-school-lib
 COPY ucs-school-import/ /kelvin/ucs-school-import
 COPY ucsschool-kelvin-rest-api.initd /tmp/
+COPY logsocket.initd /tmp/
 COPY kelvin-api/ /kelvin/kelvin-api
 RUN	mv -v /tmp/ucsschool-kelvin-rest-api.initd /etc/init.d/ucsschool-kelvin-rest-api && \
+    mv -v /tmp/logsocket.initd /etc/init.d/logsocket && \
     apk add --no-cache logrotate && \
 	rc-update add ucsschool-kelvin-rest-api default && \
+	rc-update add logsocket default && \
     rc-update add crond default && \
 	cp -v /kelvin/ucs-school-import/modules/ucsschool/lib/create_ou.py /kelvin/ucs-school-lib/modules/ucsschool/lib/ && \
 	python3 -m pip install --no-cache-dir --editable /kelvin/ucs-school-lib/modules && \
