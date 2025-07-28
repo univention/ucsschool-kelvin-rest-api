@@ -31,6 +31,15 @@ action=$1
 
 case "$action" in
   install)
+    cat > /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf << 'EOF'
+template(name="HttpLogMsg" type="string" string="%msg:22:$%\n")
+
+if ($syslogtag startswith "artifacts.software-univention.de/ucsschool/ucsschool-kelvin-rest-api") and ($msg startswith " kelvin_api_http_log ") then {
+    /var/log/univention/ucsschool-kelvin-rest-api/http.log;HttpLogMsg
+    stop
+}
+EOF
+    systemctl restart rsyslog
     cat > /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api << 'EOF'
 #!/usr/bin/env sh
 
@@ -44,5 +53,7 @@ EOF
     ;;
   remove)
     rm /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
+    rm /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf
+    systemctl restart rsyslog
     ;;
 esac

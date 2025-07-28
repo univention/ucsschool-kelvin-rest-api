@@ -45,7 +45,7 @@ from timing_asgi.integrations import StarletteScopeToName
 
 from ucsschool.lib.models.attributes import ValidationError as SchooLibValidationError
 from ucsschool.lib.models.base import NoObject
-from ucsschool.lib.models.utils import env_or_ucr, get_file_handler
+from ucsschool.lib.models.utils import env_or_ucr, get_stdout_handler
 from ucsschool.lib.models.validator import VALIDATION_LOGGER
 from udm_rest_client import UdmError
 
@@ -53,7 +53,7 @@ from .config import UDM_MAPPING_CONFIG, load_configurations
 from .constants import (
     APP_VERSION,
     DEFAULT_LOG_LEVELS,
-    LOG_FILE_PATH,
+    DEFAULT_LOG_TAG,
     STATIC_FILE_CHANGELOG,
     STATIC_FILE_README,
     STATIC_FILES_PATH,
@@ -114,7 +114,7 @@ def setup_logging() -> None:
         logger.setLevel(min(default_level, min_level))
         abs_min_level = min(abs_min_level, logger.level)
 
-    file_handler = get_file_handler(abs_min_level, str(LOG_FILE_PATH))
+    file_handler = get_stdout_handler(abs_min_level, DEFAULT_LOG_TAG)
     file_handler.addFilter(ValidationDataFilter())
     logger = logging.getLogger("uvicorn.access")
     logger.addHandler(file_handler)
