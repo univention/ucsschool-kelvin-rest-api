@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v2.0.1 (t.b.d.)
+-------------------
+* Improved performance for the user PATCH endpoints for the case where school users are part of large non-school groups (:uv:bug:`58475`).
+
 v2.0.0 (2025-03-14)
 -------------------
 * The Kelvin API now validates user names by default to avoid that they contain Windows reserved names (Issue :spelling:ignore:`univention/ucsschool#1052`).

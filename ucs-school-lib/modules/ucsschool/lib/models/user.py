@@ -355,6 +355,8 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         # ignore all others (global groups and $OU-groups)
         mandatory_groups = await self.groups_used(lo)
         for group_dn in [dn for dn in udm_obj.props.groups if dn not in mandatory_groups]:
+            if not any(Group.is_school_group(school, group_dn) for school in udm_obj.props.school):
+                continue
             try:
                 school_class = await SchoolClass.from_dn(group_dn, None, lo)
                 classes = self.school_classes.get(school_class.school, [])
