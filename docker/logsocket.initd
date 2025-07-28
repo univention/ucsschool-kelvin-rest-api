@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+
+name="Socket Log Server"
+description="Receives log messages from socket and prints to stdout"
+command="/kelvin/kelvin-api/socket_server.py"
+command_background="no"
+pidfile="/run/logsocket.pid"
+
+export PYTHONUNBUFFERED=1
+
+depend() {
+    after ucsschool-kelvin-rest-api
+}

@@ -34,6 +34,7 @@ import grp
 import logging
 import os
 import pwd
+import socket
 import string
 import subprocess
 import sys
@@ -272,6 +273,23 @@ class UCSTTYColoredFormatter(colorlog.TTYColoredFormatter):
             return super(UCSTTYColoredFormatter, self).color(log_colors, level_name)
 
 
+class SocketLogHandler(logging.Handler):
+    def __init__(self, log_tag):
+        super().__init__()
+        self._log_tag = log_tag
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            if not msg.endswith("\n"):
+                msg += "\n"
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+                client.connect("/run/kelvin.sock")
+                client.sendall(f"{self._log_tag} {msg}".encode("utf-8"))
+        except Exception:
+            self.handleError(record)
+
+
 def add_stream_logger_to_schoollib(
     level: str = "DEBUG",
     stream: IO = sys.stderr,
@@ -485,6 +503,36 @@ def get_file_handler(
     handler = UniFileHandler(
         filename, when=when, backupCount=backupCount, fuid=uid, fgid=gid, fmode=mode
     )
+    handler.setFormatter(formatter)
+    cid_filter = CorrelationIdFilter(uuid_length=10)
+    handler.addFilter(cid_filter)
+    handler.setLevel(level)
+    return handler
+
+
+def get_socket_handler(
+    level: Union[int, str],
+    log_tag: str = "kelvin_api_http_log",
+    fmt: str = None,
+    datefmt: str = None,
+) -> logging.Handler:
+    """
+    Create a :py:class:`SocketLogHandler` (logging.Handler) for logging
+    to a fix socket.
+
+    :param level: log level
+    :type level: int or str
+    :param str log_tag: tag for the log to write to different files through rsyslog
+    :param str fmt: log message format (will be passt to a Formatter instance)
+    :param str datefmt: date format (will be passt to a Formatter instance)
+    :return: a handler
+    :rtype: logging.Handler
+    """
+    fmt = fmt or FILE_LOG_FORMATS[loglevel_int2str(nearest_known_loglevel(level))]
+    fmt = fmt.format(pid=os.getpid())
+    datefmt = datefmt or str(LOG_DATETIME_FORMAT)
+    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
+    handler = SocketLogHandler(log_tag)
     handler.setFormatter(formatter)
     cid_filter = CorrelationIdFilter(uuid_length=10)
     handler.addFilter(cid_filter)
