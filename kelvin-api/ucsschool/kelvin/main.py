@@ -111,7 +111,7 @@ def setup_logging() -> None:
     for name, default_level in DEFAULT_LOG_LEVELS.items():
         logger = logging.getLogger(name)
         logger.setLevel(min(default_level, min_level))
-        abs_min_level = min(min_level, logger.level)
+        abs_min_level = min(abs_min_level, logger.level)
 
     file_handler = get_socket_handler(abs_min_level)
     file_handler.addFilter(ValidationDataFilter())
