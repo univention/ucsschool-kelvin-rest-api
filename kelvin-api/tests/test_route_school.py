@@ -170,6 +170,32 @@ async def test_get(auth_header, create_ou_using_python, ldap_base, udm_kwargs):
 
 
 @pytest.mark.asyncio
+async def test_get_without_administrative_group(
+    auth_header, create_ou_using_python, ldap_base, udm_kwargs
+):
+    ou_name = await create_ou_using_python()
+    async with UDM(**udm_kwargs) as udm:
+        lib_obj = await School.from_dn(f"ou={ou_name},{ldap_base}", ou_name, udm)
+        administrative_group_dn = lib_obj.get_administrative_group_name(
+            "administrative", ou_specific=True, as_dn=True
+        )
+        assert administrative_group_dn
+        adm_obj = await udm.obj_by_dn(administrative_group_dn)
+        await adm_obj.delete()
+        lib_obj.administrative_servers = []
+    client = TestClient(app, base_url="http://test.server")
+    response = client.get(app.url_path_for("school_get", school_name=ou_name), headers=auth_header)
+    json_resp = response.json()
+    assert response.status_code == 200
+    api_obj = SchoolModel(**json_resp)
+    await compare_lib_api_obj(lib_obj, api_obj)
+    assert (
+        api_obj.unscheme_and_unquote(api_obj.url)
+        == f"{client.base_url}{app.url_path_for('school_get', school_name=lib_obj.name)}"
+    )
+
+
+@pytest.mark.asyncio
 async def test_get_missing_fileserver(
     auth_header, create_ou_using_python, ldap_base, udm_kwargs, monkeypatch
 ):
