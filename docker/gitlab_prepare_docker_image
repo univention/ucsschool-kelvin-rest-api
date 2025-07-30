@@ -61,6 +61,7 @@ rsync -a --delete \
    alpine_apk_list.* \
    Dockerfile \
    ucsschool-kelvin-rest-api.initd \
+   logsocket.initd \
    ../fix_nt_acl_on_shares \
  build/
 
