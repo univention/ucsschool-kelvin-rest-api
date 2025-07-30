@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v2.0.1 (t.b.d.)
+--------------------
+* Fixed: Getting a school that was created with the setting to not create noneducational objects
+
 v2.0.0 (2025-03-14)
 -------------------
 * The Kelvin API now validates user names by default to avoid that they contain Windows reserved names (Issue :spelling:ignore:`univention/ucsschool#1052`).
