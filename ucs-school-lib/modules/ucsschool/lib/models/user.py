@@ -36,7 +36,7 @@ from collections.abc import Mapping
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 from ldap.dn import escape_dn_chars, explode_dn
-from ldap.filter import filter_format
+from ldap.filter import escape_filter_chars, filter_format
 from six import iteritems
 
 import univention.admin.syntax as syntax
@@ -48,6 +48,7 @@ from ..roles import (
     context_type_school,
     create_ucsschool_role_string,
     role_exam_user,
+    role_legal_guardian,
     role_pupil,
     role_school_admin,
     role_staff,
@@ -60,6 +61,8 @@ from .attributes import (
     Email,
     Firstname,
     Lastname,
+    LegalGuardians,
+    LegalWards,
     Password,
     SchoolClassesAttribute,
     Schools,
@@ -102,6 +105,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     type_name: str = None
     type_filter = (
         "(|(objectClass=ucsschoolAdministrator)(objectClass=ucsschoolTeacher)"
+        "(objectClass=ucsschoolLegalGuardian)"
         "(objectClass=ucsschoolStaff)(objectClass=ucsschoolStudent))"
     )
 
@@ -183,6 +187,9 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     async def is_teacher(self, lo: UDM) -> bool:
         return await self.__check_object_class(lo, "ucsschoolTeacher", self._legacy_is_teacher)
 
+    def is_legal_guardian(self, lo):  # type: (LoType) -> bool
+        return self.__check_object_class(lo, "ucsschoolLegalGuardian", self._legacy_is_legal_guardian)
+
     async def is_staff(self, lo: UDM) -> bool:
         return await self.__check_object_class(lo, "ucsschoolStaff", self._legacy_is_staff)
 
@@ -210,6 +217,11 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             or dn.lower().endswith(search_base.teachersAndStaff.lower())
             or dn.lower().endswith(search_base.admins.lower())
         )
+
+    @classmethod
+    def _legacy_is_legal_guardian(cls, school, dn):  # type: (str, str) -> bool
+        cls.logger.warning("Using deprecated method is_legal_guardian()")
+        return dn.lower().endswith(cls.get_search_base(school).legal_guardians.lower())
 
     @classmethod
     def _legacy_is_staff(cls, school: str, dn: str) -> bool:
@@ -242,6 +254,8 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             return ExamStudent
         if "ucsschoolTeacher" in ocs:
             return Teacher
+        if "ucsschoolLegalGuardian" in ocs:
+            return LegalGuardian
         if "ucsschoolStaff" in ocs:
             return Staff
         if "ucsschoolStudent" in ocs:
@@ -638,6 +652,12 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             self.get_group_dn("%s%s" % (prefix, school), school) for school in (schools or self.schools)
         ]
 
+    def get_legal_guardians_groups(self, schools=None):  # type: (Optional[List[str]]) -> List[str]
+        prefix = ucr.get("ucsschool/ldap/default/groupprefix/legal_guardians", "gesetzliche vertreter-")
+        return [
+            self.get_group_dn("%s%s" % (prefix, school), school) for school in (schools or self.schools)
+        ]
+
     def get_staff_groups(self, schools: Optional[List[str]] = None) -> List[str]:
         prefix = ucr.get("ucsschool/ldap/default/groupprefix/staff", "mitarbeiter-")
         return [
@@ -786,6 +806,24 @@ class Student(User):
     default_options = ("ucsschoolStudent",)
     default_roles = [role_student]
 
+    legal_guardians = LegalGuardians(_("Legal guardian"))
+
+    def validate(self, lo, validate_unlikely_changes: Optional[bool] = False, check_name=True) -> None:
+        super().validate(lo, validate_unlikely_changes=validate_unlikely_changes, check_name=check_name)
+
+        if not self.legal_guardians:
+            return
+
+        dn_filter = [f"(entryDN={escape_filter_chars(dn)})" for dn in self.legal_guardians]
+        search_result = lo.search(f"(|{''.join(dn_filter)})")
+        dns = [result[0] for result in search_result]
+        if len(dns) < len(self.legal_guardians):
+            missing_dns = [dn for dn in self.legal_guardians if dn not in dns]
+            missing_dns_str = "\n".join(missing_dns)
+
+            error_msg = _("The following legal guardians do not exist:")
+            self.add_error("legal_guardians", f"{error_msg}\n{missing_dns_str}")
+
     async def do_school_change(self, udm_obj: UdmObject, lo: UDM, old_school: str) -> None:
         try:
             exam_user = await ExamStudent.from_student_dn(lo, old_school, self.old_dn)
@@ -825,6 +863,25 @@ class Teacher(User):
     async def get_specific_groups(self, lo: UDM) -> List[str]:
         groups = await super(Teacher, self).get_specific_groups(lo)
         groups.extend(self.get_teachers_groups())
+        return groups
+
+
+class LegalGuardian(User):
+    type_name = _("Legal Guardian")
+    type_filter = "(objectClass=ucsschoolLegalGuardian)"
+    roles = [role_legal_guardian]
+    default_roles = [role_legal_guardian]
+    default_options = ("ucsschoolLegalGuardian",)
+
+    legal_wards = LegalWards(_("Legal Wards"))
+
+    @classmethod
+    def get_container(cls, school):  # type: (str) -> str
+        return cls.get_search_base(school).legal_guardians
+
+    def get_specific_groups(self, lo):  # type: (LoType) -> List[str]
+        groups = super(LegalGuardian, self).get_specific_groups(lo)
+        groups.extend(self.get_legal_guardians_groups())
         return groups
 
 
@@ -915,9 +972,9 @@ class ExamStudent(Student):
 
     @classmethod
     async def from_student_dn(cls, lo: UDM, school: str, dn: str) -> "ExamStudent":
-        examUserPrefix = ucr.get("ucsschool/ldap/default/userprefix/exam", "exam-")
+        exam_user_prefix = ucr.get("ucsschool/ldap/default/userprefix/exam", "exam-")
         dn = "uid=%s%s,%s" % (
-            escape_dn_chars(examUserPrefix),
+            escape_dn_chars(exam_user_prefix),
             explode_dn(dn, True)[0],
             cls.get_container(school),
         )

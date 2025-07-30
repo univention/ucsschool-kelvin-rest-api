@@ -90,6 +90,7 @@ model_classes = {
     "staff": ModuleAndClass("ucsschool.lib.models.user", "Staff"),
     "student": ModuleAndClass("ucsschool.lib.models.user", "Student"),
     "teacher": ModuleAndClass("ucsschool.lib.models.user", "Teacher"),
+    "legalguardian": ModuleAndClass("ucsschool.lib.models.user", "LegalGuardian"),
     "teachersandstaff": ModuleAndClass("ucsschool.lib.models.user", "TeachersAndStaff"),
     "ucccomputer": ModuleAndClass("ucsschool.lib.models.computer", "UCCComputer"),
     "umcpolicy": ModuleAndClass("ucsschool.lib.models.policy", "UMCPolicy"),
@@ -103,6 +104,9 @@ if ucr.get("server/role") in ("domaincontroller_master", "domaincontroller_backu
             "importstaff": ModuleAndClass("ucsschool.importer.models.import_user", "ImportStaff"),
             "importstudent": ModuleAndClass("ucsschool.importer.models.import_user", "ImportStudent"),
             "importteacher": ModuleAndClass("ucsschool.importer.models.import_user", "ImportTeacher"),
+            "importlegalguardian": ModuleAndClass(
+                "ucsschool.importer.models.import_user", "ImportLegalGuardian"
+            ),
             "importteachersandstaff": ModuleAndClass(
                 "ucsschool.importer.models.import_user", "ImportTeachersAndStaff"
             ),
