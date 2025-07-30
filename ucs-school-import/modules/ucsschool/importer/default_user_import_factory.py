@@ -177,6 +177,7 @@ class DefaultUserImportFactory(object):
         """
         from ucsschool.lib.roles import (
             role_pupil,
+            role_legal_guardian,
             role_school_admin,
             role_staff,
             role_student,
@@ -184,6 +185,7 @@ class DefaultUserImportFactory(object):
         )
 
         from .models.import_user import (
+            ImportLegalGuardian,
             ImportSchoolAdmin,
             ImportStaff,
             ImportStudent,
@@ -203,6 +205,8 @@ class DefaultUserImportFactory(object):
                 return ImportTeacher(*arg, **kwargs)
         if role_staff in cur_user_roles:
             return ImportStaff(*arg, **kwargs)
+        if role_legal_guardian in cur_user_roles:
+            return ImportLegalGuardian(*arg, **kwargs)
         if role_school_admin in cur_user_roles:
             return ImportSchoolAdmin(*arg, **kwargs)
         logging.error("Unable to determine user role %r. Returning ImportUser.", cur_user_roles)
