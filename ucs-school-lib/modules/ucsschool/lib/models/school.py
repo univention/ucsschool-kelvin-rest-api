@@ -674,7 +674,10 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     async def from_udm_obj(cls, udm_obj: UdmObject, school: str, lo: UDM) -> "School":
         obj = await super(School, cls).from_udm_obj(udm_obj, school, lo)
         obj.educational_servers = await obj.get_educational_server_names(lo)
-        obj.administrative_servers = await obj.get_administrative_server_names(lo)
+        try:
+            obj.administrative_servers = await obj.get_administrative_server_names(lo)
+        except UdmNoObject:
+            obj.administrative_servers = []
         return obj
 
     @classmethod
