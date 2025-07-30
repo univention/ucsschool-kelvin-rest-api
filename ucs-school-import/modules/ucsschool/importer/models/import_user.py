@@ -49,6 +49,7 @@ from ucsschool.lib.models.base import NoObject, UDMPropertiesError, WrongObjectT
 from ucsschool.lib.models.group import WorkGroup
 from ucsschool.lib.models.user import (
     ConcreteUserClass,
+    LegalGuardian,
     SchoolAdmin,
     Staff,
     Student,
@@ -61,6 +62,7 @@ from ucsschool.lib.models.utils import create_passwd, ucr
 from ucsschool.lib.roles import (
     InvalidUcsschoolRoleString,
     create_ucsschool_role_string,
+    role_legal_guardian,
     role_pupil,
     role_school_admin,
     role_staff,
@@ -82,6 +84,8 @@ from ..exceptions import (
     InvalidBirthday,
     InvalidClassName,
     InvalidEmail,
+    InvalidLegalGuardian,
+    InvalidLegalWard,
     InvalidSchoolClasses,
     InvalidSchools,
     InvalidWorkgroupName,
@@ -99,6 +103,7 @@ from ..exceptions import (
     UserValidationError,
 )
 from ..factory import Factory
+from ..utils.constants import MAX_LEGAL_GUARDIANS, MAX_LEGAL_WARDS
 from ..utils.format_pyhook import FormatPyHook
 from ..utils.import_pyhook import get_import_pyhooks
 from ..utils.ldap_connection import get_admin_connection, get_readonly_connection
@@ -201,6 +206,8 @@ class ImportUser(User):
         "name": "make_username",
         "username": "make_username",
         "ucsschool_roles": "make_ucsschool_roles",
+        "legal_guardians": "make_legal_guardians",
+        "legal_wards": "make_legal_wards",
     }
 
     def __init__(self, name=None, school=None, **kwargs):  # type: (str, str, **str) -> None
@@ -435,6 +442,8 @@ class ImportUser(User):
             roles = ()  # type: Iterable[str]
         elif cls.config["user_role"] == "student":
             roles = (role_pupil,)
+        elif cls.config["user_role"] == "legal_guardian":
+            roles = (role_legal_guardian,)
         elif cls.config["user_role"] == "teacher_and_staff":
             roles = (role_teacher, role_staff)
         elif cls.config["user_role"] == "school_admin":
@@ -661,6 +670,10 @@ class ImportUser(User):
         self.make_disabled()
         self.make_email()
         self.make_expiration_date()
+        if "student" in self.default_roles:
+            self.make_legal_guardians()
+        if "legal_guardian" in self.default_roles:
+            self.make_legal_wards()
 
     def prepare_udm_properties(self):  # type: () -> None
         """
@@ -1099,6 +1112,66 @@ class ImportUser(User):
             for school in self.schools
         ]  # type: List[str]
         return self.ucsschool_roles
+
+    def make_legal_guardians(self) -> Optional[List[str]]:
+        if self.legal_guardians is None:
+            return self.legal_guardians
+        if len(self.legal_guardians) > MAX_LEGAL_GUARDIANS:
+            raise InvalidLegalGuardian(
+                f"User {self.name} has more legal guardians "
+                f"({len(self.legal_guardians)}) than allowed ({MAX_LEGAL_GUARDIANS})",
+                entry_count=self.entry_count,
+                import_user=self,
+            )
+        legal_guardians = []
+        for username in self.legal_guardians:
+            legal_guardian_dn = self.lo.searchDn(filter=filter_format("uid=%s", (username,)))
+            if len(legal_guardian_dn) > 1:
+                raise InvalidLegalGuardian(
+                    f"Couldn't find distinct legal guardian {username} for legal ward {self.name}",
+                    entry_count=self.entry_count,
+                    import_user=self,
+                )
+            try:
+                legal_guardians.append(legal_guardian_dn[0])
+            except IndexError:
+                raise InvalidLegalGuardian(
+                    f"Couldn't find legal guardian {username} for legal ward {self.name}",
+                    entry_count=self.entry_count,
+                    import_user=self,
+                )
+        self.legal_guardians = legal_guardians
+        return self.legal_guardians
+
+    def make_legal_wards(self) -> Optional[List[str]]:
+        if self.legal_wards is None:
+            return self.legal_wards
+        if len(self.legal_wards) > MAX_LEGAL_WARDS:
+            raise InvalidLegalWard(
+                f"User {self.name} has more legal wards "
+                f"({len(self.legal_wards)}) than allowed ({MAX_LEGAL_WARDS})",
+                entry_count=self.entry_count,
+                import_user=self,
+            )
+        legal_wards = []
+        for username in self.legal_wards:
+            legal_ward_dn = self.lo.searchDn(filter=filter_format("uid=%s", (username,)))
+            if len(legal_ward_dn) > 1:
+                raise InvalidLegalWard(
+                    f"Couldn't find distinct legal ward {username} for legal guardian {self.name}",
+                    entry_count=self.entry_count,
+                    import_user=self,
+                )
+            try:
+                legal_wards.append(legal_ward_dn[0])
+            except IndexError:
+                raise InvalidLegalWard(
+                    f"Couldn't find legal ward {username} for legal guardian {self.name}",
+                    entry_count=self.entry_count,
+                    import_user=self,
+                )
+        self.legal_wards = legal_wards
+        return self.legal_wards
 
     def make_udm_property(self, property_name):  # type: (str) -> Union[str, None]
         """
@@ -1698,6 +1771,8 @@ class ImportUser(User):
             return ImportTeachersAndStaff
         elif issubclass(klass, Teacher):
             return ImportTeacher
+        elif issubclass(klass, LegalGuardian):
+            return ImportLegalGuardian
         elif issubclass(klass, Staff):
             return ImportStaff
         elif issubclass(klass, Student):
@@ -1818,6 +1893,10 @@ class ImportStudent(ImportUser, Student):
 
 
 class ImportTeacher(ImportUser, Teacher):
+    pass
+
+
+class ImportLegalGuardian(ImportUser, LegalGuardian):
     pass
 
 

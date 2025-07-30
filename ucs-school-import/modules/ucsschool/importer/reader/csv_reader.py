@@ -42,7 +42,7 @@ from six import reraise, string_types
 
 from ucsschool.lib.models.user import Staff
 from ucsschool.lib.models.utils import udm_rest_client_cn_admin_kwargs
-from ucsschool.lib.roles import role_pupil, role_staff, role_teacher
+from ucsschool.lib.roles import role_legal_guardian, role_pupil, role_staff, role_teacher
 from udm_rest_client import UDM
 
 from ..contrib.csv import DictReader
@@ -72,6 +72,7 @@ class CsvReader(BaseReader):
         "student": [role_pupil],
         "staff": [role_staff],
         "teacher": [role_teacher],
+        "legal_guardian": [role_legal_guardian],
         "staffteacher": [role_teacher, role_staff],
         "teacher_and_staff": [role_teacher, role_staff],
     }  # known values for "__role" column
@@ -227,6 +228,16 @@ class CsvReader(BaseReader):
         elif mapping_value == "school_classes" and isinstance(import_user, Staff):
             # ignore column
             return True
+        elif mapping_value in ["legal_guardians", "legal_wards"]:
+            if not csv_value:
+                setattr(import_user, mapping_value, [])
+                return True
+            try:
+                delimiter = self.config["csv"]["incell-delimiter"][mapping_value]
+            except KeyError:
+                delimiter = self.config["csv"].get("incell-delimiter", {}).get("default", ",")
+            setattr(import_user, mapping_value, csv_value.split(delimiter))
+            return True
         return False
 
     def get_roles(self, input_data):  # type: (Dict[str, Any]) -> Iterable[str]
@@ -261,6 +272,7 @@ class CsvReader(BaseReader):
                 "student": [role_pupil],
                 "staff": [role_staff],
                 "teacher": [role_teacher],
+                "legal_guardian": [role_legal_guardian],
                 "teacher_and_staff": [role_teacher, role_staff],
             }[self.config["user_role"]]
         except KeyError:
