@@ -369,6 +369,7 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         try:
             udm_obj = await mod.get(dn)
         except UdmNoObject:
+            self.logger.error(f"Expected group {dn} does not exist.")
             return []
         return udm_obj.props.hosts
 
