@@ -55,6 +55,17 @@ from univention.admin.syntax import (
     uid_umlauts,
     v4netmask,
 )
+
+try:
+    from univention.admin.syntax import UCSSchoolStudentDN
+except ImportError:
+    # Fallback for unjoined Directory Nodes
+    from univention.admin.syntax import string as UCSSchoolStudentDN
+try:
+    from univention.admin.syntax import ucsschoolSchools
+except ImportError:
+    # Fallback for unjoined Directory Nodes
+    from univention.admin.syntax import string as ucsschoolSchools
 from univention.admin.uexceptions import valueError
 
 from ..roles import all_roles
@@ -413,8 +424,7 @@ class Schools(Attribute):
     udm_name = "school"
     value_type = list
     value_default = list
-    # ucsschoolSchools (cannot be used because it's not available on import time on a unjoined DC Slave):
-    syntax = string
+    syntax = ucsschoolSchools
     extended = True
 
 
@@ -455,3 +465,29 @@ class Roles(Attribute):
 
     def __init__(self, *args, **kwargs):
         super(Roles, self).__init__(*args, **kwargs)
+
+
+class LegalWards(Attribute):
+    udm_name = "ucsschoolLegalWard"
+    value_type = list
+    value_default = list
+    syntax = UCSSchoolStudentDN
+    extended = True
+
+
+class LegalGuardians(Attribute):
+    """
+    The `legal_guardians` attribute has been introduced to allow the
+    creation of a legal guardian - legal ward relationship between users with the Student role
+    and users with the LegalGuardian role and relies on the UDM properties ucsschoolLegalGuardian.
+    The related UDM properties were introduced in univention/dev/education/ucsschool#1453.
+    The UDM hooks that were added for these UDM properties enforce limits on the length of
+    this attribute.
+
+    univention/dev/education/ucsschool#1454
+    """
+
+    udm_name = "ucsschoolLegalGuardian"
+    syntax = UserDN
+    value_type = list
+    extended = True
