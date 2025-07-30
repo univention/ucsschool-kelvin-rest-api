@@ -357,13 +357,19 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     async def get_administrative_server_names(self, lo: UDM) -> List[str]:
         dn = self.get_administrative_group_name("administrative", ou_specific=True, as_dn=True)
         mod = lo.get("groups/group")
-        udm_obj = await mod.get(dn)
+        try:
+            udm_obj = await mod.get(dn)
+        except UdmNoObject:
+            return []
         return udm_obj.props.hosts
 
     async def get_educational_server_names(self, lo: UDM) -> List[str]:
         dn = self.get_administrative_group_name("educational", ou_specific=True, as_dn=True)
         mod = lo.get("groups/group")
-        udm_obj = await mod.get(dn)
+        try:
+            udm_obj = await mod.get(dn)
+        except UdmNoObject:
+            return []
         return udm_obj.props.hosts
 
     async def add_host_to_dc_group(self, lo: UDM) -> None:
@@ -674,10 +680,7 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     async def from_udm_obj(cls, udm_obj: UdmObject, school: str, lo: UDM) -> "School":
         obj = await super(School, cls).from_udm_obj(udm_obj, school, lo)
         obj.educational_servers = await obj.get_educational_server_names(lo)
-        try:
-            obj.administrative_servers = await obj.get_administrative_server_names(lo)
-        except UdmNoObject:
-            obj.administrative_servers = []
+        obj.administrative_servers = await obj.get_administrative_server_names(lo)
         return obj
 
     @classmethod
