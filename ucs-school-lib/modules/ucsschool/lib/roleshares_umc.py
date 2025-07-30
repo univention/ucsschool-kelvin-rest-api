@@ -40,7 +40,7 @@ import univention.config_registry
 from ucsschool.lib.i18n import ucs_school_name_i18n
 from ucsschool.lib.models.group import Group
 from ucsschool.lib.models.school import School
-from ucsschool.lib.roles import role_pupil, role_staff, role_teacher
+from ucsschool.lib.roles import role_legal_guardian, role_pupil, role_staff, role_teacher
 from ucsschool.lib.school_umc_ldap_connection import MACHINE_READ, USER_READ, USER_WRITE, LDAP_Connection
 from univention.admincli.admin import _2utf8
 from univention.lib.misc import custom_groupname
@@ -158,7 +158,7 @@ def create_roleshares(role_list, school_list=None, ucr=None, ldap_machine_read=N
         ucr = univention.config_registry.ConfigRegistry()
         ucr.load()
 
-    supported_roles = (role_pupil, role_teacher, role_staff)
+    supported_roles = (role_pupil, role_teacher, role_legal_guardian, role_staff)
     supported_role_aliases = {"student": "pupil"}
 
     roles = []
