@@ -1910,6 +1910,7 @@ ConcreteImportUserClass = TypeVar(
     ImportStudent,
     ImportTeacher,
     ImportTeachersAndStaff,
+    ImportLegalGuardian,
     ImportSchoolAdmin,
 )
 
@@ -1981,6 +1982,17 @@ async def convert_to_teacher(
 ) -> ImportTeacher:
     return await ImportUserTypeConverter.convert(
         user, ImportTeacher, udm, additional_classes, additional_workgroups
+    )
+
+
+async def convert_to_legal_guardian(
+    user: ConcreteUserClass,
+    udm: UDM,
+    additional_classes: Dict[str, List[str]] = None,
+    additional_workgroups: Dict[str, List[str]] = None,
+) -> ImportLegalGuardian:
+    return await ImportUserTypeConverter.convert(
+        user, ImportLegalGuardian, udm, additional_classes, additional_workgroups
     )
 
 

@@ -39,6 +39,7 @@ from ucsschool.lib.roles import (
     create_ucsschool_role_string,
     get_role_info,
     role_exam_user,
+    role_legal_guardian,
     role_school_admin,
     role_staff,
     role_student,
@@ -58,6 +59,7 @@ class SchoolUserRole(str, Enum):
     school_admin = "school_admin"
     staff = "staff"
     student = "student"
+    legal_guardian = "legal_guardian"
     teacher = "teacher"
 
     @classmethod
@@ -70,6 +72,8 @@ class SchoolUserRole(str, Enum):
             return cls.student
         if role == role_teacher:
             return cls.teacher
+        if role == role_legal_guardian:
+            return cls.legal_guardian
         if role == role_staff:
             return cls.staff
         if role == role_school_admin:
@@ -103,6 +107,8 @@ class SchoolUserRole(str, Enum):
             return create_ucsschool_role_string(role_student, school)
         elif self.value == self.teacher:
             return create_ucsschool_role_string(role_teacher, school)
+        elif self.value == self.legal_guardian:
+            return create_ucsschool_role_string(role_legal_guardian, school)
         elif self.value == self.school_admin:
             return create_ucsschool_role_string(role_school_admin, school)
 

@@ -33,25 +33,35 @@ import pytest
 from faker import Faker
 
 from ucsschool.importer.models.import_user import (
+    ImportLegalGuardian,
     ImportStaff,
     ImportStudent,
     ImportTeacher,
     ImportTeachersAndStaff,
     ImportUser,
     ImportUserTypeConverter,
+    convert_to_legal_guardian,
     convert_to_staff,
     convert_to_student,
     convert_to_teacher,
     convert_to_teacher_and_staff,
 )
 from ucsschool.lib.models.group import SchoolClass
-from ucsschool.lib.models.user import ExamStudent, Staff, Student, Teacher, TeachersAndStaff
+from ucsschool.lib.models.user import (
+    ExamStudent,
+    LegalGuardian,
+    Staff,
+    Student,
+    Teacher,
+    TeachersAndStaff,
+)
 from udm_rest_client import UDM
 
 UserType = Union[
     Type[ImportStaff],
     Type[ImportStudent],
     Type[ImportTeacher],
+    Type[ImportLegalGuardian],
     Type[ImportTeachersAndStaff],
     Type[ImportUser],
 ]
@@ -75,6 +85,7 @@ USER_ROLES: List[Role] = [
     Role("staff", ImportStaff),
     Role("student", ImportStudent),
     Role("teacher", ImportTeacher),
+    Role("legal_guardian", ImportLegalGuardian),
     Role("teacher_and_staff", ImportTeachersAndStaff),
 ]
 random.shuffle(USER_ROLES)
@@ -144,6 +155,8 @@ async def test_modify_role(
             user_new = await convert_to_student(user_old, udm, addition_class)
         elif issubclass(role_to.klass, TeachersAndStaff):
             user_new = await convert_to_teacher_and_staff(user_old, udm, addition_class)
+        elif issubclass(role_to.klass, LegalGuardian):
+            user_new = await convert_to_legal_guardian(user_old, udm, addition_class)
         else:
             assert issubclass(role_to.klass, Teacher)
             user_new = await convert_to_teacher(user_old, udm, addition_class)
