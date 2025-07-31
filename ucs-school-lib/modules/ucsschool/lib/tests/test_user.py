@@ -1116,7 +1116,9 @@ async def test_is_student(create_ou_using_python, new_udm_user, udm_kwargs):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("role", ("staff", "teacher", "teacher_and_staff", "school_admin"))
+@pytest.mark.parametrize(
+    "role", ("staff", "teacher", "teacher_and_staff", "legal_guardian", "school_admin")
+)
 async def test_is_student_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
     ou = await create_ou_using_python()
     dn, _ = await new_udm_user(ou, role)
@@ -1173,7 +1175,9 @@ async def test_is_exam_student(create_ou_using_python, new_udm_user, udm_kwargs)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("role", ("student", "staff", "teacher", "teacher_and_staff", "school_admin"))
+@pytest.mark.parametrize(
+    "role", ("student", "staff", "teacher", "teacher_and_staff", "legal_guardian", "school_admin")
+)
 async def test_is_exam_student_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
     ou = await create_ou_using_python()
     dn, _ = await new_udm_user(ou, role)

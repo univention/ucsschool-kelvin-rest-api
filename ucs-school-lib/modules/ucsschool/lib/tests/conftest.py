@@ -413,7 +413,14 @@ def new_udm_user(
         udm_properties: Dict[str, Any] = None,
         **school_user_kwargs,
     ) -> Tuple[str, Dict[str, Any]]:
-        assert role in ("staff", "student", "teacher", "teacher_and_staff", "school_admin")
+        assert role in (
+            "staff",
+            "student",
+            "teacher",
+            "teacher_and_staff",
+            "legal_guardian",
+            "school_admin",
+        )
         udm_properties = udm_properties or {}
         user_props = await udm_users_user_props(school, **school_user_kwargs)
         if role == "teacher_and_staff":
@@ -431,6 +438,7 @@ def new_udm_user(
             "student": ("ucsschoolStudent",),
             "teacher": ("ucsschoolTeacher",),
             "teacher_and_staff": ("ucsschoolStaff", "ucsschoolTeacher"),
+            "legal_guardian": ("ucsschoolLegalGuardian",),
             "school_admin": ("ucsschoolAdministrator",),
         }[role]
         position = {
@@ -438,6 +446,7 @@ def new_udm_user(
             "student": school_search_base.students,
             "teacher": school_search_base.teachers,
             "teacher_and_staff": school_search_base.teachersAndStaff,
+            "legal_guardian": school_search_base.legal_guardians,
             "school_admin": school_search_base.admins,
         }[role]
         role_groups = {
@@ -452,6 +461,9 @@ def new_udm_user(
                 SchoolSearchBase([s]).staff_group for s in user_props.get("school", [school])
             ]
             + [SchoolSearchBase([s]).teachers_group for s in user_props.get("school", [school])],
+            "legal_guardian": [
+                SchoolSearchBase([s]).legal_guardians_group for s in user_props.get("school", [school])
+            ],
             "school_admin": [
                 SchoolSearchBase([s]).admins_group for s in user_props.get("school", [school])
             ],
@@ -649,6 +661,7 @@ def role2class():
         "student": ucsschool.lib.models.user.Student,
         "teacher": ucsschool.lib.models.user.Teacher,
         "teacher_and_staff": ucsschool.lib.models.user.TeachersAndStaff,
+        "legal_guardian": ucsschool.lib.models.user.LegalGuardian,
         "school_admin": ucsschool.lib.models.user.SchoolAdmin,
     }
 
