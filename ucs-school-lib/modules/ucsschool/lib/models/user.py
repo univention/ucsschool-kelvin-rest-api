@@ -61,7 +61,6 @@ from .attributes import (
     Email,
     Firstname,
     Lastname,
-    LegalGuardians,
     LegalWards,
     Password,
     SchoolClassesAttribute,
@@ -187,7 +186,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     async def is_teacher(self, lo: UDM) -> bool:
         return await self.__check_object_class(lo, "ucsschoolTeacher", self._legacy_is_teacher)
 
-    def is_legal_guardian(self, lo):  # type: (LoType) -> bool
+    async def is_legal_guardian(self, lo):  # type: (LoType) -> bool
         return self.__check_object_class(lo, "ucsschoolLegalGuardian", self._legacy_is_legal_guardian)
 
     async def is_staff(self, lo: UDM) -> bool:
@@ -466,7 +465,9 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         groups.extend(wg.dn for wg in self.get_workgroup_objs())
         return groups
 
-    async def validate(self, lo: UDM, validate_unlikely_changes: bool = False) -> None:
+    async def validate(
+        self, lo: UDM, validate_unlikely_changes: bool = False, check_name: bool = False
+    ) -> None:
         t0 = time.time()
         await super(User, self).validate(lo, validate_unlikely_changes)  # TODO: this takes 85 ms
         t1 = time.time()
@@ -806,12 +807,16 @@ class Student(User):
     default_options = ("ucsschoolStudent",)
     default_roles = [role_student]
 
-    legal_guardians = LegalGuardians(_("Legal guardian"))
+    # legal_guardians = LegalGuardians(_("Legal guardian"))
 
-    def validate(self, lo, validate_unlikely_changes: Optional[bool] = False, check_name=True) -> None:
-        super().validate(lo, validate_unlikely_changes=validate_unlikely_changes, check_name=check_name)
+    async def validate(
+        self, lo, validate_unlikely_changes: Optional[bool] = False, check_name=True
+    ) -> None:
+        await super().validate(
+            lo, validate_unlikely_changes=validate_unlikely_changes, check_name=check_name
+        )
 
-        if not self.legal_guardians:
+        if not check_name or True:
             return
 
         dn_filter = [f"(entryDN={escape_filter_chars(dn)})" for dn in self.legal_guardians]
@@ -981,7 +986,9 @@ class ExamStudent(Student):
         return await cls.from_dn(dn, school, lo)
 
 
-ConcreteUserClass = TypeVar("ConcreteUserClass", Staff, Student, Teacher, LegalGuardian, TeachersAndStaff, SchoolAdmin)
+ConcreteUserClass = TypeVar(
+    "ConcreteUserClass", Staff, Student, Teacher, LegalGuardian, TeachersAndStaff, SchoolAdmin
+)
 
 
 class UserTypeConverter:
@@ -990,14 +997,16 @@ class UserTypeConverter:
         "student": (role_student,),
         "teacher": (role_teacher,),
         "teacher_and_staff": (role_staff, role_teacher),
+        "legal_guardian": (role_legal_guardian,),
         "school_admin": (role_school_admin,),
     }
     roles_rm = {
-        "staff": (role_student, role_teacher, role_school_admin),
-        "student": (role_staff, role_teacher, role_school_admin),
-        "teacher": (role_staff, role_student, role_school_admin),
-        "teacher_and_staff": (role_student, role_school_admin),
-        "school_admin": (role_student, role_teacher, role_staff),
+        "staff": (role_student, role_teacher, role_school_admin, role_legal_guardian),
+        "student": (role_staff, role_teacher, role_school_admin, role_legal_guardian),
+        "teacher": (role_staff, role_student, role_school_admin, role_legal_guardian),
+        "teacher_and_staff": (role_student, role_school_admin, role_legal_guardian),
+        "legal_guardian": (role_student, role_teacher, role_staff, role_school_admin),
+        "school_admin": (role_student, role_teacher, role_staff, role_legal_guardian),
     }
 
     @classmethod
@@ -1109,6 +1118,9 @@ class UserTypeConverter:
         elif issubclass(new_cls, TeachersAndStaff):
             add_groups = user.get_staff_groups() + user.get_teachers_groups()
             rm_groups = user.get_students_groups() + user.get_school_admin_groups()
+        elif issubclass(new_cls, LegalGuardian):
+            add_groups = user.get_legal_guardians_groups()
+            rm_groups = user.get_students_groups() + user.get_teachers_groups() + user.get_staff_groups()
         elif issubclass(new_cls, Teacher):
             add_groups = user.get_teachers_groups()
             rm_groups = (
@@ -1149,6 +1161,9 @@ class UserTypeConverter:
         elif issubclass(new_cls, Student):
             _add_roles = cls.roles_add["student"]
             _rm_roles = cls.roles_rm["student"]
+        elif issubclass(new_cls, LegalGuardian):
+            _add_roles = cls.roles_add["legal_guardian"]
+            _rm_roles = cls.roles_rm["legal_guardian"]
         elif issubclass(new_cls, TeachersAndStaff):
             _add_roles = cls.roles_add["teacher_and_staff"]
             _rm_roles = cls.roles_rm["teacher_and_staff"]

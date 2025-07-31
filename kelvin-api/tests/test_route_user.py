@@ -60,7 +60,15 @@ from ucsschool.kelvin.routers.user import (
     userexpiry_to_shadowExpire,
 )
 from ucsschool.lib.models.school import School
-from ucsschool.lib.models.user import SchoolAdmin, Staff, Student, Teacher, TeachersAndStaff, User
+from ucsschool.lib.models.user import (
+    LegalGuardian,
+    SchoolAdmin,
+    Staff,
+    Student,
+    Teacher,
+    TeachersAndStaff,
+    User,
+)
 from ucsschool.lib.roles import role_school_admin, role_student
 from udm_rest_client import UDM
 
@@ -77,6 +85,7 @@ USER_ROLES: List[Role] = [
     Role("staff", Staff),
     Role("student", Student),
     Role("teacher", Teacher),
+    Role("legal_guardian", LegalGuardian),
     Role("teacher_and_staff", TeachersAndStaff),
     Role("school_admin", SchoolAdmin),
 ]  # User.role_string -> User
@@ -325,7 +334,9 @@ async def test_search_filter(  # noqa: C901
     if filter_param.startswith("roles_"):
         filter_param, role = filter_param.split("_", 1)
     else:
-        role = random.choice(("staff", "student", "teacher", "teacher_and_staff", "school_admin"))
+        role = random.choice(
+            ("staff", "student", "teacher", "teacher_and_staff", "legal_guardian", "school_admin")
+        )
     if filter_param == "source_uid":
         create_kwargs = {"source_uid": random_name()}
     elif filter_param == "disabled-true":
@@ -424,7 +435,9 @@ async def test_search_filter_udm_properties(
         create_kwargs = {"udm_properties": {filter_param: [random_name(), filter_value, random_name()]}}
     else:
         create_kwargs = {}
-    role = random.choice(("student", "teacher", "staff", "teacher_and_staff", "school_admin"))
+    role = random.choice(
+        ("student", "teacher", "staff", "teacher_and_staff", "legal_guardian", "school_admin")
+    )
     school = await create_ou_using_python()
     user: ImportUser = await new_import_user(school, role, **create_kwargs)
     assert user.role_string == role
@@ -464,7 +477,9 @@ async def test_search_filter_udm_properties(
 async def test_search_user_without_firstname(
     auth_header, create_ou_using_python, retry_http_502, url_fragment, new_school_user, udm_kwargs
 ):
-    role = random.choice(("student", "teacher", "staff", "teacher_and_staff", "school_admin"))
+    role = random.choice(
+        ("student", "teacher", "staff", "teacher_and_staff", "legal_guardian", "school_admin")
+    )
     school = await create_ou_using_python()
     lib_user: User = await new_school_user(school, role)
     assert lib_user.firstname
