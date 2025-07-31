@@ -55,6 +55,7 @@ from ucsschool.importer.exceptions import UcsSchoolImportError
 from ucsschool.importer.factory import Factory
 from ucsschool.importer.mass_import.user_import import UserImport
 from ucsschool.importer.models.import_user import (
+    ImportLegalGuardian,
     ImportSchoolAdmin,
     ImportStaff,
     ImportStudent,
@@ -62,6 +63,7 @@ from ucsschool.importer.models.import_user import (
     ImportTeachersAndStaff,
     ImportUser,
     WorkgroupDoesNotExistError,
+    convert_to_legal_guardian,
     convert_to_school_admin,
     convert_to_staff,
     convert_to_student,
@@ -635,6 +637,7 @@ async def search(  # noqa: C901
         {SchoolUserRole.staff},
         {SchoolUserRole.student},
         {SchoolUserRole.teacher},
+        {SchoolUserRole.legal_guardian},
         {SchoolUserRole.staff, SchoolUserRole.teacher},
         {SchoolUserRole.school_admin},
     ):
@@ -942,6 +945,7 @@ conversion_target_to_func = {
     ImportStaff: convert_to_staff,
     ImportStudent: convert_to_student,
     ImportTeacher: convert_to_teacher,
+    ImportLegalGuardian: convert_to_legal_guardian,
     ImportTeachersAndStaff: convert_to_teacher_and_staff,
     ImportSchoolAdmin: convert_to_school_admin,
 }

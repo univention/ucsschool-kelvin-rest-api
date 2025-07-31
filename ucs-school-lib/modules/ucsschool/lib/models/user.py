@@ -981,7 +981,7 @@ class ExamStudent(Student):
         return await cls.from_dn(dn, school, lo)
 
 
-ConcreteUserClass = TypeVar("ConcreteUserClass", Staff, Student, Teacher, TeachersAndStaff, SchoolAdmin)
+ConcreteUserClass = TypeVar("ConcreteUserClass", Staff, Student, Teacher, LegalGuardian, TeachersAndStaff, SchoolAdmin)
 
 
 class UserTypeConverter:
@@ -1203,6 +1203,17 @@ async def convert_to_teacher(
     additional_workgroups: Dict[str, List[str]] = None,
 ) -> Teacher:
     return await UserTypeConverter.convert(user, Teacher, udm, additional_classes, additional_workgroups)
+
+
+async def convert_to_legal_guardian(
+    user: ConcreteUserClass,
+    udm: UDM,
+    additional_classes: Dict[str, List[str]] = None,
+    additional_workgroups: Dict[str, List[str]] = None,
+) -> LegalGuardian:
+    return await UserTypeConverter.convert(
+        user, LegalGuardian, udm, additional_classes, additional_workgroups
+    )
 
 
 async def convert_to_teacher_and_staff(
