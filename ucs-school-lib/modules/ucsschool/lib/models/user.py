@@ -879,8 +879,8 @@ class LegalGuardian(User):
     def get_container(cls, school):  # type: (str) -> str
         return cls.get_search_base(school).legal_guardians
 
-    def get_specific_groups(self, lo):  # type: (LoType) -> List[str]
-        groups = super(LegalGuardian, self).get_specific_groups(lo)
+    async def get_specific_groups(self, lo):  # type: (LoType) -> List[str]
+        groups = await super(LegalGuardian, self).get_specific_groups(lo)
         groups.extend(self.get_legal_guardians_groups())
         return groups
 
