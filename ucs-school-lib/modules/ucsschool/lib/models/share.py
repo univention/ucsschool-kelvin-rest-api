@@ -236,11 +236,9 @@ class Share(UCSSchoolHelperAbstractClass):
     async def get_server_udm_object(dn: str, lo: UDM) -> Optional[UdmObject]:
         try:
             mod = lo.get("computers/domaincontroller_slave")
-            try:
-                return await mod.get(dn)
-            except UdmNoObject:
-                pass
-        except APICommunicationError:
+            return await mod.get(dn)
+        except (UdmNoObject, APICommunicationError):
+            # APICommunicationError is thrown if the dn is not computers/domaincontroller_slave
             pass
         mod = lo.get("computers/domaincontroller_master")
         try:
