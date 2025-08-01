@@ -1,5 +1,12 @@
 <h1>Changelog</h1>
 
+<h2>v2.0.1 (t.b.d.)</h2>
+<ul>
+    <li>
+      Fixed: Getting a school that was created with the setting to not create noneducational objects (UCR-V `ucsschool/ldap/noneducational/create/objects` is set to false) (:uv:bug:`57261`).
+    </li>
+</ul>
+
 <h2>v2.0.0 (2025-03-14)</h2>
 <ul>
     <li>The Kelvin API now validates user names by default to avoid that they contain Windows reserved names (Issue univention/ucsschool#1052).
