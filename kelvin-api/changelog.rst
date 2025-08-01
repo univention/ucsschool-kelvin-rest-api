@@ -8,7 +8,7 @@ Changelog
 v2.0.1 (t.b.d.)
 --------------------
 * Fixed: Error when creating a new school in a single-server environment (:uv:bug:`58448`).
-* Fixed: Getting a school that was created with the setting to not create noneducational objects
+* Fixed: Getting a school that was created with the setting to not create noneducational objects (UCR-V ``ucsschool/ldap/noneducational/create/objects`` is set to false) (:uv:bug:`57261`).
 
 v2.0.0 (2025-03-14)
 -------------------

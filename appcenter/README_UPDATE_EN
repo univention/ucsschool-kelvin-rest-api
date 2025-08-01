@@ -5,6 +5,9 @@
     <li>
       Fixed: Error when creating a new school in a single-server environment (:uv:bug:`58448`).
     </li>
+    <li>
+      Fixed: Getting a school that was created with the setting to not create noneducational objects (UCR-V `ucsschool/ldap/noneducational/create/objects` is set to false) (:uv:bug:`57261`).
+    </li>
 </ul>
 
 <h2>v2.0.0 (2025-03-14)</h2>
