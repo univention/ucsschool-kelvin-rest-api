@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v2.0.1 (t.b.d.)
+--------------------
+* Fixed: Error when creating a new school in a single-server environment (:uv:bug:`58448`).
+
 v2.0.0 (2025-03-14)
 -------------------
 * The Kelvin API now validates user names by default to avoid that they contain Windows reserved names (Issue :spelling:ignore:`univention/ucsschool#1052`).
