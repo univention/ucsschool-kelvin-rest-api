@@ -1595,6 +1595,8 @@ class ImportUser(User):
                 return "teacher"
         elif role_staff in self.roles:
             return "staff"
+        elif role_legal_guardian in self.roles:
+            return "legal_guardian"
         elif role_school_admin in self.roles:
             return "school_admin"
         else:

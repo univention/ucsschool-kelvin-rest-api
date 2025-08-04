@@ -46,6 +46,7 @@ option_blacklist = {
     "ucsschoolAdministrator": {"ucsschoolExam", "ucsschoolStudent"},
     "ucsschoolExam": {"ucsschoolAdministrator", "ucsschoolStaff", "ucsschoolTeacher"},
     "ucsschoolStaff": {"ucsschoolExam", "ucsschoolStudent"},
+    "ucsschoolLegalGuardian": {"ucsschoolExam", "ucsschoolStudent"},
     "ucsschoolStudent": {"ucsschoolAdministrator", "ucsschoolStaff", "ucsschoolTeacher"},
     "ucsschoolTeacher": {"ucsschoolExam", "ucsschoolStudent"},
 }

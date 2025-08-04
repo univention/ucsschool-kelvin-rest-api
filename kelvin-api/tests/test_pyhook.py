@@ -43,7 +43,15 @@ from ucsschool.importer.utils.format_pyhook import FormatPyHook
 from ucsschool.importer.utils.user_pyhook import KelvinUserHook, UserPyHook
 from ucsschool.kelvin.routers.user import UserModel
 from ucsschool.lib.models.hook import Hook
-from ucsschool.lib.models.user import SchoolAdmin, Staff, Student, Teacher, TeachersAndStaff, User
+from ucsschool.lib.models.user import (
+    LegalGuardian,
+    SchoolAdmin,
+    Staff,
+    Student,
+    Teacher,
+    TeachersAndStaff,
+    User,
+)
 from ucsschool.lib.models.utils import env_or_ucr
 from udm_rest_client import UDM
 
@@ -58,6 +66,7 @@ USER_ROLES: List[Role] = [
     Role("staff", Staff),
     Role("student", Student),
     Role("teacher", Teacher),
+    Role("legalGuardian", LegalGuardian),
     Role("teacher_and_staff", TeachersAndStaff),
     Role("school_admin", SchoolAdmin),
 ]  # User.role_string -> User
@@ -379,7 +388,7 @@ async def test_format_pyhook(
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
     api_user = UserModel(**response_json)
-    if role.name in ("school_admin", "staff", "teacher"):
+    if role.name in ("school_admin", "legal_guardian", "staff", "teacher"):
         assert api_user.record_uid == api_user.lastname
     else:
         assert api_user.record_uid != api_user.lastname

@@ -261,8 +261,8 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         group.ucsschool_roles = [
             create_ucsschool_role_string(role_school_legal_guardian_group, self.name)
         ]
-        group.create(lo)
-        group.add_umc_policy(self.get_umc_policy_dn("legal_guardians"), lo)
+        await group.create(lo)
+        await group.add_umc_policy(self.get_umc_policy_dn("legal_guardians"), lo)
 
         # cn=mitarbeiter
         if self.shall_create_administrative_objects():

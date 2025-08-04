@@ -599,7 +599,7 @@ async def search(  # noqa: C901
     - **firstname**: given name of users to look for
     - **lastname**: family name of users to look for
     - **roles**: **list** of roles the user should have, **allowed values:
-        ["staff"], ["student"], ["teacher"], ["staff", "teacher"], ["school_admin"]**
+        ["staff"], ["student"], ["teacher"], ["legal_guardian"], ["staff", "teacher"], ["school_admin"]**
     - **additional query parameters**: additionally to the above parameters,
         any UDM property can be used to filter, e.g.
         **?uidNumber=12345&city=Bremen**

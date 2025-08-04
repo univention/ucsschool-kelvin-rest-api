@@ -135,6 +135,7 @@ grp_prefix_pupils = configRegistry.get("ucsschool/ldap/default/groupprefix/pupil
 grp_prefix_teachers = configRegistry.get("ucsschool/ldap/default/groupprefix/teachers", "lehrer-")
 grp_prefix_admins = configRegistry.get("ucsschool/ldap/default/groupprefix/admins", "admins-")
 grp_prefix_staff = configRegistry.get("ucsschool/ldap/default/groupprefix/staff", "mitarbeiter-")
+grp_prefix_legal_guardians = configRegistry.get("ucsschool/ldap/default/groupprefix/legal_guardians", "gesetzliche vertreter")
 
 grp_policy_pupils = configRegistry.get(
     "ucsschool/ldap/default/policy/umc/pupils",
@@ -152,8 +153,9 @@ grp_policy_staff = configRegistry.get(
     "ucsschool/ldap/default/policy/umc/staff",
     "cn=ucsschool-umc-staff-default,cn=UMC,cn=policies,%s" % baseDN,
 )
-grp_prefix_legal_guardians = configRegistry.get(
-    "ucsschool/ldap/default/groupprefix/legal_guardians", "gesetzliche_vertreter-"
+grp_policy_legal_guardians = configRegistry.get(
+    "ucsschool/ldap/default/policy/umc/legal_guardians",
+    "cn=ucsschool-umc-legal_guardians-default,cn=UMC,cn=policies,%s" % baseDN,
 )
 
 UCRV_serverprofile_option = configRegistry.get("ucsschool/import/set/serverprofile/path", None)
@@ -785,6 +787,11 @@ def create_school_ou(
         (
             "cn=%s%s,cn=groups,%s" % (grp_prefix_teachers, schoolNr.lower(), getDN(schoolNr)),
             grp_policy_teachers,
+            False,
+        ),
+        (
+            "cn=%s%s,cn=groups,%s" % (grp_prefix_legal_guardians, schoolNr.lower(), getDN(schoolNr)),
+            grp_policy_legal_guardians,
             False,
         ),
     ]

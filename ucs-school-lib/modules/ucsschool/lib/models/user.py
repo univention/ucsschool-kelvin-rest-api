@@ -1054,6 +1054,7 @@ class UserTypeConverter:
             "ucsschoolStaff": False,
             "ucsschoolStudent": False,
             "ucsschoolTeacher": False,
+            "ucsschoolLegalGuardian": False,
             "ucsschoolAdministrator": False,
         }
         options.update(dict((opt, True) for opt in new_cls.get_default_options()))
