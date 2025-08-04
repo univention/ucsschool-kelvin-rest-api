@@ -61,6 +61,7 @@ from .attributes import (
     Email,
     Firstname,
     Lastname,
+    LegalGuardians,
     LegalWards,
     Password,
     SchoolClassesAttribute,
@@ -807,7 +808,7 @@ class Student(User):
     default_options = ("ucsschoolStudent",)
     default_roles = [role_student]
 
-    # legal_guardians = LegalGuardians(_("Legal guardian"))
+    legal_guardians = LegalGuardians(_("Legal guardian"))
 
     async def validate(
         self, lo, validate_unlikely_changes: Optional[bool] = False, check_name=True

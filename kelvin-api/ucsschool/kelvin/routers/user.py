@@ -34,7 +34,20 @@ import time
 from collections.abc import Sequence
 from functools import lru_cache
 from operator import attrgetter
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type
+from typing import (
+    Annotated,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request, Response, status
 from ldap.filter import escape_filter_chars
@@ -338,6 +351,8 @@ class UserCreateModel(UserBaseModel):
 
 
 class UserModel(UserBaseModel, APIAttributesMixin):
+    user_type: Literal["default"] = "default"
+
     class Config(UserBaseModel.Config):
         ...
 
@@ -380,6 +395,35 @@ class UserModel(UserBaseModel, APIAttributesMixin):
             for school in sorted(kwargs["workgroups"].keys())
         )
         return kwargs
+
+
+class StudentModel(UserModel):
+    user_type: Literal["student"] = "student"
+    legal_guardians: List[str]
+
+    @classmethod
+    async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
+        kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
+        kwargs["legal_guardians"] = obj.legal_guardians
+        kwargs["user_type"] = "student"
+        return kwargs
+
+
+class LegalGuardianModel(UserModel):
+    user_type: Literal["legal_guardian"] = "legal_guardian"
+    legal_wards: List[str]
+
+    @classmethod
+    async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
+        kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
+        kwargs["legal_wards"] = obj.legal_wards
+        kwargs["user_type"] = "legal_guardian"
+        return kwargs
+
+
+UserModelsUnion = Annotated[
+    Union[UserModel, StudentModel, LegalGuardianModel], Field(discriminator="user_type")
+]
 
 
 class UserPatchModel(BaseModel):
@@ -535,7 +579,7 @@ def search_query_params_to_udm_filter(  # noqa: C901
         return None
 
 
-@router.get("/", response_model=List[UserModel])
+@router.get("/", response_model=List[UserModelsUnion])
 async def search(  # noqa: C901
     request: Request,
     school: str = Query(
@@ -573,7 +617,7 @@ async def search(  # noqa: C901
     accepted_properties: Set[str] = Depends(accepted_udm_properties),
     udm: UDM = Depends(udm_ctx),
     kelvin_admin: LdapUser = Depends(get_kelvin_admin),
-) -> List[UserModel]:
+) -> List[UserModelsUnion]:
     """
     Search for school users.
 
@@ -681,10 +725,15 @@ async def search(  # noqa: C901
     t2 = time.time()
     users.sort(key=attrgetter("name"))
     t3 = time.time()
-    res: List[UserModel] = []
+    res: List[UserModelsUnion] = []
     for user in users:
         try:
-            obj = await UserModel.from_lib_model(user, request, udm)
+            if user.role_string == "legal_guardian":
+                obj = await LegalGuardianModel.from_lib_model(user, request, udm)
+            elif user.role_string == "student":
+                obj = await StudentModel.from_lib_model(user, request, udm)
+            else:
+                obj = await UserModel.from_lib_model(user, request, udm)
         except ValidationError as exc:
             msg = f"Validation error when reading user {user.dn!r}: {exc!s}"
             logger.error(msg)
