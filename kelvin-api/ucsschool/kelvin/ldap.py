@@ -139,6 +139,7 @@ def get_user(
             f"(objectClass=ucsschoolStaff)"
             f"(objectClass=ucsschoolStudent)"
             f"(objectClass=ucsschoolTeacher)"
+            f"(objectClass=ucsschoolLegalGuardian)"
             f"(objectClass=ucsschoolAdministrator)"
             f"))"
         )

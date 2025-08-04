@@ -138,6 +138,7 @@ async def search(
             SchoolUserRole.staff,
             SchoolUserRole.student,
             SchoolUserRole.teacher,
+            SchoolUserRole.legal_guardian,
             SchoolUserRole.school_admin,
         )
     ]

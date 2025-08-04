@@ -69,6 +69,7 @@ from ucsschool.lib.roles import (
     role_school_admin,
     role_school_admin_group,
     role_school_domain_group,
+    role_school_legal_guardian_group,
     role_school_staff_group,
     role_school_student_group,
     role_school_teacher_group,
@@ -260,6 +261,7 @@ class UcsSchoolRolesMigration(object):
                 for g_type, role in (
                     ("mitarbeiter", role_school_staff_group),
                     ("schueler", role_school_student_group),
+                    ("gesetzliche vertreter", role_school_legal_guardian_group),
                     ("lehrer", role_school_teacher_group),
                 ):
                     for group in SchoolGroup.lookup(

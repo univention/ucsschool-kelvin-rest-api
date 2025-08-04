@@ -117,6 +117,9 @@ class SchoolSearchBase(object):
         cls.group_prefix_teachers = (
             cls.ucr.get("ucsschool/ldap/default/groupprefix/teachers") or "lehrer-"
         )
+        cls.group_prefix_legal_guardians = cls.ucr.get(
+            "ucsschool/ldap/default/groupprefix/legal_guardians", "gesetzliche vertreter-"
+        )
         cls.group_prefix_admins = cls.ucr.get("ucsschool/ldap/default/groupprefix/admins") or "admins-"
         cls.group_prefix_staff = (
             cls.ucr.get("ucsschool/ldap/default/groupprefix/staff") or "mitarbeiter-"
