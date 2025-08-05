@@ -27,6 +27,7 @@ from ucsschool.lib.models.validator import (
 from ucsschool.lib.roles import (
     all_context_types,
     role_exam_user,
+    role_legal_guardian,
     role_school_admin,
     role_staff,
     role_student,
@@ -513,7 +514,7 @@ def test_students_exclusive_role(caplog, dict_obj, random_logger, disallowed_rol
     dict_obj["props"]["ucsschoolRole"].append("{}:school:{}".format(disallowed_role, ou))
     validate(dict_obj, logger=random_logger)
     expected_msg = "must not have these roles: {!r}.".format(
-        [role_teacher, role_staff, role_school_admin]
+        [role_teacher, role_legal_guardian, role_staff, role_school_admin]
     )
     check_logs(dict_obj, caplog.record_tuples, random_logger.name, expected_msg)
 
