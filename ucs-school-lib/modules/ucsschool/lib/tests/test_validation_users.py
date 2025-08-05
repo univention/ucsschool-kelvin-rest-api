@@ -577,7 +577,7 @@ def test_missing_exam_context_role(caplog, random_logger):
 def test_missing_role_group(caplog, dict_obj, container, random_logger):
     role_group = "dummy"
     for group in list(dict_obj["props"]["groups"]):
-        if re.match(r"cn={}-[^,]+,cn=groups,.+".format(container), group):
+        if re.match(r"cn={}-[^,]+(,cn=ouadmins)?,cn=groups,.+".format(container), group):
             dict_obj["props"]["groups"].remove(group)
             role_group = group
             break
