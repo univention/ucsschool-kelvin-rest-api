@@ -21,6 +21,9 @@
     <li>
       Fixed: School admins are now fully supported in kelvin (Bug #54051).
     </li>
+    <li>
+    	Add legal guardian role to Kelvin (Issue univention/components/ucsschool-kelvin-rest-api#154).
+    </li>
 </ul>
 
 <h2>v2.0.0 (2025-03-14)</h2>
