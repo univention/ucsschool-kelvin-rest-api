@@ -176,8 +176,8 @@ class DefaultUserImportFactory(object):
         :rtype: ImportUser
         """
         from ucsschool.lib.roles import (
-            role_pupil,
             role_legal_guardian,
+            role_pupil,
             role_school_admin,
             role_staff,
             role_student,
