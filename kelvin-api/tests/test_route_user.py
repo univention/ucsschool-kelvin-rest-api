@@ -296,7 +296,7 @@ async def test_search_no_filter(
         params={"school": ou_name},
     )
     assert response.status_code == 200, response.reason
-    api_users = {data["name"]: UserModel(**data) for data in response.json()}
+    api_users = {data["name"]: get_user_model(data) for data in response.json()}
     assert len(api_users) == len(lib_users)
     assert {u.name for u in users}.issubset(set(api_users.keys()))
     json_resp = response.json()
@@ -401,7 +401,9 @@ async def test_search_filter(  # noqa: C901
     assert response.status_code == 200, response.reason
     json_resp = response.json()
     api_users = {
-        data["name"]: UserModel(**data) for data in json_resp if data["school"].split("/")[-1] == ou_name
+        data["name"]: get_user_model(data)
+        for data in json_resp
+        if data["school"].split("/")[-1] == ou_name
     }
     if filter_param not in ("disabled", "roles", "school"):
         assert len(api_users) == 1
@@ -468,7 +470,7 @@ async def test_search_filter_udm_properties(
         params=params,
     )
     assert response.status_code == 200, response.reason
-    api_users = {data["name"]: UserModel(**data) for data in response.json()}
+    api_users = {data["name"]: get_user_model(data) for data in response.json()}
     if filter_param != "gidNumber":
         assert len(api_users) == 1
     assert user.name in api_users
@@ -595,7 +597,7 @@ async def test_get(
             "workgroups",
         )
     )
-    api_user = UserModel(**json_resp)
+    api_user = get_user_model(json_resp)
     for k, v in udm_properties.items():
         if isinstance(v, (tuple, list)):
             assert set(api_user.udm_properties.get(k, [])) == set(v)
@@ -624,7 +626,7 @@ async def test_get_empty_udm_properties_are_returned(
     user: ImportUser = await new_import_user(school, role.name)
     response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
     assert response.status_code == 200, response.reason
-    api_user = UserModel(**response.json())
+    api_user = get_user_model(response.json())
     for prop in import_config["mapped_udm_properties"]:
         assert prop in api_user.udm_properties
 
@@ -1219,7 +1221,7 @@ async def test_put(
         data=modified_user.json(),
     )
     assert response.status_code == 200, response.reason
-    api_user = UserModel(**response.json())
+    api_user = get_user_model(response.json())
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={user.name}")
         assert len(lib_users) == 1
@@ -1279,7 +1281,7 @@ async def test_put_with_password_hashes(
         data=modified_user.json(),
     )
     assert response.status_code == 200, response.reason
-    api_user = UserModel(**response.json())
+    api_user = get_user_model(response.json())
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={user.name}")
         assert len(lib_users) == 1
@@ -1346,7 +1348,7 @@ async def test_patch(
         json=new_user_data,
     )
     assert response.status_code == 200, f"{response.__dict__!r}"
-    api_user = UserModel(**response.json())
+    api_user = get_user_model(response.json())
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={user.name}")
         assert len(lib_users) == 1
@@ -1406,7 +1408,7 @@ async def test_patch_with_password_hashes(
     )
     assert response.status_code == 200, response.reason
     json_resp = response.json()
-    api_user = UserModel(**json_resp)
+    api_user = get_user_model(json_resp)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={user.name}")
         assert len(lib_users) == 1
@@ -1810,7 +1812,7 @@ async def test_rename(
     else:
         raise RuntimeError("method not supported")
     assert response.status_code == 200, f"{response.reason} -- {response.content[:4096]}"
-    api_user = UserModel(**response.json())
+    api_user = get_user_model(response.json())
     assert api_user.name == new_name
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={user.name}")
@@ -1877,7 +1879,7 @@ async def test_school_change(
         async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
             udm_user_schools = udm_user.props.school
             assert udm_user_schools == [ou2_name]
-        api_user = UserModel(**json_response)
+        api_user = get_user_model(json_response)
         assert (
             api_user.unscheme_and_unquote(str(api_user.school)) == f"{url_fragment}/schools/{ou2_name}"
         )
@@ -1982,7 +1984,7 @@ async def test_school_change_verify_groups(
         async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
             udm_user_schools = udm_user.props.school
             assert udm_user_schools == [ou1_name, ou3_name]
-        api_user = UserModel(**json_response)
+        api_user = get_user_model(json_response)
         assert (
             api_user.unscheme_and_unquote(str(api_user.school)) == f"{url_fragment}/schools/{ou1_name}"
         )
@@ -2062,7 +2064,7 @@ async def test_change_disable(
     response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
     assert response.status_code == 200, response.reason
     await asyncio.sleep(5)
-    api_user = UserModel(**response.json())
+    api_user = get_user_model(response.json())
     assert api_user.disabled == user.disabled
     with pytest.raises(BindError):
         await check_password(lib_users[0].dn, password)
@@ -2085,7 +2087,7 @@ async def test_change_disable(
     assert response.status_code == 200, response.reason
     await asyncio.sleep(5)
     response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
-    api_user = UserModel(**response.json())
+    api_user = get_user_model(response.json())
     assert api_user.disabled == user.disabled
     await check_password(lib_users[0].dn, password)
 
@@ -2395,7 +2397,7 @@ async def test_add_additional_schools(
         async with UDM(**udm_kwargs) as udm:
             async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
                 assert set(udm_user.props.school) == set(new_schools)
-            api_user = UserModel(**json_response)
+            api_user = get_user_model(json_response)
             lib_users = await User.get_all(udm, school1, f"username={user.name}")
         assert len(lib_users) == 1
         assert isinstance(lib_user, role.klass)
@@ -2513,7 +2515,7 @@ async def test_set_school_with_multiple_schools(
     async with UDM(**udm_kwargs) as udm:
         async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
             assert set(udm_user.props.school) == {school2}
-        api_user = UserModel(**json_response)
+        api_user = get_user_model(json_response)
         lib_users = await User.get_all(udm, school2, f"username={user.name}")
     assert len(lib_users) == 1
     assert isinstance(lib_user, role.klass)
@@ -2638,7 +2640,7 @@ async def test_change_school_with_multiple_schools(
     async with UDM(**udm_kwargs) as udm:
         async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
             assert set(udm_user.props.school) == {school1, school2, school3}
-        api_user = UserModel(**json_response)
+        api_user = get_user_model(json_response)
         lib_users = await User.get_all(udm, school2, f"username={user.name}")
     assert len(lib_users) == 1
     assert isinstance(lib_user, role.klass)
@@ -2771,7 +2773,7 @@ async def test_change_school_and_schools(
     async with UDM(**udm_kwargs) as udm:
         async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
             assert set(udm_user.props.school) == {school2, school3}
-        api_user = UserModel(**json_response)
+        api_user = get_user_model(json_response)
         lib_users = await User.get_all(udm, expected_school, f"username={user.name}")
     assert len(lib_users) == 1
     assert isinstance(lib_user, role.klass)
@@ -2898,7 +2900,7 @@ async def test_change_schools_and_classes(
     async with UDM(**udm_kwargs) as udm:
         async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
             assert set(udm_user.props.school) == {school1, school3}
-        api_user = UserModel(**json_response)
+        api_user = get_user_model(json_response)
         lib_users = await User.get_all(udm, expected_school, f"username={user.name}")
     assert len(lib_users) == 1
     assert isinstance(lib_user, role.klass)

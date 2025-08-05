@@ -41,7 +41,7 @@ import univention.admin.uldap_docker
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.importer.utils.format_pyhook import FormatPyHook
 from ucsschool.importer.utils.user_pyhook import KelvinUserHook, UserPyHook
-from ucsschool.kelvin.routers.user import UserModel
+from ucsschool.kelvin.routers.user import LegalGuardianModel, StudentModel, UserModel, UserModelsUnion
 from ucsschool.lib.models.hook import Hook
 from ucsschool.lib.models.user import (
     LegalGuardian,
@@ -74,6 +74,14 @@ random.shuffle(USER_ROLES)
 fake = Faker()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+def get_user_model(response_json: Dict[str, Any]) -> UserModelsUnion:
+    if response_json["user_type"] == "legal_guardian":
+        return LegalGuardianModel(**response_json)
+    if response_json["user_type"] == "student":
+        return StudentModel(**response_json)
+    return UserModel(**response_json)
 
 
 """
@@ -387,7 +395,7 @@ async def test_format_pyhook(
     )
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
-    api_user = UserModel(**response_json)
+    api_user = get_user_model(response_json)
     if role.name in ("school_admin", "legal_guardian", "staff", "teacher"):
         assert api_user.record_uid == api_user.lastname
     else:
@@ -429,7 +437,7 @@ async def test_user_import_pyhook(
     )
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
-    api_user = UserModel(**response_json)
+    api_user = get_user_model(response_json)
     assert api_user.birthday == datetime.date.today()
 
     response = retry_http_502(
@@ -439,7 +447,7 @@ async def test_user_import_pyhook(
         json={"birthday": "2013-12-11"},
     )
     assert response.status_code == 200, response.reason
-    api_user = UserModel(**response.json())
+    api_user = get_user_model(response.json())
     assert api_user.record_uid == api_user.lastname
 
     response = retry_http_502(
