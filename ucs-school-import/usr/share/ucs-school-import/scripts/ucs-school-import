@@ -135,7 +135,7 @@ grp_prefix_pupils = configRegistry.get("ucsschool/ldap/default/groupprefix/pupil
 grp_prefix_teachers = configRegistry.get("ucsschool/ldap/default/groupprefix/teachers", "lehrer-")
 grp_prefix_admins = configRegistry.get("ucsschool/ldap/default/groupprefix/admins", "admins-")
 grp_prefix_staff = configRegistry.get("ucsschool/ldap/default/groupprefix/staff", "mitarbeiter-")
-grp_prefix_legal_guardians = configRegistry.get("ucsschool/ldap/default/groupprefix/legal_guardians", "gesetzliche vertreter")
+grp_prefix_legal_guardians = configRegistry.get("ucsschool/ldap/default/groupprefix/legal_guardians", "gesetzliche vertreter-")
 
 grp_policy_pupils = configRegistry.get(
     "ucsschool/ldap/default/policy/umc/pupils",

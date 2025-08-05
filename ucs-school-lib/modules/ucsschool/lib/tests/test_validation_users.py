@@ -16,6 +16,7 @@ from ucsschool.lib.models.utils import ucr as lib_ucr  # 'ucr' already exists as
 from ucsschool.lib.models.validator import (
     VALIDATION_LOGGER,
     ExamStudentValidator,
+    LegalGuardianValidator,
     SchoolAdminValidator,
     StaffValidator,
     StudentValidator,
@@ -304,6 +305,29 @@ def school_admin_user():  # type: () -> Dict[str, Any]
     return user
 
 
+def legal_guardian_user() -> Dict[str, Any]:
+    firstname = fake.first_name()
+    lastname = fake.last_name()
+    user = base_user(firstname, lastname)
+    user["dn"] = "uid={},cn={},cn=users,ou={},{}".format(
+        user["props"]["username"], SchoolSearchBase._containerLegalGuardians, ou, ldap_base
+    )
+    group_prefix_legal_guardian = get_current_group_prefix("legal_guardians", "gesetzliche vertreter-")
+    print(group_prefix_legal_guardian)
+    user["props"]["groups"] = [
+        "cn={}{},cn=groups,ou={},{}".format(group_prefix_legal_guardian, ou.lower(), ou, ldap_base),
+        "cn=Domain Users {0},cn=groups,ou={0},{1}".format(ou, ldap_base),
+    ]
+    print(user["props"]["groups"])
+    user["props"]["unixhome"] = "/home/{}/gesetzliche vertreter/{}".format(ou, user["props"]["username"])
+    user["props"]["ucsschoolRole"] = ["legal_guardian:school:{}".format(ou)]
+    user["position"] = "cn={},cn=users,ou={},{}".format(
+        SchoolSearchBase._containerLegalGuardians, ou, ldap_base
+    )
+    user["options"]["ucsschoolLegalGuardian"] = True
+    return user
+
+
 @pytest.fixture(autouse=True)
 def mock_logger_file(mocker):
     with tempfile.NamedTemporaryFile() as f:
@@ -317,6 +341,7 @@ all_user_role_objects = [
     exam_user(),
     teacher_and_staff_user(),
     school_admin_user(),
+    legal_guardian_user(),
 ]
 all_user_role_generators = [
     student_user,
@@ -325,6 +350,7 @@ all_user_role_generators = [
     exam_user,
     teacher_and_staff_user,
     school_admin_user,
+    legal_guardian_user,
 ]
 
 all_user_roles_names = [
@@ -334,6 +360,7 @@ all_user_roles_names = [
     role_exam_user,
     "teacher_and_staff",
     role_school_admin,
+    role_legal_guardian,
 ]
 
 all_validator_classes = [
@@ -343,6 +370,7 @@ all_validator_classes = [
     ExamStudentValidator,
     TeachersAndStaffValidator,
     SchoolAdminValidator,
+    LegalGuardianValidator,
 ]
 
 
@@ -406,6 +434,7 @@ def check_did_not_log_any_error(
             ExamStudentValidator,
             TeachersAndStaffValidator,
             SchoolAdminValidator,
+            LegalGuardianValidator,
         ],
     ),
     ids=all_user_roles_names,
@@ -432,12 +461,14 @@ def test_correct_object(caplog, dict_obj, random_logger):
         (teacher_user, "teachers", "lehrer-"),
         (staff_user, "staff", "mitarbeiter-"),
         (school_admin_user, "admins", "admins-"),
+        (legal_guardian_user, "legal_guardians", "gesetzliche vertreter-"),
     ],
     ids=[
         "altered_student_group_prefix",
         "altered_teachers_group_prefix",
         "altered_staff_group_prefix",
         "altered_admins_group_prefix",
+        "altered_legal_guardian_group_prefix",
     ],
 )
 def test_altered_group_prefix(
@@ -528,6 +559,7 @@ def test_students_exclusive_role(caplog, dict_obj, random_logger, disallowed_rol
         (exam_user, teacher_user),
         (teacher_and_staff_user, student_user),
         (school_admin_user, student_user),
+        (legal_guardian_user, student_user),
     ],
     ids=all_user_roles_names,
 )
@@ -572,8 +604,9 @@ def test_missing_exam_context_role(caplog, random_logger):
         (SchoolSearchBase._containerTeachers, teacher_user()),
         (SchoolSearchBase._containerStaff, staff_user()),
         (SchoolSearchBase._containerAdmins, school_admin_user()),
+        (SchoolSearchBase._containerLegalGuardians, legal_guardian_user()),
     ],
-    ids=[role_student, role_teacher, role_staff, role_school_admin],
+    ids=[role_student, role_teacher, role_staff, role_school_admin, role_legal_guardian],
 )
 def test_missing_role_group(caplog, dict_obj, container, random_logger):
     role_group = "dummy"
@@ -638,8 +671,24 @@ def test_missing_domain_users_group(caplog, dict_obj, random_logger):
 )
 @pytest.mark.parametrize(
     "get_dict_obj",
-    [student_user, teacher_user, staff_user, exam_user, teacher_and_staff_user, school_admin_user],
-    ids=[role_student, role_teacher, role_staff, role_exam_user, "teacher_and_staff", role_school_admin],
+    [
+        student_user,
+        teacher_user,
+        staff_user,
+        exam_user,
+        teacher_and_staff_user,
+        school_admin_user,
+        legal_guardian_user,
+    ],
+    ids=[
+        role_student,
+        role_teacher,
+        role_staff,
+        role_exam_user,
+        "teacher_and_staff",
+        role_school_admin,
+        role_legal_guardian,
+    ],
 )
 def test_missing_required_attribute(caplog, get_dict_obj, random_logger, required_attribute):
     dict_obj = get_dict_obj()
@@ -681,6 +730,7 @@ def test_student_missing_class(caplog, dict_obj, random_logger):
         (teacher_and_staff_user, student_user),
         (student_user, school_admin_user),
         (exam_user, school_admin_user),
+        (legal_guardian_user, student_user),
     ],
     ids=[
         "student_has_teacher_groups",
@@ -689,6 +739,7 @@ def test_student_missing_class(caplog, dict_obj, random_logger):
         "teacher_has_student_groups",
         "student_has_admin_groups",
         "exam_student_has_admin_groups",
+        "legal_guardian_has_student_groups",
     ],
 )
 def test_validate_group_membership(caplog, get_user_a, get_user_b, random_logger):
