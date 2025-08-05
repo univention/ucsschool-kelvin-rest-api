@@ -819,7 +819,7 @@ class Student(User):
             lo, validate_unlikely_changes=validate_unlikely_changes, check_name=check_name
         )
 
-        if not check_name or True:
+        if not check_name:
             return
 
         dn_filter = [f"(entryDN={escape_filter_chars(dn)})" for dn in self.legal_guardians]
