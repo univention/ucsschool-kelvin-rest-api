@@ -49,9 +49,12 @@ from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.kelvin.ldap import get_dn_of_user
 from ucsschool.kelvin.routers.role import SchoolUserRole
 from ucsschool.kelvin.routers.user import (
+    LegalGuardianModel,
     PasswordsHashes,
+    StudentModel,
     UserCreateModel,
     UserModel,
+    UserModelsUnion,
     UserPatchModel,
     _validate_date_format,
     _validate_date_range,
@@ -206,6 +209,14 @@ def compare_ldap_json_obj(dn, json_resp, url_fragment):  # noqa: C901
                     assert ldap_obj[k][0].decode("utf-8") == v
                 if type(v) is int:
                     assert int(ldap_obj[k][0].decode("utf-8")) == v
+
+
+def get_user_model(response_json: Dict[str, Any]) -> UserModelsUnion:
+    if response_json["user_type"] == "legal_guardian":
+        return LegalGuardianModel(**response_json)
+    if response_json["user_type"] == "student":
+        return StudentModel(**response_json)
+    return UserModel(**response_json)
 
 
 @pytest.fixture
@@ -692,7 +703,7 @@ async def test_create(
     )
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
-    api_user = UserModel(**response_json)
+    api_user = get_user_model(response_json)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
         assert len(lib_users) == 1
@@ -989,7 +1000,7 @@ async def test_create_without_username(
     )
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
-    api_user = UserModel(**response_json)
+    api_user = get_user_model(response_json)
     assert api_user.name == expected_name
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={expected_name}")
@@ -1055,7 +1066,7 @@ async def test_create_minimal_attrs(
     )
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
-    api_user = UserModel(**response_json)
+    api_user = get_user_model(response_json)
     assert api_user.name == expected_name
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={expected_name}")
@@ -1155,7 +1166,7 @@ async def test_create_with_password_hashes(
     )
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
-    api_user = UserModel(**response_json)
+    api_user = get_user_model(response_json)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
         assert len(lib_users) == 1
