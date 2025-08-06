@@ -355,16 +355,11 @@ def temp_file_func():
 # Monkey patch setup_logging() for the whole test session
 @pytest.fixture(scope="session")
 def setup_logging(temp_dir_session):
-    tmp_log_file = Path(mkstemp()[1])
+    test_log_tag = "kelvin_test_http_log"
 
-    with patch("ucsschool.kelvin.main.LOG_FILE_PATH", tmp_log_file):
-        logger.debug(" -- Kelvin logging redirected to %s --", tmp_log_file)
+    with patch("ucsschool.kelvin.main.DEFAULT_LOG_TAG", test_log_tag):
+        logger.debug(" -- Kelvin logging redirected to %s --", test_log_tag)
         yield
-
-    try:
-        tmp_log_file.unlink()
-    except FileNotFoundError:
-        pass
 
 
 @pytest.fixture

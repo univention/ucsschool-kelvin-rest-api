@@ -512,7 +512,7 @@ def get_file_handler(
 
 def get_socket_handler(
     level: int | str,
-    log_tag: str = "kelvin_api_http_log",
+    log_tag: str,
     fmt: str = None,
     datefmt: str = None,
 ) -> logging.Handler:
