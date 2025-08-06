@@ -511,7 +511,7 @@ def get_file_handler(
 
 
 def get_socket_handler(
-    level: Union[int, str],
+    level: int | str,
     log_tag: str = "kelvin_api_http_log",
     fmt: str = None,
     datefmt: str = None,
