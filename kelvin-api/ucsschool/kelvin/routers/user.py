@@ -1034,6 +1034,17 @@ async def change_roles(
         ) from exc
 
 
+def check_role(user_current: Optional[ImportUser], to_change: Dict[str, Any], role: str) -> bool:
+    if user_current and user_current.role_string == role:
+        return True
+    if "roles" not in to_change:
+        return False
+    for new_role in to_change["roles"]:
+        if role in new_role:
+            return True
+    return False
+
+
 @router.patch("/{username}", status_code=status.HTTP_200_OK, response_model=UserModelsUnion)
 async def partial_update(  # noqa: C901
     username: str,
@@ -1100,6 +1111,16 @@ async def partial_update(  # noqa: C901
         )
     to_change = await user.to_modify_kwargs(request)
     user_current = await get_import_user(udm, udm_obj.dn)
+
+    # Check that legal-guardian parameters are only used with the correct role
+    for param, role in [["legal_guardians", "student"], ["legal_wards", "legal_guardian"]]:
+        if param in to_change and not check_role(user_current, to_change, role):
+            error_msg = f"Parameter {param!r} only valid for user-role {role!r}"
+            logger.error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_msg,
+            )
 
     # 1. move
     new_school = to_change.get("school", None)
