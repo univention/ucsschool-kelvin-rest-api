@@ -72,7 +72,7 @@ from ucsschool.lib.models.user import (
     TeachersAndStaff,
     User,
 )
-from ucsschool.lib.roles import role_school_admin, role_student
+from ucsschool.lib.roles import role_legal_guardian, role_school_admin, role_student
 from udm_rest_client import UDM
 
 pytestmark = pytest.mark.skipif(
@@ -116,7 +116,7 @@ def scramble_case(s: str) -> str:
 
 
 async def compare_lib_api_user(  # noqa: C901
-    lib_user: ImportUser, api_user: UserModel, udm: UDM, url_fragment: str
+    lib_user: User, api_user: UserModel, udm: UDM, url_fragment: str
 ) -> None:
     udm_obj = await lib_user.get_udm_object(udm)
     for key, value in api_user.dict().items():
@@ -1363,6 +1363,98 @@ async def test_patch(
     json_resp = response.json()
     compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
     await check_password(lib_users[0].dn, new_user_data["password"])
+
+
+@pytest.mark.asyncio
+async def test_patch_legal_guardians(
+    auth_header,
+    check_password,
+    retry_http_502,
+    import_user_to_create_model_kwargs,
+    url_fragment,
+    create_ou_using_python,
+    new_import_user,
+    random_user_create_model,
+    random_name,
+    mail_domain,
+    import_config,
+    udm_kwargs,
+):
+    school = await create_ou_using_python()
+    user: ImportUser = await new_import_user(school, role_student, disabled=False)
+    await check_password(user.dn, user.password)
+    logger.debug("OK: can login with old password")
+    legal_guardian: ImportUser = await new_import_user(school, role_legal_guardian, disabled=False)
+    new_user_data = {"legal_guardians": [legal_guardian.dn]}
+    logger.debug("PATCH new_user_data=%r.", new_user_data)
+    response = retry_http_502(
+        requests.patch,
+        f"{url_fragment}/users/{user.name}",
+        headers=auth_header,
+        json=new_user_data,
+    )
+    assert response.status_code == 200, f"{response.__dict__!r}"
+    api_user = get_user_model(response.json())
+    assert isinstance(api_user, StudentModel)
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={user.name}")
+        assert len(lib_users) == 1
+        lib_user = lib_users[0]
+        assert isinstance(lib_user, Student)
+        assert lib_user.legal_guardians == [legal_guardian.dn]
+        lib_users = await User.get_all(udm, school, f"username={legal_guardian.name}")
+        assert len(lib_users) == 1
+        lib_user = lib_users[0]
+        assert isinstance(lib_user, LegalGuardian)
+        assert lib_user.legal_wards == [api_user.dn]
+    json_resp = response.json()
+    compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
+
+
+@pytest.mark.asyncio
+async def test_patch_legal_wards(
+    auth_header,
+    check_password,
+    retry_http_502,
+    import_user_to_create_model_kwargs,
+    url_fragment,
+    create_ou_using_python,
+    new_import_user,
+    random_user_create_model,
+    random_name,
+    mail_domain,
+    import_config,
+    udm_kwargs,
+):
+    school = await create_ou_using_python()
+    user: ImportUser = await new_import_user(school, role_legal_guardian, disabled=False)
+    await check_password(user.dn, user.password)
+    logger.debug("OK: can login with old password")
+    student: ImportUser = await new_import_user(school, role_student, disabled=False)
+    new_user_data = {"legal_wards": [student.dn]}
+    logger.debug("PATCH new_user_data=%r.", new_user_data)
+    response = retry_http_502(
+        requests.patch,
+        f"{url_fragment}/users/{user.name}",
+        headers=auth_header,
+        json=new_user_data,
+    )
+    assert response.status_code == 200, f"{response.__dict__!r}"
+    api_user = get_user_model(response.json())
+    assert isinstance(api_user, LegalGuardianModel)
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={user.name}")
+        assert len(lib_users) == 1
+        lib_user = lib_users[0]
+        assert isinstance(lib_user, LegalGuardian)
+        assert lib_user.legal_wards == [student.dn]
+        lib_users = await User.get_all(udm, school, f"username={student.name}")
+        assert len(lib_users) == 1
+        lib_user = lib_users[0]
+        assert isinstance(lib_user, Student)
+        assert lib_user.legal_guardians == [api_user.dn]
+    json_resp = response.json()
+    compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
 
 
 @pytest.mark.asyncio
