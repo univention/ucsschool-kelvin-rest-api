@@ -295,6 +295,8 @@ class UserCreateModel(UserBaseModel):
     schools: List[HttpUrl] = []
     kelvin_password_hashes: PasswordsHashes = None
     ucsschool_roles: List[str] = []
+    legal_wards: List[str] = []
+    legal_guardians: List[str] = []
 
     class Config(UserBaseModel.Config):
         ...
@@ -591,6 +593,19 @@ def search_query_params_to_udm_filter(  # noqa: C901
         return None
 
 
+def check_role(
+    role: str, user: ImportUser | UserCreateModel, new_params: Optional[Dict[str, Any]] = None
+) -> bool:
+    if user.role_string == role:
+        return True
+    if not new_params or "roles" not in new_params:
+        return False
+    for new_role in new_params["roles"]:
+        if role in new_role:
+            return True
+    return False
+
+
 @router.get("/", response_model=List[UserModelsUnion])
 async def search(  # noqa: C901
     request: Request,
@@ -884,6 +899,16 @@ async def create(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="School user exists.")
     t1 = time.time()
 
+    # Check that legal-guardian parameters are only used with the correct role
+    for param, role in [["legal_guardians", "student"], ["legal_wards", "legal_guardian"]]:
+        if getattr(request_user, param, None) and not check_role(role, user):
+            error_msg = f"Parameter {param!r} only valid for user-role {role!r}"
+            logger.error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_msg,
+            )
+
     try:
         user.prepare_uids()
         user_importer = get_user_importer()
@@ -1032,17 +1057,6 @@ async def change_roles(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
-
-
-def check_role(user_current: Optional[ImportUser], to_change: Dict[str, Any], role: str) -> bool:
-    if user_current and user_current.role_string == role:
-        return True
-    if "roles" not in to_change:
-        return False
-    for new_role in to_change["roles"]:
-        if role in new_role:
-            return True
-    return False
 
 
 @router.patch("/{username}", status_code=status.HTTP_200_OK, response_model=UserModelsUnion)
@@ -1328,6 +1342,16 @@ async def complete_update(  # noqa: C901
     )
     user_request: ImportUser = user.as_lib_model(request)
     user_current: ImportUser = await get_import_user(udm, udm_obj.dn)
+
+    # Check that legal-guardian parameters are only used with the correct role
+    for param, role in [["legal_guardians", "student"], ["legal_wards", "legal_guardian"]]:
+        if getattr(user, param, None) and not check_role(role, user):
+            error_msg = f"Parameter {param!r} only valid for user-role {role!r}"
+            logger.error(error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_msg,
+            )
 
     # leave workgroups as they were if not passed in the request
     if "workgroups" not in await request.json():
