@@ -1183,7 +1183,6 @@ async def test_create_with_password_hashes(
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 async def test_create_legal_wards_wrong_role(
     auth_header,
-    check_password,
     retry_http_502,
     url_fragment,
     create_ou_using_python,
@@ -1243,7 +1242,6 @@ async def test_create_legal_wards_wrong_role(
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 async def test_create_legal_guardians_wrong_role(
     auth_header,
-    check_password,
     retry_http_502,
     url_fragment,
     create_ou_using_python,
