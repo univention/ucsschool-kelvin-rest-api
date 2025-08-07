@@ -6,7 +6,7 @@ Resource Roles
 ==============
 
 The ``Roles`` resource represents the roles a school user can have.
-Currently there are exactly three roles supported: ``staff``, ``student`` and ``teacher``.
+Currently there are exactly five roles supported: ``staff``, ``student``, ``teacher``, ``legal_guardian`` and ``school_admin``.
 A user has either one of those roles or the combination of ``staff`` and ``teacher``.
 
 The resource objects have no direct representation in LDAP.
@@ -79,7 +79,17 @@ The response body will be:
             "display_name": "teacher",
             "name": "teacher",
             "url": "https://<fqdn>/ucsschool/kelvin/v1/roles/teacher"
-        }
+        },
+	{
+	    "name": "legal_guardian",
+	    "display_name": "legal_guardian",
+            "url": "https://<fqdn>/ucsschool/kelvin/v1/roles/legal_guardian"
+	},
+	{
+	    "name": "school_admin",
+	    "display_name": "school_admin",
+            "url": "https://<fqdn>/ucsschool/kelvin/v1/roles/school_admin"
+	}
     ]
 
 
