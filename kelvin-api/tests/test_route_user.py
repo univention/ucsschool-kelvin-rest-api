@@ -1181,6 +1181,124 @@ async def test_create_with_password_hashes(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+async def test_create_legal_wards_wrong_role(
+    auth_header,
+    check_password,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    random_user_create_model,
+    random_name,
+    import_config,
+    udm_kwargs,
+    schedule_delete_user_name_using_udm,
+    new_workgroup_using_lib,
+    new_import_user,
+    role: Role,
+):
+    if role.name == "legal_guardian":
+        return
+    elif role.name == "teacher_and_staff":
+        roles = ["staff", "teacher"]
+    else:
+        roles = [role.name]
+    school = await create_ou_using_python()
+    school_scrambled = scramble_case(school)
+    wg_dn, wg_attr = await new_workgroup_using_lib(school)
+    workgroups = {school_scrambled: [wg_attr["name"]]}
+    r_user = await random_user_create_model(
+        school_scrambled,
+        roles=[f"{url_fragment}/roles/{role_}" for role_ in roles],
+        workgroups=workgroups,
+    )
+    r_user.school_classes = {scramble_case(ou): kls for ou, kls in r_user.school_classes.items()}
+    title = random_name()
+    r_user.udm_properties["title"] = title
+    phone = [random_name(), random_name()]
+    r_user.udm_properties["phone"] = phone
+    student: ImportUser = await new_import_user(school, role_student, disabled=False)
+    r_user.legal_wards = [student.dn]
+    data = r_user.json()
+    logger.debug("POST data=%r", data)
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
+    schedule_delete_user_name_using_udm(r_user.name)
+    response = retry_http_502(
+        requests.post,
+        f"{url_fragment}/users/",
+        headers={"Content-Type": "application/json", **auth_header},
+        data=data,
+    )
+    assert response.status_code == 400, f"{response.__dict__!r}"
+    assert (
+        response.json()["detail"] == "Parameter 'legal_wards' only valid for user-role 'legal_guardian'"
+    )
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+async def test_create_legal_guardians_wrong_role(
+    auth_header,
+    check_password,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    random_user_create_model,
+    random_name,
+    import_config,
+    udm_kwargs,
+    schedule_delete_user_name_using_udm,
+    new_workgroup_using_lib,
+    new_import_user,
+    role: Role,
+):
+    if role.name == "student":
+        return
+    elif role.name == "teacher_and_staff":
+        roles = ["staff", "teacher"]
+    else:
+        roles = [role.name]
+    school = await create_ou_using_python()
+    school_scrambled = scramble_case(school)
+    wg_dn, wg_attr = await new_workgroup_using_lib(school)
+    workgroups = {school_scrambled: [wg_attr["name"]]}
+    r_user = await random_user_create_model(
+        school_scrambled,
+        roles=[f"{url_fragment}/roles/{role_}" for role_ in roles],
+        workgroups=workgroups,
+    )
+    r_user.school_classes = {scramble_case(ou): kls for ou, kls in r_user.school_classes.items()}
+    title = random_name()
+    r_user.udm_properties["title"] = title
+    phone = [random_name(), random_name()]
+    r_user.udm_properties["phone"] = phone
+    legal_guardian: ImportUser = await new_import_user(school, role_legal_guardian, disabled=False)
+    r_user.legal_guardians = [legal_guardian.dn]
+    data = r_user.json()
+    logger.debug("POST data=%r", data)
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
+    schedule_delete_user_name_using_udm(r_user.name)
+    response = retry_http_502(
+        requests.post,
+        f"{url_fragment}/users/",
+        headers={"Content-Type": "application/json", **auth_header},
+        data=data,
+    )
+    assert response.status_code == 400, f"{response.__dict__!r}"
+    assert response.json()["detail"] == "Parameter 'legal_guardians' only valid for user-role 'student'"
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={r_user.name}")
+    assert len(lib_users) == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 async def test_put(
     auth_header,
     check_password,
