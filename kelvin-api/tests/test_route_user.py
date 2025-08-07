@@ -1370,13 +1370,9 @@ async def test_patch_legal_guardians(
     auth_header,
     check_password,
     retry_http_502,
-    import_user_to_create_model_kwargs,
     url_fragment,
     create_ou_using_python,
     new_import_user,
-    random_user_create_model,
-    random_name,
-    mail_domain,
     import_config,
     udm_kwargs,
 ):
@@ -1412,17 +1408,45 @@ async def test_patch_legal_guardians(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+async def test_patch_legal_guardians_wrong_role(
+    auth_header,
+    check_password,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    new_import_user,
+    import_config,
+    udm_kwargs,
+    role: Role,
+):
+    school = await create_ou_using_python()
+    if role.name == "student":
+        return
+    user: ImportUser = await new_import_user(school, role.name, disabled=False)
+    await check_password(user.dn, user.password)
+    logger.debug("OK: can login with old password")
+    legal_guardian: ImportUser = await new_import_user(school, role_legal_guardian, disabled=False)
+    new_user_data = {"legal_guardians": [legal_guardian.dn]}
+    logger.debug("PATCH new_user_data=%r.", new_user_data)
+    response = retry_http_502(
+        requests.patch,
+        f"{url_fragment}/users/{user.name}",
+        headers=auth_header,
+        json=new_user_data,
+    )
+    assert response.status_code == 400, f"{response.__dict__!r}"
+    assert response.json()["detail"] == "Parameter 'legal_guardians' only valid for user-role 'student'"
+
+
+@pytest.mark.asyncio
 async def test_patch_legal_wards(
     auth_header,
     check_password,
     retry_http_502,
-    import_user_to_create_model_kwargs,
     url_fragment,
     create_ou_using_python,
     new_import_user,
-    random_user_create_model,
-    random_name,
-    mail_domain,
     import_config,
     udm_kwargs,
 ):
@@ -1455,6 +1479,40 @@ async def test_patch_legal_wards(
         assert lib_user.legal_guardians == [api_user.dn]
     json_resp = response.json()
     compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
+async def test_patch_legal_wards_wrong_role(
+    auth_header,
+    check_password,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    new_import_user,
+    import_config,
+    udm_kwargs,
+    role: Role,
+):
+    school = await create_ou_using_python()
+    if role.name == "legal_guardian":
+        return
+    user: ImportUser = await new_import_user(school, role.name, disabled=False)
+    await check_password(user.dn, user.password)
+    logger.debug("OK: can login with old password")
+    student: ImportUser = await new_import_user(school, role_student, disabled=False)
+    new_user_data = {"legal_wards": [student.dn]}
+    logger.debug("PATCH new_user_data=%r.", new_user_data)
+    response = retry_http_502(
+        requests.patch,
+        f"{url_fragment}/users/{user.name}",
+        headers=auth_header,
+        json=new_user_data,
+    )
+    assert response.status_code == 400, f"{response.__dict__!r}"
+    assert (
+        response.json()["detail"] == "Parameter 'legal_wards' only valid for user-role 'legal_guardian'"
+    )
 
 
 @pytest.mark.asyncio
