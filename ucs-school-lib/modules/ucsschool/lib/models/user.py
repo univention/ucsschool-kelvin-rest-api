@@ -810,7 +810,7 @@ class Student(User):
     default_roles = [role_student]
     user_type: Literal["student"] = "student"
 
-    legal_guardians = LegalGuardians(_("Legal guardian"))
+    legal_guardians: List[str] = LegalGuardians(_("Legal guardian"))
 
     async def validate(
         self, lo, validate_unlikely_changes: Optional[bool] = False, check_name=True
@@ -823,8 +823,8 @@ class Student(User):
             return
 
         dn_filter = [f"(entryDN={escape_filter_chars(dn)})" for dn in self.legal_guardians]
-        search_result = lo.search(f"(|{''.join(dn_filter)})")
-        dns = [result[0] for result in search_result]
+        search_result = lo.get(self._meta.udm_module).search(f"(|{''.join(dn_filter)})")
+        dns = [result.dn async for result in search_result]
         if len(dns) < len(self.legal_guardians):
             missing_dns = [dn for dn in self.legal_guardians if dn not in dns]
             missing_dns_str = "\n".join(missing_dns)
@@ -882,13 +882,33 @@ class LegalGuardian(User):
     default_options = ("ucsschoolLegalGuardian",)
     user_type: Literal["legal_guardian"] = "legal_guardian"
 
-    legal_wards = LegalWards(_("Legal Wards"))
+    legal_wards: List[str] = LegalWards(_("Legal Wards"))
+
+    async def validate(
+        self, lo, validate_unlikely_changes: Optional[bool] = False, check_name=True
+    ) -> None:
+        await super().validate(
+            lo, validate_unlikely_changes=validate_unlikely_changes, check_name=check_name
+        )
+
+        if not self.legal_wards:
+            return
+
+        dn_filter = [f"(entryDN={escape_filter_chars(dn)})" for dn in self.legal_wards]
+        search_result = lo.get(self._meta.udm_module).search(f"(|{''.join(dn_filter)})")
+        dns = [result.dn async for result in search_result]
+        if len(dns) < len(self.legal_wards):
+            missing_dns = [dn for dn in self.legal_wards if dn not in dns]
+            missing_dns_str = "\n".join(missing_dns)
+
+            error_msg = _("The following legal wards do not exist:")
+            self.add_error("legal_wards", f"{error_msg}\n{missing_dns_str}")
 
     @classmethod
-    def get_container(cls, school):  # type: (str) -> str
+    def get_container(cls, school: str) -> str:
         return cls.get_search_base(school).legal_guardians
 
-    async def get_specific_groups(self, lo):  # type: (LoType) -> List[str]
+    async def get_specific_groups(self, lo: UDM) -> List[str]:
         groups = await super(LegalGuardian, self).get_specific_groups(lo)
         groups.extend(self.get_legal_guardians_groups())
         return groups
