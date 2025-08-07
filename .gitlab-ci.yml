@@ -78,6 +78,7 @@ lint_commit_messages:
   needs: []
   variables:
     HOOK_IDS: "conventional-pre-commit issue-reference"
+    GIT_DEPTH: 30
   extends: .lint_commit_messages
 
 docs-html:
