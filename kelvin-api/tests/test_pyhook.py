@@ -475,6 +475,11 @@ async def test_user_ucsschool_lib_pyhook(
     schedule_delete_file,
     role: Role,
 ):
+    """
+    Hint: Created pyhook sets
+    - expiration_date to 'tomorrow' during user creation and
+    - disabled = True during user modification
+    """
     create_ucsschool_lib_pyhook(role)
     roles = ["staff", "teacher"] if role.name == "teacher_and_staff" else [role.name]
     ou = await create_ou_using_python()
