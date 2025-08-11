@@ -1128,7 +1128,7 @@ async def partial_update(  # noqa: C901
 
     # Check that legal-guardian parameters are only used with the correct role
     for param, role in [["legal_guardians", "student"], ["legal_wards", "legal_guardian"]]:
-        if param in to_change and not check_role(user_current, to_change, role):
+        if param in to_change and not check_role(role, user_current, to_change):
             error_msg = f"Parameter {param!r} only valid for user-role {role!r}"
             logger.error(error_msg)
             raise HTTPException(

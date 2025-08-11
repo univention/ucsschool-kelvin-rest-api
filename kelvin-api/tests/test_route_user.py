@@ -325,7 +325,7 @@ async def test_search_no_filter(
         "roles_student",
         "roles_teacher",
         "roles_teacher_and_staff",
-        # "roles_school_admin",
+        # "roles_school_admin",   # deactivated on purpose - not implemented yet
         "school",
     ),
 )
