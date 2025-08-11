@@ -253,7 +253,6 @@ async def test_modify_role(
                 for role in ("student", "school_admin", "legal_guardian")
             }.isdisjoint(user_new_ucsschool_roles)
         elif isinstance(user_new, Teacher):
-            assert isinstance(user_new, Teacher)
             assert cls_dn1.lower() in new_groups
             assert cls_dn2.lower() in new_groups
             assert cls_dn3.lower() in new_groups
