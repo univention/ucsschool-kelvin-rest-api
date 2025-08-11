@@ -5,10 +5,13 @@
 Changelog
 =========
 
+v2.1.0 (t.b.d.)
+--------------------
+* Add legal guardian role to Kelvin (Issue  :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#154`).
+
 v2.0.1 (t.b.d.)
 --------------------
 * Fixed: Error when creating a new school in a single-server environment (:uv:bug:`58448`).
-* Add legal guardian role to Kelvin (Issue  :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#154`).
 
 v2.0.0 (2025-03-14)
 -------------------
