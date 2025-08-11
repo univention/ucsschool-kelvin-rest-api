@@ -1444,9 +1444,12 @@ async def test_patch(
         school=old_user_data["school"],
         schools=old_user_data["schools"],
     )
-    new_user_data = user_create_model.dict(
-        exclude={"name", "record_uid", "source_uid", "kelvin_password_hashes"}
-    )
+    exclude_set = {"name", "password", "record_uid", "source_uid", "kelvin_password_hashes"}
+    if user.role_string != "student":
+        exclude_set.add("legal_guardians")
+    if user.role_string != "legal_guardian":
+        exclude_set.add("legal_wards")
+    new_user_data = user_create_model.dict(exclude=exclude_set)
     new_user_data["birthday"] = str(new_user_data["birthday"])
     new_user_data["expiration_date"] = str(new_user_data["expiration_date"])
     for key in random.sample(list(new_user_data.keys()), random.randint(1, len(new_user_data.keys()))):
