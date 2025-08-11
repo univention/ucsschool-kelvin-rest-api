@@ -2,7 +2,15 @@ import pytest
 
 from ucsschool.lib.models.group import ComputerRoom, Group, SchoolClass, WorkGroup
 from ucsschool.lib.models.share import ClassShare, WorkGroupShare  # MarketplaceShare
-from ucsschool.lib.models.user import ExamStudent, SchoolAdmin, Staff, Student, Teacher, TeachersAndStaff
+from ucsschool.lib.models.user import (
+    ExamStudent,
+    LegalGuardian,
+    SchoolAdmin,
+    Staff,
+    Student,
+    Teacher,
+    TeachersAndStaff,
+)
 from ucsschool.lib.models.validator import obj_to_dict
 from udm_rest_client import UDM
 
@@ -30,6 +38,7 @@ pytestmark = pytest.mark.skipif(
         Teacher,
         TeachersAndStaff,
         SchoolAdmin,
+        LegalGuardian,
         ExamStudent,
         SchoolClass,
         WorkGroup,
