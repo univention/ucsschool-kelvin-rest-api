@@ -1536,9 +1536,9 @@ async def test_patch_legal_guardians_wrong_role(
     udm_kwargs,
     role: Role,
 ):
-    school = await create_ou_using_python()
     if role.name == "student":
         return
+    school = await create_ou_using_python()
     user: ImportUser = await new_import_user(school, role.name, disabled=False)
     await check_password(user.dn, user.password)
     logger.debug("OK: can login with old password")
@@ -1610,9 +1610,9 @@ async def test_patch_legal_wards_wrong_role(
     udm_kwargs,
     role: Role,
 ):
-    school = await create_ou_using_python()
     if role.name == "legal_guardian":
         return
+    school = await create_ou_using_python()
     user: ImportUser = await new_import_user(school, role.name, disabled=False)
     await check_password(user.dn, user.password)
     logger.debug("OK: can login with old password")
