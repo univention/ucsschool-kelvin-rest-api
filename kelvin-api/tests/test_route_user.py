@@ -1660,9 +1660,12 @@ async def test_patch_with_password_hashes(
         school=old_user_data["school"],
         schools=old_user_data["schools"],
     )
-    new_user_data = user_create_model.dict(
-        exclude={"birthday", "expiration_date", "name", "password", "record_uid", "source_uid"}
-    )
+    exclude_set = {"name", "record_uid", "source_uid", "kelvin_password_hashes"}
+    if user.role_string != "student":
+        exclude_set.add("legal_guardians")
+    if user.role_string == "legal_guardian":
+        exclude_set.add("legal_wards")
+    new_user_data = user_create_model.dict(exclude=exclude_set)
     password_new, password_new_hashes = await password_hash()
     new_user_data["kelvin_password_hashes"] = password_new_hashes.dict()
     logger.debug("PATCH new_user_data=%r.", new_user_data)
