@@ -411,7 +411,7 @@ class UserModel(UserBaseModel, APIAttributesMixin):
 
 class StudentModel(UserModel):
     user_type: Literal["student"] = "student"
-    legal_guardians: List[str]
+    legal_guardians: Optional[List[str]]
 
     @classmethod
     async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
@@ -423,7 +423,7 @@ class StudentModel(UserModel):
 
 class LegalGuardianModel(UserModel):
     user_type: Literal["legal_guardian"] = "legal_guardian"
-    legal_wards: List[str]
+    legal_wards: Optional[List[str]]
 
     @classmethod
     async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
