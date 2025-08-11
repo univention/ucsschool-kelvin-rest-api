@@ -66,7 +66,7 @@ USER_ROLES: List[Role] = [
     Role("staff", Staff),
     Role("student", Student),
     Role("teacher", Teacher),
-    Role("legalGuardian", LegalGuardian),
+    Role("legal_guardian", LegalGuardian),
     Role("teacher_and_staff", TeachersAndStaff),
     Role("school_admin", SchoolAdmin),
 ]  # User.role_string -> User
@@ -283,7 +283,7 @@ import univention.admin.uldap_docker
 from pathlib import Path
 from udm_rest_client import UDM
 from ucsschool.lib.models.hook import Hook
-from ucsschool.lib.models.user import Student, Teacher, Staff, SchoolAdmin, User
+from ucsschool.lib.models.user import Student, Teacher, Staff, SchoolAdmin, User, LegalGuardian
 from ucsschool.lib.models.utils import env_or_ucr
 
 {inspect.getsource(ExpirationDateUCSSchoolLibPyHook)}
