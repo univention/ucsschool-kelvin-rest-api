@@ -51,5 +51,5 @@ __EOF__
   "$UDM_CLIENT_UPDATE_SCRIPT" || echo "==> Error can be ignored, if updating from version 1.0.x. The join script will rebuild the library."
 
   echo "Restarting UCS@school Kelvin REST API server..."
-  /etc/init.d/ucsschool-kelvin-rest-api restart
+  pkill -HUP -f "gunicorn: master [ucsschool.kelvin.main:app]"
 fi

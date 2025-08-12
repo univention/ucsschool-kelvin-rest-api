@@ -311,10 +311,8 @@ def compare_import_user_and_resource(auth_header):
 def restart_kelvin_api_server():  # type: () -> None
     cmd = [
         "/usr/bin/univention-app",
-        "shell",
-        APP_ID,
-        "/etc/init.d/ucsschool-kelvin-rest-api",
         "restart",
+        APP_ID,
     ]
     logger.info("*** Restarting Kelvin API server: %r", cmd)
     exec_cmd(cmd, log=True)

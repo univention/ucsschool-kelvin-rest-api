@@ -217,7 +217,7 @@ To activate a hook, or or a change to a hook, restart the *UCS\@school Kelvin RE
 
 .. code-block:: console
 
-    $ /etc/init.d/docker-app-ucsschool-kelvin-rest-api restart
+    $ univention-app restart ucsschool-kelvin-rest-api
 
 
 Further reading about the UCS\@school hooks is available for German readers in :ref:`pyhooks` in :cite:t:`uv-ucsschool-manual`.

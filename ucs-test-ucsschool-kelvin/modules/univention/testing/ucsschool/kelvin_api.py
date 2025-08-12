@@ -415,10 +415,8 @@ class HttpApiUserTestBase(TestCase):
     def restart_api_server(cls):
         cmd = [
             "/usr/bin/univention-app",
-            "shell",
-            APP_ID,
-            "/etc/init.d/ucsschool-kelvin-rest-api",
             "restart",
+            APP_ID,
         ]
         cls.logger.info("*** Restarting Kelvin API server: %r", cmd)
         subprocess.call(cmd)  # nosec

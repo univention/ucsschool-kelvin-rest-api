@@ -135,7 +135,7 @@ notebook# ssh root@10.201.2.135
 root@uasvm# univention-app shell ucsschool-kelvin-rest-api
 container# cd /kelvin/kelvin-api/
 container# ucr set ucsschool/kelvin/log_level=DEBUG
-container# /etc/init.d/ucsschool-kelvin-rest-api restart
+container# pkill -HUP -f "gunicorn: master [ucsschool.kelvin.main:app]"
 container# pytest-3 -lvv tests/test_route_user.py -k "test_create and not udm" 2>&1 | tee test.log
 container#
 ```
