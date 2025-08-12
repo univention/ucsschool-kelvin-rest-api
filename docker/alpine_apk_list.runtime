@@ -1,10 +1,8 @@
-busybox-openrc
 libstdc++
 openjdk11-jre-headless
 make
 musl-dev
 openldap-dev
-openrc
 python3
 py3-aiohttp
 py3-attrs
