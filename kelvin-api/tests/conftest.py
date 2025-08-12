@@ -625,7 +625,10 @@ async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kw
 
 def restart_kelvin_api_server() -> None:
     logger.debug("Restarting Kelvin API server...")
-    subprocess.call(["/etc/init.d/ucsschool-kelvin-rest-api", "restart"])
+    pid = Path("/var/run/kelvin.pid").read_text().strip()
+    if not pid:
+        raise ValueError(f"Can't read kelvin pid? {pid}")
+    subprocess.check_call(["kill", "-HUP", pid])
     while True:
         time.sleep(0.5)
         try:
