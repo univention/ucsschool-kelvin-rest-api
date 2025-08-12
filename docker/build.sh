@@ -8,29 +8,6 @@ apk add --no-cache --virtual mybuilddeps $(cat /tmp/alpine_apk_list.build)
 apk add --no-cache $(cat /tmp/alpine_apk_list.runtime)
 cp -v /usr/share/zoneinfo/Europe/Berlin /etc/localtime
 echo "Europe/Berlin" > /etc/timezone
-# Disable getty's
-sed -i 's/^\(tty\d\:\:\)/#\1/g' /etc/inittab
-
-# Change subsystem type to "docker"
-# Allow all variables through
-# Start crashed services
-# Define extra dependencies for services
-sed -i \
-    -e 's/#rc_sys=".*"/rc_sys="docker"/g' \
-    -e 's/#rc_env_allow=".*"/rc_env_allow="\*"/g' \
-    -e 's/#rc_crashed_stop=.*/rc_crashed_stop=NO/g' \
-    -e 's/#rc_crashed_start=.*/rc_crashed_start=YES/g' \
-    -e 's/#rc_provide=".*"/rc_provide="loopback net"/g' \
-    /etc/rc.conf
-# Remove unnecessary services
-rm -fv /etc/init.d/hwdrivers \
-    /etc/init.d/hwclock \
-    /etc/init.d/modules \
-    /etc/init.d/modules-load \
-    /etc/init.d/modloop
-# Can't do cgroups
-sed -i 's/\tcgroup_add_service/\t#cgroup_add_service/g' /lib/rc/sh/openrc-run.sh
-sed -i 's/VSERVER/DOCKER/Ig' /lib/rc/sh/init.sh
 mkdir -pv /kelvin/openapi-generator/build /kelvin/openapi-generator/jar
 mv /tmp/openapi-generator-cli-*.jar /kelvin/openapi-generator/jar
 # work around PEP 668 - Marking Python base environments as "externally managed" \
@@ -58,10 +35,7 @@ python3 -m pip install --no-cache-dir --compile /tmp/univention-lib-slim
 python3 -m pip install --no-cache-dir --compile /tmp/univention-directory-manager-modules-slim
 mkdir -p /var/cache/univention-config
 
-mv -v /tmp/ucsschool-kelvin-rest-api.initd /etc/init.d/ucsschool-kelvin-rest-api
 apk add --no-cache logrotate
-rc-update add ucsschool-kelvin-rest-api default
-rc-update add crond default
 cp -v /kelvin/ucs-school-import/modules/ucsschool/lib/create_ou.py /kelvin/ucs-school-lib/modules/ucsschool/lib/
 python3 -m pip install --no-cache-dir --editable /kelvin/ucs-school-lib/modules
 python3 -m pip install --no-cache-dir --editable /kelvin/ucs-school-import/modules
@@ -76,6 +50,7 @@ for FILE in global user_import user_import_legacy user_import_http-api; do
     echo '{}' > /var/lib/ucs-school-import/configs/${FILE}.json;
   fi;
 done
+chmod +x /kelvin/start-kelvin.sh
 python3 /kelvin/kelvin-api/setup.py build_html
 python3 -m pip install --no-cache-dir --editable "/kelvin/kelvin-api[development]"
 rm -rf /root/.cache/

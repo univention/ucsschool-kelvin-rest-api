@@ -624,8 +624,11 @@ async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kw
 
 
 def restart_kelvin_api_server() -> None:
-    logger.debug("Restarting Kelvin API server...")
-    subprocess.call(["/etc/init.d/ucsschool-kelvin-rest-api", "restart"])
+    logger.debug("Reloading Kelvin API server...")
+    # Send HUP signal to gunicorn master process to reload workers
+    subprocess.check_call(["pkill", "-HUP", "-f", "gunicorn: master \\[ucsschool.kelvin.main:app\\]"])
+
+    # Wait for the service to be ready
     while True:
         time.sleep(0.5)
         try:
