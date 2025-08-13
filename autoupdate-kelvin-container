@@ -5,7 +5,7 @@
 
 TARGET="$1"
 
-for tool in jq ssh ; do
+for tool in inotifycopy jq ssh ; do
 	which "$tool" > /dev/null || {
 		echo "ERROR: cannot find tool '$tool'."
 		exit 1
@@ -19,7 +19,7 @@ done
 }
 
 [ ! -d .git ] && {
-	echo "Please change to the root directory of the repo 'ucsschool-kelvin-rest-api'."
+	echo "ERROR: Please change to the root directory of the repo 'ucsschool-kelvin-rest-api'."
 	exit 1
 }
 
@@ -27,6 +27,11 @@ INSTANCE="$(ssh "root@$TARGET" docker ps | grep "gitregistry.knut.univention.de/
 TARGETDIR="$(ssh "root@$TARGET" docker inspect "$INSTANCE" | jq .[0].GraphDriver.Data.MergedDir -r)"
 echo "Container: $INSTANCE"
 echo "Container dir: $TARGETDIR"
+
+[ -z "$INSTANCE" -o -z "$TARGETDIR"] && {
+  echo "ERROR: Cannot determine running docker container. Stopping here."
+  exit 1
+}
 
 inotifycopy \
 	-a kelvin-api/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ \
@@ -37,4 +42,5 @@ inotifycopy \
 	-a ucs-school-import/modules/ucsschool/importer/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/ \
 	-a ucs-school-lib/modules/ucsschool/lib/models/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-lib/modules/ucsschool/lib/models/ \
 	-a ucs-school-lib/modules/ucsschool/lib/tests/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-lib/modules/ucsschool/lib/tests/ \
+	-a ucs-test-ucsschool-kelvin/94_ucsschool-kelvin/*.py:$TARGET:/usr/share/ucs-test/94_ucsschool-kelvin/ \
 	-i
