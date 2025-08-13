@@ -1216,7 +1216,7 @@ async def test_create_legal_wards_wrong_role(
     phone = [random_name(), random_name()]
     r_user.udm_properties["phone"] = phone
     student: ImportUser = await new_import_user(school, role_student, disabled=False)
-    r_user.legal_wards = [student.dn]
+    r_user.legal_wards = [student.name]
     data = r_user.json()
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
@@ -1500,7 +1500,7 @@ async def test_patch_legal_guardians(
     await check_password(user.dn, user.password)
     logger.debug("OK: can login with old password")
     legal_guardian: ImportUser = await new_import_user(school, role_legal_guardian, disabled=False)
-    new_user_data = {"legal_guardians": [legal_guardian.dn]}
+    new_user_data = {"legal_guardians": [legal_guardian.name]}
     logger.debug("PATCH new_user_data=%r.", new_user_data)
     response = retry_http_502(
         requests.patch,
@@ -1521,7 +1521,7 @@ async def test_patch_legal_guardians(
         assert len(lib_users) == 1
         lib_user = lib_users[0]
         assert isinstance(lib_user, LegalGuardian)
-        assert lib_user.legal_wards == [api_user.dn]
+        assert lib_user.legal_wards == [api_user.name]
     json_resp = response.json()
     compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
 
@@ -1574,7 +1574,7 @@ async def test_patch_legal_wards(
     await check_password(user.dn, user.password)
     logger.debug("OK: can login with old password")
     student: ImportUser = await new_import_user(school, role_student, disabled=False)
-    new_user_data = {"legal_wards": [student.dn]}
+    new_user_data = {"legal_wards": [student.name]}
     logger.debug("PATCH new_user_data=%r.", new_user_data)
     response = retry_http_502(
         requests.patch,
@@ -1590,7 +1590,7 @@ async def test_patch_legal_wards(
         assert len(lib_users) == 1
         lib_user = lib_users[0]
         assert isinstance(lib_user, LegalGuardian)
-        assert lib_user.legal_wards == [student.dn]
+        assert lib_user.legal_wards == [student.name]
         lib_users = await User.get_all(udm, school, f"username={student.name}")
         assert len(lib_users) == 1
         lib_user = lib_users[0]
@@ -1620,7 +1620,7 @@ async def test_patch_legal_wards_wrong_role(
     await check_password(user.dn, user.password)
     logger.debug("OK: can login with old password")
     student: ImportUser = await new_import_user(school, role_student, disabled=False)
-    new_user_data = {"legal_wards": [student.dn]}
+    new_user_data = {"legal_wards": [student.name]}
     logger.debug("PATCH new_user_data=%r.", new_user_data)
     response = retry_http_502(
         requests.patch,
