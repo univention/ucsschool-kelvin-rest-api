@@ -96,6 +96,7 @@ from ucsschool.lib.roles import (
 from udm_rest_client import UDM, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
+from ...importer.utils.ldap_connection import get_readonly_connection
 from ..config import UDM_MAPPING_CONFIG
 from ..import_config import get_import_config, init_ucs_school_import_framework
 from ..ldap import LdapUser, get_dn_of_user
@@ -593,9 +594,7 @@ def search_query_params_to_udm_filter(  # noqa: C901
         return None
 
 
-def check_role(
-    role: str, user: ImportUser | UserCreateModel, new_params: Optional[Dict[str, Any]] = None
-) -> bool:
+def check_role(role: str, user: ImportUser, new_params: Optional[Dict[str, Any]] = None) -> bool:
     if user.role_string == role:
         return True
     if not new_params or "roles" not in new_params:
@@ -911,6 +910,7 @@ async def create(
 
     try:
         user.prepare_uids()
+        user.lo = get_readonly_connection()[0]
         user_importer = get_user_importer()
         t2 = time.time()
         # user_importer.determine_add_modify_action() will call user.prepare_all()
@@ -1345,7 +1345,7 @@ async def complete_update(  # noqa: C901
 
     # Check that legal-guardian parameters are only used with the correct role
     for param, role in [["legal_guardians", "student"], ["legal_wards", "legal_guardian"]]:
-        if getattr(user, param, None) and not check_role(role, user):
+        if getattr(user, param, None) and not check_role(role, user_current):
             error_msg = f"Parameter {param!r} only valid for user-role {role!r}"
             logger.error(error_msg)
             raise HTTPException(
