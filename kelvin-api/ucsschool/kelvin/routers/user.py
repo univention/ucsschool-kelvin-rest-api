@@ -50,6 +50,7 @@ from typing import (
 )
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request, Response, status
+from ldap import explode_dn
 from ldap.filter import escape_filter_chars
 from pydantic import (
     BaseModel,
@@ -85,7 +86,7 @@ from ucsschool.importer.models.import_user import (
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
 from ucsschool.lib.models.base import WrongModel
-from ucsschool.lib.models.user import User
+from ucsschool.lib.models.user import LegalGuardian, Student, User
 from ucsschool.lib.models.utils import uldap_admin_write_primary
 from ucsschool.lib.roles import (
     InvalidUcsschoolRoleString,
@@ -141,6 +142,13 @@ async def get_import_user(udm: UDM, dn: str) -> ImportUser:
     current_udm_properties = UserModel.get_mapped_udm_properties(udm_user_current)
     user.udm_properties.update(current_udm_properties)
     return user
+
+
+def string_or_url_to_dn(request: Request, url: str | HttpUrl, container: str) -> str:
+    name = str(url)
+    if "/" in name:
+        name = url_to_name(request, "user", UserCreateModel.unscheme_and_unquote(url))
+    return f"uid={name},{container}"
 
 
 class PasswordsHashes(BaseModel):
@@ -339,6 +347,14 @@ class UserCreateModel(UserBaseModel):
             if not _is_school_role_string(role_string) and role_string not in ucsschool_role_strings:
                 ucsschool_role_strings.append(role_string)
         kwargs["ucsschool_roles"] = ucsschool_role_strings
+        kwargs["legal_guardians"] = [
+            string_or_url_to_dn(request, url, LegalGuardian.get_container(self.school))
+            for url in kwargs["legal_guardians"]
+        ]
+        kwargs["legal_wards"] = [
+            string_or_url_to_dn(request, url, Student.get_container(self.school))
+            for url in kwargs["legal_wards"]
+        ]
 
         kwargs["birthday"] = str(self.birthday) if self.birthday else self.birthday
         kwargs["expiration_date"] = (
@@ -357,6 +373,12 @@ class UserModel(UserBaseModel, APIAttributesMixin):
 
     class Config(UserBaseModel.Config):
         ...
+
+    @classmethod
+    def dn_to_url(cls, request: Request, dn: str) -> str:
+        return cls.scheme_and_quote(
+            str(cached_url_for(request, "get", username=explode_dn(dn, True)[0]))
+        )
 
     @classmethod
     async def subtype_from_lib_model(
@@ -416,7 +438,7 @@ class StudentModel(UserModel):
     @classmethod
     async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
-        kwargs["legal_guardians"] = obj.legal_guardians
+        kwargs["legal_guardians"] = [cls.dn_to_url(request, dn) for dn in obj.legal_guardians]
         kwargs["user_type"] = "student"
         return kwargs
 
@@ -428,7 +450,7 @@ class LegalGuardianModel(UserModel):
     @classmethod
     async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
-        kwargs["legal_wards"] = obj.legal_wards
+        kwargs["legal_wards"] = [cls.dn_to_url(request, dn) for dn in obj.legal_wards]
         kwargs["user_type"] = "legal_guardian"
         return kwargs
 
@@ -457,8 +479,8 @@ class UserPatchModel(BaseModel):
     udm_properties: Dict[str, Any] = None
     kelvin_password_hashes: PasswordsHashes = None
     ucsschool_roles: List[str] = []
-    legal_wards: List[str] = []
-    legal_guardians: List[str] = []
+    legal_wards: List[str | HttpUrl] = []
+    legal_guardians: List[str | HttpUrl] = []
 
     _not_both_password_and_hashes = root_validator(allow_reuse=True)(not_both_password_and_hashes)
 
@@ -1214,6 +1236,17 @@ async def partial_update(  # noqa: C901
         if attr == "kelvin_password_hashes":
             # handled below
             continue
+        # Change URL to dn:
+        if attr == "legal_guardians":
+            new_value = [
+                string_or_url_to_dn(request, url, LegalGuardian.get_container(user_current.school))
+                for url in new_value
+            ]
+        elif attr == "legal_wards":
+            new_value = [
+                string_or_url_to_dn(request, url, Student.get_container(user_current.school))
+                for url in new_value
+            ]
         current_value = getattr(user_current, attr)
         if new_value != current_value:
             setattr(user_current, attr, new_value)
