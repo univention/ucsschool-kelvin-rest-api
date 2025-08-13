@@ -848,6 +848,10 @@ async def create(
         **mapped_udm_properties**, see documentation)
     - **kelvin_password_hashes**: Password hashes to be stored unchanged in
         OpenLDAP (optional)
+    - **legal_wards**: connected student users of a legal_guardian.
+        API throws an error if this is set for a user with a different role.
+    - **legal_guardian**: connected legal_guardian users of a student.
+        API throws an error if this is set for a user with a different role.
 
     **JSON Example**:
 
@@ -1107,6 +1111,10 @@ async def partial_update(  # noqa: C901
         **{"udm_prop1": "value1"}**, must be configured in
         **mapped_udm_properties**, see documentation)
     - **kelvin_password_hashes**: password hashes to be stored unchanged in OpenLDAP
+    - **legal_wards**: connected student users of a legal_guardian.
+        API throws an error if this is set for a user with a different role.
+    - **legal_guardian**: connected legal_guardian users of a student.
+        API throws an error if this is set for a user with a different role.
 
     **JSON Example**:
 
@@ -1290,6 +1298,10 @@ async def complete_update(  # noqa: C901
         ucsschool_roles with context_type school which are auto-managed by the system.
         ucsschool_role strings with context type school are ignored. Format is
         **ROLE:CONTEXT_TYPE:CONTEXT**, for example: **["myrole:mycontext:gym1", "foo:bar:school2"]**.
+    - **legal_wards**: connected student users of a legal_guardian.
+        API throws an error if this is set for a user with a different role.
+    - **legal_guardian**: connected legal_guardian users of a student.
+        API throws an error if this is set for a user with a different role.
 
     **JSON-example**:
 
