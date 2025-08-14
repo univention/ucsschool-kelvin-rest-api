@@ -66,6 +66,16 @@ class Test(TestCase):
                     "display_name": "teacher",
                     "url": "{}teacher".format(RESOURCE_URLS["roles"]),
                 },
+                {
+                    "name": "legal_guardian",
+                    "display_name": "legal_guardian",
+                    "url": "{}legal_guardian".format(RESOURCE_URLS["roles"]),
+                },
+                {
+                    "name": "school_admin",
+                    "display_name": "school_admin",
+                    "url": "{}school_admin".format(RESOURCE_URLS["roles"]),
+                },
             ],
         )
 
@@ -82,7 +92,7 @@ class Test(TestCase):
         self.assertIsInstance(res, list)
         self.assertIsInstance(res[0], dict)
 
-        expected_roles = ["staff", "student", "teacher"]
+        expected_roles = ["staff", "student", "teacher", "legal_guardian", "school_admin"]
         for attrs in res:
             self.assertIn(attrs["name"], expected_roles, "Unknown role {!r}.".format(attrs["name"]))
             expected_roles.remove(attrs["name"])
@@ -90,7 +100,7 @@ class Test(TestCase):
             expected_roles, [], "Role(s) {!r} were not returned in listing.".format(expected_roles)
         )
 
-        for role in ("staff", "student", "teacher"):
+        for role in ("staff", "student", "teacher", "legal_guardian", "school_admin"):
             response = requests.get(urljoin(RESOURCE_URLS["roles"], role), headers=self.auth_headers)
             res = response.json()
             self.assertEqual(

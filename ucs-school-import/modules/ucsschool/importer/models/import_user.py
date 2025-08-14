@@ -1125,7 +1125,7 @@ class ImportUser(User):
             )
         legal_guardians = []
         for username in self.legal_guardians:
-            legal_guardian_dn = self.lo.searchDn(filter=filter_format("uid=%s", (username,)))
+            legal_guardian_dn = self.ldap_lo_ro.searchDn(filter=filter_format("uid=%s", (username,)))
             if len(legal_guardian_dn) > 1:
                 raise InvalidLegalGuardian(
                     f"Couldn't find distinct legal guardian {username} for legal ward {self.name}",
@@ -1155,7 +1155,7 @@ class ImportUser(User):
             )
         legal_wards = []
         for username in self.legal_wards:
-            legal_ward_dn = self.lo.searchDn(filter=filter_format("uid=%s", (username,)))
+            legal_ward_dn = self.ldap_lo_ro.searchDn(filter=filter_format("uid=%s", (username,)))
             if len(legal_ward_dn) > 1:
                 raise InvalidLegalWard(
                     f"Couldn't find distinct legal ward {username} for legal guardian {self.name}",
