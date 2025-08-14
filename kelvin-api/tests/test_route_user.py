@@ -1537,7 +1537,7 @@ async def test_patch_legal_guardians(
         assert len(lib_users) == 1
         lib_user = lib_users[0]
         assert isinstance(lib_user, LegalGuardian)
-        assert lib_user.legal_wards == [api_user.name]
+        assert lib_user.legal_wards == [api_user.dn]
     json_resp = response.json()
     compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
 
@@ -1606,7 +1606,7 @@ async def test_patch_legal_wards(
         assert len(lib_users) == 1
         lib_user = lib_users[0]
         assert isinstance(lib_user, LegalGuardian)
-        assert lib_user.legal_wards == [student.name]
+        assert lib_user.legal_wards == [student.dn]
         lib_users = await User.get_all(udm, school, f"username={student.name}")
         assert len(lib_users) == 1
         lib_user = lib_users[0]
