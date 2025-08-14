@@ -745,7 +745,7 @@ async def search(  # noqa: C901
             logger.error(msg)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=msg)
         except Exception as exc:
-            msg = f"Unknown error when reading user {udm_objs.dn!r}: {exc!s}"
+            msg = f"Unknown error when reading user {udm_obj.dn!r}: {exc!s}"
             logger.error(msg)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=msg)
     t2 = time.time()
