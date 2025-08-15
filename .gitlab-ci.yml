@@ -234,6 +234,8 @@ test kelvin-api:
 
 ucs_test_deb_lint:
   stage: build
+  variables:
+    GIT_DEPTH: 30
   rules:
     - changes:
         - ucs-test-ucsschool-kelvin/**/*
