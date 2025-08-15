@@ -374,7 +374,7 @@ async def test_modify_hooks(
         obj.broadcast = "12.40.232.255"  # change something (was None)
 
     # required for group objects:
-    for attr in ("hosts", "users"):
+    for attr in ("hosts", "users", "legal_guardians", "legal_wards"):
         if hasattr(obj, attr) and getattr(obj, attr) is None:
             setattr(obj, attr, [])
 

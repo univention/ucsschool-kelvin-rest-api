@@ -35,7 +35,14 @@ import os
 from typing import List
 
 from ucsschool.lib.i18n import ucs_school_name_i18n
-from ucsschool.lib.roles import role_legal_guardian, role_pupil, role_staff, role_student, role_teacher
+from ucsschool.lib.roles import (
+    role_legal_guardian,
+    role_pupil,
+    role_school_admin,
+    role_staff,
+    role_student,
+    role_teacher,
+)
 
 try:
     from univention.config_registry import ConfigRegistry
@@ -65,7 +72,14 @@ def roleshare_home_subdir(school_ou: str, roles: List[str], ucr: ConfigRegistry 
     if ucr.is_true("ucsschool/import/roleshare", True):
         # student is a role from kelvin, which here should be treated like 'pupil'
         # see bug #52926
-        for role in (role_student, role_pupil, role_teacher, role_legal_guardian, role_staff):
+        for role in (
+            role_student,
+            role_pupil,
+            role_teacher,
+            role_legal_guardian,
+            role_school_admin,
+            role_staff,
+        ):
             if role in roles:
                 role_for_path = role
                 if role_for_path == role_student:
