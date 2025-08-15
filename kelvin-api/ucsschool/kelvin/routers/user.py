@@ -96,7 +96,6 @@ from ucsschool.lib.roles import (
 from udm_rest_client import UDM, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
-from ...importer.utils.ldap_connection import get_readonly_connection
 from ..config import UDM_MAPPING_CONFIG
 from ..import_config import get_import_config, init_ucs_school_import_framework
 from ..ldap import LdapUser, get_dn_of_user
@@ -916,7 +915,6 @@ async def create(
 
     try:
         user.prepare_uids()
-        user.lo = get_readonly_connection()[0]
         user_importer = get_user_importer()
         t2 = time.time()
         # user_importer.determine_add_modify_action() will call user.prepare_all()
