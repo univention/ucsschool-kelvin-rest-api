@@ -78,7 +78,7 @@ lint_commit_messages:
   needs: []
   variables:
     HOOK_IDS: "conventional-pre-commit issue-reference"
-    GIT_DEPTH: 30
+    GIT_DEPTH: 21
   extends: .lint_commit_messages
 
 docs-html:
@@ -90,6 +90,8 @@ docs-html:
 
 docs-pdf:
   extends: .sphinx-pdf-template
+  variables:
+    GIT_DEPTH: 30
   rules:
     - changes:
         - $DOCS_DIR/**/*
@@ -247,6 +249,8 @@ ucs_test_deb_lint:
 ucs_test_deb_build_git:
   stage: build
   image: $DEB_IMAGE
+  variables:
+    GIT_DEPTH: 30
   rules:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       changes:
