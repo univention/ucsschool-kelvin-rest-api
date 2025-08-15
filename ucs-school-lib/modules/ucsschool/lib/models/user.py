@@ -33,7 +33,7 @@ import copy
 import os.path
 import time
 from collections.abc import Mapping
-from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple, Type, TypeVar, Union
+from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Type, TypeVar, Union
 
 from ldap.dn import escape_dn_chars, explode_dn
 from ldap.filter import escape_filter_chars, filter_format
@@ -180,69 +180,29 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         return self._profile_path_cache[school.dn]
 
     async def is_student(self, lo: UDM) -> bool:
-        return await self.__check_object_class(lo, "ucsschoolStudent", self._legacy_is_student)
+        return await self.__check_object_class(lo, "ucsschoolStudent")
 
     async def is_exam_student(self, lo: UDM) -> bool:
-        return await self.__check_object_class(lo, "ucsschoolExam", self._legacy_is_exam_student)
+        return await self.__check_object_class(lo, "ucsschoolExam")
 
     async def is_teacher(self, lo: UDM) -> bool:
-        return await self.__check_object_class(lo, "ucsschoolTeacher", self._legacy_is_teacher)
+        return await self.__check_object_class(lo, "ucsschoolTeacher")
 
     async def is_legal_guardian(self, lo):  # type: (LoType) -> bool
-        return self.__check_object_class(lo, "ucsschoolLegalGuardian", self._legacy_is_legal_guardian)
+        return self.__check_object_class(lo, "ucsschoolLegalGuardian")
 
     async def is_staff(self, lo: UDM) -> bool:
-        return await self.__check_object_class(lo, "ucsschoolStaff", self._legacy_is_staff)
+        return await self.__check_object_class(lo, "ucsschoolStaff")
 
     async def is_administrator(self, lo: UDM) -> bool:
-        return await self.__check_object_class(
-            lo, "ucsschoolAdministrator", self._legacy_is_admininstrator
-        )
+        return await self.__check_object_class(lo, "ucsschoolAdministrator")
 
-    @classmethod
-    def _legacy_is_student(cls, school: str, dn: str) -> bool:
-        cls.logger.warning("Using deprecated method is_student()")
-        return dn.lower().endswith(cls.get_search_base(school).students.lower())
-
-    @classmethod
-    def _legacy_is_exam_student(cls, school: str, dn: str) -> bool:
-        cls.logger.warning("Using deprecated method is_exam_student()")
-        return dn.lower().endswith(cls.get_search_base(school).examUsers.lower())
-
-    @classmethod
-    def _legacy_is_teacher(cls, school: str, dn: str) -> bool:
-        cls.logger.warning("Using deprecated method is_teacher()")
-        search_base = cls.get_search_base(school)
-        return dn.lower().endswith(search_base.teachers.lower()) or dn.lower().endswith(
-            search_base.teachersAndStaff.lower()
-        )
-
-    @classmethod
-    def _legacy_is_legal_guardian(cls, school, dn):  # type: (str, str) -> bool
-        cls.logger.warning("Using deprecated method is_legal_guardian()")
-        return dn.lower().endswith(cls.get_search_base(school).legal_guardians.lower())
-
-    @classmethod
-    def _legacy_is_staff(cls, school: str, dn: str) -> bool:
-        cls.logger.warning("Using deprecated method is_staff()")
-        search_base = cls.get_search_base(school)
-        return dn.lower().endswith(search_base.staff.lower()) or dn.lower().endswith(
-            search_base.teachersAndStaff.lower()
-        )
-
-    @classmethod
-    def _legacy_is_admininstrator(cls, school: str, dn: str) -> bool:
-        cls.logger.warning("Using deprecated method is_admininstrator()")
-        return dn.lower().endswith(cls.get_search_base(school).admins.lower())
-
-    async def __check_object_class(
-        self, lo: UDM, object_class: str, fallback: Callable[[str, str], bool]
-    ) -> bool:
+    async def __check_object_class(self, lo: UDM, object_class: str) -> bool:
         obj = await self.get_udm_object(lo)
         if not obj:
             raise noObject("Could not read %r" % (self.dn,))
         is_object_class = obj.options.get(object_class)
-        return is_object_class or fallback(self.school, self.dn)
+        return is_object_class
 
     @classmethod
     async def get_class_for_udm_obj(cls, udm_obj: UdmObject, school: str) -> Union[None, Type["User"]]:
