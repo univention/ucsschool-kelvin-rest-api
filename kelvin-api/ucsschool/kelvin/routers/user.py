@@ -86,7 +86,7 @@ from ucsschool.importer.models.import_user import (
 )
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
 from ucsschool.lib.models.base import WrongModel
-from ucsschool.lib.models.user import LegalGuardian, Student, User
+from ucsschool.lib.models.user import User
 from ucsschool.lib.models.utils import uldap_admin_write_primary
 from ucsschool.lib.roles import (
     InvalidUcsschoolRoleString,
@@ -144,11 +144,10 @@ async def get_import_user(udm: UDM, dn: str) -> ImportUser:
     return user
 
 
-def string_or_url_to_dn(request: Request, url: str | HttpUrl, container: str) -> str:
-    name = str(url)
-    if "/" in name:
-        name = url_to_name(request, "user", UserCreateModel.unscheme_and_unquote(url))
-    return f"uid={name},{container}"
+def remove_url(request: Request, url: str | HttpUrl) -> str:
+    if "/" not in str(url):
+        return url
+    return url_to_name(request, "user", UserCreateModel.unscheme_and_unquote(url))
 
 
 class PasswordsHashes(BaseModel):
@@ -347,14 +346,8 @@ class UserCreateModel(UserBaseModel):
             if not _is_school_role_string(role_string) and role_string not in ucsschool_role_strings:
                 ucsschool_role_strings.append(role_string)
         kwargs["ucsschool_roles"] = ucsschool_role_strings
-        kwargs["legal_guardians"] = [
-            string_or_url_to_dn(request, url, LegalGuardian.get_container(self.school))
-            for url in kwargs["legal_guardians"]
-        ]
-        kwargs["legal_wards"] = [
-            string_or_url_to_dn(request, url, Student.get_container(self.school))
-            for url in kwargs["legal_wards"]
-        ]
+        kwargs["legal_guardians"] = [remove_url(request, url) for url in kwargs["legal_guardians"]]
+        kwargs["legal_wards"] = [remove_url(request, url) for url in kwargs["legal_wards"]]
 
         kwargs["birthday"] = str(self.birthday) if self.birthday else self.birthday
         kwargs["expiration_date"] = (
@@ -1238,15 +1231,11 @@ async def partial_update(  # noqa: C901
             continue
         # Change URL to dn:
         if attr == "legal_guardians":
-            new_value = [
-                string_or_url_to_dn(request, url, LegalGuardian.get_container(user_current.school))
-                for url in new_value
-            ]
+            new_value = [remove_url(request, url) for url in new_value]
+            user_current.make_legal_guardians()
         elif attr == "legal_wards":
-            new_value = [
-                string_or_url_to_dn(request, url, Student.get_container(user_current.school))
-                for url in new_value
-            ]
+            new_value = [remove_url(request, url) for url in new_value]
+            user_current.make_legal_wards()
         current_value = getattr(user_current, attr)
         if new_value != current_value:
             setattr(user_current, attr, new_value)
