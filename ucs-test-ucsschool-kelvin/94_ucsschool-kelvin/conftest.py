@@ -157,7 +157,7 @@ def make_user_attrs(import_config, mail_domain, random_int, random_username):
     def _func(ous, partial=False, **kwargs):
         # type: (List[str], Optional[bool], **Any) -> Dict[str, Any]
         roles = kwargs.pop("roles", None) or random.choice(  # nosec
-            (("staff",), ("staff", "teacher"), ("student",), ("teacher",))
+            (("staff",), ("staff", "teacher"), ("student",), ("teacher",), ("legal_guardian",))
         )
         if roles == ("staff",):
             school_classes = {}
@@ -218,6 +218,10 @@ def make_user_attrs(import_config, mail_domain, random_int, random_username):
             urljoin(RESOURCE_URLS["schools"], ou) in res.get("schools", [])
             for ou in res.get("school_classes", {})
         )
+        if "student" in roles:
+            res["legal_guardians"] = []
+        elif "legal_guardian" in roles:
+            res["legal_wards"] = []
         res.update(kwargs)
         return res
 

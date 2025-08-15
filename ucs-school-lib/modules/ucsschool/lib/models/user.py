@@ -213,10 +213,8 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     def _legacy_is_teacher(cls, school: str, dn: str) -> bool:
         cls.logger.warning("Using deprecated method is_teacher()")
         search_base = cls.get_search_base(school)
-        return (
-            dn.lower().endswith(search_base.teachers.lower())
-            or dn.lower().endswith(search_base.teachersAndStaff.lower())
-            or dn.lower().endswith(search_base.admins.lower())
+        return dn.lower().endswith(search_base.teachers.lower()) or dn.lower().endswith(
+            search_base.teachersAndStaff.lower()
         )
 
     @classmethod

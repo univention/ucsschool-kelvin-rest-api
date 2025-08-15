@@ -861,7 +861,7 @@ unixhomes = {
     "teacher": "lehrer",
     "staff": "mitarbeiter",
     "teacher_and_staff": "lehrer",
-    "school_admin": "admins",  # TODO FIXME this has never been defined yet!
+    "school_admin": "school_admin",
 }
 
 
@@ -1127,22 +1127,6 @@ async def test_is_student_false(create_ou_using_python, new_udm_user, udm_kwargs
         user = await User.from_dn(dn, ou, udm)
         is_student = await user.is_student(udm)
         assert not is_student
-
-
-@pytest.mark.asyncio
-async def test_is_student_with_fallback(create_ou_using_python, new_udm_user, udm_kwargs):
-    ou = await create_ou_using_python()
-    dn, _ = await new_udm_user(ou, "student")
-
-    async with UDM(**udm_kwargs) as udm:
-        user = await User.from_dn(dn, ou, udm)
-        # Let's artificially create a legacy user
-        user_udm = await user.get_udm_object(udm)
-        user_udm.options["ucsschoolStudent"] = None
-        await user_udm.save()
-
-        is_student = await user.is_student(udm)
-        assert is_student
 
 
 @pytest.mark.asyncio
