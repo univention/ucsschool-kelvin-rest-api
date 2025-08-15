@@ -99,6 +99,8 @@ docs-pdf:
 
 docs-linkcheck:
   extends: .sphinx-linkcheck-template
+  variables:
+    GIT_DEPTH: 30
   rules:
     - changes:
         - $DOCS_DIR/**/*
