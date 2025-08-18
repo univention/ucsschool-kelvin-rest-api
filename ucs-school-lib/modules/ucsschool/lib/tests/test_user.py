@@ -11,6 +11,7 @@ from ucsschool.lib.models.attributes import ValidationError
 from ucsschool.lib.models.group import SchoolClass
 from ucsschool.lib.models.user import (
     ExamStudent,
+    LegalGuardian,
     SchoolAdmin,
     Staff,
     Student,
@@ -31,7 +32,13 @@ from udm_rest_client.exceptions import CreateError, ModifyError
 from univention.admin.uexceptions import noObject
 
 UserType = Union[
-    Type[Staff], Type[Student], Type[Teacher], Type[TeachersAndStaff], Type[SchoolAdmin], Type[User]
+    Type[Staff],
+    Type[Student],
+    Type[Teacher],
+    Type[TeachersAndStaff],
+    Type[SchoolAdmin],
+    Type[User],
+    Type[LegalGuardian],
 ]
 Role = NamedTuple("Role", [("name", str), ("klass", UserType)])
 
@@ -1218,22 +1225,6 @@ async def test_is_teacher_false(create_ou_using_python, new_udm_user, udm_kwargs
 
 
 @pytest.mark.asyncio
-async def test_is_teacher_with_fallback(create_ou_using_python, new_udm_user, udm_kwargs):
-    ou = await create_ou_using_python()
-    dn, _ = await new_udm_user(ou, "teacher")
-
-    async with UDM(**udm_kwargs) as udm:
-        user = await User.from_dn(dn, ou, udm)
-        # Let's artificially create a legacy user
-        user_udm = await user.get_udm_object(udm)
-        user_udm.options["ucsschoolTeacher"] = None
-        user_udm.save()
-
-        is_teacher = await user.is_teacher(udm)
-        assert is_teacher
-
-
-@pytest.mark.asyncio
 async def test_is_teacher_with_object_does_not_exist(udm_kwargs):
     async with UDM(**udm_kwargs) as udm:
         user = User()
@@ -1279,22 +1270,6 @@ async def test_is_staff_false(create_ou_using_python, new_udm_user, udm_kwargs, 
 
 
 @pytest.mark.asyncio
-async def test_is_staff_with_fallback(create_ou_using_python, new_udm_user, udm_kwargs):
-    ou = await create_ou_using_python()
-    dn, _ = await new_udm_user(ou, "staff")
-
-    async with UDM(**udm_kwargs) as udm:
-        user = await User.from_dn(dn, ou, udm)
-        # Let's artificially create a legacy user
-        user_udm = await user.get_udm_object(udm)
-        user_udm.options["ucsschoolStaff"] = None
-        user_udm.save()
-
-        is_staff = await user.is_staff(udm)
-        assert is_staff
-
-
-@pytest.mark.asyncio
 async def test_is_staff_with_object_does_not_exist(udm_kwargs):
     async with UDM(**udm_kwargs) as udm:
         user = User()
@@ -1328,23 +1303,6 @@ async def test_is_administrator_false(create_ou_using_python, new_udm_user, udm_
         assert not is_administrator
 
 
-@pytest.mark.asyncio
-async def test_is_administrator_with_fallback(create_ou_using_python, new_udm_admin_user, udm_kwargs):
-    ou = await create_ou_using_python()
-    dn, _ = await new_udm_admin_user(ou)
-
-    async with UDM(**udm_kwargs) as udm:
-        user = await User.from_dn(dn, ou, udm)
-        # Let's artificially create a legacy user
-        user_udm = await user.get_udm_object(udm)
-        user_udm.options["ucsschoolAdministrator"] = None
-        user_udm.save()
-
-        is_administrator = await user.is_administrator(udm)
-        assert is_administrator
-
-
-@pytest.mark.asyncio
 async def test_is_administrator_with_object_does_not_exist(udm_kwargs):
     async with UDM(**udm_kwargs) as udm:
         user = User()
