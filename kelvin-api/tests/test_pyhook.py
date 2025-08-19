@@ -243,16 +243,11 @@ def _create_pyhook_file(restart_kelvin_api_server_module):
     creates a hook file the specified path and cleans up
     after running the tests.
     """
-    _hook_path = ""
-    cache_path = ""
-    module_names = []
+    hook_modules: Dict[Path, List[str]] = {}
 
     def _func(name: str, text: str, hook_path: Path):
-        nonlocal _hook_path
-        nonlocal cache_path
         _hook_path = hook_path
-        cache_path = hook_path / "__pycache__"
-        module_names.append(name)
+        hook_modules.setdefault(hook_path, []).append(name)
         with open(_hook_path / f"{name}.py", "w") as fp:
             fp.write(text)
         logger.debug(f"****** {hook_path} ******")
@@ -262,14 +257,16 @@ def _create_pyhook_file(restart_kelvin_api_server_module):
 
     yield _func
 
-    for name in module_names:
-        hook_path = _hook_path / f"{name}.py"
-        try:
-            hook_path.unlink()
-        except FileNotFoundError:
-            pass
-        for cache_file in cache_path.glob(f"{name}.*"):
-            cache_file.unlink()
+    for hook_path, names in hook_modules.items():
+        for name in names:
+            hook_file = hook_path / f"{name}.py"
+            try:
+                hook_file.unlink()
+            except FileNotFoundError:
+                pass
+            cache_path = hook_path / "__pycache__"
+            for cache_file in cache_path.glob(f"{name}.*"):
+                cache_file.unlink()
     restart_kelvin_api_server_module()
 
 
