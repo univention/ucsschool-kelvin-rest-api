@@ -35,7 +35,6 @@ python3 -m pip install --no-cache-dir --compile /tmp/univention-lib-slim
 python3 -m pip install --no-cache-dir --compile /tmp/univention-directory-manager-modules-slim
 mkdir -p /var/cache/univention-config
 
-apk add --no-cache logrotate
 cp -v /kelvin/ucs-school-import/modules/ucsschool/lib/create_ou.py /kelvin/ucs-school-lib/modules/ucsschool/lib/
 python3 -m pip install --no-cache-dir --editable /kelvin/ucs-school-lib/modules
 python3 -m pip install --no-cache-dir --editable /kelvin/ucs-school-import/modules
