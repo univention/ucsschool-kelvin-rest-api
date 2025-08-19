@@ -213,7 +213,7 @@ async def test_get_missing_fileserver(
         "_from_lib_model_kwargs",
         _from_lib_model_kwargs_mock,
     )
-    ou_name = await create_ou_using_python()
+    ou_name = await create_ou_using_python(cache=False)
     async with UDM(**udm_kwargs) as udm:
         lib_obj = await School.from_dn(f"ou={ou_name},{ldap_base}", ou_name, udm)
         lib_obj.class_share_file_server = f"cn=deleted-server,cn=dc,ou=deleted,{ldap_base}"
