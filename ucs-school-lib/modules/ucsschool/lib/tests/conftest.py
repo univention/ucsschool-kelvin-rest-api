@@ -160,7 +160,7 @@ class UserFactory(factory.Factory):
         model = ucsschool.lib.models.user.User
 
     firstname = factory.Faker("first_name")
-    lastname = factory.Faker("last_name")
+    lastname = factory.LazyFunction(lambda: f"{fake.last_name()}-{fake.last_name()}")
     name = factory.LazyAttribute(
         lambda o: f"test.{o.firstname[:8]}{fake.pyint(10, 99)}.{o.lastname}"[:15].rstrip(".")
     )
