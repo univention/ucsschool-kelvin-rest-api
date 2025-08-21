@@ -91,7 +91,7 @@ docs-html:
 docs-pdf:
   extends: .sphinx-pdf-template
   variables:
-    GIT_DEPTH: 30
+    GIT_DEPTH: 100
   rules:
     - changes:
         - $DOCS_DIR/**/*
@@ -100,7 +100,7 @@ docs-pdf:
 docs-linkcheck:
   extends: .sphinx-linkcheck-template
   variables:
-    GIT_DEPTH: 30
+    GIT_DEPTH: 100
   rules:
     - changes:
         - $DOCS_DIR/**/*
@@ -237,7 +237,7 @@ test kelvin-api:
 ucs_test_deb_lint:
   stage: build
   variables:
-    GIT_DEPTH: 30
+    GIT_DEPTH: 100
   rules:
     - changes:
         - ucs-test-ucsschool-kelvin/**/*
@@ -254,7 +254,7 @@ ucs_test_deb_build_git:
   stage: build
   image: $DEB_IMAGE
   variables:
-    GIT_DEPTH: 30
+    GIT_DEPTH: 100
   rules:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       changes:
