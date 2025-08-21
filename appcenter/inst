@@ -38,7 +38,6 @@ VERSION=10
 APP_ID="ucsschool-kelvin-rest-api"
 ADMIN_GROUP="$APP_ID-admins"
 UDM_REST_GROUP="UDM-API-enabled-machines"
-CN_ADMIN_SECRET_FILE="/var/lib/univention-appcenter/apps/$APP_ID/conf/cn_admin.secret"
 TOKEN_SIGN_SECRET_FILE="/var/lib/univention-appcenter/apps/$APP_ID/conf/tokens.secret"
 KELVIN_IMPORT_CONFIG_FILE="/var/lib/ucs-school-import/configs/kelvin.json"
 KELVIN_IMPORTUSER_HOOKS_PATH="/var/lib/ucs-school-import/kelvin-hooks"
@@ -81,16 +80,6 @@ main () {
         openssl rand -hex 32 > "$TOKEN_SIGN_SECRET_FILE" || die
     else
         echo "Using existing token key."
-    fi
-
-    if ! [ -e "$CN_ADMIN_SECRET_FILE" ]; then
-        echo "Storing cn=admin password in $CN_ADMIN_SECRET_FILE."
-        touch "$CN_ADMIN_SECRET_FILE"
-        chown root:root "$CN_ADMIN_SECRET_FILE"
-        chmod 640 "$CN_ADMIN_SECRET_FILE"
-        cat /etc/ldap.secret > "$CN_ADMIN_SECRET_FILE" || die
-    else
-        echo "Using existing password file."
     fi
 
     if ! [ -e "$KELVIN_IMPORT_CONFIG_FILE" ]; then
