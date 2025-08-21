@@ -145,7 +145,7 @@ async def get_import_user(udm: UDM, dn: str) -> ImportUser:
 
 
 def remove_url(request: Request, url: str | HttpUrl) -> str:
-    if "/" not in str(url):
+    if "/" not in str(url):  # usernames must not contain '/'
         return url
     return url_to_name(request, "user", UserCreateModel.unscheme_and_unquote(url))
 
