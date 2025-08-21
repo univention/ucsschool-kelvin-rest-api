@@ -40,6 +40,7 @@ from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html, get_swagge
 from fastapi.responses import HTMLResponse, JSONResponse, ORJSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
+from starlette.routing import Match, Mount, Route
 from timing_asgi import TimingClient, TimingMiddleware
 from timing_asgi.integrations import StarletteScopeToName
 
@@ -89,10 +90,32 @@ class PrintTimings(TimingClient):
         logger.warning(f"{metric_name} - {timing:.3f} s - {tags}")
 
 
+class StarletteScopeToNamePatched(StarletteScopeToName):
+    """
+    timing-asgi throws an error for Mounts
+
+    This is hopefully just a temporary fix:
+    https://github.com/steinnes/timing-asgi/issues/27
+    """
+
+    def __call__(self, scope):
+        route = None
+        for r in self.starlette_app.router.routes:
+            if r.matches(scope)[0] == Match.FULL:
+                route = r
+                break
+        if isinstance(route, Route):
+            return f"{self.prefix}.{route.endpoint.__module__}.{route.name}"
+        elif isinstance(route, Mount):
+            return f"{self.prefix}.__mount__.{route.name}"
+        else:
+            return self.fallback(scope)
+
+
 app.add_middleware(
     TimingMiddleware,
     client=PrintTimings(),
-    metric_namer=StarletteScopeToName(prefix="kelvin_app", starlette_app=app),
+    metric_namer=StarletteScopeToNamePatched(prefix="kelvin_app", starlette_app=app),
 )
 
 
