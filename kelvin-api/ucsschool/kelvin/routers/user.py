@@ -1232,16 +1232,15 @@ async def partial_update(  # noqa: C901
         # Change URL to dn:
         if attr == "legal_guardians":
             new_value = [remove_url(request, url) for url in new_value]
-            user_current.make_legal_guardians()
         elif attr == "legal_wards":
             new_value = [remove_url(request, url) for url in new_value]
-            user_current.make_legal_wards()
         current_value = getattr(user_current, attr)
         if new_value != current_value:
             setattr(user_current, attr, new_value)
             changed = True
     if changed:
         try:
+            user_current.prepare_attributes()
             await user_current.modify(udm)
         except (
             LibValidationError,
