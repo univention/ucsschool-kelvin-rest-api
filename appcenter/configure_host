@@ -32,11 +32,15 @@ action=$1
 case "$action" in
   install)
     cat > /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf << 'EOF'
-template(name="HttpLogMsg" type="string" string="%msg:22:$%\n")
+module(load="imjournal" StateFile="imjournal.state")
 
-if ($syslogtag startswith "artifacts.software-univention.de/ucsschool/ucsschool-kelvin-rest-api") and ($msg startswith " kelvin_api_http_log ") then {
-    /var/log/univention/ucsschool-kelvin-rest-api/http.log;HttpLogMsg
-    stop
+template(name="LogMsg" type="string" string="%msg%\n")
+if ($!APP_NAME == "ucsschool-kelvin-rest-api") then {
+    action(
+        type="omfile"
+        file="/var/log/univention/ucsschool-kelvin-rest-api/http.log"
+        template="LogMsg"
+    )
 }
 EOF
     systemctl restart rsyslog

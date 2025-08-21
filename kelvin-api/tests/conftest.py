@@ -352,16 +352,6 @@ def temp_file_func():
             pass
 
 
-# Monkey patch setup_logging() for the whole test session
-@pytest.fixture(scope="session")
-def setup_logging(temp_dir_session):
-    test_log_tag = "kelvin_test_http_log"
-
-    with patch("ucsschool.kelvin.main.DEFAULT_LOG_TAG", test_log_tag):
-        logger.debug(" -- Kelvin logging redirected to %s --", test_log_tag)
-        yield
-
-
 @pytest.fixture
 def random_name() -> Callable[[], str]:
     return fake.unique.first_name

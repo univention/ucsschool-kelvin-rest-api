@@ -72,4 +72,5 @@ LABEL "description"="Image of UCS app 'UCS@school Kelvin REST API' ('$app_id')."
     "url"="https://www.univention.com/products/univention-app-center/app-catalog/$app_id/" \
     "version"="$version" \
     "release date"="$date" \
-    "commit"="$commit"
+    "commit"="$commit" \
+    "APP_NAME"="ucsschool-kelvin-rest-api"

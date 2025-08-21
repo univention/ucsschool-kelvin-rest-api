@@ -44,7 +44,7 @@ from functools import lru_cache
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from random import choice, shuffle
-from typing import IO, Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import IO, Any, Dict, List, Sequence, Tuple, Union
 
 import colorlog
 import lazy_object_proxy
@@ -272,17 +272,6 @@ class UCSTTYColoredFormatter(colorlog.TTYColoredFormatter):
             return super(UCSTTYColoredFormatter, self).color(log_colors, level_name)
 
 
-class TaggedFormatter(logging.Formatter):
-    def __init__(self, tag: str, fmt: Optional[str] = None, datefmt: Optional[str] = None) -> None:
-        super().__init__(fmt=fmt, datefmt=datefmt)
-        self.prefix = f"{tag} "
-
-    def format(self, record: logging.LogRecord) -> str:
-        base = super().format(record)
-        # Add the tag prefix to every line
-        return self.prefix + base.replace("\n", "\n" + self.prefix)
-
-
 def add_stream_logger_to_schoollib(
     level: str = "DEBUG",
     stream: IO = sys.stderr,
@@ -471,8 +460,7 @@ def get_file_handler(
 ) -> logging.Handler:
     # noqa: E501
     """
-    Create a :py:class:`UniFileHandler` (TimedRotatingFileHandler) for logging
-    to a file.
+    Stump that returns a stdout handler, because in Kelvin we always want to log to stdout.
 
     :param level: log level
     :type level: int or str
@@ -489,23 +477,12 @@ def get_file_handler(
     :return: a handler
     :rtype: logging.Handler
     """
-    fmt = fmt or FILE_LOG_FORMATS[loglevel_int2str(nearest_known_loglevel(level))]
-    fmt = fmt.format(pid=os.getpid())
-    datefmt = datefmt or str(LOG_DATETIME_FORMAT)
-    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
-    handler = UniFileHandler(
-        filename, when=when, backupCount=backupCount, fuid=uid, fgid=gid, fmode=mode
-    )
-    handler.setFormatter(formatter)
-    cid_filter = CorrelationIdFilter(uuid_length=10)
-    handler.addFilter(cid_filter)
-    handler.setLevel(level)
-    return handler
+
+    return get_stdout_handler(level=level, fmt=fmt, datefmt=datefmt)
 
 
 def get_stdout_handler(
     level: int | str,
-    log_tag: str,
     fmt: str = None,
     datefmt: str = None,
 ) -> logging.Handler:
@@ -515,7 +492,6 @@ def get_stdout_handler(
 
     :param level: log level
     :type level: int or str
-    :param str log_tag: tag for the log to write to different files through rsyslog
     :param str fmt: log message format (will be passt to a Formatter instance)
     :param str datefmt: date format (will be passt to a Formatter instance)
     :return: a handler
@@ -524,7 +500,7 @@ def get_stdout_handler(
     fmt = fmt or FILE_LOG_FORMATS[loglevel_int2str(nearest_known_loglevel(level))]
     fmt = fmt.format(pid=os.getpid())
     datefmt = datefmt or str(LOG_DATETIME_FORMAT)
-    formatter = TaggedFormatter(tag=log_tag, fmt=fmt, datefmt=datefmt)
+    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
     cid_filter = CorrelationIdFilter(uuid_length=10)

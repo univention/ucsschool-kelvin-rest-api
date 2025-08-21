@@ -53,7 +53,6 @@ from .config import UDM_MAPPING_CONFIG, load_configurations
 from .constants import (
     APP_VERSION,
     DEFAULT_LOG_LEVELS,
-    DEFAULT_LOG_TAG,
     STATIC_FILE_CHANGELOG,
     STATIC_FILE_README,
     STATIC_FILES_PATH,
@@ -114,7 +113,7 @@ def setup_logging() -> None:
         logger.setLevel(min(default_level, min_level))
         abs_min_level = min(abs_min_level, logger.level)
 
-    file_handler = get_stdout_handler(abs_min_level, DEFAULT_LOG_TAG)
+    file_handler = get_stdout_handler(abs_min_level)
     file_handler.addFilter(ValidationDataFilter())
     logger = logging.getLogger("uvicorn.access")
     logger.addHandler(file_handler)
