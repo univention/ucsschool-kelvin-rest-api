@@ -184,9 +184,6 @@ def compare_ldap_json_obj(dn, json_resp, url_fragment):  # noqa: C901
         elif attr == "expiration_date" and "shadowExpire" in ldap_obj:
             if json_resp["disabled"]:
                 check_value = "1"
-                ldap_obj["shadowExpire"] = [
-                    b"1"
-                ]  # TODO: Figure out, why shadowExpire is sometimes not b"1" (in 1 out of 32 cases)
             elif value:
                 dt = datetime.datetime.strptime(value, "%Y-%m-%d").date()
                 check_value = userexpiry_to_shadowExpire(dt)
