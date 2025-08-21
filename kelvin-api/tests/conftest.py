@@ -406,6 +406,8 @@ def random_user_create_model(
             workgroups=workgroups,
             password=fake.password(length=20),
         )
+        if data["disabled"]:
+            del data["expiration_date"]
         for key, value in kwargs.items():
             data[key] = value
         res = UserCreateModel(**data)
