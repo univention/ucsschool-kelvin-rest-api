@@ -69,7 +69,10 @@ All HTTP requests to resources must carry a valid JWT token. The number of minut
 Custom CA Certificates
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-By default, the *UCS\@school Kelvin REST API* only connects to an LDAP server which is using the CA provided by UCS. If the LDAP server uses a different CA, that CA needs to be configured through the *app settings* in the *Univention App Center* UMC module.
+By default, the *UCS\@school Kelvin REST API* only connects to an LDAP server which is using the CA provided by UCS.
+If the LDAP server uses a different CA, that CA needs to be configured on the UCS host system.
+The app is using the CA trust store from the UCS host system. The app is restarting if the certificates are updated by ``update-ca-certificates``, you can disable the automatic restart in the Univention App Center settings.
+
 
 Log level
 ^^^^^^^^^

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright 2024 Univention GmbH
+# Copyright 2025 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -27,7 +27,22 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-# Restart kelvin because we need the ucs certificate to connect to the ldap server
-# without the certificate the kelvin service crashes with a certificate error
-echo "Restarting UCS@school Kelvin REST API server..."
-univention-app shell ucsschool-kelvin-rest-api /etc/init.d/ucsschool-kelvin-rest-api restart
+action=$1
+
+case "$action" in
+  install)
+    cat > /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api << 'EOF'
+#!/usr/bin/env sh
+
+. /usr/share/univention-lib/ucr.sh
+
+if is_ucr_true ucsschool/kelvin/update-ca-restart; then
+    univention-app restart ucsschool-kelvin-rest-api
+fi
+EOF
+    chmod +x /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
+    ;;
+  remove)
+    rm /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
+    ;;
+esac

@@ -16,14 +16,15 @@ Description = Log level for messages written to /var/log/univention/ucsschool-ke
 Description[de] = Loglevel der Nachrichten die nach /var/log/univention/ucsschool-kelvin-rest-api/http.log geschrieben werden. Gültige Werte sind "DEBUG", "INFO", "WARNING" and "ERROR". Standard ist "INFO".
 InitialValue = INFO
 
-[ucsschool/kelvin/trusted_CA_path]
-Type = File
-Filename = /usr/local/share/ca-certificates/custom.crt
-Description = By default, the UCS@school Kelvin REST API only connects to an LDAP server which is using the "UCS-CA". If the LDAP server uses a different CA, that CA needs to be configured here as well.
-Description[de] = Standardmäßig verbindet sich die UCS@school Kelvin REST API nur mit LDAP-Servern, welche die "UCS-CA" verwenden. Nutzt der LDAP-Server eine andere CA, muss diese hier angegeben werden.
-
 [ucsschool/kelvin/processes]
 Type = Int
 Description = Number of CPU cores utilized by the UCS@school Kelvin REST API. Set below 1 to start one process for each core.
 Description[de] = Anzahl der CPU Kerne die von der UCS@school Kelvin REST API verwendet werden. Werte kleiner als 1 starten für jede CPU einen Prozess.
 InitialValue = 2
+
+[ucsschool/kelvin/update-ca-restart]
+Type = Bool
+Description = The app should restart if certificates are updated.
+Description[de] = Die app soll neu starten, falls Zertifikate aktualisiert wurden.
+InitialValue = true
+Scope = outside
