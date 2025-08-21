@@ -219,6 +219,21 @@ def get_user_model(response_json: Dict[str, Any]) -> UserModelsUnion:
     return UserModel(**response_json)
 
 
+# Some tests need to wait for changes from s4, which runs every 5 seconds and first modifies
+# the samba entry and then afterward again the ldap entry - especially if changes happen to "disabled"
+# and "expiration_date". This waits either `max_time` seconds or until the ldap entry was changed again
+async def wait_for_s4(dn: str, max_time: int = 15) -> None:
+    lo = univention.admin.uldap.getAdminConnection()[0]
+    last_mod = lo.get(dn, attr=["modifyTimestamp"])
+    time = 0
+    while time <= max_time:
+        time += 1
+        await asyncio.sleep(1)
+        cur_mod = lo.get(dn, attr=["modifyTimestamp"])
+        if cur_mod != last_mod:
+            return
+
+
 @pytest.fixture
 def import_user_to_create_model_kwargs(url_fragment):
     def _func(user: ImportUser, exclude: List[str] = None) -> Dict[str, Any]:
@@ -706,6 +721,7 @@ async def test_create(
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
     api_user = get_user_model(response_json)
+    await wait_for_s4(api_user.dn)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
         assert len(lib_users) == 1
@@ -2335,9 +2351,9 @@ async def test_change_disable(
             data=user.json(),
         )
     assert response.status_code == 200, response.reason
+    await wait_for_s4(response.json()["dn"])
     response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
     assert response.status_code == 200, response.reason
-    await asyncio.sleep(5)
     api_user = get_user_model(response.json())
     assert api_user.disabled == user.disabled
     with pytest.raises(BindError):
@@ -2359,7 +2375,7 @@ async def test_change_disable(
             data=user.json(),
         )
     assert response.status_code == 200, response.reason
-    await asyncio.sleep(5)
+    await wait_for_s4(response.json()["dn"])
     response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
     api_user = get_user_model(response.json())
     assert api_user.disabled == user.disabled
