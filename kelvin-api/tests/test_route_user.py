@@ -2362,14 +2362,9 @@ async def test_change_disable(
             data=user.json(),
         )
     assert response.status_code == 200, response.reason
-    retries = 3  # TODO: Find out how to make sure, the value is updated for the test
-    while retries > 0:
-        retries -= 1
-        response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
-        api_user = get_user_model(response.json())
-        if api_user.disabled == user.disabled:
-            break
-        await asyncio.sleep(5)
+    await asyncio.sleep(5)
+    response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
+    api_user = get_user_model(response.json())
     assert api_user.disabled == user.disabled
     await check_password(lib_users[0].dn, password)
 
