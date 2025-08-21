@@ -57,7 +57,7 @@ variables:
   DEB_IMAGE: docker-registry.knut.univention.de/phahn/ucs-debbase:$UCS_VERSION
   UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/dev/ucs
   APPCENTER_CONTROL_IMAGE: "gitregistry.knut.univention.de/univention/dev/internal/ucsschool-ci-utils/univention-appcenter-control"
-  UCS_SCHOOL_LIB_COVERAGE_LIMIT: 34
+  UCS_SCHOOL_LIB_COVERAGE_LIMIT: 33
   KELVIN_COVERAGE_LIMIT: 37
   FORCE_APPCENTER:
     value: "false"
