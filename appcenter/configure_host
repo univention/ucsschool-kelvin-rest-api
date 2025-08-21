@@ -40,6 +40,28 @@ if ($syslogtag startswith "artifacts.software-univention.de/ucsschool/ucsschool-
 }
 EOF
     systemctl restart rsyslog
+    cat > /etc/univention/templates/files/etc/logrotate.d/ucsschool-kelvin-rest-api << 'EOF'
+@%@UCRWARNING=# @%@
+
+@!@
+import univention.lib.ucrLogrotate
+
+name = "ucsschool-kelvin-rest-api"
+settings = univention.lib.ucrLogrotate.getLogrotateConfig(name, configRegistry)
+print(f"/var/log/univention/{name}/http.log {{")
+for setting in sorted(settings):
+    print(f"\t{settings[setting]}")
+    print("\tcopytruncate")
+print("}")
+@!@
+EOF
+    cat > /etc/univention/templates/info/ucsschool-kelvin-rest-api.info << 'EOF'
+Type: file
+File: etc/logrotate.d/ucsschool-kelvin-rest-api
+Variables: logrotate/.*
+EOF
+    ucr update
+    ucr commit /etc/logrotate.d/ucsschool-kelvin-rest-api
     cat > /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api << 'EOF'
 #!/usr/bin/env sh
 
@@ -52,8 +74,12 @@ EOF
     chmod +x /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
     ;;
   remove)
-    rm /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
     rm /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf
+    rm /etc/univention/templates/info/ucsschool-kelvin-rest-api.info
+    rm /etc/univention/templates/files/etc/logrotate.d/ucsschool-kelvin-rest-api
+    rm /etc/logrotate.d/ucsschool-kelvin-rest-api
+    rm /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
+    ucr update
     systemctl restart rsyslog
     ;;
 esac
