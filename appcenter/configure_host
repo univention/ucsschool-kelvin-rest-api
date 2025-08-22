@@ -29,8 +29,10 @@
 
 action=$1
 
-case "$action" in
-  install)
+install_log_duplication() {
+    if [ -f /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf ]; then
+        return
+    fi
     cat > /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf << 'EOF'
 template(name="LogMsg" type="string" string="%msg%\n")
 
@@ -43,6 +45,12 @@ if ($syslogtag contains "ucsschool-kelvin-rest-api") then {
 }
 EOF
     systemctl restart rsyslog
+}
+
+install_log_rotation() {
+    if [ -f /etc/univention/templates/files/etc/logrotate.d/ucsschool-kelvin-rest-api ]; then
+        return
+    fi
     cat > /etc/univention/templates/files/etc/logrotate.d/ucsschool-kelvin-rest-api << 'EOF'
 @%@UCRWARNING=# @%@
 
@@ -67,6 +75,12 @@ Variables: logrotate/.*
 EOF
     ucr update
     ucr commit /etc/logrotate.d/ucsschool-kelvin-rest-api
+}
+
+install_update_ca_hook() {
+    if [ -f /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api ]; then
+        return
+    fi
     cat > /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api << 'EOF'
 #!/usr/bin/env sh
 
@@ -77,14 +91,33 @@ if is_ucr_true ucsschool/kelvin/update-ca-restart; then
 fi
 EOF
     chmod +x /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
-    ;;
-  remove)
+}
+
+remove_log_duplication() {
     rm /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf
+    systemctl restart rsyslog
+}
+
+remove_log_rotation() {
     rm /etc/univention/templates/info/ucsschool-kelvin-rest-api.info
     rm /etc/univention/templates/files/etc/logrotate.d/ucsschool-kelvin-rest-api
     rm /etc/logrotate.d/ucsschool-kelvin-rest-api
-    rm /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
     ucr update
-    systemctl restart rsyslog
+}
+
+remove_update_ca_hook() {
+    rm /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
+}
+
+case "$action" in
+  install | upgrade)
+    install_log_duplication
+    install_log_rotation
+    install_update_ca_hook
+    ;;
+  remove)
+    remove_log_duplication
+    remove_log_rotation
+    remove_update_ca_hook
     ;;
 esac
