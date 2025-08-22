@@ -5,10 +5,18 @@
 Changelog
 =========
 
-v2.0.1 (t.b.d.)
+v2.1.0 (t.b.d.)
 --------------------
+* Fixed: Use ``stdout`` to fix problems with logrotate.
+  As part of this change the init system in the container has been removed.
+  Logs are still duplicated to the old ``http.log``,
+  but can now also be viewed with ``univention-app logs ucsschool-kelvin-rest-api`` or
+  ``journalctl APP_NAME=ucsschool-kelvin-rest-api``.
+  The log rotate of ``http.log`` is now handled by the UCS host system (:uv:bug:`56048`).
+* Fixed: Certificates are now mounted from the UCS host system (:uv:bug:`51728`).
 * Fixed: Error when creating a new school in a single-server environment (:uv:bug:`58448`).
 * Fixed: Getting a school that was created with the setting to not create noneducational objects (UCR-V ``ucsschool/ldap/noneducational/create/objects`` is set to false) (:uv:bug:`57261`).
+* Fixed: School admins are now fully supported in kelvin (:uv:bug:`54051`).
 
 v2.0.0 (2025-03-14)
 -------------------
