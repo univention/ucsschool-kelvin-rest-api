@@ -166,13 +166,8 @@ build_docker_image:
       variables:
         REGISTRY: "artifacts.software-univention.de"
         REGISTRY_IMAGE: "$REGISTRY/ucsschool/ucsschool-kelvin-rest-api"
-    - changes:
-        - docker/*
-        - kelvin-api/**/*
-        - ucs-school-import/**/*
-        - ucs-school-lib/**/*
-        - univention-directory-manager-modules-slim/**/*
-        - univention-lib-slim/**/*
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
   extends: .kaniko
   variables:
     KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/"
