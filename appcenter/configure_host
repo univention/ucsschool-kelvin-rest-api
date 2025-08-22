@@ -56,7 +56,7 @@ print(f"/var/log/univention/{name}/http.log {{")
 for setting in sorted(settings):
     print(f"\t{settings[setting]}")
 print("\tpostrotate")
-print("\t\tinvoke-rc.d rsyslog rotate > /dev/null")
+print("\t\t/usr/lib/rsyslog/rsyslog-rotate > /dev/null")
 print("\tendscript")
 print("}")
 @!@
