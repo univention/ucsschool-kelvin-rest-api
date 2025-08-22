@@ -55,7 +55,9 @@ settings = univention.lib.ucrLogrotate.getLogrotateConfig(name, configRegistry)
 print(f"/var/log/univention/{name}/http.log {{")
 for setting in sorted(settings):
     print(f"\t{settings[setting]}")
-    print("\tcopytruncate")
+print("\tpostrotate")
+print("\t\tinvoke-rc.d rsyslog rotate > /dev/null")
+print("\tendscript")
 print("}")
 @!@
 EOF
