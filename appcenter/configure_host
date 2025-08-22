@@ -32,10 +32,9 @@ action=$1
 case "$action" in
   install)
     cat > /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf << 'EOF'
-module(load="imjournal" StateFile="imjournal.state")
-
 template(name="LogMsg" type="string" string="%msg%\n")
-if ($!APP_NAME == "ucsschool-kelvin-rest-api") then {
+
+if ($syslogtag contains "ucsschool-kelvin-rest-api") then {
     action(
         type="omfile"
         file="/var/log/univention/ucsschool-kelvin-rest-api/http.log"
