@@ -859,7 +859,7 @@ class LegalGuardian(User):
             missing_dns = [dn for dn in self.legal_wards if dn not in dns]
             missing_dns_str = "\n".join(missing_dns)
 
-            error_msg = _("The following legal wards do not exist:")
+            error_msg = _("The following students do not exist:")
             self.add_error("legal_wards", f"{error_msg}\n{missing_dns_str}")
 
     @classmethod

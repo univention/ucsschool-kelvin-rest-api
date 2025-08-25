@@ -478,7 +478,7 @@ class LegalWards(Attribute):
 class LegalGuardians(Attribute):
     """
     The `legal_guardians` attribute has been introduced to allow the
-    creation of a legal guardian - legal ward relationship between users with the Student role
+    creation of a legal guardian - student relationship between users with the Student role
     and users with the LegalGuardian role and relies on the UDM properties ucsschoolLegalGuardian.
     The related UDM properties were introduced in univention/dev/education/ucsschool#1453.
     The UDM hooks that were added for these UDM properties enforce limits on the length of

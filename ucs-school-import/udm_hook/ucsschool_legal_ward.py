@@ -60,8 +60,8 @@ class UcsschoolLegalWard(simpleHook):
             raise MaxLegalWards(
                 _(
                     "Legal guardian %(legal_guardian_dn)s already has %(num_legal_wards)d "
-                    "legal wards. Adding %(self_dn)s would increase it above the maximum "
-                    "allowed legal wards (%(max_legal_wards)d)."
+                    "students. Adding %(self_dn)s would increase it above the maximum "
+                    "allowed students (%(max_legal_wards)d)."
                 )
                 % {
                     "legal_guardian_dn": legal_guardian_dn,

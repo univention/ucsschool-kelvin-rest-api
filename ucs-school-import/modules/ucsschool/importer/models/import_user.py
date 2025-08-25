@@ -1128,7 +1128,7 @@ class ImportUser(User):
             legal_guardian_dn = self.ldap_lo_ro.searchDn(filter=filter_format("uid=%s", (username,)))
             if len(legal_guardian_dn) > 1:
                 raise InvalidLegalGuardian(
-                    f"Couldn't find distinct legal guardian {username} for legal ward {self.name}",
+                    f"Couldn't find distinct legal guardian {username} for student {self.name}",
                     entry_count=self.entry_count,
                     import_user=self,
                 )
@@ -1136,7 +1136,7 @@ class ImportUser(User):
                 legal_guardians.append(legal_guardian_dn[0])
             except IndexError:
                 raise InvalidLegalGuardian(
-                    f"Couldn't find legal guardian {username} for legal ward {self.name}",
+                    f"Couldn't find legal guardian {username} for student {self.name}",
                     entry_count=self.entry_count,
                     import_user=self,
                 )
@@ -1148,7 +1148,7 @@ class ImportUser(User):
             return self.legal_wards
         if len(self.legal_wards) > MAX_LEGAL_WARDS:
             raise InvalidLegalWard(
-                f"User {self.name} has more legal wards "
+                f"User {self.name} has more students "
                 f"({len(self.legal_wards)}) than allowed ({MAX_LEGAL_WARDS})",
                 entry_count=self.entry_count,
                 import_user=self,
@@ -1158,7 +1158,7 @@ class ImportUser(User):
             legal_ward_dn = self.ldap_lo_ro.searchDn(filter=filter_format("uid=%s", (username,)))
             if len(legal_ward_dn) > 1:
                 raise InvalidLegalWard(
-                    f"Couldn't find distinct legal ward {username} for legal guardian {self.name}",
+                    f"Couldn't find distinct student {username} for legal guardian {self.name}",
                     entry_count=self.entry_count,
                     import_user=self,
                 )
@@ -1166,7 +1166,7 @@ class ImportUser(User):
                 legal_wards.append(legal_ward_dn[0])
             except IndexError:
                 raise InvalidLegalWard(
-                    f"Couldn't find legal ward {username} for legal guardian {self.name}",
+                    f"Couldn't find student {username} for legal guardian {self.name}",
                     entry_count=self.entry_count,
                     import_user=self,
                 )

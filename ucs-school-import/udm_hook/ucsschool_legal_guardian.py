@@ -112,8 +112,8 @@ class UcsschoolLegalGuardian(simpleHook):
             # New wards were added and we are above the maximum
             raise MaxLegalWards(
                 _(
-                    "Legal guardian %(self_dn)s would have %(num_of_wards)d legal wards, "
-                    "which is above the maximum allowed number of legal wards (%(max_legal_wards)d)."
+                    "Legal guardian %(self_dn)s would have %(num_of_wards)d students, "
+                    "which is above the maximum allowed number of students (%(max_legal_wards)d)."
                 )
                 % {
                     "self_dn": obj.dn,
