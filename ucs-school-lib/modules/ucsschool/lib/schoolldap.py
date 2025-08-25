@@ -103,7 +103,7 @@ class SchoolSearchBase(object):
         )
         cls._containerTeachers = cls.ucr.get("ucsschool/ldap/default/container/teachers") or "lehrer"
         cls._containerLegalGuardians = cls.ucr.get(
-            "ucsschool/ldap/default/container/legal_guardians", "gesetzliche vertreter"
+            "ucsschool/ldap/default/container/legal_guardians", "sorgeberechtigte"
         )
         cls._containerClass = cls.ucr.get("ucsschool/ldap/default/container/class") or "klassen"
         cls._containerRooms = cls.ucr.get("ucsschool/ldap/default/container/rooms") or "raeume"
@@ -118,7 +118,7 @@ class SchoolSearchBase(object):
             cls.ucr.get("ucsschool/ldap/default/groupprefix/teachers") or "lehrer-"
         )
         cls.group_prefix_legal_guardians = cls.ucr.get(
-            "ucsschool/ldap/default/groupprefix/legal_guardians", "gesetzliche vertreter-"
+            "ucsschool/ldap/default/groupprefix/legal_guardians", "sorgeberechtigte-"
         )
         cls.group_prefix_admins = cls.ucr.get("ucsschool/ldap/default/groupprefix/admins") or "admins-"
         cls.group_prefix_staff = (
