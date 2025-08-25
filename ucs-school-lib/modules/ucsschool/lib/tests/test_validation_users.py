@@ -312,14 +312,14 @@ def legal_guardian_user() -> Dict[str, Any]:
     user["dn"] = "uid={},cn={},cn=users,ou={},{}".format(
         user["props"]["username"], SchoolSearchBase._containerLegalGuardians, ou, ldap_base
     )
-    group_prefix_legal_guardian = get_current_group_prefix("legal_guardians", "gesetzliche vertreter-")
+    group_prefix_legal_guardian = get_current_group_prefix("legal_guardians", "sorgeberechtigte-")
     print(group_prefix_legal_guardian)
     user["props"]["groups"] = [
         "cn={}{},cn=groups,ou={},{}".format(group_prefix_legal_guardian, ou.lower(), ou, ldap_base),
         "cn=Domain Users {0},cn=groups,ou={0},{1}".format(ou, ldap_base),
     ]
     print(user["props"]["groups"])
-    user["props"]["unixhome"] = "/home/{}/gesetzliche vertreter/{}".format(ou, user["props"]["username"])
+    user["props"]["unixhome"] = "/home/{}/sorgeberechtigte/{}".format(ou, user["props"]["username"])
     user["props"]["ucsschoolRole"] = ["legal_guardian:school:{}".format(ou)]
     user["position"] = "cn={},cn=users,ou={},{}".format(
         SchoolSearchBase._containerLegalGuardians, ou, ldap_base
@@ -461,7 +461,7 @@ def test_correct_object(caplog, dict_obj, random_logger):
         (teacher_user, "teachers", "lehrer-"),
         (staff_user, "staff", "mitarbeiter-"),
         (school_admin_user, "admins", "admins-"),
-        (legal_guardian_user, "legal_guardians", "gesetzliche vertreter-"),
+        (legal_guardian_user, "legal_guardians", "sorgeberechtigte-"),
     ],
     ids=[
         "altered_student_group_prefix",

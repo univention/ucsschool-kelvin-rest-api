@@ -135,7 +135,7 @@ async def test_modify_role(
             "student": "schueler",
             "teacher": "lehrer",
             "teacher_and_staff": "mitarbeiter",
-            "legal_guardian": "gesetzliche vertreter",
+            "legal_guardian": "sorgeberechtigte",
             "school_admin": "admins",
         }[role_from.name]
         ou2_group_cn = f"cn=groups,ou={ou2},{ldap_base}"
@@ -278,8 +278,7 @@ async def test_modify_role(
             assert user_new_udm.options.get("ucsschoolLegalGuardian") is True
             assert user_new_udm.options.get("ucsschoolAdministrator", False) is False
             assert (
-                user_new_udm.position
-                == f"cn=gesetzliche vertreter,cn=users,ou={user_new.school},{ldap_base}"
+                user_new_udm.position == f"cn=sorgeberechtigte,cn=users,ou={user_new.school},{ldap_base}"
             )
             assert {f"legal_guardian:school:{ou}" for ou in user_new.schools}.issubset(
                 user_new_ucsschool_roles
