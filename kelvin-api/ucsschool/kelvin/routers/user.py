@@ -1230,9 +1230,7 @@ async def partial_update(  # noqa: C901
             # handled below
             continue
         # Change URL to dn:
-        if attr == "legal_guardians":
-            new_value = [remove_url(request, url) for url in new_value]
-        elif attr == "legal_wards":
+        if attr in ["legal_guardians", "legal_wards"]:
             new_value = [remove_url(request, url) for url in new_value]
         current_value = getattr(user_current, attr)
         if new_value != current_value:
@@ -1419,7 +1417,7 @@ async def complete_update(  # noqa: C901
     # 4. modify
     changed = False
     # TODO: Should not access private interface:
-    for attr in list(ImportUser._attributes.keys()) + ["udm_properties"]:
+    for attr in list(user.Config.lib_class._attributes.keys()) + ["udm_properties"]:
         if attr == "kelvin_password_hashes":
             # handled below
             continue
@@ -1429,6 +1427,8 @@ async def complete_update(  # noqa: C901
             continue
         current_value = getattr(user_current, attr)
         new_value = getattr(user_request, attr)
+        if attr in ["legal_guardians", "legal_wards"]:
+            new_value = [remove_url(request, url) for url in new_value]
         if attr == "ucsschool_roles" and new_value is None:
             new_value = []
         if new_value != current_value:
@@ -1436,6 +1436,7 @@ async def complete_update(  # noqa: C901
             changed = True
     if changed:
         try:
+            user_current.prepare_attributes()
             await user_current.modify(udm)
         except (
             LibValidationError,
