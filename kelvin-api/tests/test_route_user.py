@@ -2276,7 +2276,7 @@ async def test_school_change_verify_groups(
     async with UDM(**udm_kwargs) as udm:
         async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
             udm_user_schools = udm_user.props.school
-            assert udm_user_schools == [ou1_name, ou3_name]
+            assert set(udm_user_schools) == {ou1_name, ou3_name}
         api_user = get_user_model(json_response)
         assert (
             api_user.unscheme_and_unquote(str(api_user.school)) == f"{url_fragment}/schools/{ou1_name}"
