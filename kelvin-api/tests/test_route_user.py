@@ -2304,7 +2304,7 @@ async def test_school_change_verify_groups(
     assert set(groups) == expected_groups
     assert isinstance(lib_user, role.klass)
     assert lib_user.school == ou1_name
-    assert lib_user.schools == [ou1_name, ou3_name]
+    assert set(lib_user.schools) == {ou1_name, ou3_name}
     assert set(lib_user.ucsschool_roles) == {
         f"{role.name}:school:{ou1_name}",
         f"{role.name}:school:{ou3_name}",

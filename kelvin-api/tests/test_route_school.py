@@ -52,7 +52,8 @@ async def compare_lib_api_obj(lib_obj: School, api_obj: SchoolModel):
         elif attr == "objectType":
             assert lib_value == "container/ou"
         elif attr in ("class_share_file_server", "home_share_file_server"):
-            if lib_value:
+            # Don't verify if it's None for api_obj - connected entry doesn't exist always
+            if lib_value and getattr(api_obj, attr):
                 hostname = name_from_dn(lib_value)
                 assert hostname == getattr(api_obj, attr)
             else:
