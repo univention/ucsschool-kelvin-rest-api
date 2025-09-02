@@ -1,6 +1,6 @@
 <h1>Changelog</h1>
 
-<h2>v2.1.0 (t.b.d.)</h2>
+<h2>v3.0.0 (2025-09-02)</h2>
 <ul>
     <li>
       Fixed: Use <code>stdout</code> to fix problems with logrotate.
@@ -22,7 +22,7 @@
       Fixed: School admins are now fully supported in kelvin (Bug #54051).
     </li>
     <li>
-      Add legal guardian role to Kelvin (Issue univention/components/ucsschool-kelvin-rest-api#154).
+      Feature: Add legal guardian role to Kelvin (Issue univention/components/ucsschool-kelvin-rest-api#154).
     </li>
 </ul>
 

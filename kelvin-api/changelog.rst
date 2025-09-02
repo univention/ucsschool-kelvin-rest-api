@@ -5,8 +5,8 @@
 Changelog
 =========
 
-v2.1.0 (t.b.d.)
----------------
+v3.0.0 (2025-09-02)
+-------------------
 * Fixed: Use ``stdout`` to fix problems with logrotate.
   As part of this change the init system in the container has been removed.
   Logs are still duplicated to the old ``http.log``,
