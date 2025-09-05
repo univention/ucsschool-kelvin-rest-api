@@ -209,7 +209,6 @@ async def validate_create_request_params(school: SchoolCreateModel, logger: logg
             if (
                 not await AnyComputer(name=share_host).exists(udm)
                 and share_host != f"dc{school.name}"
-                # Here it checks, that share_host is in one of these
                 and share_host not in school.administrative_servers
                 and share_host not in school.educational_servers
             ):
@@ -322,7 +321,6 @@ async def school_create(
     await validate_create_request_params(school, logger, udm)
     admin_name = sorted(school.administrative_servers)[0] if school.administrative_servers else None
     edu_name = sorted(school.educational_servers)[0] if school.educational_servers else None
-    # Here share_host is always assigned to home_share_file_server if both are set
     share_server = school.home_share_file_server or school.class_share_file_server
     create_kwargs = {
         "ou_name": school.name,

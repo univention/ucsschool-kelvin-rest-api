@@ -140,7 +140,6 @@ async def create_ou(
         search_base=baseDN,
     )
     if not objects:
-        # Here it used to check, that share_host is the same as educational_servers
         if (
             share_name == "dc{}".format(ou_name)
             or (edu_name and share_name == edu_name)
