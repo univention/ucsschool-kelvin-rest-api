@@ -33,7 +33,7 @@ import copy
 import os.path
 import time
 from collections.abc import Mapping
-from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Type, TypeVar, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 from ldap.dn import escape_dn_chars, explode_dn
 from ldap.filter import escape_filter_chars, filter_format
@@ -118,7 +118,6 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     legal_wards: List[str] = []
     default_roles: List[str] = []
     default_options: Tuple[str] = ()
-    user_type: Literal["default"] = "default"
 
     def __init__(self, *args, **kwargs):
         super(User, self).__init__(*args, **kwargs)
@@ -768,7 +767,6 @@ class Student(User):
     roles = [role_pupil]
     default_options = ("ucsschoolStudent",)
     default_roles = [role_student]
-    user_type: Literal["student"] = "student"
 
     legal_guardians: List[str] = LegalGuardians(_("Legal guardian"))
 
@@ -840,7 +838,6 @@ class LegalGuardian(User):
     roles = [role_legal_guardian]
     default_roles = [role_legal_guardian]
     default_options = ("ucsschoolLegalGuardian",)
-    user_type: Literal["legal_guardian"] = "legal_guardian"
 
     legal_wards: List[str] = LegalWards(_("Legal Wards"))
 

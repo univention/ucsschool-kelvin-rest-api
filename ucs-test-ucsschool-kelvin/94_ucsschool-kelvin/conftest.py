@@ -268,17 +268,6 @@ def compare_import_user_and_resource(auth_header):
             elif k == "roles":
                 import_user_roles = {"student" if r == "pupil" else r for r in import_user.roles}
                 assert set(v) == {urljoin(RESOURCE_URLS["roles"], r) for r in import_user_roles}
-            elif k == "user_type":
-                import_user_roles = {"student" if r == "pupil" else r for r in import_user.roles}
-                if import_user_roles & {"student", "legal_guardian"}:
-                    assert (
-                        v in import_user_roles
-                    ), f"user_type ({v!r}) does not match import_user.roles ({import_user_roles!r})"
-                else:
-                    assert v == "default", (
-                        f"user_type ({v!r}) is not 'default' but should"
-                        f" (import_user.roles={import_user.roles!r})"
-                    )
             elif k == "school_classes":
                 if source == "LDAP":
                     val = {
