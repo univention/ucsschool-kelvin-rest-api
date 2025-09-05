@@ -34,7 +34,7 @@ import time
 from collections.abc import Sequence
 from functools import lru_cache
 from operator import attrgetter
-from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Type
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request, Response, status
 from ldap import explode_dn
@@ -243,6 +243,8 @@ class UserBaseModel(UcsSchoolBaseModel):
     workgroups: Dict[str, List[str]] = {}
     source_uid: str = None
     ucsschool_roles: List[str] = []
+    legal_guardians: List[str] = []
+    legal_wards: List[str] = []
 
     @validator("birthday", pre=True)
     def validate_birthday(cls, v: Any) -> Any:
@@ -349,11 +351,6 @@ class UserCreateModel(UserBaseModel):
 
 
 class UserModel(UserBaseModel, APIAttributesMixin):
-    user_type: Literal["default"] = "default"
-
-    legal_guardians: Optional[List[str]] = []
-    legal_wards: Optional[List[str]] = []
-
     class Config(UserBaseModel.Config):
         ...
 
@@ -402,9 +399,7 @@ class UserModel(UserBaseModel, APIAttributesMixin):
             for school in sorted(kwargs["workgroups"].keys())
         )
         kwargs["legal_guardians"] = [cls.dn_to_url(request, dn) for dn in obj.legal_guardians]
-        kwargs["user_type"] = "student"
         kwargs["legal_wards"] = [cls.dn_to_url(request, dn) for dn in obj.legal_wards]
-        kwargs["user_type"] = "legal_guardian"
         return kwargs
 
 
