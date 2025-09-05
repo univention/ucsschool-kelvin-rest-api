@@ -34,20 +34,7 @@ import time
 from collections.abc import Sequence
 from functools import lru_cache
 from operator import attrgetter
-from typing import (
-    Annotated,
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Type
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request, Response, status
 from ldap import explode_dn
@@ -364,6 +351,9 @@ class UserCreateModel(UserBaseModel):
 class UserModel(UserBaseModel, APIAttributesMixin):
     user_type: Literal["default"] = "default"
 
+    legal_guardians: Optional[List[str]] = []
+    legal_wards: Optional[List[str]] = []
+
     class Config(UserBaseModel.Config):
         ...
 
@@ -372,16 +362,6 @@ class UserModel(UserBaseModel, APIAttributesMixin):
         return cls.scheme_and_quote(
             str(cached_url_for(request, "get", username=explode_dn(dn, True)[0]))
         )
-
-    @classmethod
-    async def subtype_from_lib_model(
-        cls, obj: ImportUser, request: Request, udm: UDM
-    ) -> "UserModelsUnion":
-        if obj.role_string == "legal_guardian":
-            return await LegalGuardianModel.from_lib_model(obj, request, udm)
-        if obj.role_string == "student":
-            return await StudentModel.from_lib_model(obj, request, udm)
-        return await UserModel.from_lib_model(obj, request, udm)
 
     @classmethod
     async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
@@ -421,36 +401,11 @@ class UserModel(UserBaseModel, APIAttributesMixin):
             )
             for school in sorted(kwargs["workgroups"].keys())
         )
-        return kwargs
-
-
-class StudentModel(UserModel):
-    user_type: Literal["student"] = "student"
-    legal_guardians: Optional[List[str]] = []
-
-    @classmethod
-    async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
-        kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
         kwargs["legal_guardians"] = [cls.dn_to_url(request, dn) for dn in obj.legal_guardians]
         kwargs["user_type"] = "student"
-        return kwargs
-
-
-class LegalGuardianModel(UserModel):
-    user_type: Literal["legal_guardian"] = "legal_guardian"
-    legal_wards: Optional[List[str]] = []
-
-    @classmethod
-    async def _from_lib_model_kwargs(cls, obj: ImportUser, request: Request, udm: UDM) -> Dict[str, Any]:
-        kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
         kwargs["legal_wards"] = [cls.dn_to_url(request, dn) for dn in obj.legal_wards]
         kwargs["user_type"] = "legal_guardian"
         return kwargs
-
-
-UserModelsUnion = Annotated[
-    Union[UserModel, StudentModel, LegalGuardianModel], Field(discriminator="user_type")
-]
 
 
 class UserPatchModel(BaseModel):
@@ -619,7 +574,7 @@ def check_role(role: str, user: ImportUser, new_params: Optional[Dict[str, Any]]
     return False
 
 
-@router.get("/", response_model=List[UserModelsUnion])
+@router.get("/", response_model=List[UserModel])
 async def search(  # noqa: C901
     request: Request,
     school: str = Query(
@@ -657,7 +612,7 @@ async def search(  # noqa: C901
     accepted_properties: Set[str] = Depends(accepted_udm_properties),
     udm: UDM = Depends(udm_ctx),
     kelvin_admin: LdapUser = Depends(get_kelvin_admin),
-) -> List[UserModelsUnion]:
+) -> List[UserModel]:
     """
     Search for school users.
 
@@ -765,10 +720,10 @@ async def search(  # noqa: C901
     t2 = time.time()
     users.sort(key=attrgetter("name"))
     t3 = time.time()
-    res: List[UserModelsUnion] = []
+    res: List[UserModel] = []
     for user in users:
         try:
-            obj = await UserModel.subtype_from_lib_model(user, request, udm)
+            obj = await UserModel.from_lib_model(user, request, udm)
         except ValidationError as exc:
             msg = f"Validation error when reading user {user.dn!r}: {exc!s}"
             logger.error(msg)
@@ -788,14 +743,14 @@ async def search(  # noqa: C901
     return res
 
 
-@router.get("/{username}", response_model=UserModelsUnion)
+@router.get("/{username}", response_model=UserModel)
 async def get(
     request: Request,
     username: str = Path(default=..., description="Name of the school user to fetch."),
     logger: logging.Logger = Depends(get_logger),
     udm: UDM = Depends(udm_ctx),
     kelvin_admin: LdapUser = Depends(get_kelvin_admin),
-) -> UserModelsUnion:
+) -> UserModel:
     """
     Fetch a specific school user.
 
@@ -808,10 +763,10 @@ async def get(
             detail=f"No object with name={username!r} found or not authorized.",
         )
     user = await get_import_user(udm, dn)
-    return await UserModel.subtype_from_lib_model(user, request, udm)
+    return await UserModel.from_lib_model(user, request, udm)
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=UserModelsUnion)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=UserModel)
 async def create(
     request: Request,
     request_user: UserCreateModel = Body(
@@ -822,7 +777,7 @@ async def create(
     logger: logging.Logger = Depends(get_logger),
     udm: UDM = Depends(udm_ctx),
     kelvin_admin: LdapUser = Depends(get_kelvin_admin),
-) -> UserModelsUnion:
+) -> UserModel:
     """
     Create a school user with all the information:
 
@@ -974,7 +929,7 @@ async def create(
         t5 - t4,
         t6 - t5,
     )
-    return await UserModel.subtype_from_lib_model(user, request, udm)
+    return await UserModel.from_lib_model(user, request, udm)
 
 
 async def change_school(
@@ -1078,7 +1033,7 @@ async def change_roles(
         ) from exc
 
 
-@router.patch("/{username}", status_code=status.HTTP_200_OK, response_model=UserModelsUnion)
+@router.patch("/{username}", status_code=status.HTTP_200_OK, response_model=UserModel)
 async def partial_update(  # noqa: C901
     username: str,
     user: UserPatchModel,
@@ -1086,7 +1041,7 @@ async def partial_update(  # noqa: C901
     logger: logging.Logger = Depends(get_logger),
     udm: UDM = Depends(udm_ctx),
     kelvin_admin: LdapUser = Depends(get_kelvin_admin),
-) -> UserModelsUnion:
+) -> UserModel:
     """
     Patch a school **user** with partial information
 
@@ -1263,10 +1218,10 @@ async def partial_update(  # noqa: C901
     if user.kelvin_password_hashes:
         await set_password_hashes(user_current.dn, user.kelvin_password_hashes)
 
-    return await UserModel.subtype_from_lib_model(user_current, request, udm)
+    return await UserModel.from_lib_model(user_current, request, udm)
 
 
-@router.put("/{username}", status_code=status.HTTP_200_OK, response_model=UserModelsUnion)
+@router.put("/{username}", status_code=status.HTTP_200_OK, response_model=UserModel)
 async def complete_update(  # noqa: C901
     username: str,
     user: UserCreateModel,
@@ -1274,7 +1229,7 @@ async def complete_update(  # noqa: C901
     logger: logging.Logger = Depends(get_logger),
     udm: UDM = Depends(udm_ctx),
     kelvin_admin: LdapUser = Depends(get_kelvin_admin),
-) -> UserModelsUnion:
+) -> UserModel:
     """
     Update a school **user** with all the information:
 
@@ -1461,7 +1416,7 @@ async def complete_update(  # noqa: C901
     if user.kelvin_password_hashes:
         await set_password_hashes(user_current.dn, user.kelvin_password_hashes)
 
-    return await UserModel.subtype_from_lib_model(user_current, request, udm)
+    return await UserModel.from_lib_model(user_current, request, udm)
 
 
 @router.delete("/{username}", status_code=status.HTTP_204_NO_CONTENT)
