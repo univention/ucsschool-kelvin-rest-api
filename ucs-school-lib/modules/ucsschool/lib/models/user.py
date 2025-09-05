@@ -114,6 +114,8 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     # _samba_home_path_cache is invalidated in School.invalidate_cache()
 
     roles: List[str] = []
+    legal_guardians: List[str] = []
+    legal_wards: List[str] = []
     default_roles: List[str] = []
     default_options: Tuple[str] = ()
     user_type: Literal["default"] = "default"
