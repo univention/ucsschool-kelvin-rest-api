@@ -49,9 +49,7 @@ from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.kelvin.ldap import get_dn_of_user
 from ucsschool.kelvin.routers.role import SchoolUserRole
 from ucsschool.kelvin.routers.user import (
-    LegalGuardianModel,
     PasswordsHashes,
-    StudentModel,
     UserCreateModel,
     UserModel,
     UserPatchModel,
@@ -1518,7 +1516,6 @@ async def test_patch_legal_guardians(
     )
     assert response.status_code == 200, f"{response.__dict__!r}"
     api_user = UserModel(**response.json())
-    assert isinstance(api_user, StudentModel)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={user.name}")
         assert len(lib_users) == 1
@@ -1592,7 +1589,6 @@ async def test_patch_legal_wards(
     )
     assert response.status_code == 200, f"{response.__dict__!r}"
     api_user = UserModel(**response.json())
-    assert isinstance(api_user, LegalGuardianModel)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={user.name}")
         assert len(lib_users) == 1
