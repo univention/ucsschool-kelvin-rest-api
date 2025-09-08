@@ -71,6 +71,11 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
         }
     }
 
+.. note::
+
+   The user resource can have one additional attribute: Either the attribute ``legal_guardians`` if the users role is ``student`` or the attribute ``legal_wards`` if the users role is ``legal_guardian``.
+   In a future version of the Kelvin-API, both attributes will always be sent for every user.
+
 
 .. csv-table:: Attribute description
    :header: "name", "value", "Description", "Notes"
@@ -95,6 +100,8 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
     "source_uid", "string", "Identifier of the upstream database the user was imported from. Defaults to ``Kelvin`` if unset.", "changing is strongly discouraged"
     "ucsschool_roles", "list", "List of ucsschool_roles strings auto-managed by the system and custom addition ucsschool_roles strings . ucsschool_role strings with context type school are ignored. Format is ``ROLE:CONTEXT_TYPE:CONTEXT``, for example: ``['"'myrole:mycontext:gym1'"', '"'student:school:gym1'"']``."
     "udm_properties", "nested object", "Object with UDM properties. For example: ``{'"'street'"': '"'Luise Av.'"', '"'phone'"': ['"'+49 30 321654987'"', '"'123 456 789'"']}``", "Must be configured, see below."
+    "legal_guardians", "list", "The users legal guardians. A list of URLs in the ``users`` resource.", "This attribute is only set for users with the role ``student``."
+    "legal_wards", "list", "The users legal wards. A list of URLs in the ``users`` resource.", "This attribute is only set for users with the role ``legal_guardian``."
 
 The ``password`` and ``kelvin_password_hashes`` attributes are not listed, because they cannot be retrieved, they can only be *set* when creating or modifying a user.
 UCS systems never store or send clear text passwords.
