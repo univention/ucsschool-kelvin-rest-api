@@ -18,6 +18,7 @@ For more details about the changes, please visit read the  `Python client versio
    :header: "Server Version", "Minimal Client Version"
    :escape: '
 
+    "3.0.0", "2.3.0"
     "1.8.8", "2.2.2"
     "1.7.0", "1.7.0"
     "1.5.5", "1.6.0"
