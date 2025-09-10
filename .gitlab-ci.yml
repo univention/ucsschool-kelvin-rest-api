@@ -1,5 +1,5 @@
 include:
-  - component: $CI_SERVER_FQDN/univention/dev/internal/ucsschool-ci-utils/app-release@2.1.4
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/app-release@2
     inputs:
       app_id: "ucsschool-kelvin-rest-api"
       mail_sender: "ucsschool-maintainers@univention.de"
@@ -18,7 +18,7 @@ include:
     file:
       - kaniko.yml
       - pre-commit.yml
-  - project: univention/dev/internal/ucsschool-ci-utils
+  - project: univention/dev/tooling/ci-components
     file:
       - fragments/misc.yaml
       - fragments/appcenter.yaml
@@ -56,7 +56,7 @@ variables:
   DOC_TARGET_NAME: $APP_ID
   DEB_IMAGE: docker-registry.knut.univention.de/phahn/ucs-debbase:$UCS_VERSION
   UCSLINT_IMAGE: gitregistry.knut.univention.de/univention/dev/ucs
-  APPCENTER_CONTROL_IMAGE: "gitregistry.knut.univention.de/univention/dev/internal/ucsschool-ci-utils/univention-appcenter-control"
+  APPCENTER_CONTROL_IMAGE: "gitregistry.knut.univention.de/univention/dev/tooling/ci-components/univention-appcenter-control"
   UCS_SCHOOL_LIB_COVERAGE_LIMIT: 33
   KELVIN_COVERAGE_LIMIT: 37
   FORCE_APPCENTER:
