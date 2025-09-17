@@ -1532,6 +1532,36 @@ async def test_patch_legal_guardians(
 
 
 @pytest.mark.asyncio
+async def test_patch_email_null(
+    auth_header,
+    retry_http_502,
+    url_fragment,
+    create_ou_using_python,
+    new_import_user,
+    import_config,
+    udm_kwargs,
+):
+    school = await create_ou_using_python()
+    user: ImportUser = await new_import_user(school, role_student, disabled=False)
+    new_user_data = {"email": None}
+    response = retry_http_502(
+        requests.patch,
+        f"{url_fragment}/users/{user.name}",
+        headers=auth_header,
+        json=new_user_data,
+    )
+    assert response.status_code == 200, f"{response.__dict__!r}"
+    api_user = get_user_model(response.json())
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, school, f"username={user.name}")
+        assert len(lib_users) == 1
+        lib_user: User = lib_users[0]
+        assert lib_user.email is None
+    json_resp = response.json()
+    compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 async def test_patch_legal_guardians_wrong_role(
     auth_header,

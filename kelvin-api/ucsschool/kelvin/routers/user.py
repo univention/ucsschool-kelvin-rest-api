@@ -1188,7 +1188,8 @@ async def partial_update(  # noqa: C901
             changed = True
     if changed:
         try:
-            user_current.prepare_attributes()
+            user_current.make_legal_guardians()
+            user_current.make_legal_wards()
             await user_current.modify(udm)
         except (
             LibValidationError,

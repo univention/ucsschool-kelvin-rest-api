@@ -1114,8 +1114,8 @@ class ImportUser(User):
         return self.ucsschool_roles
 
     def make_legal_guardians(self) -> Optional[List[str]]:
-        if self.legal_guardians is None:
-            return self.legal_guardians
+        if getattr(self, "legal_guardians", None) is None:
+            return None
         if len(self.legal_guardians) > MAX_LEGAL_GUARDIANS:
             raise InvalidLegalGuardian(
                 f"User {self.name} has more legal guardians "
@@ -1147,8 +1147,8 @@ class ImportUser(User):
         return self.legal_guardians
 
     def make_legal_wards(self) -> Optional[List[str]]:
-        if self.legal_wards is None:
-            return self.legal_wards
+        if getattr(self, "legal_wards", None) is None:
+            return None
         if len(self.legal_wards) > MAX_LEGAL_WARDS:
             raise InvalidLegalWard(
                 f"User {self.name} has more students "
