@@ -398,8 +398,10 @@ class UserModel(UserBaseModel, APIAttributesMixin):
             )
             for school in sorted(kwargs["workgroups"].keys())
         )
-        kwargs["legal_guardians"] = [cls.dn_to_url(request, dn) for dn in obj.legal_guardians]
-        kwargs["legal_wards"] = [cls.dn_to_url(request, dn) for dn in obj.legal_wards]
+        kwargs["legal_guardians"] = [
+            cls.dn_to_url(request, dn) for dn in getattr(obj, "legal_guardians", [])
+        ]
+        kwargs["legal_wards"] = [cls.dn_to_url(request, dn) for dn in getattr(obj, "legal_wards", [])]
         return kwargs
 
 
