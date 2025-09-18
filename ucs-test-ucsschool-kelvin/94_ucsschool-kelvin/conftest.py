@@ -263,6 +263,8 @@ def compare_import_user_and_resource(auth_header):
                     "Value of attribute {!r} in {} is {!r} and in resource is {!r} -> {!r} "
                     "({!r}).".format(k, source, import_user.disabled, v, val, dn),
                 )
+            elif k in ("legal_guardians", "legal_wards"):
+                assert set(getattr(import_user, k, [])) == set(v)
             elif k == "roles":
                 import_user_roles = {"student" if r == "pupil" else r for r in import_user.roles}
                 assert set(v) == {urljoin(RESOURCE_URLS["roles"], r) for r in import_user_roles}
