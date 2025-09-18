@@ -1,3 +1,9 @@
+ucs-test-ucsschool-kelvin (1.0.18) unstable; urgency=medium
+
+  * Issue #154: Add legal-guardian role
+
+ -- Silas Wieberneit <silas.wieberneit.extern@univention.de>  Thu, 18 Sep 2025 10:40:11 +0100
+
 ucs-test-ucsschool-kelvin (1.0.17) unstable; urgency=medium
 
   * Issue #145: remove opa log test
