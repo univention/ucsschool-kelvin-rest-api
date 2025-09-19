@@ -60,6 +60,8 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
             "DEMOSCHOOL2": ["demoworkgroup2"]
         },
         "source_uid": "Kelvin",
+        "legal_guardians": ["uid=demo_parent,cn=sorgeberechtigte,cn=users,ou=DEMOSCHOOL,dc=uni,dc=ven"],
+        "legal_wards": [],
         "udm_properties": {
             "description": "An example user attending two school.",
             "gidNumber": 5023,
@@ -70,12 +72,6 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
             "uidNumber": 2007
         }
     }
-
-.. note::
-
-   The user resource can have one additional attribute: Either the attribute ``legal_guardians`` if the users role is ``student`` or the attribute ``legal_wards`` if the users role is ``legal_guardian``.
-   In a future version of the Kelvin-API, both attributes will always be sent for every user.
-
 
 .. csv-table:: Attribute description
    :header: "name", "value", "Description", "Notes"
@@ -100,8 +96,8 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
     "source_uid", "string", "Identifier of the upstream database the user was imported from. Defaults to ``Kelvin`` if unset.", "changing is strongly discouraged"
     "ucsschool_roles", "list", "List of ucsschool_roles strings auto-managed by the system and custom addition ucsschool_roles strings . ucsschool_role strings with context type school are ignored. Format is ``ROLE:CONTEXT_TYPE:CONTEXT``, for example: ``['"'myrole:mycontext:gym1'"', '"'student:school:gym1'"']``."
     "udm_properties", "nested object", "Object with UDM properties. For example: ``{'"'street'"': '"'Luise Av.'"', '"'phone'"': ['"'+49 30 321654987'"', '"'123 456 789'"']}``", "Must be configured, see below."
-    "legal_guardians", "list", "The users legal guardians. A list of URLs in the ``users`` resource.", "This attribute is only set for users with the role ``student``."
-    "legal_wards", "list", "The users legal wards. A list of URLs in the ``users`` resource.", "This attribute is only set for users with the role ``legal_guardian``."
+    "legal_guardians", "list", "The users legal guardians. A list of URLs in the ``users`` resource.", ""
+    "legal_wards", "list", "The users legal wards. A list of URLs in the ``users`` resource.", ""
 
 The ``password`` and ``kelvin_password_hashes`` attributes are not listed, because they cannot be retrieved, they can only be *set* when creating or modifying a user.
 UCS systems never store or send clear text passwords.
@@ -203,6 +199,8 @@ The response body will be:
             "schools": ["https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL"],
             "school_classes": {},
             "workgroups": {},
+            "legal_guardians": [],
+            "legal_wards": [],
             "source_uid": null,
             "udm_properties": {}
         }
@@ -253,6 +251,8 @@ The user in the example response is working in two schools as both staff and tea
                 "test": ["testworkgroup", "testworkgroup2"],
                 "other": ["otherworkgroup", "otherworkgroup2"]
             },
+            "legal_guardians": [],
+            "legal_wards": [],
             "source_uid": "TESTID",
             "udm_properties": {
                 "description": "Working at two schools.",
@@ -321,10 +321,17 @@ As an example, with the following being the content of :file:`/tmp/create_user.j
         "roles": ["https://<fqdn>/ucsschool/kelvin/v1/roles/teacher"],
         "schools": ["https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL"],
         "source_uid": "Reggae DB",
+        "legal_guardians": [],
+        "legal_wards": [],
         "udm_properties": {
             "title": "Mr."
         }
     }
+
+.. note::
+
+   The attribute ``legal_guardians`` can only be non-empty if the users role is ``student`` and
+   the attribute ``legal_wards`` can only be non-empty if the users role is ``legal_guardian``.
 
 This ``curl`` command will create a user from the above data:
 
@@ -367,6 +374,8 @@ Response body:
         "school_classes": {},
         "workgroups": {},
         "source_uid": "Reggae DB",
+        "legal_guardians": [],
+        "legal_wards": [],
         "udm_properties": {
             "description": null,
             "gidNumber": 5023,
@@ -449,6 +458,8 @@ Response body:
         "schools": ["https://<fqdn>/ucsschool/kelvin/v1/schools/DEMOSCHOOL"],
         "source_uid": "Kelvin Test2",
         "ucsschool_roles": ["teacher:school:DEMOSCHOOL"],
+        "legal_guardians": [],
+        "legal_wards": [],
         "udm_properties": {
             "description": null,
             "employeeType": null,
