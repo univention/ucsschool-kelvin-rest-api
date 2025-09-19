@@ -5,6 +5,12 @@
 Changelog
 =========
 
+v3.0.1 (t.b.d.)
+-------------------
+* Sending legal-guardian attributes simplified:
+  Removing distinction for different user-types and instead sending empty lists where user-role doesn't fit
+  (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#164`).
+
 v3.0.0 (2025-09-02)
 -------------------
 * Fixed: Use ``stdout`` to fix problems with logrotate.

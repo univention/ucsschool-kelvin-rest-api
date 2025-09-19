@@ -1,5 +1,13 @@
 <h1>Changelog</h1>
 
+<h2>v3.0.1 (t.b.d.)</h2>
+<ul>
+    <li>
+      Sending legal-guardian attributes simplified:
+      Removing distinction for different user-types and instead sending empty lists where user-role doesn't fit
+      (Issue univention/components/ucsschool-kelvin-rest-api#164).
+    </li>
+</ul>
 <h2>v3.0.0 (2025-09-02)</h2>
 <ul>
     <li>
