@@ -5,6 +5,13 @@
 Changelog
 =========
 
+v3.1.0 (t.b.d.)
+-------------------
+* API behavior has been simplified: Attributes legal_guardians and legal_wards will always be present on returned user resources.
+  The value of these attributes will be empty JSON arrays when the user does not have the required role.
+  Additionally, an undocumented and redundant attribute named user_type that was introduced with 3.0.0 has been removed.
+  (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#164`).
+
 v3.0.0 (2025-09-02)
 -------------------
 * Fixed: Use ``stdout`` to fix problems with logrotate.
