@@ -1125,6 +1125,9 @@ class ImportUser(User):
             )
         legal_guardians = []
         for username in self.legal_guardians:
+            if username.startswith("uid="):
+                legal_guardians.append(username)
+                continue
             legal_guardian_dn = self.ldap_lo_ro.searchDn(filter=filter_format("uid=%s", (username,)))
             if len(legal_guardian_dn) > 1:
                 raise InvalidLegalGuardian(
@@ -1155,6 +1158,9 @@ class ImportUser(User):
             )
         legal_wards = []
         for username in self.legal_wards:
+            if username.startswith("uid="):
+                legal_wards.append(username)
+                continue
             legal_ward_dn = self.ldap_lo_ro.searchDn(filter=filter_format("uid=%s", (username,)))
             if len(legal_ward_dn) > 1:
                 raise InvalidLegalWard(
