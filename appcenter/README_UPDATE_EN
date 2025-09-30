@@ -1,5 +1,15 @@
 <h1>Changelog</h1>
 
+<h2>v3.1.1 (2025-10-06)</h2>
+<ul>
+    <li>
+      Fixed: A behavioral regression has been removed. When using the PATCH method and a import schema, the value is now
+      removed again when setting <code>None</code>. In versions 3.0.0 and 3.1.0, the schema was incorrectly re-evaluated
+      and the attribute was filled with a value according to the schema.
+      (Issue univention/components/ucsschool-kelvin-rest-api#162).
+    </li>
+</ul>
+
 <h2>v3.1.0 (2025-09-25)</h2>
 <ul>
     <li>
@@ -7,10 +17,11 @@
       The value of these attributes will be empty JSON arrays when the user does not have the required role (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#164`).
     </li>
     <li>
-      Fixed: An undocumented and redundant attribute named user_type that was introduced with 3.0.0 has been removed
+      Fixed: An undocumented and redundant attribute named <code>user_type</code> that was introduced with 3.0.0 has been removed
       (Issue univention/components/ucsschool-kelvin-rest-api#164).
     </li>
 </ul>
+
 <h2>v3.0.0 (2025-09-02)</h2>
 <ul>
     <li>

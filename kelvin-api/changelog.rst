@@ -5,6 +5,14 @@
 Changelog
 =========
 
+v3.1.1 (2025-10-06)
+-------------------
+
+* Fixed: A behavioral regression has been removed. When using the PATCH method and a import schema, the value is now
+  removed again when setting ``None``. In versions 3.0.0 and 3.1.0, the schema was incorrectly re-evaluated
+  and the attribute was filled with a value according to the schema
+  (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#162`).
+
 v3.1.0 (2025-09-25)
 -------------------
 * API behavior has been simplified: Attributes legal_guardians and legal_wards will always be present on returned user resources.
