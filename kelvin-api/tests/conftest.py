@@ -40,6 +40,7 @@ from pathlib import Path
 from tempfile import mkdtemp, mkstemp
 from typing import Any, Callable, Dict, Iterable, List, Tuple
 from unittest.mock import patch
+from contextlib import contextmanager
 
 import factory
 import pytest
@@ -179,9 +180,8 @@ def udm_kwargs() -> Dict[str, Any]:
         "url": f"https://{host}/univention/udm/",
     }
 
-
-@pytest.fixture
-def set_ucr():
+@contextmanager
+def set_ucr_base():
     ucr_v_to_reset = []
 
     def _set_ucr(ucr_v, value):
@@ -200,6 +200,15 @@ def set_ucr():
     ucr().save()
     restart_kelvin_api_server()
 
+@pytest.fixture
+def set_ucr():
+    with set_ucr_base() as _set_ucr:
+        yield _set_ucr
+
+@pytest.fixture(scope="module")
+def set_ucr_module():
+    with set_ucr_base() as _set_ucr:
+        yield _set_ucr
 
 @pytest.fixture
 def set_processes_to_one():
@@ -746,8 +755,9 @@ def add_to_kelvin_config(add_to_config):  # noqa: C901
     yield _func
 
 
-@pytest.fixture(scope="session")
-def setup_import_config(add_to_import_config) -> None:
+@pytest.fixture(scope="module")
+def setup_import_config(reset_import_config_module, add_to_import_config) -> None:
+    reset_import_config_module()
     add_to_import_config(
         mapped_udm_properties=MAPPED_UDM_PROPERTIES,
         scheme={
@@ -756,8 +766,45 @@ def setup_import_config(add_to_import_config) -> None:
         },
     )
 
+@pytest.fixture(scope="module")
+async def setup_import_config_for_mail(ldap_base, reset_import_config_module, add_to_import_config, set_ucr_module, udm_kwargs):
+    """
+    Creates a new mail domain object and prepares a new import config with import scheme for email.
+    During cleanup phase the mail domain gets removed.
+    """
+    # create new random mail domain object
+    domain_name = ucr().get('domainname', 'ucs.test')
+    mail_domain = f'{"".join(fake.random_letters())}.{domain_name}'
+    async with UDM(**udm_kwargs) as udm:
+        udm_domain: UdmObject = await udm.get("mail/domain").new()
+        udm_domain.position = f'cn=domain,cn=mail,{ldap_base}'
+        udm_domain.props.name = mail_domain
+        await udm_domain.save()
+        mail_domain_dn = udm_domain.dn
 
-@pytest.fixture(scope="session")
+    mail_domains = set(ucr().get("mail/hosteddomains", "").split()) | {mail_domain}
+    set_ucr_module("mail/hosteddomains", ' '.join(mail_domains))
+
+    reset_import_config_module()
+    add_to_import_config(
+        mapped_udm_properties=MAPPED_UDM_PROPERTIES,
+        maildomain=mail_domain,
+        scheme={
+            "record_uid": "<lastname>",
+            "username": {"default": "<:lower>test.<firstname>[:2].<lastname>[:3]"},
+            "email": "<firstname>[:3].<lastname>@<maildomain>",
+        },
+    )
+
+    yield
+
+    # cleanup mail domain object
+    async with UDM(**udm_kwargs) as udm:
+        udm_domain: UdmObject = await udm.get("mail/domain").get(mail_domain_dn)
+        await udm_domain.delete()
+
+
+@pytest.fixture(scope="module")
 def import_config(setup_import_config) -> ReadOnlyDict:
     # setup_import_config() is already executed before collecting by setup.cfg
     config = get_import_config()
@@ -766,8 +813,18 @@ def import_config(setup_import_config) -> ReadOnlyDict:
     return config
 
 
-@pytest.fixture
-def reset_import_config():
+@pytest.fixture(scope="module")
+def import_config_for_mail(setup_import_config_for_mail) -> ReadOnlyDict:
+    # setup_import_config_for_mail() is already executed before collecting by setup.cfg
+    config = get_import_config()
+    assert set(MAPPED_UDM_PROPERTIES).issubset(set(config.get("mapped_udm_properties", [])))
+    assert "username" in config.get("scheme", {})
+    assert "email" in config.get("scheme", {})
+    assert "maildomain" in config
+    return config
+
+
+def reset_import_config_base():
     def _func() -> None:
         ucsschool.kelvin.import_config._ucs_school_import_framework_initialized = False
         ucsschool.kelvin.import_config._ucs_school_import_framework_error = None
@@ -775,6 +832,13 @@ def reset_import_config():
 
     return _func
 
+@pytest.fixture
+def reset_import_config():
+    return reset_import_config_base()
+
+@pytest.fixture(scope="module")
+def reset_import_config_module():
+    return reset_import_config_base()
 
 @pytest.fixture
 def check_password():

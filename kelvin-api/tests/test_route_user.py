@@ -978,7 +978,7 @@ async def test_create_without_username(
     create_ou_using_python,
     random_user_create_model,
     import_config,
-    reset_import_config,
+    reset_import_config_module,
     udm_kwargs,
     add_to_import_config,
     schedule_delete_user_name_using_udm,
@@ -1032,7 +1032,7 @@ async def test_create_minimal_attrs(
     create_ou_using_python,
     random_user_create_model,
     import_config,
-    reset_import_config,
+    reset_import_config_module,
     udm_kwargs,
     add_to_import_config,
     schedule_delete_user_name_using_udm,
@@ -1093,7 +1093,7 @@ async def test_create_requires_school_or_schools(
     retry_http_502,
     random_user_create_model,
     import_config,
-    reset_import_config,
+    reset_import_config_module,
     udm_kwargs,
     add_to_import_config,
     schedule_delete_user_name_using_udm,
@@ -1541,6 +1541,11 @@ async def test_patch_email_null(
     import_config,
     udm_kwargs,
 ):
+    """
+    Tries to PATCH an existing student user WITHOUT existing scheme for "email" and
+    sets the email to None.
+    This test checks for a regression that happened in the Kelvin API 3.0.0.
+    """
     school = await create_ou_using_python()
     user: ImportUser = await new_import_user(school, role_student, disabled=False)
     new_user_data = {"email": None}
@@ -1551,7 +1556,7 @@ async def test_patch_email_null(
         json=new_user_data,
     )
     assert response.status_code == 200, f"{response.__dict__!r}"
-    api_user = get_user_model(response.json())
+    api_user = UserModel(**response.json())
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={user.name}")
         assert len(lib_users) == 1
@@ -3768,7 +3773,7 @@ async def test_udm_error_forwarding_on_create(
     create_ou_using_python,
     random_user_create_model,
     import_config,
-    reset_import_config,
+    reset_import_config_module,
     udm_kwargs,
     add_to_import_config,
     schedule_delete_user_name_using_udm,
