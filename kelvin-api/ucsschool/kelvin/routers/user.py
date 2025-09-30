@@ -703,7 +703,7 @@ async def search(  # noqa: C901
     users: List[ImportUser] = []
     for udm_obj in udm_objs:
         try:
-            users.append(await user_class.from_udm_obj(udm_obj, None, udm))
+            users.append(await ImportUser.from_udm_obj(udm_obj, None, udm))
         except WrongModel as exc:
             msg = f"Wrong ImportUser model when reading user {udm_obj.dn!r}: {exc!s}"
             logger.error(msg)
