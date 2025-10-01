@@ -1,5 +1,12 @@
 <h1>Changelog</h1>
 
+<h2>v3.1.1 (t.b.d)</h2>
+<ul>
+    <li>
+      Fixed filtering users by school-admin role (Issue univention/components/ucsschool-kelvin-rest-api#161).
+    </li>
+</ul>
+
 <h2>v3.1.0 (2025-09-25)</h2>
 <ul>
     <li>

@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v3.1.1 (t.b.d)
+-------------------
+* Fixed filtering users by school-admin role (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#161`).
+
 v3.1.0 (2025-09-25)
 -------------------
 * API behavior has been simplified: Attributes legal_guardians and legal_wards will always be present on returned user resources.
