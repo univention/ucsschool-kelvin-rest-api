@@ -35,12 +35,12 @@ import shutil
 import socket
 import subprocess
 import time
+from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
 from tempfile import mkdtemp, mkstemp
 from typing import Any, Callable, Dict, Iterable, List, Tuple
 from unittest.mock import patch
-from contextlib import contextmanager
 
 import factory
 import pytest
@@ -180,6 +180,7 @@ def udm_kwargs() -> Dict[str, Any]:
         "url": f"https://{host}/univention/udm/",
     }
 
+
 @contextmanager
 def set_ucr_base():
     ucr_v_to_reset = []
@@ -200,15 +201,18 @@ def set_ucr_base():
     ucr().save()
     restart_kelvin_api_server()
 
+
 @pytest.fixture
 def set_ucr():
     with set_ucr_base() as _set_ucr:
         yield _set_ucr
 
+
 @pytest.fixture(scope="module")
 def set_ucr_module():
     with set_ucr_base() as _set_ucr:
         yield _set_ucr
+
 
 @pytest.fixture
 def set_processes_to_one():
@@ -766,24 +770,27 @@ def setup_import_config(reset_import_config_module, add_to_import_config) -> Non
         },
     )
 
+
 @pytest.fixture(scope="module")
-async def setup_import_config_for_mail(ldap_base, reset_import_config_module, add_to_import_config, set_ucr_module, udm_kwargs):
+async def setup_import_config_for_mail(
+    ldap_base, reset_import_config_module, add_to_import_config, set_ucr_module, udm_kwargs
+):
     """
     Creates a new mail domain object and prepares a new import config with import scheme for email.
     During cleanup phase the mail domain gets removed.
     """
     # create new random mail domain object
-    domain_name = ucr().get('domainname', 'ucs.test')
+    domain_name = ucr().get("domainname", "ucs.test")
     mail_domain = f'{"".join(fake.random_letters())}.{domain_name}'
     async with UDM(**udm_kwargs) as udm:
         udm_domain: UdmObject = await udm.get("mail/domain").new()
-        udm_domain.position = f'cn=domain,cn=mail,{ldap_base}'
+        udm_domain.position = f"cn=domain,cn=mail,{ldap_base}"
         udm_domain.props.name = mail_domain
         await udm_domain.save()
         mail_domain_dn = udm_domain.dn
 
     mail_domains = set(ucr().get("mail/hosteddomains", "").split()) | {mail_domain}
-    set_ucr_module("mail/hosteddomains", ' '.join(mail_domains))
+    set_ucr_module("mail/hosteddomains", " ".join(mail_domains))
 
     reset_import_config_module()
     add_to_import_config(
@@ -832,13 +839,16 @@ def reset_import_config_base():
 
     return _func
 
+
 @pytest.fixture
 def reset_import_config():
     return reset_import_config_base()
 
+
 @pytest.fixture(scope="module")
 def reset_import_config_module():
     return reset_import_config_base()
+
 
 @pytest.fixture
 def check_password():
