@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v3.1.2 (2025-10-XX)
+-------------------
+* Fixed filtering users by school-admin role (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#161`).
+
 v3.1.1 (2025-10-07)
 -------------------
 
