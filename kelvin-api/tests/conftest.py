@@ -55,6 +55,7 @@ import ucsschool.lib.models.group
 import ucsschool.lib.models.user
 from ucsschool.importer.configuration import Configuration, ReadOnlyDict
 from ucsschool.importer.models.import_user import ImportUser
+from ucsschool.kelvin.constants import UDM_MAPPED_PROPERTIES_CONFIG_FILE
 from ucsschool.kelvin.import_config import get_import_config
 from ucsschool.kelvin.ldap import uldap_admin_read_local
 from ucsschool.kelvin.routers.school import SchoolCreateModel
@@ -645,6 +646,19 @@ def restart_kelvin_api_server_module():
 @pytest.fixture(scope="session")
 def restart_kelvin_api_server_session():
     return restart_kelvin_api_server
+
+
+@pytest.fixture
+def put_away_mapped_udm_properties_test_config():
+    backup_fn = f"{UDM_MAPPED_PROPERTIES_CONFIG_FILE}.fixture_backup"
+    if os.path.exists(UDM_MAPPED_PROPERTIES_CONFIG_FILE):
+        shutil.move(UDM_MAPPED_PROPERTIES_CONFIG_FILE, backup_fn)
+
+    yield
+    if os.path.exists(UDM_MAPPED_PROPERTIES_CONFIG_FILE):
+        os.remove(UDM_MAPPED_PROPERTIES_CONFIG_FILE)
+    if os.path.exists(backup_fn):
+        shutil.move(backup_fn, UDM_MAPPED_PROPERTIES_CONFIG_FILE)
 
 
 @pytest.fixture(scope="session")
