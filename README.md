@@ -132,11 +132,12 @@ Now you can edit the code easily on your notebook and the script `autoupdate-kel
 
 ``` shell
 notebook# ssh root@10.201.2.135
+root@uasvm# univention-app configure ucsschool-kelvin-rest-api
 root@uasvm# univention-app shell ucsschool-kelvin-rest-api
 container# cd /kelvin/kelvin-api/
 container# ucr set ucsschool/kelvin/log_level=DEBUG
 container# pkill -HUP -f "gunicorn: master \[ucsschool.kelvin.main:app\]"
-container# pytest-3 -lvv tests/test_route_user.py -k "test_create and not udm" 2>&1 | tee test.log
+container# pytest-3 -lvvs tests/test_route_user.py -k "test_create and not udm" 2>&1 | tee test.log
 container#
 ```
 
