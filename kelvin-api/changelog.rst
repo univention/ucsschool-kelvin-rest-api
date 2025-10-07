@@ -5,7 +5,7 @@
 Changelog
 =========
 
-v3.1.1 (2025-10-06)
+v3.1.1 (2025-10-07)
 -------------------
 
 * Fixed: A behavioral regression has been removed. When using the PATCH method and a import schema, the value is now

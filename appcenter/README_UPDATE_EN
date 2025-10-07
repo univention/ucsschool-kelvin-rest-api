@@ -1,6 +1,6 @@
 <h1>Changelog</h1>
 
-<h2>v3.1.1 (2025-10-06)</h2>
+<h2>v3.1.1 (2025-10-07)</h2>
 <ul>
     <li>
       Fixed: A behavioral regression has been removed. When using the PATCH method and a import schema, the value is now
