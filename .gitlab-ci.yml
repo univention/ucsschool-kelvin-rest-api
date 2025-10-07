@@ -3,7 +3,7 @@ include:
     inputs:
       app_id: "ucsschool-kelvin-rest-api"
       mail_sender: "ucsschool-maintainers@univention.de"
-      author_alias: "UCS@school Team"
+      author_alias: "The ByteBenders"
       changelog_link: "https://docs.software-univention.de/ucsschool-kelvin-rest-api/changelog.html"
       mail_recipient: "app-announcement@univention.de"
       chat_destination: "#ucsschool"
