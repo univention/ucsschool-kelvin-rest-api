@@ -1,6 +1,12 @@
+ucs-test-ucsschool-kelvin (1.0.20) unstable; urgency=medium
+
+  * Issue univention/dev/education/ucsschool#1434: Rework Performance tests
+
+ -- Johannes Königer <koeniger@univention.de>  Wed, 22 Oct 2025 14:50:11 +0200
+
 ucs-test-ucsschool-kelvin (1.0.19) unstable; urgency=medium
 
-  * Bump version for rebuild
+  * Issue #164: Bump version for rebuild
 
  -- Johannes Königer <koeniger@univention.de>  Thu, 24 Sep 2025 10:50:11 +0200
 

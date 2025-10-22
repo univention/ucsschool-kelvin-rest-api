@@ -30,6 +30,7 @@ Architecture: all
 Depends:
  libffi-dev (>=3.2),
  python3-venv (>=3.7),
+ python3-diskcache (>=5.4),
  ucs-test-framework (>= 10),
 Provides:
  ucs-test-module

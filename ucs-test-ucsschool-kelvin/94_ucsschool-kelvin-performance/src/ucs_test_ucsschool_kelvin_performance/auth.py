@@ -8,6 +8,7 @@ import jwt
 import requests
 
 AUTH_TOKEN_URL = "/ucsschool/kelvin/token"  # nosec
+SSL_CERT = "/etc/ssl/certs/ca-certificates.crt"
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ def retrieve_token(host: str, username: str, password: str) -> AuthToken:
     logger.info("Fetching access token for %r from %r...", username, url)
     headers = {"accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
     data = {"username": username, "password": password}
-    response = requests.post(url, data=data, headers=headers)
+    response = requests.post(url, data=data, headers=headers, verify=SSL_CERT)
     try:
         response_json = response.json()
     except JSONDecodeError as exc:

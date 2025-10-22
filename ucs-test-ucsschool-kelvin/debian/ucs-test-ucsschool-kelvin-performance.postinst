@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright 2023 Univention GmbH
+# Copyright 2025 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -35,9 +35,10 @@ UCS_TEST_DIR="/usr/share/ucs-test/94_ucsschool-kelvin-performance"
 
 if ! [ -d "$VENV_DIR" ]; then
   echo "Creating virtual env for locust in '$VENV_DIR'..."
-  python3 -m venv --system-site-packages "$VENV_DIR"
+  python3 -m venv "$VENV_DIR"
   "$VENV_DIR/bin/pip" install -U pip wheel
   "$VENV_DIR/bin/pip" install -r "$UCS_TEST_DIR/requirements.txt"
+  "$VENV_DIR/bin/pip" install --no-deps "$UCS_TEST_DIR"
   rm -rf "$BASE_DIR/build/"
 else
   echo "Using existing virtual env for locust in '$VENV_DIR'."

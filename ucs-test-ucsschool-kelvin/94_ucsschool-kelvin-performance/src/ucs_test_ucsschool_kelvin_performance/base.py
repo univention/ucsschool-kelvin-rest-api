@@ -36,13 +36,13 @@ import sys
 from typing import Any, Dict, Iterable, Optional
 
 import requests
-from auth import AuthToken, retrieve_token
 from faker import Faker
 from gevent.lock import BoundedSemaphore
 from locust import HttpUser, events
 
+from .auth import SSL_CERT, AuthToken, retrieve_token
 from .settings_locust import get_settings
-from .test_cleaner import get_test_cleaner
+from .test_cleaner import TestCleaner, get_test_cleaner
 from .test_data import TestData
 
 logger = logging.getLogger(__name__)
@@ -82,13 +82,13 @@ def clean_test_env(*args, **kwargs):
 
 
 class KelvinClient(HttpUser):
-    abstract = True
-    auth_token: Optional[AuthToken] = None  # share token with all threads
-    token_sem = BoundedSemaphore()
-    fake = Faker()
-    test_data = TestData()
-    test_cleaner = get_test_cleaner()
-    base_path = "/ucsschool/kelvin/v1"
+    abstract: bool = True
+    auth_token: AuthToken | None = None  # share token with all threads
+    token_sem: BoundedSemaphore = BoundedSemaphore()
+    fake: Faker = Faker()
+    test_data: TestData = TestData()
+    test_cleaner: TestCleaner = get_test_cleaner()
+    base_path: str = "/ucsschool/kelvin/v1"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -124,12 +124,14 @@ class KelvinClient(HttpUser):
                 headers[k] = v
         if add_auth_token:
             headers["Authorization"] = self.get_token()
-        assert method in {"delete", "get", "patch", "post", "put"}
-        response = getattr(self.client, method)(*args, headers=headers, **kwargs)
+        assert method in {"delete", "get", "patch", "post", "put", "head"}
+        response = getattr(self.client, method)(*args, headers=headers, verify=SSL_CERT, **kwargs)
         if response_codes and response.status_code not in response_codes:
             logger.error(
-                "Request failed for %s %r with status code %r.\n"
-                "method=%r *args=%r add_auth_token=%r headers=%r response_codes=%r kwargs=%r",
+                (
+                    "Request failed for %s %r with status code %r.\n"
+                    "method=%r *args=%r add_auth_token=%r headers=%r response_codes=%r kwargs=%r"
+                ),
                 method.upper(),
                 response.url,
                 response.status_code,

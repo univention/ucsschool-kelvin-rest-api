@@ -1,0 +1,22 @@
+[project]
+name = "ucs-test-ucsschool-kelvin-performance"
+version = "0.1.0"
+description = "Performance Tests for the Kelvin REST API"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "diskcache>=5.6.3",
+    "faker>=37.11.0",
+    "locust>=2.42.0",
+    "pyjwt>=2.10.1",
+    "requests>=2.32.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
