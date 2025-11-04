@@ -324,7 +324,7 @@ def create_test_data():
             attr=("cn",),
             base=f"ou={school},{ucr.get('ldap/base')}",
         )
-        school_classes = [school_class["cn"][0].decode() for _, school_class in result]
+        school_classes = [school_class["cn"][0].decode().split("-", 1)[1] for _, school_class in result]
         school_data["school_classes"] = school_classes
 
         result = lo.search(
@@ -332,7 +332,7 @@ def create_test_data():
             attr=("cn",),
             base=f"ou={school},{ucr.get('ldap/base')}",
         )
-        workgroups = [work_group["cn"][0].decode() for _, work_group in result]
+        workgroups = [work_group["cn"][0].decode().split("-", 1)[1] for _, work_group in result]
         school_data["workgroups"] = workgroups
 
         db[school] = school_data

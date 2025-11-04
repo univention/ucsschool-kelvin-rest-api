@@ -177,9 +177,9 @@ def test_create(auth_header, lo, schoolenv):
     )
     workgroup_attrs = res[0][1]
     assert {
-        "name": workgroup_attrs["cn"][0].decode("utf-8").split("-")[-1],
+        "name": workgroup_attrs["cn"][0].decode("utf-8").split("-", 1)[-1],
         "school": urljoin(
             RESOURCE_URLS["schools"],
-            workgroup_attrs["cn"][0].decode("utf-8").split("-")[0],
+            workgroup_attrs["cn"][0].decode("utf-8").split("-", 1)[0],
         ),
     } == attrs
