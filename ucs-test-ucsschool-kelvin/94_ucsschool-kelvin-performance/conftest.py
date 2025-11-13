@@ -221,10 +221,23 @@ def execute_test(
     print(f"Executing {' '.join(cmd)!r}...")
     print(f"Redirecting stdout and stderr for Locust execution to {logfile!r}.")
     msg = f"Running with 'LOCUST_' environment variables: {envs!r}\nExecuting: {cmd!r}\n"
+    cmd2 = [
+        "udm",
+        "users/user",
+        "create",
+        "--set",
+        "username=test",
+        "--set",
+        "lastname=test",
+        "--set",
+        "password=testTEST",
+    ]
     print(msg)
     with logfile.open("w") as fp:
         _ = fp.write(f"{msg}\n")
         fp.flush()
+        process = subprocess.Popen(cmd2, stdout=fp, stderr=fp)  # nosec
+        _ = process.communicate()
         process = subprocess.Popen(cmd, stdout=fp, stderr=fp)  # nosec
         _ = process.communicate()
 
