@@ -32,7 +32,6 @@ if [ $? -eq 1 ]; then
         /usr/bin/update_openapi_client \
         --generator java \
         --jar /kelvin/openapi-generator/jar/openapi-generator-cli-*.jar \
-        --insecure \
         --username "$MACHINE_USER" \
         --password "$MACHINE_PASSWORD" \
         "$DOCKER_HOST_NAME"
