@@ -17,7 +17,7 @@ include:
   - project: univention/infrastructure/docker-services
     file:
       - kaniko.yml
-      - pre-commit.yml
+      - prek.yml
   - project: univention/dev/tooling/ci-components
     file:
       - fragments/misc.yaml
@@ -69,9 +69,7 @@ variables:
 run_pre_commit:
   stage: build
   needs: []
-  extends: .pre-commit
-  variables:
-    PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit:latest"
+  extends: .prek
 
 lint_commit_messages:
   stage: build
