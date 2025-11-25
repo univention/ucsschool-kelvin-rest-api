@@ -1,5 +1,8 @@
 include:
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/app-release@2.1.5
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/pre-commit@2
+    inputs:
+      commit_msg_hooks: "conventional-pre-commit issue-reference"
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/app-release@2
     inputs:
       app_id: "ucsschool-kelvin-rest-api"
       mail_sender: "ucsschool-maintainers@univention.de"
@@ -18,7 +21,6 @@ include:
   - project: univention/infrastructure/docker-services
     file:
       - kaniko.yml
-      - pre-commit.yml
   - project: univention/dev/tooling/ci-components
     file:
       - fragments/misc.yaml
@@ -66,21 +68,6 @@ variables:
       - "true"
       - "false"
     description: "Force appcenter upload"
-
-run_pre_commit:
-  stage: build
-  needs: []
-  extends: .pre-commit
-  variables:
-    PRE_COMMIT_IMAGE: "docker-registry.knut.univention.de/knut/pre-commit:latest"
-
-lint_commit_messages:
-  stage: build
-  needs: []
-  variables:
-    HOOK_IDS: "conventional-pre-commit issue-reference"
-    GIT_DEPTH: 21
-  extends: .lint_commit_messages
 
 docs-html:
   extends: .sphinx-html-template
