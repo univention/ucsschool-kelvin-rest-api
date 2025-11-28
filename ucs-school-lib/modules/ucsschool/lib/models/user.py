@@ -359,7 +359,6 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
         self.logger.info("User is part of the following groups: %r", udm_obj.props.groups)
         await self.remove_from_groups_of_school(old_school, lo)
-        self._udm_obj_searched = False
         self.school_classes.pop(old_school, None)
         self.workgroups.pop(old_school, None)
         udm_obj = await self.get_udm_object(lo)
@@ -556,38 +555,36 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         return True
 
     async def remove_from_groups_of_school(self, school: str, lo: UDM) -> None:
+        self._udm_obj_searched = False
+        udm_obj = await self.get_udm_object(lo)
         for cls in (SchoolClass, WorkGroup, SchoolGroup):
             for group in await cls.get_all(lo, school, filter_format("uniqueMember=%s", (self.dn,))):
                 try:
-                    group.users.remove(self.dn)
-                except ValueError:
-                    pass
-                else:
+                    udm_obj.props.groups.remove(group.dn)
                     self.logger.info(
-                        "Removing %r from group %r of school %r.", self.dn, group.dn, school
+                        "Removing group %r of school %r from the user %r.", group.dn, school, self.dn
                     )
-                    await group.modify(lo)
+                except ValueError:
+                    self.logger.info(
+                        "Group %r of school %r already no longer assigned to user %r.", group.dn, school, self.dn
+                    )
 
         if await self.is_administrator(lo):
             admin_group_dns = self.get_school_admin_groups([school])
             for dn in admin_group_dns:
                 try:
-                    admin_group = await BasicGroup.from_dn(dn, school, lo)
-                except noObject:
-                    continue
-
-                try:
-                    admin_group.users.remove(self.dn)
-                except ValueError:
-                    pass
-                else:
+                    udm_obj.props.groups.remove(dn)
                     self.logger.info(
-                        "Removing %r from group %r of school %r.",
-                        self.dn,
-                        admin_group.dn,
+                        "Removing group %r of school %r from the user %r.",
+                        dn,
                         school,
+                        self.dn,
                     )
-                    await admin_group.modify(lo)
+                except ValueError:
+                    self.logger.info(
+                        "Group %r of school %r already no longer assigned to user %r.", group.dn, school, self.dn
+                    )
+        await udm_obj.save()
 
     def get_group_dn(self, group_name: str, school: str) -> str:
         return Group.cache(group_name, school).dn
