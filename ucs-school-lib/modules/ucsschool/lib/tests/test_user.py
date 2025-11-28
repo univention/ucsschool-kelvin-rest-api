@@ -2,7 +2,7 @@ import datetime
 import itertools
 import random
 from typing import Any, Dict, List, NamedTuple, Tuple, Type, Union
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from faker import Faker
@@ -919,6 +919,7 @@ async def test_remove_from_groups_of_school_mock_failed(
 ):
     school_name = "school1"
     user = await new_school_user(school_name, "student")
+    user.get_udm_object = AsyncMock()
 
     def return_error_on_first_call():
         yield RuntimeError()
