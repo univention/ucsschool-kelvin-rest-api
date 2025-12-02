@@ -19,6 +19,7 @@ Welcome to UCS\@school Kelvin REST API's documentation!
    authentication-authorization
    openapi
    resources
+   what-to-do-in-case-of-errors
    known-issues
    kelvin-client-compatibility
    changelog
