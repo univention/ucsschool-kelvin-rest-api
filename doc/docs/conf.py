@@ -54,9 +54,9 @@ extensions = [
 suppress_warnings = ["git.too_shallow"]
 
 intersphinx_mapping = {
-    "uv-ucsschool-manual": ("https://docs.software-univention.de/ucsschool-manual/5.0/de/", None),
-    "uv-developer-reference": ("https://docs.software-univention.de/developer-reference/5.0/en/", None),
-    "uv-ucsschool-import": ("https://docs.software-univention.de/ucsschool-import/5.0/de/", None),
+    "uv-ucsschool-manual": ("https://docs.software-univention.de/ucsschool-manual/5.2/de/", None),
+    "uv-developer-reference": ("https://docs.software-univention.de/developer-reference/5.2/en/", None),
+    "uv-ucsschool-import": ("https://docs.software-univention.de/ucsschool-import/5.2/de/", None),
 }
 
 bibtex_bibfiles = ["bibliography.bib"]
