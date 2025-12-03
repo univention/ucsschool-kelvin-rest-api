@@ -445,10 +445,8 @@ class UCSSchoolHelperAbstractClass(object):
         name = self.get_name_from_dn(self.old_dn or self.dn) or self.name
         if not name:
             return False
-        if self._meta._ldap_filter:
-            exists_locally = uldap_exists(self._ldap_filter(name=name))
-            if exists_locally or check_locally:
-                return exists_locally
+        if self._meta._ldap_filter and check_locally:
+            return uldap_exists(self._ldap_filter(name=name))
         return await self.get_udm_object(lo) is not None
 
     async def exists_outside_school(self, lo: UDM) -> bool:
