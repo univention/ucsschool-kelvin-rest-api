@@ -395,7 +395,7 @@ class UCSSchoolHelperAbstractClass(object):
                     ),
                 )
         if self.supports_school() and self.school:
-            if not await School.cache(self.school).exists(lo, False):
+            if not await School.cache(self.school).exists(lo):
                 self.add_error(
                     "school",
                     _('The school "%s" does not exist. Please choose an existing one or create it.')
@@ -403,7 +403,7 @@ class UCSSchoolHelperAbstractClass(object):
                 )
         await self.validate_roles(lo)
         if validate_unlikely_changes:
-            if await self.exists(lo, False):
+            if await self.exists(lo):
                 udm_obj = await self.get_udm_object(lo)
                 try:
                     original_self = await self.from_udm_obj(udm_obj, self.school, lo)
@@ -441,11 +441,11 @@ class UCSSchoolHelperAbstractClass(object):
             raise TypeError(f"No '_ldap_filter' defined for class {cls.__name__}.")
         return cls._meta._ldap_filter.format(name=escape_filter_chars(name))
 
-    async def exists(self, lo: UDM, check_locally: bool = True) -> bool:
+    async def exists(self, lo: UDM) -> bool:
         name = self.get_name_from_dn(self.old_dn or self.dn) or self.name
         if not name:
             return False
-        if self._meta._ldap_filter and check_locally:
+        if self._meta._ldap_filter:
             return uldap_exists(self._ldap_filter(name=name))
         return await self.get_udm_object(lo) is not None
 
