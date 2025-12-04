@@ -33,5 +33,6 @@ orjson>=3.8.4
 uvicorn
 gunicorn
 uldap3>=1.1.0
+tenacity>=9.1.2,<10
 Univention-Configuration-Registry@ https://git.knut.univention.de/univention/dev/ucs/-/archive/oschwieg/ucr_script/ucs-oschwieg-ucr_script.zip?path=base/univention-config-registry#subdirectory=base/univention-config-registry
 univention-debhelper @ https://git.knut.univention.de/univention/dev/ucs/-/archive/oschwieg/ucr_script/ucs-oschwieg-ucr_script.zip?path=packaging/univention-debhelper#subdirectory=packaging/univention-debhelper

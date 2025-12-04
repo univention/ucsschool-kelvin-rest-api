@@ -30,6 +30,7 @@
 # <http://www.gnu.org/licenses/>.
 import asyncio
 import copy
+import logging
 import os.path
 import time
 from collections.abc import Mapping
@@ -38,6 +39,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 from ldap.dn import escape_dn_chars, explode_dn
 from ldap.filter import escape_filter_chars, filter_format
 from six import iteritems
+from tenacity import RetryCallState, retry, stop_after_attempt, wait_random
 
 import univention.admin.syntax as syntax
 from udm_rest_client import UDM, UdmObject
@@ -79,6 +81,18 @@ from .utils import _, create_passwd, env_or_ucr, ucr, uldap_exists
 
 SuperOrdinateType = Union[str, UdmObject]
 unicode_s = str  # py3
+
+logger = logging.getLogger(__name__)
+
+
+def log_retry_attempt(retry_state: RetryCallState) -> None:
+    logger.warning(
+        "Retrying remove_from_groups_of_school after exception: %s. "
+        "Attempt %s. Next wait: %s seconds.",
+        retry_state.outcome.exception(),
+        retry_state.attempt_number,
+        retry_state.next_action.sleep if retry_state.next_action else None,
+    )
 
 
 class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
@@ -555,6 +569,12 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         self.workgroups.pop(school, None)
         return True
 
+    @retry(
+        wait=wait_random(min=1, max=2),
+        stop=stop_after_attempt(2),
+        before_sleep=log_retry_attempt,
+        reraise=True,
+    )
     async def remove_from_groups_of_school(self, school: str, lo: UDM) -> None:
         for cls in (SchoolClass, WorkGroup, SchoolGroup):
             for group in await cls.get_all(lo, school, filter_format("uniqueMember=%s", (self.dn,))):
