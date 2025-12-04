@@ -38,6 +38,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 from ldap.dn import escape_dn_chars, explode_dn
 from ldap.filter import escape_filter_chars, filter_format
 from six import iteritems
+from tenacity import retry, stop_after_attempt, wait_random
 
 import univention.admin.syntax as syntax
 from udm_rest_client import UDM, UdmObject
@@ -555,6 +556,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         self.workgroups.pop(school, None)
         return True
 
+    @retry(wait=wait_random(min=1, max=2), stop=stop_after_attempt(2), reraise=True)
     async def remove_from_groups_of_school(self, school: str, lo: UDM) -> None:
         for cls in (SchoolClass, WorkGroup, SchoolGroup):
             for group in await cls.get_all(lo, school, filter_format("uniqueMember=%s", (self.dn,))):
