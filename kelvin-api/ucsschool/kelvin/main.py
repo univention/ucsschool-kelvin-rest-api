@@ -53,6 +53,7 @@ from udm_rest_client import UdmError
 from .config import UDM_MAPPING_CONFIG, load_configurations
 from .constants import (
     APP_VERSION,
+    CORRELATION_ID_HEADER,
     DEFAULT_LOG_LEVELS,
     STATIC_FILE_CHANGELOG,
     STATIC_FILE_README,
@@ -81,7 +82,12 @@ app = FastAPI(
     openapi_url=f"{URL_API_PREFIX}/openapi.json",
     default_response_class=ORJSONResponse,
 )
-app.add_middleware(CorrelationIdMiddleware)
+app.add_middleware(
+    CorrelationIdMiddleware,
+    header_name=CORRELATION_ID_HEADER,
+    # Accept non-UUID correlation IDs by disabling validation
+    validator=None,
+)
 logger = get_logger()
 
 

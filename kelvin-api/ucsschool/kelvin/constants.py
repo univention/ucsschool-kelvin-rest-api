@@ -77,3 +77,4 @@ UCRV_TOKEN_TTL = "ucsschool/kelvin/access_tokel_ttl"  # nosec
 URL_KELVIN_BASE = "/ucsschool/kelvin"
 URL_API_PREFIX = f"{URL_KELVIN_BASE}/v1"
 URL_TOKEN_BASE = f"{URL_KELVIN_BASE}/token"
+CORRELATION_ID_HEADER = "X-Forwarded-For"

@@ -8,6 +8,7 @@ Changelog
 v3.1.2 (2025-10-XX)
 -------------------
 * Fixed filtering users by school-admin role (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#161`).
+* Fixed log output of actual client IP address when connected via reverse proxy (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#175`)
 
 v3.1.1 (2025-10-07)
 -------------------
