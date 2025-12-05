@@ -2,6 +2,7 @@ import datetime
 import itertools
 import random
 from typing import Any, Dict, List, NamedTuple, Tuple, Type, Union
+from unittest.mock import MagicMock
 
 import pytest
 from faker import Faker
@@ -910,6 +911,24 @@ async def test_unixhome(
         user = await role.klass.from_dn(user.dn, school, udm)
         udm_user = await user.get_udm_object(udm)
         assert f"/home/{school}/{unixhomes[role.name]}/{user.name}" == udm_user.props.unixhome
+
+
+@pytest.mark.asyncio
+async def test_remove_from_groups_of_school_mock_failed(
+    new_school_user,
+):
+    school_name = "school1"
+    user = await new_school_user(school_name, "student")
+
+    def return_error_on_first_call():
+        yield RuntimeError()
+        while True:
+            yield MagicMock()
+
+    udm = MagicMock()
+    udm.get.side_effect = return_error_on_first_call()
+    await user.remove_from_groups_of_school(school_name, udm)
+    assert udm.get.call_count >= 2
 
 
 @pytest.mark.asyncio
