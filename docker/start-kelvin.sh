@@ -37,4 +37,9 @@ if [ $? -eq 1 ]; then
         "$DOCKER_HOST_NAME"
 fi
 
-exec /usr/bin/gunicorn --workers "$num_workers" --worker-class uvicorn.workers.UvicornWorker $RELOAD --bind 0.0.0.0:8911 ucsschool.kelvin.main:app
+exec /usr/bin/gunicorn \
+    --workers "$num_workers" \
+    --worker-class uvicorn.workers.UvicornWorker \
+    $RELOAD \
+    --bind 0.0.0.0:8911 \
+    ucsschool.kelvin.main:app
