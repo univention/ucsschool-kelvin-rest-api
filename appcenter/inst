@@ -50,6 +50,7 @@ UDM_CLIENT_UPDATE_SCRIPT="/var/lib/univention-appcenter/apps/$APP_ID/data/update
 
 main () {
     docker exec $appcenter_apps_ucsschool_kelvin_rest_api_container /usr/bin/univention-config-registry set \
+    server/role="$(ucr get server/role)" \
     ldap/server/name="$(ucr get ldap/server/name)" \
     ldap/server/port="$(ucr get ldap/server/port)" \
     dhcpd/ldap/base="$(ucr get dhcpd/ldap/base)" \
