@@ -8,6 +8,9 @@
     <li>
       Retry group removal when it fails while changing the school of a user (Issue univention/components/ucsschool-kelvin-rest-api#174).
     </li>
+    <li>
+      Use primary LDAP system for checks on backup systems (Issue univention/components/ucsschool-kelvin-rest-api##89).
+    </li>
 </ul>
 
 <h2>v3.1.1 (2025-10-07)</h2>
