@@ -1,9 +1,12 @@
 <h1>Changelog</h1>
 
-<h2>v3.1.2 (2025-10-XX)</h2>
+<h2>v3.1.2 (2025-12-XX)</h2>
 <ul>
     <li>
       Fixed filtering users by school-admin role (Issue univention/components/ucsschool-kelvin-rest-api#161).
+    </li>
+    <li>
+      Retry group removal when it fails while changing the school of a user (Issue univention/components/ucsschool-kelvin-rest-api#174).
     </li>
 </ul>
 

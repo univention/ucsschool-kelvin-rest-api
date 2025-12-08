@@ -5,10 +5,11 @@
 Changelog
 =========
 
-v3.1.2 (2025-10-XX)
+v3.1.2 (2025-12-XX)
 -------------------
 * Fixed filtering users by school-admin role (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#161`).
 * Fixed a rare concurrency problem which could happen when the App is stopped or restarted while an ``update_openapi_client`` process still runs. (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#176`)
+* Retry group removal when it fails while changing the school of a user (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#174`).
 
 v3.1.1 (2025-10-07)
 -------------------
