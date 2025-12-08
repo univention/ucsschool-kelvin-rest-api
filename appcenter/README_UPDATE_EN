@@ -8,6 +8,10 @@
     <li>
       Retry group removal when it fails while changing the school of a user (Issue univention/components/ucsschool-kelvin-rest-api#174).
     </li>
+    <li>
+      Fixed: When removing a users group memberships during a school change, Kelvin now modifies the user instead of modifying each individual group.
+      This is more resilient when modifications are done in parallel (Issue univention/components/ucsschool-kelvin-rest-api#169).
+    </li>
 </ul>
 
 <h2>v3.1.1 (2025-10-07)</h2>
