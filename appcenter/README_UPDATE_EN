@@ -12,6 +12,9 @@
       Fixed: When removing a users group memberships during a school change, Kelvin now modifies the user instead of modifying each individual group.
       This is more resilient when modifications are done in parallel (Issue univention/components/ucsschool-kelvin-rest-api#169).
     </li>
+    <li>
+      Use primary LDAP system for checks on backup systems (Issue univention/components/ucsschool-kelvin-rest-api##89).
+    </li>
 </ul>
 
 <h2>v3.1.1 (2025-10-07)</h2>

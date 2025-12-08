@@ -12,6 +12,7 @@ v3.1.2 (2025-12-XX)
 * Retry group removal when it fails while changing the school of a user (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#174`).
 * Fixed: When removing a users group memberships during a school change, Kelvin now modifies the user instead of modifying each individual group.
   This is more resilient when modifications are done in parallel (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#169`).
+* Use primary LDAP system for checks on backup systems (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#89`).
 
 v3.1.1 (2025-10-07)
 -------------------
