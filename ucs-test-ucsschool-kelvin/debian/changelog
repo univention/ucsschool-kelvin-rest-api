@@ -1,3 +1,10 @@
+ucs-test-ucsschool-kelvin (1.0.24) unstable; urgency=medium
+
+  * Issue univention/dev/education/ucsschool-kelvin-rest-api#89: Don't require
+    order of school-classes to be the same in tests
+
+ -- Silas Wieberneit <silas.wieberneit.extern@univention.de>  Mon, 26 Jan 2026 10:40:11 +0100
+
 ucs-test-ucsschool-kelvin (1.0.23) unstable; urgency=medium
 
   * Issue univention/dev/education/ucsschool#1502: Fix list comparisons

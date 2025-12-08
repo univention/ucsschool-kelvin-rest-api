@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v3.1.3 (2999-01-01)
+-------------------
+* Use primary LDAP system for checks on backup systems (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#89`).
+
 v3.1.2 (2026-01-14)
 -------------------
 * Fixed filtering users by school-admin role (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#161`).
@@ -12,7 +16,6 @@ v3.1.2 (2026-01-14)
 * Retry group removal when it fails while changing the school of a user (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#174`).
 * Fixed: When removing a users group memberships during a school change, Kelvin now modifies the user instead of modifying each individual group.
   This is more resilient when modifications are done in parallel (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#169`).
-* Fixed: Log entries now capture actual client IP addresses instead of reverse proxy IP addresses (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#175`)
 
 v3.1.1 (2025-10-07)
 -------------------
