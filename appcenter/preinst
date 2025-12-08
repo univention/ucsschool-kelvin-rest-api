@@ -72,7 +72,63 @@ if ! [ -e "$KELVIN_CONFIG_PATH" ]; then
     echo "{}" > "$KELVIN_CONFIG_PATH/mapped_udm_properties.json"
 fi
 
+# set_kelvin_docker_env_trusted_proxy_ips
+#
+# Ensures that the UCR variable
+#   appcenter/apps/ucsschool-kelvin-rest-api/docker/params
+# contains an environment option of the form:
+#   --env TRUSTED_PROXY_IPS=<IP>
+#
+# <IP> is the Docker host’s gateway address as seen from inside the
+# kelvin-api container. This is the address where the reverse proxy for
+# Kelvin is running, which in UCS deployments is the UCS node itself
+# (i.e., the Docker host). The value is derived from the UCR variable:
+#   docker/daemon/default/opts/bip
+#
+# This function is idempotent: if TRUSTED_PROXY_IPS is already present,
+# nothing is changed. Otherwise the parameter fragment is created or appended.
+#
+# Returns:
+#   0 on success; non-zero only if the underlying "ucr set" command fails.
+set_kelvin_docker_env_trusted_proxy_ips() {
+    local UCR_PARAM_KEY="appcenter/apps/ucsschool-kelvin-rest-api/docker/params"
+    local UCR_DOCKER_BIP_KEY="docker/daemon/default/opts/bip"
 
+    # Extract the host gateway IP from a Docker bip value ("IP/mask").
+    docker_host_gateway_from_bip() {
+        local bip="$1"
+        printf "%s\n" "${bip%/*}"
+    }
+
+    local current_params
+    current_params="$(ucr get "$UCR_PARAM_KEY" 2>/dev/null || true)"
+
+    local bip_value
+    bip_value="$(ucr get "$UCR_DOCKER_BIP_KEY")"
+
+    local docker_host_ip
+    docker_host_ip="$(docker_host_gateway_from_bip "$bip_value")"
+
+    local trusted_proxy_env="--env TRUSTED_PROXY_IPS=${docker_host_ip}"
+
+    # Already present → do nothing
+    if [[ "$current_params" == *"TRUSTED_PROXY_IPS"* ]]; then
+        echo "Verified: UCR var $UCR_PARAM_KEY already contains TRUSTED_PROXY_IPS"
+        return 0
+    fi
+
+    # Missing or empty → set new
+    if [[ -z "$current_params" ]]; then
+        echo "Setting UCR var $UCR_PARAM_KEY=\"${trusted_proxy_env}\""
+        ucr set "$UCR_PARAM_KEY=${trusted_proxy_env}"
+        return 0
+    fi
+
+    # Otherwise append
+    echo "Appending UCR var $UCR_PARAM_KEY+=\"${trusted_proxy_env}\""
+    ucr set "$UCR_PARAM_KEY=${current_params} ${trusted_proxy_env}"
+}
+set_kelvin_docker_env_trusted_proxy_ips
 
 # restart UDM REST API to ensure the OpenAPI schema is up to date
 service univention-directory-manager-rest restart
