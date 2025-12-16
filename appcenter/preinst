@@ -29,48 +29,13 @@
 # Script that runs in docker host before installing the app.
 #
 
-while [ $# -gt 0 ]; do
-    case "$1" in
-        "--error-file")
-            shift
-            errorfile="$1"
-            shift
-            ;;
-        "--old-version")
-            shift
-            old_version="$1"
-            shift
-            ;;
-        *)
-            shift
-            ;;
-    esac
-done
-
-udm_output="$(udm users/user)"
-echo "$udm_output" | grep -q "ucsschoolStudent"
-if [ "$?" -ne 0 ]
-then
-  message="The application 'UCS@school Kelvin REST API' requires the core 'UCS@school' application to be installed."
-  echo "$message" > "$errorfile"
-  exit 1
-fi
-
-
 KELVIN_IMPORTUSER_HOOKS_PATH="/var/lib/ucs-school-import/kelvin-hooks"
 KELVIN_SCHOOL_LIB_HOOKS_PATH="/var/lib/ucs-school-lib/kelvin-hooks"
 KELVIN_CONFIG_PATH="/etc/ucsschool/kelvin"
 
-if ! [ -e "$KELVIN_IMPORTUSER_HOOKS_PATH" ]; then
-    mkdir -pv -m 755 "$KELVIN_IMPORTUSER_HOOKS_PATH"
-fi
-if ! [ -e "$KELVIN_SCHOOL_LIB_HOOKS_PATH" ]; then
-    mkdir -pv -m 755 "$KELVIN_SCHOOL_LIB_HOOKS_PATH"
-fi
-if ! [ -e "$KELVIN_CONFIG_PATH" ]; then
-    mkdir -pv -m 755 "$KELVIN_CONFIG_PATH"
-    echo "{}" > "$KELVIN_CONFIG_PATH/mapped_udm_properties.json"
-fi
+################################################################################
+# Helper and setup functions (kept free of side effects on source)
+################################################################################
 
 # set_kelvin_docker_env_trusted_proxy_ips
 #
@@ -128,12 +93,61 @@ set_kelvin_docker_env_trusted_proxy_ips() {
     echo "Appending UCR var $UCR_PARAM_KEY+=\"${trusted_proxy_env}\""
     ucr set "$UCR_PARAM_KEY=${current_params} ${trusted_proxy_env}"
 }
-set_kelvin_docker_env_trusted_proxy_ips
 
-# restart UDM REST API to ensure the OpenAPI schema is up to date
-service univention-directory-manager-rest restart
+################################################################################
+# Main logic wrapped in a function to keep sourcing side-effect free
+################################################################################
+main() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            "--error-file")
+                shift
+                errorfile="$1"
+                shift
+                ;;
+            "--old-version")
+                shift
+                old_version="$1"
+                shift
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
 
-if [ -n "$old_version" ] && [ "${old_version::2}" = "1." ]; then
-    # Restart needed in case we just updated from 5.0 to 5.2
-    univention-app restart ucsschool-kelvin-rest-api
+    udm_output="$(udm users/user)"
+    echo "$udm_output" | grep -q "ucsschoolStudent"
+    if [ "$?" -ne 0 ]
+    then
+      message="The application 'UCS@school Kelvin REST API' requires the core 'UCS@school' application to be installed."
+      echo "$message" > "$errorfile"
+      exit 1
+    fi
+
+    if ! [ -e "$KELVIN_IMPORTUSER_HOOKS_PATH" ]; then
+        mkdir -pv -m 755 "$KELVIN_IMPORTUSER_HOOKS_PATH"
+    fi
+    if ! [ -e "$KELVIN_SCHOOL_LIB_HOOKS_PATH" ]; then
+        mkdir -pv -m 755 "$KELVIN_SCHOOL_LIB_HOOKS_PATH"
+    fi
+    if ! [ -e "$KELVIN_CONFIG_PATH" ]; then
+        mkdir -pv -m 755 "$KELVIN_CONFIG_PATH"
+        echo "{}" > "$KELVIN_CONFIG_PATH/mapped_udm_properties.json"
+    fi
+
+    set_kelvin_docker_env_trusted_proxy_ips
+
+    # restart UDM REST API to ensure the OpenAPI schema is up to date
+    service univention-directory-manager-rest restart
+
+    if [ -n "$old_version" ] && [ "${old_version::2}" = "1." ]; then
+        # Restart needed in case we just updated from 5.0 to 5.2
+        univention-app restart ucsschool-kelvin-rest-api
+    fi
+}
+
+# Only run main when executed directly, not when sourced (e.g., by tests)
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
 fi

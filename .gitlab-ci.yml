@@ -234,6 +234,34 @@ test kelvin-api:
         coverage_format: cobertura
         path: coverage.xml
 
+bats_tests:
+  stage: tests
+  rules:
+    - changes:
+        - appcenter/tests/**/*
+        - appcenter/preinst
+  image: $DEB_IMAGE
+  script:
+    - apt-get update
+    - |
+      # Ensure Python is available for mocks and for report conversion
+      apt-get -q --assume-yes install python3 || true
+    - |
+      # Install bats (fallback to bats-core on some distros)
+      if ! command -v bats >/dev/null 2>&1; then
+        apt-get -q --assume-yes install bats || true
+      fi
+    - bats --version
+    - |
+      # Run tests and produce JUnit report for gitlab; capture exit code
+      TEST_STATUS=0
+      bats --report-formatter junit --output . appcenter/tests/ || TEST_STATUS=$?
+      exit "$TEST_STATUS"
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
 ucs_test_deb_lint:
   stage: build
   variables:
