@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import os
+import sys
+from dataclasses import dataclass, field
+from typing import Any, Dict
+
+DOCKER_PARAM_KEY = "appcenter/apps/ucsschool-kelvin-rest-api/docker/params"
+DOCKER_BIP_KEY = "docker/daemon/default/opts/bip"
+
+
+@dataclass
+class Store:
+    file_name: str
+    data: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def FromFile(cls, path: str) -> "Store":
+        try:
+            with open(path, "r") as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = {}
+        return cls(file_name=path, data=data)
+
+    def to_file(self) -> None:
+        with open(self.file_name, "w") as f:
+            json.dump(self.data, f)
+
+    def get(self, key: str) -> Any:
+        return self.data.get(key)
+
+    def set(self, key: str, value: Any) -> None:
+        self.data[key] = value
+
+
+def main(argv: list[str]) -> int:
+    calls = os.environ.get("MOCK_CALLS")
+    store_path = os.environ.get("MOCK_UCR_STORE")
+    store = Store.FromFile(store_path)
+
+    # Log raw call to preserve exact strings expected by tests
+    if calls:
+        with open(calls, "a") as f:
+            f.write("ucr " + " ".join(argv) + "\n")
+
+    parser = argparse.ArgumentParser(add_help=False)
+    subparsers = parser.add_subparsers(dest="cmd")
+
+    p_get = subparsers.add_parser("get", add_help=False)
+    p_get.add_argument("key", nargs="?")
+
+    p_set = subparsers.add_parser("set", add_help=False)
+    p_set.add_argument("kv", nargs="?")
+
+    # Parse known args; we don't want help/usage to interfere with tests
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit:
+        return 0
+
+    try:
+        if args.cmd == "get":
+            get(store, args)
+
+        if args.cmd == "set":
+            set(store, args)
+    except RuntimeError as e:
+        sys.stderr.write(str(e) + "\n")
+        return 1
+
+    # No command or unknown → no-op success
+    return 0
+
+
+def get(store: Store, args: argparse.Namespace):
+    value = store.get(args.key)
+    sys.stdout.write(value or "")
+
+
+def set(store: Store, args: argparse.Namespace):
+    def unquote(s: str) -> str:
+        if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+            return s[1:-1]
+        return s
+
+    kv = args.kv
+    if "=" in kv:
+        k, v = kv.split("=", 1)
+        v = unquote(v)
+        store.set(k, v)
+        store.to_file()
+    else:
+        raise RuntimeError("Invalid set syntax")
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

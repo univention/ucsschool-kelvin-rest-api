@@ -234,6 +234,37 @@ test kelvin-api:
         coverage_format: cobertura
         path: coverage.xml
 
+test_appcenter_scripts:
+  stage: tests
+  rules:
+    - changes:
+        - appcenter/tests/**/*
+        - appcenter/preinst
+  image:
+    name: $UCSLINT_IMAGE
+    entrypoint: [""]
+  script:
+    - |
+      # Install bats and python to run tests
+      # NOTE Think about to move bats into CI image
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get -qq update
+      if ! apt-get -yqq install --no-install-recommends python3 bats; then
+        apt-get -yqq install --no-install-recommends python3 bats
+      fi
+      # Keep the container lean
+      rm -rf /var/lib/apt/lists/*
+    - bats --version
+    - |
+      # Run tests and produce JUnit report for gitlab
+      mkdir -p bats-report
+      bats --report-formatter junit --output bats-report appcenter/tests/
+  artifacts:
+    when: always
+    reports:
+      junit: bats-report/report.xml
+
 ucs_test_deb_lint:
   stage: build
   variables:
