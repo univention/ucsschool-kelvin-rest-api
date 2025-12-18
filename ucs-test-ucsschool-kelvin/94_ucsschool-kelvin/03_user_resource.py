@@ -977,7 +977,7 @@ def test_modify_classes_2old_2new(
     assert create_result["name"] == user.name
     logger.debug("*** user.school_classes=%r", user.school_classes)
     classes_without_ous = {
-        ou: [k.split("-", 1)[1] for k in kls] for ou, kls in user.school_classes.items()
+        ou: sorted([k.split("-", 1)[1] for k in kls]) for ou, kls in user.school_classes.items()
     }
 
     logger.debug("*** user.school_classes without ous=%r", classes_without_ous)
