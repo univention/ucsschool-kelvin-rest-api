@@ -640,9 +640,9 @@ def test_move_teacher_remove_primary_with_classes(
 
     user = get_import_user(resource_new["dn"])
     logger.debug("*** user.school_classes=%r", user.school_classes)
-    assert user.school_classes == {
-        ou2: ["{}-{}".format(ou2, k) for k in create_attrs["school_classes"][ou2]]
-    }
+    school_classes = user.school_classes
+    school_classes = {school: set(classes) for school, classes in school_classes.items()}
+    assert school_classes == {ou2: {"{}-{}".format(ou2, k) for k in create_attrs["school_classes"][ou2]}}
     assert create_result["name"] == user.name
     url = urljoin(RESOURCE_URLS["users"], create_result["name"])
     assert resource_new["url"] == url
@@ -976,7 +976,7 @@ def test_modify_classes_2old_2new(
     assert create_result["name"] == user.name
     logger.debug("*** user.school_classes=%r", user.school_classes)
     classes_without_ous = {
-        ou: [k.split("-", 1)[1] for k in kls] for ou, kls in user.school_classes.items()
+        ou: sorted([k.split("-", 1)[1] for k in kls]) for ou, kls in user.school_classes.items()
     }
 
     logger.debug("*** user.school_classes without ous=%r", classes_without_ous)
