@@ -246,7 +246,8 @@ test_appcenter_scripts:
   script:
     - |
       # Install bats and python to run tests
-      # NOTE Think about to move bats into CI image
+      # NOTE Issue univention/dev/education/ucsschool-kelvin-rest-api#180
+      #      Think about to move bats into CI image
       set -euo pipefail
       export DEBIAN_FRONTEND=noninteractive
       apt-get -qq update
@@ -260,6 +261,8 @@ test_appcenter_scripts:
       # Run tests and produce JUnit report for gitlab
       mkdir -p bats-report
       bats --report-formatter junit --output bats-report appcenter/tests/
+      # NOTE Issue univention/dev/education/ucsschool-kelvin-rest-api#179)
+      #      For some reason the report.xml is empty
   artifacts:
     when: always
     reports:
