@@ -1,5 +1,5 @@
 include:
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/app-release@2
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/app-release@2.1.5
     inputs:
       app_id: "ucsschool-kelvin-rest-api"
       mail_sender: "ucsschool-maintainers@univention.de"
