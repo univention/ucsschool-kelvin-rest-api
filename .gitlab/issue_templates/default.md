@@ -1,7 +1,8 @@
 ## Accounting
 
-- Univention GmbH (424)
-- Development: TBD
+- [1] Univention GmbH
+- [1050] 22605 - Univention - Entwicklung
+- [14958] Development: Fallback Account
 
 
 ## Story
@@ -97,5 +98,5 @@ Functional QA focuses on the user using the UCS@school Kelvin REST API
 
 
 /label ~"App::Kelvin"
-/label ~"Status::Unrefined"
 /label ~"Team::UCS@school"
+/status "Unrefined"
