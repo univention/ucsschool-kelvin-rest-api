@@ -98,5 +98,5 @@ Functional QA focuses on the user using the UCS@school Kelvin REST API
 
 
 /label ~"App::Kelvin"
-/label ~"Team::UCS@school"
+/label ~"Team::ByteBenders"
 /status "Unrefined"
