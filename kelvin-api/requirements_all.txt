@@ -29,6 +29,7 @@ pytest-cov~=4.0.0
 pytest-mock
 pytest~=6.2.5
 python-multipart
+setuptools-scm=>9.2
 tenacity>=9.1.2,<10
 timing-asgi>=0.3.0,<0.4.0
 udm-rest-client>=1.1.1
