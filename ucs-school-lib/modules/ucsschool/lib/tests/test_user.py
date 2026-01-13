@@ -93,6 +93,10 @@ def compare_attr_and_lib_user(attr: Dict[str, Any], user: User):
         elif k == "ucsschoolRole":
             val1 = v
             val2 = user.ucsschool_roles
+        elif k in ("school_classes", "work_groups"):
+            assert v.keys() == getattr(user, k).keys()
+            for school, groups in v.items():
+                assert set(groups) == set(getattr(user, k)[school])
         else:
             val1 = v
             val2 = getattr(user, k)

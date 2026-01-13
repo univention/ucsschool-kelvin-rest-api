@@ -268,7 +268,7 @@ def compare_import_user_and_resource(auth_header):
             elif k == "roles":
                 import_user_roles = {"student" if r == "pupil" else r for r in import_user.roles}
                 assert set(v) == {urljoin(RESOURCE_URLS["roles"], r) for r in import_user_roles}
-            elif k == "school_classes":
+            elif k in ("school_classes", "work_groups"):
                 if source == "LDAP":
                     val = {
                         school: ["{}-{}".format(school, kls) for kls in classes]
@@ -280,7 +280,10 @@ def compare_import_user_and_resource(auth_header):
                     "Value of attribute {!r} in {} is {!r} and in resource is "
                     "v={!r} -> val={!r} ({!r}).".format(k, source, getattr(import_user, k), v, val, dn)
                 )
-                assert getattr(import_user, k) == val, msg
+                import_user_school_classes = getattr(import_user, k)
+                assert import_user_school_classes.keys() == val.keys()
+                for school, school_classes in val.items():
+                    assert set(import_user_school_classes[school]) == set(school_classes)
             elif k == "udm_properties":
                 # Could be the same test as for 'school_classes', but lists are not necessarily in
                 # order (for example phone, e-mail, etc), so converting them to sets:
