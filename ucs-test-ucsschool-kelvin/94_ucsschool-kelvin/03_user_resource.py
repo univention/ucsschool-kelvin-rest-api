@@ -640,9 +640,10 @@ def test_move_teacher_remove_primary_with_classes(
 
     user = get_import_user(resource_new["dn"])
     logger.debug("*** user.school_classes=%r", user.school_classes)
-    assert user.school_classes == {
-        ou2: ["{}-{}".format(ou2, k) for k in create_attrs["school_classes"][ou2]]
-    }
+    expected = {ou2: ["{}-{}".format(ou2, k) for k in create_attrs["school_classes"][ou2]]}
+    assert user.school_classes.keys() == expected.keys()
+    for school, school_classes in expected.items():
+        assert user.school_classes[school] == school_classes
     assert create_result["name"] == user.name
     url = urljoin(RESOURCE_URLS["users"], create_result["name"])
     assert resource_new["url"] == url
