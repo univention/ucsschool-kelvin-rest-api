@@ -23,7 +23,7 @@ To have the HTML output served at http://127.0.0.1:8000 and auto-rebuild when a 
 
 Start a Docker container that will build and serve the docs at http://127.0.0.1:8000::
 
-    $ docker run -ti --rm -v "$PWD:/project" -w /project -u $UID --network=host --pull=always docker-registry.knut.univention.de/knut/sphinx-base:latest make -C docs livehtml
+    $ docker run -ti --rm -v "$PWD:/project" -w /project -u $UID --network=host --pull=always docker-registry.knut.univention.de/knut/sphinx-base:latest make -C doc/docs livehtml
 
 To stop the container hit ``Ctrl-C``.
 
