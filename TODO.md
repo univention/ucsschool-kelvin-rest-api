@@ -7,7 +7,8 @@
     - Performance requirements are typically found in [1.2 Quality goals](https://docs.arc42.org/section-1/#12-quality-goals) as summary or detailed in [10. Quality Requirements](https://docs.arc42.org/section-10/#10-quality-requirements)
   - -> Start in md file
   - -> Arch doc in separate Tickets
-    - [ ] @jgietzel: Ping Daniel
+    - [x] @jgietzel: Ping Daniel.
+      - [x] There is no yet. Start simple within `./doc/dev`
 
 - [ ] TODO's at [doc/quality_goals.md](doc/quality_goals.md)
 
