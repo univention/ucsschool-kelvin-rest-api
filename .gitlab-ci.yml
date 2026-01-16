@@ -11,6 +11,7 @@ include:
       additional_update_appcenter_needs:
         - job: build_docker_image
           optional: true
+        - job: build_changelog_html
       appcenter_file_dir: "appcenter/"
   - project: "univention/dev/docs/sphinx-docker"
     file: "pipeline/sphinx.yml"
@@ -178,6 +179,15 @@ build_docker_image:
     KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/"
     DOCKERFILE_PATH: docker/Dockerfile
     KANIKO_ARGS: --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
+
+build_changelog_html:
+  stage: build
+  image: gitregistry.knut.univention.de/univention/dev/tooling/ci-components/app-release:latest
+  script:
+    - pandoc kelvin-api/changelog.rst -o changelog.html --wrap=preserve -t html
+  artifacts:
+    paths:
+      - changelog.html
 
 test ucs-school-lib:
   stage: tests
