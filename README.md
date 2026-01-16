@@ -11,8 +11,6 @@ See the [public documentation](https://docs.software-univention.de/ucsschool-kel
 _You may copy this to a gitlab release issue_
 
 - [ ] Check contents of [kelvin-api/changelog.rst](./kelvin-api/changelog.rst)
-- [ ] Check contents of [appcenter/README_UPDATE_EN](./appcenter/README_UPDATE_EN)
-  - Can be generated with pandoc via `pandoc kelvin-api/changelog.rst -o appcenter/README_UPDATE_EN --wrap=preserve -t html`
 - [ ] Update version in [kelvin-api/VERSION.txt](./kelvin-api/VERSION.txt)
 - [ ] Kelvin [Jenkins tests](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCSschool-5.0/view/Daily%20Tests/job/kelvin%20API%20(branch%20main)/) OK
 - [ ] Kelvin client [Jenkins test](https://univention-dist-jenkins.k8s.knut.univention.de/job/UCSschool-5.0/view/Daily%20Tests/job/Kelvin-client-daily) OK
