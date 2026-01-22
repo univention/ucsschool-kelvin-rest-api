@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v3.1.3 (2026-01-26)
+-------------------
+* Fixed: On upgrade or installation, it is now verified that the required Docker logging driver ``journald`` is active. If a custom logging solution is used, this check can be disabled by setting the UCR-V ``ucsschool/kelvin/accept-custom-log-driver`` to yes. (:uv:bug:`58934`, Issue :spelling:ignore:`univention/dev/ucs#3298`).
+
 v3.1.2 (2026-01-14)
 -------------------
 * Fixed filtering users by school-admin role (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#161`).
