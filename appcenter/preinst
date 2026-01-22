@@ -145,6 +145,22 @@ main() {
         # Restart needed in case we just updated from 5.0 to 5.2
         univention-app restart ucsschool-kelvin-rest-api
     fi
+
+    # Bug 58934
+    source /usr/share/univention-lib/ucr.sh
+    if ! is_ucr_true "ucsschool/kelvin/accept-custom-log-driver"; then
+        logging_driver=$(docker info --format '{{.LoggingDriver}}')
+        if [ "$logging_driver" != "journald" ]; then
+            systemctl restart docker
+            logging_driver=$(docker info --format '{{.LoggingDriver}}')
+            if [ "$logging_driver" != "journald" ]; then
+                echo "The Docker logging driver 'journald' is expected to be active, but the current logging driver is '$logging_driver'."
+                echo "You can disable this check by setting the UCR variable 'ucsschool/kelvin/accept-custom-log-driver' to 'true'."
+                echo "Aborting installation/upgrade."
+                return 1
+            fi
+        fi
+    fi
 }
 
 # Only run main when executed directly, not when sourced (e.g., by tests)

@@ -28,3 +28,10 @@ Description = The app should restart if certificates are updated.
 Description[de] = Die app soll neu starten, falls Zertifikate aktualisiert wurden.
 InitialValue = true
 Scope = outside
+
+[ucsschool/kelvin/accept-custom-log-driver]
+Type = Bool
+Description = On installation or upgrade, Kelvin will check if the default log driver is enabled and will block installation/upgrade if not as another log driver can break logging for the Kelvin API. By setting this variable to "yes", this check is not done.
+Description[de] = Bei Installation oder Aktualisierung prüft Kelvin, ob der Standard Docker Log Driver aktiv ist und blockiert die Installation/Aktualisierung, falls nicht. Dieser Check wird nicht durchgeführt, wenn dieser Variable der Wert "yes" zugewiesen ist.
+InitialValue = false
+Scope = outside
