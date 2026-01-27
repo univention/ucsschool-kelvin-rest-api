@@ -167,6 +167,8 @@ schools, classes, workgroups, users, and roles.
 Only the scale, distribution, and infrastructure sizing differ between the
 environments.
 
+> Each user has 5–20 extended attributes.
+
 > These KPIs will be revisited when support for custom roles is added to the Kelvin API.
 
 ---
