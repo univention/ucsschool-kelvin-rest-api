@@ -275,13 +275,6 @@ to detect relative changes and regressions over time.
   - `X` DC replicate nodes (one per school)
   - `Y` backup nodes
 
-> **TODO sync with PM/PS expectations**
->
-> - [ ] Validate dataset sizes and ratios with stakeholders
-> - [ ] Define concrete infra sizing parameters (`X`, `Y`) for `SERVER_MEDIUM`
-> - [ ] Confirm which reference environment is authoritative for contractual SLOs
-
-
 ---
 
 ### 10.1.3 API performance targets (SERVER_MEDIUM; draft)
@@ -327,9 +320,3 @@ assuming approximately 50–100 concurrent API requests.
 - Regular sync: machine-to-machine operations, typically nightly or scheduled
 - Interactive sync: user-facing operations where latency is directly perceived
 - Measurement window for throughput: sustained for at least 10 minutes under steady-state conditions without backlog growth.
-
-> **TODO sync with PM/PS expectations**
->
-> * [ ] Align delay vs. throughput as primary SLO
-> * [ ] Define measurement windows and load assumptions
-
