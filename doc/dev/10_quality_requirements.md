@@ -208,7 +208,7 @@ for structural changes (e.g. partitioning, sharding, or architectural refactorin
 
   - `1` Primary Directory Node
   - `42.000` Replica Directory Nodes (one per school)
-  - `2` Backup Directory Nodes
+  - `20` Backup Directory Nodes
 
 > This dataset is retained for future-proof performance tests in later iterations.
 > At the moment, loading this scale into LDAP may be too slow to be practical.
@@ -245,7 +245,7 @@ and stakeholder alignment.
 
   - `1` Primary Directory Node
   - `6.000` Replica Directory Nodes (one per school)
-  - `2` Backup Directory Nodes
+  - `8` Backup Directory Nodes
 
 ---
 
