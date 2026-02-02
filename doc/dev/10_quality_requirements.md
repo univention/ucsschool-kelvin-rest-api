@@ -206,9 +206,9 @@ for structural changes (e.g. partitioning, sharding, or architectural refactorin
 
 - Infra sizing:
 
-  - One DC primary node
-  - `42.000` DC replicate nodes (one per school)
-  - `2` backup nodes
+  - `1` Primary Directory Node
+  - `42.000` Replica Directory Nodes (one per school)
+  - `2` Backup Directory Nodes
 
 > This dataset is retained for future-proof performance tests in later iterations.
 > At the moment, loading this scale into LDAP may be too slow to be practical.
@@ -243,9 +243,9 @@ and stakeholder alignment.
 
 - Infra sizing:
 
-  - One DC primary node
-  - `6.000` DC replicate nodes (one per school)
-  - `2` backup nodes
+  - `1` Primary Directory Node
+  - `6.000` Replica Directory Nodes (one per school)
+  - `2` Backup Directory Nodes
 
 ---
 
@@ -278,9 +278,9 @@ to detect relative changes and regressions over time.
 
 - Infra sizing:
 
-  - One DC primary node
-  - `550` DC replicate nodes (one per school)
-  - `2` backup nodes
+  - `1` Primary Directory Node
+  - `550` Replica Directory Nodes (one per school)
+  - `2` Backup Directory Nodes
 
 ---
 
