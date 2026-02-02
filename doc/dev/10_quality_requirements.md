@@ -229,11 +229,11 @@ and stakeholder alignment.
     - Working groups: `55.000` (10 per school)
 
   - Users: `8.250.000`
-   - students: `3.000.000`
-   - legal guardians: `5.000.000` (1.7 × students)
-   - teachers: `200.000` (1 per 14 students)
-   - admins: `20.000` (3 per school)
-   - staff: `30.000` (5 per school)
+    - students: `3.000.000`
+    - legal guardians: `5.000.000` (1.7 × students)
+    - teachers: `200.000` (1 per 14 students)
+    - admins: `20.000` (3 per school)
+    - staff: `30.000` (5 per school)
 
 - Infra sizing:
 
@@ -259,8 +259,8 @@ to detect relative changes and regressions over time.
   - Schools: `550`
 
   - Groups: `18.000`
-     - Classes: `12.000` (27 per student)
-     - Working groups: `5.500` (10 per school)
+    - Classes: `12.000` (27 per student)
+    - Working groups: `5.500` (10 per school)
 
   - Users: `835.000`
     - students: `300.000`
