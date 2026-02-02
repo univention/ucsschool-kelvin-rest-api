@@ -167,7 +167,13 @@ schools, classes, workgroups, users, and roles.
 Only the scale, distribution, and infrastructure sizing differ between the
 environments.
 
-> These KPIs will be revisited when support for custom roles is added to the Kelvin API.
+> Each user has 60 extended attributes.
+>
+> *The figure of 60 extended attributes is only a rough estimate. The actual number
+> depends heavily on the amount and types of software installed. See also the
+> discussion [here](https://git.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api/-/merge_requests/187#note_612596).*
+
+> The following KPIs will be revisited when support for custom roles is added to the Kelvin API.
 
 ---
 
@@ -201,8 +207,8 @@ for structural changes (e.g. partitioning, sharding, or architectural refactorin
 - Infra sizing:
 
   - One DC primary node
-  - `X` DC replicate nodes (one per school)
-  - `Y` backup nodes
+  - `42.000` DC replicate nodes (one per school)
+  - `2` backup nodes
 
 > This dataset is retained for future-proof performance tests in later iterations.
 > At the moment, loading this scale into LDAP may be too slow to be practical.
@@ -238,7 +244,8 @@ and stakeholder alignment.
 - Infra sizing:
 
   - One DC primary node
-  - Optional replicate nodes depending on deployment topology
+  - `6.000` DC replicate nodes (one per school)
+  - `2` backup nodes
 
 ---
 
@@ -272,8 +279,8 @@ to detect relative changes and regressions over time.
 - Infra sizing:
 
   - One DC primary node
-  - `X` DC replicate nodes (one per school)
-  - `Y` backup nodes
+  - `550` DC replicate nodes (one per school)
+  - `2` backup nodes
 
 ---
 
