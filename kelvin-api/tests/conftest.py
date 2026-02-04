@@ -57,12 +57,11 @@ from ucsschool.importer.configuration import Configuration, ReadOnlyDict
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.kelvin.constants import UDM_MAPPED_PROPERTIES_CONFIG_FILE
 from ucsschool.kelvin.import_config import get_import_config
-from ucsschool.kelvin.ldap import uldap_admin_read_local
 from ucsschool.kelvin.routers.school import SchoolCreateModel
 from ucsschool.kelvin.routers.user import PasswordsHashes, UserCreateModel
 from ucsschool.kelvin.token_auth import create_access_token
 from ucsschool.lib.models.user import User
-from ucsschool.lib.models.utils import env_or_ucr
+from ucsschool.lib.models.utils import env_or_ucr, uldap_admin_read_local, uldap_admin_read_primary
 from udm_rest_client import UDM, UdmObject
 from univention.config_registry import ConfigRegistry
 
@@ -867,7 +866,8 @@ def reset_import_config_module():
 @pytest.fixture
 def check_password():
     async def _func(bind_dn: str, bind_pw: str) -> None:
-        uldap = uldap_admin_read_local()
+        on_primary = env_or_ucr("server/role") == "master"
+        uldap = uldap_admin_read_primary() if not on_primary else uldap_admin_read_local()
         UCSUser.test_bind(ldap=uldap, dn=bind_dn, password=bind_pw)
         logger.debug("Login success.")
 
@@ -882,7 +882,8 @@ def password_hash(check_password, create_ou_using_python, new_udm_user):
         user_dn, user = await new_udm_user(
             ou, "student", disabled=False, password=password, school_classes={}, workgroups={}
         )
-        uldap = uldap_admin_read_local()
+        on_primary = env_or_ucr("ldap/server/type") == "master"
+        uldap = uldap_admin_read_primary() if not on_primary else uldap_admin_read_local()
         await check_password(user_dn, password)
         # get hashes of user2
         search_filter = f"(uid={user['username']})"

@@ -100,10 +100,20 @@ def compare_attr_and_lib_user(attr: Dict[str, Any], user: User):
         else:
             val1 = v
             val2 = getattr(user, k)
-        if isinstance(v, list):
-            val1 = set(val1)
-            val2 = set(val2)
-        assert val1 == val2
+
+            if isinstance(v, dict):
+                assert set(val1.keys()) == set(val2.keys())
+                for k, v in val1.items():
+                    if isinstance(v, list):
+                        assert set(v) == set(val2[k])
+                    else:
+                        assert v == val2[k]
+            elif isinstance(v, list):
+                val1 = set(val1)
+                val2 = set(val2)
+                assert val1 == val2
+            else:
+                assert val1 == val2
 
 
 def make_ucsschool_roles(user_cls: Type[User], schools: List[str]) -> List[str]:

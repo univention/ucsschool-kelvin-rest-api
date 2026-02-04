@@ -10,7 +10,9 @@ from typing import Any, Dict, List, Set, Tuple
 import factory
 import pytest
 import pytest_asyncio
+from aiohttp import ClientOSError
 from faker import Faker
+from uldap3 import NoObject
 
 import ucsschool.lib.models.user
 from ucsschool.lib.create_ou import create_ou
@@ -304,7 +306,10 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs, 
             share_obj.props.ucsschoolRole = [
                 create_ucsschool_role_string(role_school_class_share, school),
             ]
-            await share_obj.save()
+            try:
+                await share_obj.save()
+            except ClientOSError:
+                await share_obj.save()
             wait_for_replication(share_obj.dn)
             created_school_shares.append(share_obj.dn)
             logger.debug("Created new ClassShare: %r.", share_obj)
@@ -365,7 +370,10 @@ async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs, wait_f
             share_obj.props.ucsschoolRole = [
                 create_ucsschool_role_string(role_workgroup_share, school),
             ]
-            await share_obj.save()
+            try:
+                await share_obj.save()
+            except ClientOSError:
+                await share_obj.save()
             wait_for_replication(share_obj.dn)
             created_wg_shares.append(share_obj.dn)
             logger.debug("Created new ClassShare: %r.", share_obj)
@@ -1018,14 +1026,17 @@ def wait_for_replication():
         end = start + datetime.timedelta(seconds=timeout)
         uldap_local = uldap_admin_read_local()
         while datetime.datetime.now() < end:
-            if uldap_local.search_dn(search_filter=filter_s, search_base=search_base):
-                logger.debug(
-                    "DN %r was found in local LDAP after %d seconds.",
-                    dn,
-                    (datetime.datetime.now() - start).seconds,
-                )
-                return
-            time.sleep(1)
+            try:
+                if uldap_local.search_dn(search_filter=filter_s, search_base=search_base):
+                    logger.debug(
+                        "DN %r was found in local LDAP after %d seconds.",
+                        dn,
+                        (datetime.datetime.now() - start).seconds,
+                    )
+                    return
+                time.sleep(1)
+            except NoObject:
+                pass
         raise AssertionError(
             f"DN {dn!r} was not found in local LDAP after {(datetime.datetime.now() - start).seconds} "
             f"seconds."
