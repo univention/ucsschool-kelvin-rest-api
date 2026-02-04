@@ -638,7 +638,8 @@ def uldap_admin_write_primary(conf: LdapConfig = None) -> LdapWrite:
     return LdapWrite(settings=conf, admin=True, primary=True)
 
 
-def uldap_exists(search_filter: str, search_base: str = None, primary: bool = False) -> bool:
-    uldap = uldap_admin_read_primary() if primary else uldap_admin_read_local()
+def uldap_exists(search_filter: str, search_base: str = None) -> bool:
+    on_primary = ucr.get("ldap/server/type") == "master"
+    uldap = uldap_admin_read_primary() if not on_primary else uldap_admin_read_local()
     search_base = search_base or uldap.settings.ldap_base
     return bool(uldap.search_dn(search_filter=search_filter, search_base=search_base))

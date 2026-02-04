@@ -48,7 +48,7 @@ from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.lib.create_ou import create_ou
 from ucsschool.lib.models.computer import AnyComputer, SchoolDCSlave
 from ucsschool.lib.models.school import School
-from ucsschool.lib.models.utils import env_or_ucr
+from ucsschool.lib.models.utils import env_or_ucr, ucr, uldap_admin_read_primary
 from ucsschool.lib.schoolldap import name_from_dn
 from udm_rest_client import UDM
 
@@ -120,7 +120,8 @@ class SchoolModel(SchoolCreateModel, APIAttributesMixin):
 def computer_dn2name(dn: str) -> Optional[str]:
     if not dn:
         return None
-    uldap = uldap_admin_read_local()
+    on_primary = ucr.get("ldap/server/type") == "master"
+    uldap = uldap_admin_read_primary() if not on_primary else uldap_admin_read_local()
     filter_s, base = dn.split(",", 1)
     filter_s = f"({filter_s})"
     try:
