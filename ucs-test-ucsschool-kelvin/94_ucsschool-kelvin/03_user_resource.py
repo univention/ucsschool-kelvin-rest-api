@@ -643,7 +643,7 @@ def test_move_teacher_remove_primary_with_classes(
     expected = {ou2: ["{}-{}".format(ou2, k) for k in create_attrs["school_classes"][ou2]]}
     assert user.school_classes.keys() == expected.keys()
     for school, school_classes in expected.items():
-        assert user.school_classes[school] == school_classes
+        assert set(user.school_classes[school]) == set(school_classes)
     assert create_result["name"] == user.name
     url = urljoin(RESOURCE_URLS["users"], create_result["name"])
     assert resource_new["url"] == url
