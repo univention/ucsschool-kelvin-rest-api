@@ -5,14 +5,15 @@
 Developer docu for building the UCS\@school Kelvin REST API
 ===========================================================
 
-HTML is built using a Docker container with Sphinx: https://github.com/keimlink/docker-sphinx-doc
+HTML is built using a Univention's docker container with Sphinx
 
 Initial docs
 ------------
 
-The initial ``docs`` content was created with::
+You can render the content of ``docs`` and ``dev`` by using the following commands::
 
-    $ docker run -u "$(id -u):$(id -g)" -it --rm -v "$(pwd)/docs":/home/python/docs keimlink/sphinx-doc:1.7.1 sphinx-quickstart docs
+    $ cd ucsschool-lelvin-rest-api/doc
+    $ make html
 
 You don't have to do this anymore. This is here just for documentations sake.
 
@@ -23,7 +24,9 @@ To have the HTML output served at http://127.0.0.1:8000 and auto-rebuild when a 
 
 Start a Docker container that will build and serve the docs at http://127.0.0.1:8000::
 
-    $ docker run -ti --rm -v "$PWD:/project" -w /project -u $UID --network=host --pull=always docker-registry.knut.univention.de/knut/sphinx-base:latest make -C docs livehtml
+    $ make livehtml-dev
+    or
+    $ make livehtml-docs
 
 To stop the container hit ``Ctrl-C``.
 
