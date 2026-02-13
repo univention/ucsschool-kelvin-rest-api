@@ -50,6 +50,7 @@ variables:
   APP_BASE_VERSION: "999.0.0-staging"
   APP_UCS_VERSION: "5.2"
   DOCS_DIR: "doc/docs"
+  DEV_DOCS_DIR: "doc/dev"
   APP_ID: "ucsschool-kelvin-rest-api"
   APP_NAME: "5.2/$APP_ID"
   PACKAGE: "ucs-test-ucsschool-kelvin"
@@ -68,6 +69,40 @@ variables:
       - "true"
       - "false"
     description: "Force appcenter upload"
+
+devdocs-html:
+  extends: .sphinx-html-template
+  variables:
+    DOCS_DIR: $DEV_DOCS_DIR
+  rules:
+    - changes:
+        - $DEV_DOCS_DIR/**/*
+
+devdocs-pdf:
+  extends: .sphinx-pdf-template
+  variables:
+    DOCS_DIR: $DEV_DOCS_DIR
+    GIT_DEPTH: 100
+  rules:
+    - changes:
+        - $DEV_DOCS_DIR/**/*
+
+devdocs-linkcheck:
+  extends: .sphinx-linkcheck-template
+  variables:
+    DOCS_DIR: $DEV_DOCS_DIR
+    GIT_DEPTH: 100
+  rules:
+    - changes:
+        - $DEV_DOCS_DIR/**/*
+
+devdocs-spelling:
+  extends: .sphinx-spelling-template
+  variables:
+    DOCS_DIR: $DEV_DOCS_DIR
+  rules:
+    - changes:
+        - $DEV_DOCS_DIR/**/*
 
 docs-html:
   extends: .sphinx-html-template
