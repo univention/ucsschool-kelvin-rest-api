@@ -1,7 +1,14 @@
 Codegen
 firstname
+gitlab
+json
 keyset
 lastname
+openAPI
+plantuml
+Postcondition
+Postconditions
+Pydantic
 resync
 resynced
 resynchronization
@@ -11,5 +18,6 @@ sharded
 sharding
 shards
 ucsschool
+Unprocessable
 uptime
 url
