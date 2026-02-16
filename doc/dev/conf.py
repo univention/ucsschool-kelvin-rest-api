@@ -38,7 +38,6 @@ if release:
 if not release or "usage:" in release:
     release = "&lt;MANUAL_BUILD&gt;"
 
-
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -205,6 +204,17 @@ if "spelling" in sys.argv:
     spelling_show_suggestions = True
     spelling_word_list_filename = list()
     spelling_word_list_filename = ["spelling_wordlist"]
+
+# Ignore anchors like #note_<number>
+linkcheck_anchors_ignore = [
+    r"^note_\d+$",
+]
+
+# Apply anchor-ignoring ONLY to:
+# https://git.knut.univention.de/<...>/<...>/merge_requests/<id>
+linkcheck_anchors_ignore_for_url = [
+    r"^https://git\.knut\.univention\.de/(?!.*?/-/).+?/merge_requests/\d+",
+]
 
 linkcheck_allowed_redirects = {
     r"https://help\.univention\.com/t/\d+": r"https://help\.univention\.com/t/[\w-]+/\d+",
