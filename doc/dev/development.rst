@@ -5,7 +5,7 @@
 Development
 ===========
 
-Local developemnt setup
+Local development setup
 -----------------------
 
 * 🚧 What requirements are needed?

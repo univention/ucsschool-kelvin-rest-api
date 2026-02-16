@@ -5,7 +5,7 @@
 Glossary
 ========
 
-Explanation of domainspecific terms and abbreviations:
+Explanation of domain specific terms and abbreviations:
 
 * 🚧 Provisioning Service: ...
 * 🚧 Role: ...

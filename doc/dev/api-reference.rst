@@ -25,7 +25,7 @@ Endpoints
 
 If a reference to the swagger API / openAPI json might not be sufficient:
 
-Per ressource:
+Per resource:
 - 🚧 available methods/operations
 - 🚧 Request/Response example
 - 🚧 Permissions
