@@ -2,7 +2,7 @@
 ..
 .. SPDX-License-Identifier: AGPL-3.0-only
 
-Synchronisation to Nubus
+Synchronization to Nubus
 ========================
 
 * 🚧 Why is there a Kelvin connector?
