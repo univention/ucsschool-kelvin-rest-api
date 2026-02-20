@@ -4,87 +4,115 @@
 
 ```mermaid
 erDiagram
-  %% Goal: keep core identity + membership + roles in 3NF,
-  %% but model *dynamic* attributes in 6NF (one table per attribute).
+    OBJECTTYPE {
+      string name PK
+    }
 
-  %% --- Dynamic attribute catalogue (3NF) ---
-  %% This describes which dynamic-attribute tables exist per object type.
-  objecttype {
-    string name PK
-  }
-  attributecatalogue {
-    int     id                  PK
-    string  object_type_name    FK
-    string  name
-    string  type
-    boolean index
-    boolean required
-  }
-  objecttype ||--o{ attributecatalogue : defines_attrs_for
+    ATTRIBUTECATALOGUE {
+      int id PK
+      string object_type_name FK
+      string name
+      string type
+      boolean index
+      boolean required
+    }
 
-  %% --- Core (3NF) ---
-  sqluser {
-    string object_type_name     FK
-    uuid   id                   PK
-    string name
-    string firstname
-    string lastname
-    string password
-    uuid   primary_group_id     FK
-  }
+    SCHOOL {
+      uuid id PK
+      string name
+    }
 
-  sqlgroup {
-    uuid   id                   PK
-    string object_type_name     FK
-    string name
-  }
+    "USER" {
+      uuid id PK
+      string object_type_name FK
+      uuid primary_group_id FK
+      string name
+      string firstname
+      string lastname
+      string password
+    }
 
-  groupmemberlink {
-    uuid group_id   PK
-    uuid user_id    PK
-  }
+    "GROUP" {
+      uuid id PK
+      string object_type_name FK
+      string name
+    }
 
-  %% Group roles (deduplicated many-to-many, 3NF)
-  grouprole {
-    int    id       PK
-    string value
-  }
-  sqlgrouprolelink {
-    uuid group_id   PK
-    int  role_id    PK
-  }
+    USER_ROLE {
+      int id PK
+      string value
+    }
 
-  %% Relationships
-  objecttype ||--o{ sqluser : typed_as
-  objecttype ||--o{ sqlgroup : typed_as
-  sqlgroup ||--o{ sqluser : primary_group_of
-  sqluser  ||--o{ groupmemberlink : member_of
-  sqlgroup ||--o{ groupmemberlink : has_member
+    USER_SCHOOL_ROLE_LINK {
+      uuid user_id PK, FK
+      int role_id PK, FK
+      uuid school_id PK, FK
+    }
 
-  sqlgroup  ||--o{ sqlgrouprolelink : has_roles
-  grouprole ||--o{ sqlgrouprolelink : role_values
+    GROUP_MEMBER_LINK {
+      uuid group_id PK, FK
+      uuid user_id PK, FK
+    }
 
-  %% --- Dynamic attributes (6NF) ---
-  %% Each dynamic attribute lives in its own table:
-  %% - single-value: (id PK/FK -> sqluser.id)
-  %% - multi-value:  (t_id PK) + (id FK -> sqluser.id)
+    GROUP_ROLE {
+      int id PK
+      string value
+    }
 
-  sqluser ||--|| sqluser_birthday : dyn_single
-  sqluser_birthday {
-    uuid id         PK
-    date value
-  }
+    GROUP_ROLE_LINK {
+      uuid group_id PK, FK
+      int role_id PK, FK
+    }
 
-  sqluser ||--o{ sqluser_emails : dyn_multi
-  sqluser_emails {
-    int  t_id       PK
-    uuid id         FK
-    string value
-  }
+    %% Dynamic attribute tables (assumed 3 each)
+    USER_EXT_ATTR1 {
+      uuid id FK
+      any value
+    }
+    USER_EXT_ATTR2 {
+      uuid id FK
+      any value
+    }
+    USER_EXT_ATTR3 {
+      uuid id FK
+      any value
+    }
 
-  sqluser ||--|| sqluser_some_id : dyn_single
-  sqluser_some_id {
-    uuid id         PK
-    uuid value
-  }
+    GROUP_EXT_ATTR1 {
+      uuid id FK
+      any value
+    }
+    GROUP_EXT_ATTR2 {
+      uuid id FK
+      any value
+    }
+    GROUP_EXT_ATTR3 {
+      uuid id FK
+      any value
+    }
+
+    %% Relationships
+    OBJECTTYPE ||--o{ ATTRIBUTECATALOGUE : catalogs
+    OBJECTTYPE ||--o{ "USER" : types
+    OBJECTTYPE ||--o{ "GROUP" : types
+
+    "GROUP" ||--o{ "USER" : primary_group
+    "USER"  ||--o{ USER_SCHOOL_ROLE_LINK : has
+    SCHOOL  ||--o{ USER_SCHOOL_ROLE_LINK : scopes
+    USER_ROLE ||--o{ USER_SCHOOL_ROLE_LINK : assigns
+
+    "GROUP" ||--o{ GROUP_MEMBER_LINK : has_members
+    "USER"  ||--o{ GROUP_MEMBER_LINK : member_of
+
+    "GROUP" ||--o{ GROUP_ROLE_LINK : has_roles
+    GROUP_ROLE ||--o{ GROUP_ROLE_LINK : assigned_to
+
+    %% Dynamic attributes: base object -> extension rows
+    "USER"  ||--o{ USER_EXT_ATTR1 : ext
+    "USER"  ||--o{ USER_EXT_ATTR2 : ext
+    "USER"  ||--o{ USER_EXT_ATTR3 : ext
+
+    "GROUP" ||--o{ GROUP_EXT_ATTR1 : ext
+    "GROUP" ||--o{ GROUP_EXT_ATTR2 : ext
+    "GROUP" ||--o{ GROUP_EXT_ATTR3 : ext
 ```
