@@ -78,14 +78,17 @@ devdocs-html:
     - changes:
         - $DEV_DOCS_DIR/**/*
 
-devdocs-pdf:
-  extends: .sphinx-pdf-template
-  variables:
-    DOCS_DIR: $DEV_DOCS_DIR
-    GIT_DEPTH: 100
-  rules:
-    - changes:
-        - $DEV_DOCS_DIR/**/*
+# NOTE mmdc not available in sphinx builder. Dispatch a fix in the following ticket
+#      https://git.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api/-/issues/197
+#
+# devdocs-pdf:
+#   extends: .sphinx-pdf-template
+#   variables:
+#     DOCS_DIR: $DEV_DOCS_DIR
+#     GIT_DEPTH: 100
+#   rules:
+#     - changes:
+#         - $DEV_DOCS_DIR/**/*
 
 devdocs-linkcheck:
   extends: .sphinx-linkcheck-template
