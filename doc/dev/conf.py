@@ -56,6 +56,7 @@ extensions = [
     "sphinx_last_updated_by_git",
     "sphinx.ext.intersphinx",
     "sphinxcontrib.bibtex",
+    "sphinxcontrib.mermaid",
 ]
 
 suppress_warnings = ["git.too_shallow"]
