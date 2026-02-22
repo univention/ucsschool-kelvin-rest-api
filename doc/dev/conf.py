@@ -56,6 +56,7 @@ extensions = [
     "sphinx_last_updated_by_git",
     "sphinx.ext.intersphinx",
     "sphinxcontrib.bibtex",
+    "sphinxcontrib.mermaid",
 ]
 
 suppress_warnings = ["git.too_shallow"]
@@ -98,6 +99,11 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
 
+
+# -- Options for Mermaid Graphics --------------------------------------------
+
+# For HTML builds:
+mermaid_d3_zoom = True
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -231,3 +237,5 @@ univention_feedback = True
 # Information about the license statement for the source files
 univention_pdf_show_source_license = True
 univention_doc_basename = doc_basename
+autosectionlabel_maxdepth = 2
+autosectionlabel_prefix_document = True
