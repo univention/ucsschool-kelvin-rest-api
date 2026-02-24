@@ -211,7 +211,7 @@ for structural changes (e.g. partitioning, sharding, or architectural refactorin
   - Schools: ``42.000``
 
   - Groups: ``920.000``
-    - Classes: ``500.000`` (27 per student)
+    - Classes: ``500.000`` (27 students per class)
     - Working groups: ``420.000`` (10 per school)
 
   - Users: ``34.140.000``
@@ -247,9 +247,9 @@ and stakeholder alignment.
 
   - Schools: ``6.000``
 
-  - Groups: ``155.000``
-    - Classes: ``100.000`` (27 per student)
-    - Working groups: ``55.000`` (10 per school)
+  - Groups: ``172.000``
+    - Classes: ``112.000`` (27 students per class)
+    - Working groups: ``60.000`` (10 per school)
 
   - Users: ``8.250.000``
     - students: ``3.000.000``
@@ -282,7 +282,7 @@ to detect relative changes and regressions over time.
   - Schools: ``550``
 
   - Groups: ``18.000``
-    - Classes: ``12.000`` (27 per student)
+    - Classes: ``12.000`` (27 students per class)
     - Working groups: ``5.500`` (10 per school)
 
   - Users: ``835.000``
