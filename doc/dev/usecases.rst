@@ -343,8 +343,156 @@ Bulk manage objects
 UC-002a: Bulk Create Object
 ---------------------------
 
-UC-002b: Bulk Modify Object
+:Actor: All actors
+:Priority: Must-have
+:Related Requirements: FR-001, NFR-S02
+
+Description
+^^^^^^^^^^^
+An actor deletes multiple objects.
+If an object already exists, it is skipped.
+If an error occurs, no objects are created.
+
+Preconditions
+^^^^^^^^^^^^^
+- Actor is authenticated
+
+Main Flow
+^^^^^^^^^
+1. Actor submits object ids
+2. System validates input data
+3. System verifies that actor has permission to create the objects
+4. System creates object records in database
+5. System publishes ``object.created`` event for each object
+6. Sync service receives event and creates objects in directory service
+
+Alternative Flows
+^^^^^^^^^^^^^^^^^
+
+**5a. Directory service unavailable:**
+   1. Events are queued for retry
+   2. Main flow continues (eventual consistency)
+
+Exception Flows
+^^^^^^^^^^^^^^^
+
+**2a. Validation fails:**
+   1. System returns 422 Unprocessable Entity with validation errors
+   2. Use case ends
+**3a. Actor does not have permission for any of the objects:**
+   1. System returns 403 Forbidden
+   2. Use case ends
+**4a. Database returns an integrity error:**
+   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
+   2. System returns 409 Conflict with error details
+   3. Use case ends
+
+Postconditions
+^^^^^^^^^^^^^^
+- Objects are created in database
+- Object creations will be synchronized to directory service (eventually)
+- Audit log entry created
+
+Sequence Diagram
+^^^^^^^^^^^^^^^^
+
+.. mermaid::
+
+   sequenceDiagram
+       Admin ->>API: POST /<object>/bulk
+       API ->>API: Validate input
+       break ValidationError
+           API ->>Admin: 422 Unprocessable Content
+       end
+       API ->>API: Verify permissions
+       break PermissionError
+           API ->>Admin: 403 Forbidden
+       end
+       API ->>PostgreSQL: Create object
+       break IntegrityError
+           API ->>Admin: 409 Conflict
+       end
+       API ->>MessageBroker: Publish object.created events
+       API ->>Admin: 201 Created
+
+       MessageBroker ->> SyncService: object.created
+       SyncService ->> DirectoryService: Create objects
+
+UC-002b: Bulk Update Object
 ---------------------------
+
+:Actor: All actors
+:Priority: Must-have
+:Related Requirements: FR-001, NFR-S02
+
+Description
+^^^^^^^^^^^
+An actor updates multiple objects.
+
+Preconditions
+^^^^^^^^^^^^^
+- Actor is authenticated
+
+Main Flow
+^^^^^^^^^
+1. Actor submits object data
+2. System validates input data
+3. System verifies that actor has permission to update the objects
+4. System deletes object records from database
+5. System publishes ``object.updated`` event for each object
+6. Sync service receives event and updates objects in directory service
+
+Alternative Flows
+^^^^^^^^^^^^^^^^^
+
+**5a. Directory service unavailable:**
+   1. Events are queued for retry
+   2. Main flow continues (eventual consistency)
+
+Exception Flows
+^^^^^^^^^^^^^^^
+
+**2a. Validation fails:**
+   1. System returns 422 Unprocessable Entity with validation errors
+   2. Use case ends
+**3a. Actor does not have permission for any of the objects:**
+   1. System returns 403 Forbidden
+   2. Use case ends
+**4a. Database returns an integrity error:**
+   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
+   2. System returns 409 Conflict with error details
+   3. Use case ends
+
+Postconditions
+^^^^^^^^^^^^^^
+- Objects are updated in database
+- Object changes will be synchronized to directory service (eventually)
+- Audit log entry created
+
+Sequence Diagram
+^^^^^^^^^^^^^^^^
+
+.. mermaid::
+
+   sequenceDiagram
+       Admin ->>API: DELETE /<object>/bulk
+       API ->>API: Validate input
+       break ValidationError
+           API ->>Admin: 422 Unprocessable Content
+       end
+       API ->>API: Verify permissions
+       break PermissionError
+           API ->>Admin: 403 Forbidden
+       end
+       API ->>PostgreSQL: Delete object
+       break IntegrityError
+           API ->>Admin: 409 Conflict
+       end
+       API ->>MessageBroker: Publish object.deleted events
+       API ->>Admin: 200 OK
+
+       MessageBroker ->> SyncService: object.deleted
+       SyncService ->> DirectoryService: Delete objects
 
 UC-002c: Bulk Delete Object
 ---------------------------
@@ -387,7 +535,7 @@ Exception Flows
    1. System returns 403 Forbidden
    2. Use case ends
 **4a. Database returns an integrity error:**
-   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
+   1. System checks which constraint failed
    2. System returns 409 Conflict with error details
    3. Use case ends
 
@@ -422,9 +570,21 @@ Sequence Diagram
        MessageBroker ->> SyncService: object.deleted
        SyncService ->> DirectoryService: Delete objects
 
+Searching
+=========
+
+UC-003a: Simple search
+----------------------
+
+UC-003b: Complex search
+----------------------
+
+Monitoring
+==========
+
 .. _uc010_:
 
-UC-010: Health Check
+UC-004a: Health Check
 --------------------
 
 Returns a list of health checks
@@ -436,7 +596,7 @@ Health check:
 
 .. _uc011_:
 
-UC-011: Statistics
+UC-004b: Statistics
 ------------------
 
 How many successful operations have been performed in the last minute, hour, day.
