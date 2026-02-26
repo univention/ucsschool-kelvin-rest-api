@@ -100,6 +100,11 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 pygments_style = "sphinx"
 
 
+# -- Options for Mermaid Graphics --------------------------------------------
+
+# For HTML builds:
+mermaid_d3_zoom = True
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
