@@ -27,7 +27,7 @@ Actor List
 5. School Management Software
 6. Nubus (Kelvin Connector is triggered by Nubus)
 
-.. _uc001_manage_objects:
+.. _uc_section_crud:
 
 Manage Single Objects
 =====================
@@ -39,7 +39,7 @@ The following objects are managed via CRUD operations:
 - Groups
 - Schools
 
-.. _uc001_create_object:
+.. _uc001a_create_object:
 
 UC-001a: Create Object
 ----------------------
@@ -118,7 +118,7 @@ Sequence Diagram
        MessageBroker ->> SyncService: object.created
        SyncService ->> DirectoryService: Create object
 
-.. _uc002_read_object:
+.. _uc001b_read_object:
 
 UC-001b: Read Object
 --------------------
@@ -180,7 +180,7 @@ Sequence Diagram
        end
        API ->>Admin: 200 OK
 
-.. _uc003_update_object:
+.. _uc001c_update_object:
 
 UC-001c: Update Object (partial/full)
 -------------------------------------
@@ -259,7 +259,7 @@ Sequence Diagram
        MessageBroker ->> SyncService: object.updated
        SyncService ->> DirectoryService: Update object
 
-.. _uc004_delete_object:
+.. _uc001d_delete_object:
 
 UC-001d: Delete Object
 ----------------------
@@ -337,8 +337,14 @@ Sequence Diagram
        MessageBroker ->> SyncService: object.deleted
        SyncService ->> DirectoryService: Delete object
 
+
+.. _uc_section_bulk_operations:
+
 Bulk manage objects
 ===================
+
+
+.. _uc-002a_bulk_create:
 
 UC-002a: Bulk Create Object
 ---------------------------
@@ -418,6 +424,9 @@ Sequence Diagram
        MessageBroker ->> SyncService: object.created
        SyncService ->> DirectoryService: Create objects
 
+
+.. _uc002b_bulk_update:
+
 UC-002b: Bulk Update Object
 ---------------------------
 
@@ -493,6 +502,9 @@ Sequence Diagram
 
        MessageBroker ->> SyncService: object.deleted
        SyncService ->> DirectoryService: Delete objects
+
+
+.. _uc002c_bulk_delete:
 
 UC-002c: Bulk Delete Object
 ---------------------------
