@@ -23,40 +23,48 @@ Actor List
 1. Administrators
 2. UCS\@school bulk import software
 3. UCS\@school user interface software
-4. Kelvin Connector
-5. API Operator
-6. School Management Software
+4. API Operator
+5. School Management Software
+6. Nubus (Kelvin Connector is triggered by Nubus)
+
+.. _uc001_manage_objects:
+
+Manage Single Objects
+=====================
 
 
-Manage Users
-============
+The following objects are managed via CRUD operations:
 
-.. _uc001_create_user:
+- Users
+- Groups
+- Schools
 
-UC-001: Create User
--------------------
+.. _uc001_create_object:
 
-:Actor: All actors (besides Kelvin Connector?)
+UC-001a: Create Object
+---------------------
+
+:Actor: All actors
 :Priority: Must-have
 :Related Requirements: FR-001, NFR-S02
 
 Description
 ^^^^^^^^^^^
-An actor creates a new user account and assigns initial group memberships.
+An actor creates a new object.
 
 Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
-- Actor has administrator privileges (member of ``admin`` group)
 
 Main Flow
 ^^^^^^^^^
-1. Actor submits user data (email, display name, initial groups)
+1. Actor submits object data
 2. System validates input data
-3. System creates user record in database
-4. System publishes ``user.created`` event
-5. Sync service receives event and creates user in directory service
-6. System returns created user with assigned ID
+3. System verifies that actor has permission to create the object
+4. System creates object record in database
+5. System publishes ``object.created`` event
+6. Sync service receives event and creates object in directory service
+7. System returns created object with assigned ID
 
 Alternative Flows
 ^^^^^^^^^^^^^^^^^
@@ -71,69 +79,133 @@ Exception Flows
 **2a. Validation fails:**
    1. System returns 422 Unprocessable Entity with validation errors
    2. Use case ends
-**3a. Database returns an integrity error:**
-   1. System checks which constraint failed (e.g. unique constraints like username or email already exists, groups within which the user is a member do not exist, etc.)
+**3a. Actor does not have permission:**
+   1. System returns 403 Forbidden
+   2. Use case ends
+**4a. Database returns an integrity error:**
+   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
    2. System returns 409 Conflict with error details
    3. Use case ends
 
 Postconditions
 ^^^^^^^^^^^^^^
-- User exists in database with status ``active``
-- User will be synchronized to directory service (eventually)
+- Object exists in database
+- Object will be synchronized to directory service (eventually)
 - Audit log entry created
 
 Sequence Diagram
 ^^^^^^^^^^^^^^^^
-
-.. TODO
-   UML rendering see https://git.knut.univention.de/univention/dev/docs/sphinx-docker/-/merge_requests/60
-
 
 .. mermaid::
 
    sequenceDiagram
-       Admin ->>API: POST /users
+       Admin ->>API: POST /<object>
        API ->>API: Validate input
        break ValidationError
            API ->>Admin: 422 Unprocessable Content
        end
-       API ->>PostgreSQL: Insert user
+       API ->>API: Verify permissions
+       break PermissionError
+           API ->>Admin: 403 Forbidden
+       end
+       API ->>PostgreSQL: Insert object
        break IntegrityError
            API ->>Admin: 409 Conflict
        end
-       API ->>MessageBroker: Publish user.created
+       API ->>MessageBroker: Publish object.created
        API ->>Admin: 201 Created
 
-       MessageBroker ->> SyncService: user.created
-       SyncService ->> DirectoryService: Create user
+       MessageBroker ->> SyncService: object.created
+       SyncService ->> DirectoryService: Create object
 
+.. _uc002_read_object:
 
-.. _uc002_modify_user:
-
-UC-002: Modify User
+UC-001b: Read Object
 -------------------
 
-:Actor: All actors (besides Kelvin Connector?)
+:Actor: All actors
 :Priority: Must-have
 :Related Requirements: FR-001, NFR-S02
 
 Description
 ^^^^^^^^^^^
-An actor modifies an existing user account
+An actor read an object with a given ID.
 
 Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
-- Actor has administrator privileges (member of ``admin`` group)
 
 Main Flow
 ^^^^^^^^^
-1. Actor submits changed user data
+1. Actor requests object data
+2. System validates input data (ID)
+3. System verifies that actor has permission to read the object
+4. System retrieves object from database
+
+Exception Flows
+^^^^^^^^^^^^^^^
+
+**2a. Validation fails:**
+   1. System returns 422 Unprocessable Entity with validation errors
+   2. Use case ends
+**3a. Actor does not have permission:**
+   1. System returns 403 Forbidden
+   2. Use case ends
+**4a. Object does not exist:**
+   1. System returns 404 Not Found
+   2. Use case ends
+
+Postconditions
+^^^^^^^^^^^^^^
+- Audit log entry created
+
+Sequence Diagram
+^^^^^^^^^^^^^^^^
+
+.. mermaid::
+
+   sequenceDiagram
+       Admin ->>API: GET /<object>
+       API ->>API: Validate input
+       break ValidationError
+           API ->>Admin: 422 Unprocessable Content
+       end
+       API ->>API: Verify permissions
+       break PermissionError
+           API ->>Admin: 403 Forbidden
+       end
+       API ->>PostgreSQL: Retrieve object
+       break IntegrityError
+           API ->>Admin: 404 Not Found
+       end
+       API ->>Admin: 200 OK
+
+.. _uc003_update_object:
+
+UC-001c: Update Object (partial/full)
+------------------------------------
+
+:Actor: All actors
+:Priority: Must-have
+:Related Requirements: FR-001, NFR-S02
+
+Description
+^^^^^^^^^^^
+An actor updates an object.
+
+Preconditions
+^^^^^^^^^^^^^
+- Actor is authenticated
+
+Main Flow
+^^^^^^^^^
+1. Actor submits object data
 2. System validates input data
-3. System modifies user record in database
-4. System publishes ``user.modified`` event
-5. Sync service receives event and creates user in directory service
-6. System returns modified user
+3. System verifies that actor has permission to update the object
+4. System creates object record in database
+5. System publishes ``object.updated`` event
+6. Sync service receives event and updates object in directory service
+7. System returns updated object with assigned ID
 
 Alternative Flows
 ^^^^^^^^^^^^^^^^^
@@ -148,83 +220,226 @@ Exception Flows
 **2a. Validation fails:**
    1. System returns 422 Unprocessable Entity with validation errors
    2. Use case ends
-**3a. Database returns an integrity error:**
-   1. System checks which constraint failed (e.g. unique constraints like username or email already exists, groups within which the user is a member do not exist, etc.)
+**3a. Actor does not have permission:**
+   1. System returns 403 Forbidden
+   2. Use case ends
+**4a. Database returns an integrity error:**
+   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
    2. System returns 409 Conflict with error details
    3. Use case ends
 
 Postconditions
 ^^^^^^^^^^^^^^
-- User is modified in database
-- User changes will be synchronized to directory service (eventually)
+- Object is updated in database
+- Object changes will be synchronized to directory service (eventually)
 - Audit log entry created
 
 Sequence Diagram
 ^^^^^^^^^^^^^^^^
-.. TODO
-   UML rendering
 
-.. uml::
-   :caption: User modification
-   :name: uc-user-modification
+.. mermaid::
 
-   @startuml
-   actor Admin
-   participant API
-   database PostgreSQL
-   queue MessageBroker
-   participant SyncService
-   participant DirectoryService
+   sequenceDiagram
+       Admin ->>API: PATCH or PUT /<object>
+       API ->>API: Validate input
+       break ValidationError
+           API ->>Admin: 422 Unprocessable Content
+       end
+       API ->>API: Verify permissions
+       break PermissionError
+           API ->>Admin: 403 Forbidden
+       end
+       API ->>PostgreSQL: Update object
+       break IntegrityError
+           API ->>Admin: 409 Conflict
+       end
+       API ->>MessageBroker: Publish object.updated
+       API ->>Admin: 200 OK
 
-   Admin -> API: PUT/PATCH /users
-   API -> API: Validate input
-   API -> PostgreSQL: Update user
-   API -> MessageBroker: Publish user.modified
-   API --> Admin: 200 OK
+       MessageBroker ->> SyncService: object.updated
+       SyncService ->> DirectoryService: Update object
 
-   MessageBroker -> SyncService: user.modified
-   SyncService -> DirectoryService: Modify user
-   @enduml
+.. _uc004_delete_object:
 
-.. _uc003_delete_user:
-
-UC-003: Delete User
--------------------
-
-
-Manage Schools
-==============
-
-.. _uc004_:
-
-UC-004: Create School
+UC-001d: Delete Object
 ---------------------
 
-.. _uc005_:
+:Actor: All actors
+:Priority: Must-have
+:Related Requirements: FR-001, NFR-S02
 
-UC-005: Modify School
----------------------
+Description
+^^^^^^^^^^^
+An actor deletes an object.
 
-.. _uc006_:
+Preconditions
+^^^^^^^^^^^^^
+- Actor is authenticated
 
-UC-006: Delete School
----------------------
+Main Flow
+^^^^^^^^^
+1. Actor submits object id
+2. System validates input data
+3. System verifies that actor has permission to delete the object
+4. System deletes object record from database
+5. System publishes ``object.deleted`` event
+6. Sync service receives event and deletes object in directory service
 
-Manage Groups
-=============
+Alternative Flows
+^^^^^^^^^^^^^^^^^
 
-.. _uc007_:
+**5a. Directory service unavailable:**
+   1. Event is queued for retry
+   2. Main flow continues (eventual consistency)
 
-UC-007: Create Group
+Exception Flows
+^^^^^^^^^^^^^^^
+
+**2a. Validation fails:**
+   1. System returns 422 Unprocessable Entity with validation errors
+   2. Use case ends
+**3a. Actor does not have permission:**
+   1. System returns 403 Forbidden
+   2. Use case ends
+**4a. Database returns an integrity error:**
+   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
+   2. System returns 409 Conflict with error details
+   3. Use case ends
+
+Postconditions
+^^^^^^^^^^^^^^
+- Object is deleted in database
+- Object deletions will be synchronized to directory service (eventually)
+- Audit log entry created
+
+Sequence Diagram
+^^^^^^^^^^^^^^^^
+
+.. mermaid::
+
+   sequenceDiagram
+       Admin ->>API: DELETE /<object>
+       API ->>API: Validate input
+       break ValidationError
+           API ->>Admin: 422 Unprocessable Content
+       end
+       API ->>API: Verify permissions
+       break PermissionError
+           API ->>Admin: 403 Forbidden
+       end
+       API ->>PostgreSQL: Update object
+       break IntegrityError
+           API ->>Admin: 409 Conflict
+       end
+       API ->>MessageBroker: Publish object.deleted
+       API ->>Admin: 200 OK
+
+       MessageBroker ->> SyncService: object.deleted
+       SyncService ->> DirectoryService: Delete object
+
+Bulk manage objects
+===================
+
+UC-002a: Bulk Create Object
+---------------------------
+
+UC-002b: Bulk Modify Object
+---------------------------
+
+UC-002c: Bulk Delete Object
+---------------------------
+
+:Actor: All actors
+:Priority: Must-have
+:Related Requirements: FR-001, NFR-S02
+
+Description
+^^^^^^^^^^^
+An actor deletes multiple objects.
+
+Preconditions
+^^^^^^^^^^^^^
+- Actor is authenticated
+
+Main Flow
+^^^^^^^^^
+1. Actor submits object ids
+2. System validates input data
+3. System verifies that actor has permission to delete the objects
+4. System deletes object records from database
+5. System publishes ``object.deleted`` event for each object
+6. Sync service receives event and deletes objects in directory service
+
+Alternative Flows
+^^^^^^^^^^^^^^^^^
+
+**5a. Directory service unavailable:**
+   1. Events are queued for retry
+   2. Main flow continues (eventual consistency)
+
+Exception Flows
+^^^^^^^^^^^^^^^
+
+**2a. Validation fails:**
+   1. System returns 422 Unprocessable Entity with validation errors
+   2. Use case ends
+**3a. Actor does not have permission for any of the objects:**
+   1. System returns 403 Forbidden
+   2. Use case ends
+**4a. Database returns an integrity error:**
+   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
+   2. System returns 409 Conflict with error details
+   3. Use case ends
+
+Postconditions
+^^^^^^^^^^^^^^
+- Objects are deleted in database
+- Object deletions will be synchronized to directory service (eventually)
+- Audit log entry created
+
+Sequence Diagram
+^^^^^^^^^^^^^^^^
+
+.. mermaid::
+
+   sequenceDiagram
+       Admin ->>API: DELETE /<object>/bulk
+       API ->>API: Validate input
+       break ValidationError
+           API ->>Admin: 422 Unprocessable Content
+       end
+       API ->>API: Verify permissions
+       break PermissionError
+           API ->>Admin: 403 Forbidden
+       end
+       API ->>PostgreSQL: Delete object
+       break IntegrityError
+           API ->>Admin: 409 Conflict
+       end
+       API ->>MessageBroker: Publish object.deleted events
+       API ->>Admin: 200 OK
+
+       MessageBroker ->> SyncService: object.deleted
+       SyncService ->> DirectoryService: Delete objects
+
+.. _uc010_:
+
+UC-010: Health Check
 --------------------
 
-.. _uc008_:
+Returns a list of health checks
+Health check:
+- Connectivity to database
+- Connectivity to directory service
+- Percentage of successful operations above a certain threshold
 
-UC-008: Modify Group
---------------------
 
-.. _uc009_:
+.. _uc011_:
 
-UC-009: Delete Group
---------------------
+UC-011: Statistics
+------------------
+
+How many successful operations have been performed in the last minute, hour, day.
+How many unsuccessful operations have been performed in the last minute, hour, day.
+
 
