@@ -582,37 +582,291 @@ Sequence Diagram
        MessageBroker ->> SyncService: object.deleted
        SyncService ->> DirectoryService: Delete objects
 
+
+.. _uc_section_search_operations:
+
 Searching
 =========
+
+.. _uc003a_simple_search:
 
 UC-003a: Simple search
 ----------------------
 
+:Actor: All actors
+:Priority: Must-have
+:Related Requirements:
+
+Description
+^^^^^^^^^^^
+An actor retrieves a paginated and sorted list of objects without additional filter criteria.
+
+Preconditions
+^^^^^^^^^^^^^
+- Actor is authenticated
+
+Main Flow
+^^^^^^^^^
+1. Actor requests a list of objects with optional ``page``, ``page_size``, and ``sort`` parameters
+2. System validates the pagination and sorting parameters
+3. System verifies that actor has permission to list the resource
+4. System retrieves the requested page of objects from the database, applying the requested sort order
+5. System returns the result set together with pagination metadata (total count, current page, page size)
+
+Exception Flows
+^^^^^^^^^^^^^^^
+
+**2a. Validation fails:**
+   1. System returns 422 Unprocessable Entity with validation errors
+   2. Use case ends
+**3a. Actor does not have permission:**
+   1. System returns 403 Forbidden
+   2. Use case ends
+
+Postconditions
+^^^^^^^^^^^^^^
+- Audit log entry created
+
+Sequence Diagram
+^^^^^^^^^^^^^^^^
+
+.. mermaid::
+
+   sequenceDiagram
+      participant A as Actor
+
+      A ->>API: GET /<object>?page=1&page_size=50&sort=name
+      API ->>API: Validate input
+      break ValidationError
+          API ->>A: 422 Unprocessable Content
+      end
+      API ->>API: Verify permissions
+      break PermissionError
+          API ->>A: 403 Forbidden
+      end
+      API ->>PostgreSQL: Query objects (paginated, sorted)
+      API ->>A: 200 OK (result set + pagination metadata)
+
+.. _uc003b_complex_search:
+
 UC-003b: Complex search
 -----------------------
+
+:Actor: All actors
+:Priority: Must-have
+:Related Requirements:
+
+Description
+^^^^^^^^^^^
+An actor searches for objects using one or more of the following criteria:
+
+- Attribute filters (exact match on one or more fields)
+- Wildcard and substring matching on string fields
+- Full-text search across indexed text fields
+- Nested or relational filters (e.g. all users belonging to a specific class)
+- Logical operators (``AND``, ``OR``, ``NOT``) to combine filter conditions
+
+Results are paginated and sorted.
+
+Preconditions
+^^^^^^^^^^^^^
+- Actor is authenticated
+
+Main Flow
+^^^^^^^^^
+1. Actor submits a search request with one or more filter expressions and optional ``page``, ``page_size``, and ``sort`` parameters
+2. System validates and parses the filter expressions (field names, operators, values)
+3. System verifies that actor has permission to search the resource
+4. System executes the query against the database using indexed filters
+5. System returns the paginated result set together with pagination metadata (total count, current page, page size)
+
+Alternative Flows
+^^^^^^^^^^^^^^^^^
+
+**4a. No objects match the search criteria:**
+   1. System returns ``200 OK`` with an empty result list and a total count of 0
+   2. Use case ends
+
+Exception Flows
+^^^^^^^^^^^^^^^
+
+**2a. Validation or filter parsing fails:**
+   1. System returns 422 Unprocessable Entity with validation errors indicating the invalid field, operator, or value
+   2. Use case ends
+**2b. Query targets non-indexed or unbounded fields:**
+   1. System returns 400 Bad Request
+   2. Use case ends
+**3a. Actor does not have permission:**
+   1. System returns 403 Forbidden
+   2. Use case ends
+
+Postconditions
+^^^^^^^^^^^^^^
+- Audit log entry created
+
+Sequence Diagram
+^^^^^^^^^^^^^^^^
+
+.. mermaid::
+
+   sequenceDiagram
+      participant A as Actor
+
+      A ->>API: GET /<object>?school=X&roles=teacher&name=Max*&page=1&page_size=50
+      API ->>API: Validate and parse filter expressions
+      break ValidationError
+            API ->>A: 422 Unprocessable Content
+      end
+      break UnindexedFieldError
+            API ->>A: 400 Bad Request
+      end
+      API ->>API: Verify permissions
+      break PermissionError
+            API ->>A: 403 Forbidden
+      end
+      API ->>PostgreSQL: Query objects (filtered, paginated, sorted)
+      API ->>A: 200 OK (result set + pagination metadata)
+
+
+.. _uc_section_monitoring:
 
 Monitoring
 ==========
 
-.. _uc010_:
+.. _uc004a_health_check:
 
 UC-004a: Health Check
 ---------------------
 
-Returns a list of health checks
-Health check:
-- Connectivity to database
-- Connectivity to directory service
-- Percentage of successful operations above a certain threshold
+:Actor: API Operator (monitoring systems, load balancers)
+:Priority: Must-have
+:Related Requirements:
+
+Description
+^^^^^^^^^^^
+A caller queries the health of the API service.
+The endpoint returns the status of each individual health check so that operators
+and monitoring systems can determine whether the service is functioning correctly
+and is ready to serve requests.
+
+The following checks are performed:
+
+- **Database connectivity**: The service can reach and query the database.
+- **Directory service connectivity**: The service can reach the directory service.
+- **Operation success rate**: The percentage of successful operations within a recent
+  time window is above a configured threshold.
+
+Preconditions
+^^^^^^^^^^^^^
+- No authentication required (health check endpoints are publicly accessible)
+
+Main Flow
+^^^^^^^^^
+1. Caller requests the health status via ``GET /health``
+2. System runs all health checks in parallel
+3. System aggregates the individual check results
+4. If all checks pass, system returns ``200 OK`` with the list of check results
+5. If one or more checks fail, system returns ``503 Service Unavailable`` with the
+   list of check results, indicating which checks failed
+
+Alternative Flows
+^^^^^^^^^^^^^^^^^
+
+**2a. A health check times out:**
+   1. The timed-out check is marked as failed with a ``timeout`` status
+   2. Main flow continues at step 3
+
+Exception Flows
+^^^^^^^^^^^^^^^
+
+*None. The endpoint always returns a response; failures are expressed as
+check-level statuses within the response body.*
+
+Postconditions
+^^^^^^^^^^^^^^
+- No state is changed
+
+Sequence Diagram
+^^^^^^^^^^^^^^^^
+
+.. mermaid::
+
+   sequenceDiagram
+      participant Monitor as API Operator
+
+       Monitor ->>API: GET /health
+       API ->>API: Run health checks in parallel
+       API ->>PostgreSQL: Connectivity check
+       API ->>DirectoryService: Connectivity check
+       API ->>API: Evaluate operation success rate
+       alt All checks pass
+           API ->>Monitor: 200 OK (all checks: pass)
+       else One or more checks fail
+           API ->>Monitor: 503 Service Unavailable (failed checks listed)
+       end
 
 
-.. _uc011_:
+.. _uc004b_statistics:
 
 UC-004b: Statistics
 -------------------
 
-How many successful operations have been performed in the last minute, hour, day.
-How many unsuccessful operations have been performed in the last minute, hour, day.
+:Actor: API Operator (monitoring systems, dashboards)
+:Priority: Should-have
+:Related Requirements:
+
+Description
+^^^^^^^^^^^
+A caller retrieves aggregated operation statistics for the API service.
+The endpoint returns counters for successful and unsuccessful operations,
+broken down by time window (last minute, last hour, last day).
+This enables operators and dashboards to observe trends and detect anomalies
+in API usage and error rates.
+
+Preconditions
+^^^^^^^^^^^^^
+- Actor is authenticated
+
+Main Flow
+^^^^^^^^^
+1. Caller requests statistics via ``GET /stats``
+2. System verifies that the caller has permission to read statistics
+3. System reads aggregated counters from the metrics store for each time window
+4. System returns the counters for successful and unsuccessful operations per
+   time window (minute, hour, day)
+
+Exception Flows
+^^^^^^^^^^^^^^^
+
+**2a. Actor does not have permission:**
+   1. System returns 403 Forbidden
+   2. Use case ends
+**3a. Metrics store is unavailable:**
+   1. System returns 503 Service Unavailable
+   2. Use case ends
+
+Postconditions
+^^^^^^^^^^^^^^
+- No state is changed
+
+Sequence Diagram
+^^^^^^^^^^^^^^^^
+
+.. mermaid::
+
+   sequenceDiagram
+      participant Monitor as API Operator
+
+      Monitor ->>API: GET /stats
+      API ->>API: Verify permissions
+      break PermissionError
+          API ->>Monitor: 403 Forbidden
+      end
+      API ->>MetricsStore: Read operation counters (1 min, 1 h, 1 d)
+      break MetricsStoreUnavailable
+          API ->>Monitor: 503 Service Unavailable
+      end
+      API ->>Monitor: 200 OK (successful/unsuccessful counts per time window)
 
 
 Extensions and Customization
