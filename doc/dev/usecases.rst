@@ -21,11 +21,50 @@ Actor List
 ==========
 
 1. Administrators
+
+   Human administrators who manage UCS\@school domain data (users, groups, schools).
+   They may work through a GUI (UMC modules) or automate tasks through direct HTTP
+   API usage or command line interface provided by Kelvin.
+
 2. UCS\@school bulk import software
+
+   The UCS\@school import interface (CLI) used for bulk provisioning from external
+   source data (e.g., CSV). It reads and normalizes records, generates unique
+   usernames and email addresses, calculates changes (add/modify/delete), and
+   applies them automatically.
+
 3. UCS\@school user interface software
+
+   Graphical user interfaces used by administrators to manage the same objects as
+   the API, for example UCS web interfaces (UMC modules / user management UI).
+   In this context, the UI acts as an HTTP client of the Kelvin REST API.
+
 4. API Operator
+
+   The person or team operating the Kelvin REST API service.
+
+   Typical responsibilities include installation/updates, configuration (e.g. log
+   level, token validity), certificate/CA management, monitoring, and incident
+   response via service log files (see
+   https://docs.software-univention.de/ucsschool-kelvin-rest-api/installation-configuration.html and
+   https://docs.software-univention.de/ucsschool-kelvin-rest-api/what-to-do-in-case-of-errors.html).
+
 5. School Management Software
+
+   An external school information system (SIS) or school management application
+   that provisions and maintains identities and groups in UCS\@school.
+   It typically integrates via Kelvin REST API endpoints (CRUD and search) as an
+   automated HTTP client.
+
 6. Nubus (Kelvin Connector is triggered by Nubus)
+
+   Nubus components can initiate changes on the directory side (UDM/LDAP). In the
+   Kelvin v2 architecture, such changes are synchronized asynchronously into the
+   School domain (and vice versa) through dedicated synchronization processes
+   (often referred to as connector/provisioning consumers).
+
+   Nubus is therefore an *event source and sync peer* impacting UCS\@school data
+   consistency, rather than a typical interactive end user of the Kelvin HTTP API.
 
 .. _uc_section_crud:
 
