@@ -42,7 +42,7 @@ The following objects are managed via CRUD operations:
 .. _uc001_create_object:
 
 UC-001a: Create Object
----------------------
+----------------------
 
 :Actor: All actors
 :Priority: Must-have
@@ -121,7 +121,7 @@ Sequence Diagram
 .. _uc002_read_object:
 
 UC-001b: Read Object
--------------------
+--------------------
 
 :Actor: All actors
 :Priority: Must-have
@@ -183,7 +183,7 @@ Sequence Diagram
 .. _uc003_update_object:
 
 UC-001c: Update Object (partial/full)
-------------------------------------
+-------------------------------------
 
 :Actor: All actors
 :Priority: Must-have
@@ -262,7 +262,7 @@ Sequence Diagram
 .. _uc004_delete_object:
 
 UC-001d: Delete Object
----------------------
+----------------------
 
 :Actor: All actors
 :Priority: Must-have
