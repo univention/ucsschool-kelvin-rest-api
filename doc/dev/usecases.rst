@@ -577,7 +577,7 @@ UC-003a: Simple search
 ----------------------
 
 UC-003b: Complex search
-----------------------
+-----------------------
 
 Monitoring
 ==========
@@ -585,7 +585,7 @@ Monitoring
 .. _uc010_:
 
 UC-004a: Health Check
---------------------
+---------------------
 
 Returns a list of health checks
 Health check:
@@ -597,7 +597,7 @@ Health check:
 .. _uc011_:
 
 UC-004b: Statistics
-------------------
+-------------------
 
 How many successful operations have been performed in the last minute, hour, day.
 How many unsuccessful operations have been performed in the last minute, hour, day.
