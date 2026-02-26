@@ -603,3 +603,8 @@ How many successful operations have been performed in the last minute, hour, day
 How many unsuccessful operations have been performed in the last minute, hour, day.
 
 
+Extensions and Customization
+============================
+
+Hooks
+-----
