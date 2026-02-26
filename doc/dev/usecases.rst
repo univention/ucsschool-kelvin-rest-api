@@ -125,7 +125,7 @@ UC-001b: Read Object
 
 :Actor: All actors
 :Priority: Must-have
-:Related Requirements: FR-001, NFR-S02
+:Related Requirements:
 
 Description
 ^^^^^^^^^^^
@@ -187,7 +187,7 @@ UC-001c: Update Object (partial/full)
 
 :Actor: All actors
 :Priority: Must-have
-:Related Requirements: FR-001, NFR-S02
+:Related Requirements:
 
 Description
 ^^^^^^^^^^^
@@ -266,7 +266,7 @@ UC-001d: Delete Object
 
 :Actor: All actors
 :Priority: Must-have
-:Related Requirements: FR-001, NFR-S02
+:Related Requirements:
 
 Description
 ^^^^^^^^^^^
@@ -344,8 +344,8 @@ UC-002a: Bulk Create Object
 ---------------------------
 
 :Actor: All actors
-:Priority: Must-have
-:Related Requirements: FR-001, NFR-S02
+:Priority: Should-have
+:Related Requirements:
 
 Description
 ^^^^^^^^^^^
@@ -422,7 +422,7 @@ UC-002b: Bulk Update Object
 ---------------------------
 
 :Actor: All actors
-:Priority: Must-have
+:Priority: Should-have
 :Related Requirements: FR-001, NFR-S02
 
 Description
@@ -498,8 +498,8 @@ UC-002c: Bulk Delete Object
 ---------------------------
 
 :Actor: All actors
-:Priority: Must-have
-:Related Requirements: FR-001, NFR-S02
+:Priority: Should-have
+:Related Requirements:
 
 Description
 ^^^^^^^^^^^
