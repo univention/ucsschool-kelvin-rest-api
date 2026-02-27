@@ -77,6 +77,11 @@ The following objects are managed via CRUD operations:
 - Users
 - Groups
 - Schools
+- Computers
+- Computer Rooms
+- Exams
+
+A subset of the attributes of these objects are synchronized with the directory service.
 
 .. _uc001a_create_object:
 
@@ -376,6 +381,30 @@ Sequence Diagram
        MessageBroker ->> SyncService: object.deleted
        SyncService ->> DirectoryService: Delete object
 
+
+
+Special Use Cases
+=================
+
+These use cases are special cases of the main CRUD use cases.
+
+Password change
+^^^^^^^^^^^^^^^
+
+Passwords cannot be stored in the database. The data flow is therefore different.
+
+Create shares
+^^^^^^^^^^^^^
+
+This is a side effect when certain objects are created or updated.
+A share is not stored in the database (?). Maybe it is?
+What happens when a share is deleted in
+the directory that corresponds to a share in the School domain?
+
+Mapped UDM Properties
+^^^^^^^^^^^^^^^^^^^^^
+
+Via configuring Kelvin V1 (``/etc/ucsschool/kelvin/mapped_udm_properties.json``) UDM properties can be mapped.
 
 .. _uc_section_bulk_operations:
 
