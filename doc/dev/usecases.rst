@@ -77,6 +77,82 @@ Actor List
    considered a peer data source whose writes must be reflected in the School
    database and vice versa.
 
+
+Use Case Overview
+=================
+
+- :ref:`uc001a_create_object`
+
+   .. reuse-block:: uc001a_create_object_description
+
+- :ref:`uc001b_read_object`
+
+   .. reuse-block:: uc001b_read_object_description
+
+- :ref:`uc001c_update_object`
+
+   .. reuse-block:: uc001c_update_object_description
+
+- :ref:`uc001d_delete_object`
+
+   .. reuse-block:: uc001d_delete_object_description
+
+- :ref:`uc007_password_change`
+
+   .. reuse-block:: uc007_password_change_description
+
+- :ref:`uc008_reset_password_multiple_users`
+
+   .. reuse-block:: uc008_reset_password_multiple_users_description
+
+- :ref:`uc009_mapped_udm_properties`
+
+   .. reuse-block:: uc009_mapped_udm_properties_description
+
+- :ref:`uc010_failover`
+
+   .. reuse-block:: uc010_failover_description
+
+- :ref:`uc-002a_bulk_create`
+
+   .. reuse-block:: uc002a_bulk_create_description
+
+- :ref:`uc002b_bulk_update`
+
+   .. reuse-block:: uc002b_bulk_update_description
+
+- :ref:`uc002c_bulk_delete`
+
+   .. reuse-block:: uc002c_bulk_delete_description
+
+- :ref:`uc003a_simple_search`
+
+   .. reuse-block:: uc003a_simple_search_description
+
+- :ref:`uc003b_complex_search`
+
+   .. reuse-block:: uc003b_complex_search_description
+
+- :ref:`uc004a_health_check`
+
+   .. reuse-block:: uc004a_health_check_description
+
+- :ref:`uc004b_statistics`
+
+   .. reuse-block:: uc004b_statistics_description
+
+- :ref:`uc005_coexistence`
+
+   .. reuse-block:: uc005_coexistence_description
+
+- :ref:`uc005a_user_hooks`
+
+   .. reuse-block:: uc005a_user_hooks_description
+
+- :ref:`uc005b_format_hooks`
+
+- :ref:`uc005c_config_hooks`
+
 .. _uc_section_crud:
 
 Manage Single Objects
@@ -105,7 +181,9 @@ UC-001a: Create Object
 
 Description
 ^^^^^^^^^^^
-An actor creates a new object.
+.. define-block:: uc001a_create_object_description
+
+   An actor creates a new object.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -184,7 +262,9 @@ UC-001b: Read Object
 
 Description
 ^^^^^^^^^^^
-An actor read an object with a given ID.
+.. define-block:: uc001b_read_object_description
+
+   An actor read an object with a given ID.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -246,7 +326,9 @@ UC-001c: Update Object (partial/full)
 
 Description
 ^^^^^^^^^^^
-An actor updates an object.
+.. define-block:: uc001c_update_object_description
+
+   An actor updates an object.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -325,7 +407,9 @@ UC-001d: Delete Object
 
 Description
 ^^^^^^^^^^^
-An actor deletes an object.
+.. define-block:: uc001d_delete_object_description
+
+   An actor deletes an object.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -398,6 +482,8 @@ Special Use Cases
 
 These use cases are special cases of the main CRUD use cases.
 
+.. _uc007_password_change:
+
 UC-007: Password change
 -----------------------
 
@@ -405,9 +491,13 @@ UC-007: Password change
 :Priority: Must-have
 :Related Requirements:
 
-An actor changes the password of a single user.
-Passwords cannot be stored in the database.
-The data flow is therefore different as opposed to the typical update case.
+.. define-block:: uc007_password_change_description
+
+   An actor changes the password of a single user.
+   Passwords cannot be stored in the database.
+   The data flow is therefore different as opposed to the typical update case.
+
+.. _uc008_reset_password_multiple_users:
 
 UC-008: Reset password of multiple users
 ----------------------------------------
@@ -416,7 +506,11 @@ UC-008: Reset password of multiple users
 :Priority: Should-have
 :Related Requirements:
 
-An actor wants to reset the passwords of multiple users.
+.. define-block:: uc008_reset_password_multiple_users_description
+
+   An actor wants to reset the passwords of multiple users.
+
+.. _uc009_mapped_udm_properties:
 
 UC-009: Mapped UDM properties
 -----------------------------
@@ -425,8 +519,12 @@ UC-009: Mapped UDM properties
 :Priority: Must-have
 :Related Requirements:
 
-Users want to configure the Kelvin API that selected non-school related properties from UDM are retrievable from Kelvin.
-In Kelvin V1, UDM properties can be mapped by listing them in (``/etc/ucsschool/kelvin/mapped_udm_properties.json``).
+.. define-block:: uc009_mapped_udm_properties_description
+
+   Users want to configure the Kelvin API that selected non-school related properties from UDM are retrievable from Kelvin.
+   In Kelvin V1, UDM properties can be mapped by listing them in (``/etc/ucsschool/kelvin/mapped_udm_properties.json``).
+
+.. _uc010_failover:
 
 UC-010: Failover
 ----------------
@@ -435,20 +533,23 @@ UC-010: Failover
 :Priority: Must-have
 :Related Requirements:
 
-If an API instance (or an entire node/availability zone) becomes unavailable or unhealthy, the API
-gateway/load balancer detects the failure via health checks and/or outlier detection, removes the
-affected instance(s) from the routing pool, and transparently redirects new requests to remaining
-healthy replicas; in-flight requests are retried only when safe (idempotent operations or requests
-carrying an idempotency key) and otherwise fail fast with a controlled 503/502 response, while
-autoscaling/auto-healing replaces failed capacity and observability emits metrics/alerts so
-operators can verify that availability and latency stayed within the defined SLO.
+.. define-block:: uc010_failover_description
+
+   If an API instance (or an entire node/availability zone) becomes unavailable or unhealthy, the API
+   gateway/load balancer detects the failure via health checks and/or outlier detection, removes the
+   affected instance(s) from the routing pool, and transparently redirects new requests to remaining
+   healthy replicas; in-flight requests are retried only when safe (idempotent operations or requests
+   carrying an idempotency key) and otherwise fail fast with a controlled 503/502 response, while
+   autoscaling/auto-healing replaces failed capacity and observability emits metrics/alerts so
+   operators can verify that availability and latency stayed within the defined SLO.
 
 Preconditions
 ^^^^^^^^^^^^^
+.. define-block:: uc010_failover_preconditions
 
-- At least N ≥ 2 healthy service instances exist (ideally across failure domains like AZs).
-- Load balancer/gateway has health checks configured and can exclude unhealthy targets.
-- API supports idempotency for retryable operations (or clearly marks non-idempotent ones).
+   - At least N ≥ 2 healthy service instances exist (ideally across failure domains like AZs).
+   - Load balancer/gateway has health checks configured and can exclude unhealthy targets.
+   - API supports idempotency for retryable operations (or clearly marks non-idempotent ones).
 
 Trigger
 ^^^^^^^
@@ -474,9 +575,11 @@ UC-002a: Bulk Create Object
 
 Description
 ^^^^^^^^^^^
-An actor deletes multiple objects.
-If an object already exists, it is skipped.
-If an error occurs, no objects are created.
+.. define-block:: uc002a_bulk_create_description
+
+   An actor deletes multiple objects.
+   If an object already exists, it is skipped.
+   If an error occurs, no objects are created.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -555,7 +658,9 @@ UC-002b: Bulk Update Object
 
 Description
 ^^^^^^^^^^^
-An actor updates multiple objects.
+.. define-block:: uc002b_bulk_update_description
+
+   An actor updates multiple objects.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -634,7 +739,9 @@ UC-002c: Bulk Delete Object
 
 Description
 ^^^^^^^^^^^
-An actor deletes multiple objects.
+.. define-block:: uc002c_bulk_delete_description
+
+   An actor deletes multiple objects.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -718,7 +825,9 @@ UC-003a: Simple search
 
 Description
 ^^^^^^^^^^^
-An actor retrieves a paginated and sorted list of objects without additional filter criteria.
+.. define-block:: uc003a_simple_search_description
+
+   An actor retrieves a paginated and sorted list of objects without additional filter criteria.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -777,15 +886,17 @@ UC-003b: Complex search
 
 Description
 ^^^^^^^^^^^
-An actor searches for objects using one or more of the following criteria:
+.. define-block:: uc003b_complex_search_description
 
-- Attribute filters (exact match on one or more fields)
-- Wildcard and substring matching on string fields
-- Full-text search across indexed text fields
-- Nested or relational filters (e.g. all users belonging to a specific class)
-- Logical operators (``AND``, ``OR``, ``NOT``) to combine filter conditions
+   An actor searches for objects using one or more of the following criteria:
 
-Results are paginated and sorted.
+   - Attribute filters (exact match on one or more fields)
+   - Wildcard and substring matching on string fields
+   - Full-text search across indexed text fields
+   - Nested or relational filters (e.g. all users belonging to a specific class)
+   - Logical operators (``AND``, ``OR``, ``NOT``) to combine filter conditions
+
+   Results are paginated and sorted.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -863,17 +974,19 @@ UC-004a: Health Check
 
 Description
 ^^^^^^^^^^^
-A caller queries the health of the API service.
-The endpoint returns the status of each individual health check so that operators
-and monitoring systems can determine whether the service is functioning correctly
-and is ready to serve requests.
+.. define-block:: uc004a_health_check_description
 
-The following checks are performed:
+    A caller queries the health of the API service.
+    The endpoint returns the status of each individual health check so that operators
+    and monitoring systems can determine whether the service is functioning correctly
+    and is ready to serve requests.
 
-- **Database connectivity**: The service can reach and query the database.
-- **Directory service connectivity**: The service can reach the directory service.
-- **Operation success rate**: The percentage of successful operations within a recent
-  time window is above a configured threshold.
+    The following checks are performed:
+
+    - **Database connectivity**: The service can reach and query the database.
+    - **Directory service connectivity**: The service can reach the directory service.
+    - **Operation success rate**: The percentage of successful operations within a recent
+       time window is above a configured threshold.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -936,11 +1049,13 @@ UC-004b: Statistics
 
 Description
 ^^^^^^^^^^^
-A caller retrieves aggregated operation statistics for the API service.
-The endpoint returns counters for successful and unsuccessful operations,
-broken down by time window (last minute, last hour, last day).
-This enables operators and dashboards to observe trends and detect anomalies
-in API usage and error rates.
+.. define-block:: uc004b_statistics_description
+
+   A caller retrieves aggregated operation statistics for the API service.
+   The endpoint returns counters for successful and unsuccessful operations,
+   broken down by time window (last minute, last hour, last day).
+   This enables operators and dashboards to observe trends and detect anomalies
+   in API usage and error rates.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -1004,21 +1119,22 @@ UC-005: Coexistence with Kelvin V1
 
 Description
 ^^^^^^^^^^^
+.. define-block:: uc005_coexistence_description
 
-During the migration phase both Kelvin V1 and Kelvin V2 run simultaneously.
-Kelvin V1 persists data synchronously in LDAP (via UDM REST API).
-Kelvin V2 persists data in the School database (PostgreSQL).
-An asynchronous synchronization process (UDM-to-School) propagates changes
-made through Kelvin V1 into the School database so that Kelvin V2 can read them.
+   During the migration phase both Kelvin V1 and Kelvin V2 run simultaneously.
+   Kelvin V1 persists data synchronously in LDAP (via UDM REST API).
+   Kelvin V2 persists data in the School database (PostgreSQL).
+   An asynchronous synchronization process (UDM-to-School) propagates changes
+   made through Kelvin V1 into the School database so that Kelvin V2 can read them.
 
-When an object is created, updated, or deleted through Kelvin V1,
-the change lands directly in LDAP. The LDAP change triggers
-the UDM-to-School process (a Nubus Provisioning Consumer), which transforms
-the UDM object into a School object and writes it to the School database.
-Kelvin V2 can then read the updated data.
+   When an object is created, updated, or deleted through Kelvin V1,
+   the change lands directly in LDAP. The LDAP change triggers
+   the UDM-to-School process (a Nubus Provisioning Consumer), which transforms
+   the UDM object into a School object and writes it to the School database.
+   Kelvin V2 can then read the updated data.
 
-This allows actors to continue using Kelvin V1 for writes while already
-benefiting from Kelvin V2's performance improvements for reads.
+   This allows actors to continue using Kelvin V1 for writes while already
+   benefiting from Kelvin V2's performance improvements for reads.
 
 Preconditions
 ^^^^^^^^^^^^^
@@ -1094,6 +1210,8 @@ Sequence Diagram
 Extensions and Customization
 ============================
 
+.. _uc005a_user_hooks:
+
 UC-005a User Hooks
 ------------------
 
@@ -1103,8 +1221,11 @@ UC-005a User Hooks
 
 Description
 ^^^^^^^^^^^
+.. define-block:: uc005a_user_hooks_description
 
-Operator and Administrators can add hooks which have side-effects on read, creation, update or delete of a user object.
+   Operator and Administrators can add hooks which have side-effects on read, creation, update or delete of a user object.
+
+.. _uc005b_format_hooks:
 
 UC-005b Format Hooks
 --------------------
@@ -1113,6 +1234,8 @@ UC-005b Format Hooks
 :Priority: Must-have
 :Related Requirements:
 
+.. _uc005c_config_hooks:
+.. _uc005c_config_hooks_details:
 
 UC-005c Config Hooks
 --------------------
