@@ -393,29 +393,40 @@ Sequence Diagram
        SyncService ->> DirectoryService: Delete object
 
 
-
 Special Use Cases
 =================
 
 These use cases are special cases of the main CRUD use cases.
 
-Password change
-^^^^^^^^^^^^^^^
+UC-007: Password change
+-----------------------
 
-Passwords cannot be stored in the database. The data flow is therefore different.
+:Actor: All actors
+:Priority: Must-have
+:Related Requirements:
 
-Create shares
-^^^^^^^^^^^^^
+An actor changes the password of a single user.
+Passwords cannot be stored in the database.
+The data flow is therefore different as opposed to the typical update case.
 
-This is a side effect when certain objects are created or updated.
-A share is not stored in the database (?). Maybe it is?
-What happens when a share is deleted in
-the directory that corresponds to a share in the School domain?
+UC-008: Reset password of multiple users
+----------------------------------------
 
-Mapped UDM Properties
-^^^^^^^^^^^^^^^^^^^^^
+:Actor: All actors
+:Priority: Should-have
+:Related Requirements:
 
-Via configuring Kelvin V1 (``/etc/ucsschool/kelvin/mapped_udm_properties.json``) UDM properties can be mapped.
+An actor wants to reset the passwords of multiple users.
+
+UC-009: Mapped UDM properties
+-----------------------------
+
+:Actor: All actors
+:Priority: Must-have
+:Related Requirements:
+
+Users want to configure the Kelvin API that selected non-school related properties from UDM are retrievable from Kelvin.
+In Kelvin V1, UDM properties can be mapped by listing them in (``/etc/ucsschool/kelvin/mapped_udm_properties.json``).
 
 .. _uc_section_bulk_operations:
 
@@ -1054,5 +1065,29 @@ Sequence Diagram
 Extensions and Customization
 ============================
 
-Hooks
------
+UC-005a User Hooks
+------------------
+
+:Actor: Administrators
+:Priority: Must-have
+:Related Requirements:
+
+Description
+^^^^^^^^^^^
+
+Operator and Administrators can add hooks which have side-effects on read, creation, update or delete of a user object.
+
+UC-005b Format Hooks
+--------------------
+
+:Actor: Administrators
+:Priority: Must-have
+:Related Requirements:
+
+
+UC-005c Config Hooks
+--------------------
+
+:Actor: Administrators
+:Priority: Must-have
+:Related Requirements:
