@@ -81,77 +81,83 @@ Actor List
 Use Case Overview
 =================
 
-- :ref:`uc001a_create_object`
+- Single Object CRUD
+   - :ref:`uc001a_create_object`
 
-   .. reuse-block:: uc001a_create_object_description
+      .. reuse-block:: uc001a_create_object_description
 
-- :ref:`uc001b_read_object`
+   - :ref:`uc001b_read_object`
 
-   .. reuse-block:: uc001b_read_object_description
+      .. reuse-block:: uc001b_read_object_description
 
-- :ref:`uc001c_update_object`
+   - :ref:`uc001c_update_object`
 
-   .. reuse-block:: uc001c_update_object_description
+      .. reuse-block:: uc001c_update_object_description
 
-- :ref:`uc001d_delete_object`
+   - :ref:`uc001d_delete_object`
 
-   .. reuse-block:: uc001d_delete_object_description
+      .. reuse-block:: uc001d_delete_object_description
 
-- :ref:`uc007_password_change`
+- Bulk Edits
+   - :ref:`uc-002a_bulk_create`
 
-   .. reuse-block:: uc007_password_change_description
+      .. reuse-block:: uc002a_bulk_create_description
 
-- :ref:`uc008_reset_password_multiple_users`
+   - :ref:`uc002b_bulk_update`
 
-   .. reuse-block:: uc008_reset_password_multiple_users_description
+      .. reuse-block:: uc002b_bulk_update_description
 
-- :ref:`uc009_mapped_udm_properties`
+   - :ref:`uc002c_bulk_delete`
 
-   .. reuse-block:: uc009_mapped_udm_properties_description
+      .. reuse-block:: uc002c_bulk_delete_description
 
-- :ref:`uc010_failover`
+- Searching
+   - :ref:`uc003a_simple_search`
 
-   .. reuse-block:: uc010_failover_description
+      .. reuse-block:: uc003a_simple_search_description
 
-- :ref:`uc-002a_bulk_create`
+   - :ref:`uc003b_complex_search`
 
-   .. reuse-block:: uc002a_bulk_create_description
+      .. reuse-block:: uc003b_complex_search_description
 
-- :ref:`uc002b_bulk_update`
+- Maintenance
+   - :ref:`uc004a_health_check`
 
-   .. reuse-block:: uc002b_bulk_update_description
+      .. reuse-block:: uc004a_health_check_description
 
-- :ref:`uc002c_bulk_delete`
+   - :ref:`uc004b_statistics`
 
-   .. reuse-block:: uc002c_bulk_delete_description
+      .. reuse-block:: uc004b_statistics_description
 
-- :ref:`uc003a_simple_search`
+- Migration
+   - :ref:`uc005_coexistence`
 
-   .. reuse-block:: uc003a_simple_search_description
+      .. reuse-block:: uc005_coexistence_description
 
-- :ref:`uc003b_complex_search`
+   - :ref:`uc005a_user_hooks`
 
-   .. reuse-block:: uc003b_complex_search_description
+      .. reuse-block:: uc005a_user_hooks_description
 
-- :ref:`uc004a_health_check`
+   - :ref:`uc005b_format_hooks`
 
-   .. reuse-block:: uc004a_health_check_description
+   - :ref:`uc005c_config_hooks`
 
-- :ref:`uc004b_statistics`
+- Misc
+   - :ref:`uc007_password_change`
 
-   .. reuse-block:: uc004b_statistics_description
+      .. reuse-block:: uc007_password_change_description
 
-- :ref:`uc005_coexistence`
+   - :ref:`uc008_reset_password_multiple_users`
 
-   .. reuse-block:: uc005_coexistence_description
+      .. reuse-block:: uc008_reset_password_multiple_users_description
 
-- :ref:`uc005a_user_hooks`
+   - :ref:`uc009_mapped_udm_properties`
 
-   .. reuse-block:: uc005a_user_hooks_description
+      .. reuse-block:: uc009_mapped_udm_properties_description
 
-- :ref:`uc005b_format_hooks`
+   - :ref:`uc010_failover`
 
-- :ref:`uc005c_config_hooks`
+      .. reuse-block:: uc010_failover_description
 
 .. _uc_section_crud:
 
