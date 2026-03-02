@@ -428,6 +428,35 @@ UC-009: Mapped UDM properties
 Users want to configure the Kelvin API that selected non-school related properties from UDM are retrievable from Kelvin.
 In Kelvin V1, UDM properties can be mapped by listing them in (``/etc/ucsschool/kelvin/mapped_udm_properties.json``).
 
+UC-010: Failover
+----------------
+
+:Actor: All actors
+:Priority: Must-have
+:Related Requirements:
+
+If an API instance (or an entire node/availability zone) becomes unavailable or unhealthy, the API
+gateway/load balancer detects the failure via health checks and/or outlier detection, removes the
+affected instance(s) from the routing pool, and transparently redirects new requests to remaining
+healthy replicas; in-flight requests are retried only when safe (idempotent operations or requests
+carrying an idempotency key) and otherwise fail fast with a controlled 503/502 response, while
+autoscaling/auto-healing replaces failed capacity and observability emits metrics/alerts so
+operators can verify that availability and latency stayed within the defined SLO.
+
+Preconditions
+^^^^^^^^^^^^^
+
+- At least N ≥ 2 healthy service instances exist (ideally across failure domains like AZs).
+- Load balancer/gateway has health checks configured and can exclude unhealthy targets.
+- API supports idempotency for retryable operations (or clearly marks non-idempotent ones).
+
+Trigger
+^^^^^^^
+
+A service instance becomes unavailable or degraded (crash, node failure, network partition, overload, AZ outage).
+
+
+
 .. _uc_section_bulk_operations:
 
 Bulk manage objects
