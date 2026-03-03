@@ -81,11 +81,6 @@ Actor List
 Use Case Overview
 =================
 
-.. toctree::
-   :maxdepth: 1
-
-   usecases/uc001a_create_object
-
 .. include:: usecases/uc001a_create_object.rst
    :start-after: .. preview-start
    :end-before: .. preview-end

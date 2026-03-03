@@ -1,7 +1,9 @@
 .. _uc001a_create_object:
 
-UC-001a: Create Object
-----------------------
+.. preview-start
+
+:ref:`UC-001a: Create Object<uc001a_create_object>`
+---------------------------------------------------
 
 :Actor: All actors
 :Priority: Must-have
@@ -9,7 +11,6 @@ UC-001a: Create Object
 
 Description
 ^^^^^^^^^^^
-.. preview-start
 
    An actor creates a new object.
 
