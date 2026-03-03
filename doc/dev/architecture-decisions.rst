@@ -19,7 +19,4 @@ Architecture decisions (ADRs)
 ADR-0015: Extended Attributes Storage Model for Kelvin V2
 ---------------------------------------------------------
 
-
-.. TODO Update to permalink when MR resolved
-
-👉 `ucsschool-core/ADR-0015 Extended Attributes Storage Model for Kelvin V2 <https://git.knut.univention.de/univention/dev/decision-records/-/merge_requests/53>`_
+👉 `ucsschool-core/ADR-0015 Extended Attributes Storage Model for Kelvin V2 <https://git.knut.univention.de/univention/dev/decision-records/-/blob/2433363480e6ae1ab128eb28f78a0e98c085199c/ucsschool-core/0015-Kelvin-V2_datamodel.md>`_
