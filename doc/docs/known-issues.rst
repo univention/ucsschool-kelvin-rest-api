@@ -38,8 +38,3 @@ When it is, there will be `Python UDM REST API Client`_ entries in the response 
 The format of the JSON response in the *body will not change*.
 
 .. _Python UDM REST API Client: https://github.com/univention/python-udm-rest-api-client
-
-
-Creating schools does not work in single server environments
-------------------------------------------------------------
-A bug exists for this, see :uv:bug:`55506`.

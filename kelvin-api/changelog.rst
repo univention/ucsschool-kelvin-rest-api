@@ -5,10 +5,10 @@
 Changelog
 =========
 
-v3.1.3 (2026-02-05)
+v3.2.0 (2026-02-10)
 -------------------
-* Fixed: On upgrade or installation, it is now verified that the required Docker logging driver ``journald`` is active. If a custom logging solution is used, this check can be disabled by setting the UCR-V ``ucsschool/kelvin/accept-custom-log-driver`` to yes. (:uv:bug:`58934`, Issue :spelling:ignore:`univention/dev/ucs#3298`).
 * Fixed: Kelvin sometimes failed to create a school when installed on a backup directory node (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#89`).
+* Added: On upgrade or installation, it is now verified that the required Docker logging driver ``journald`` is active. If a custom logging solution is used, this check can be disabled by setting the UCR-V ``ucsschool/kelvin/accept-custom-log-driver`` to yes. (:uv:bug:`58934`, Issue :spelling:ignore:`univention/dev/ucs#3298`).
 
 v3.1.2 (2026-01-14)
 -------------------

@@ -35,7 +35,7 @@ repos:
     -   id: bandit
         entry: bandit -c .bandit
         additional_dependencies: ['pbr']
-        exclude: ^kelvin-api/tests/|^ucs-school-lib/modules/ucsschool/lib/tests/
+        exclude: ^kelvin-api/tests/|^ucs-school-lib/modules/ucsschool/lib/tests/|^build_appcenter_changelog.py
 -   repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.0.0
     hooks:
