@@ -35,3 +35,23 @@ Description = On installation or upgrade, Kelvin will check if the default log d
 Description[de] = Bei Installation oder Aktualisierung prüft Kelvin, ob der Standard Docker Log Driver aktiv ist und blockiert die Installation/Aktualisierung, falls nicht. Dieser Check wird nicht durchgeführt, wenn dieser Variable der Wert "yes" zugewiesen ist.
 InitialValue = false
 Scope = outside
+
+[ucsschool/kelvin/db/uri]
+Type = String
+Description = The Kelvin database URI, without username and password. For example: 'postgresql://FQDN:5432/kelvin?sslmode=require'.
+Description[de] = Die URI der Kelvin Datenbank, ohne Benutzernamen und Passwort. Zum Beispiel: 'postgresql://FQDN:5432/kelvin?sslmode=require'.
+Scope = inside
+
+[ucsschool/kelvin/db/username]
+Type = String
+Description = The username with which to login into the Kelvin database.
+Description[de] = Der Benutzername mit dem die Applikation sich in die Kelvin Datenbank einloggt.
+InitialValue = kelvin
+Scope = inside
+
+[ucsschool/kelvin/db/password]
+Type = PasswordFile
+Filename = /etc/ucsschool/kelvin/postgresql-kelvin.secret
+Description = The password with which to login into the Kelvin database.
+Description[de] = Das Passwort mit dem die Applikation sich in die Kelvin Datenbank einloggt.
+Scope = inside, outside
