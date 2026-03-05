@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
+  "packages": [
+    "bats@1.8.2",
+    "cyrus_sasl.dev",
+    "cyrus_sasl@latest",
+    "direnv@latest",
+    "gcc@latest",
+    "openldap.dev",
+    "openldap@latest",
+    "openssl@latest",
+    "pkg-config@latest",
+    "prek@latest",
+    "uv@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "[ -f ./.devbox/local-init.sh ] && . ./.devbox/local-init.sh || true"
+    ],
+    "scripts": {
+      "test": [
+        "echo \"Error: no test specified\" && exit 1"
+      ]
+    }
+  }
+}
