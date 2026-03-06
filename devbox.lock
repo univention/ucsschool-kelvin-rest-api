@@ -305,6 +305,34 @@
       "last_modified": "2025-11-26T06:22:50Z",
       "resolved": "github:NixOS/nixpkgs/bb813de6d2241bcb1b5af2d3059f560c66329967?lastModified=1764138170&narHash=sha256-2bCmfCUZyi2yj9FFXYKwsDiaZmizN75cLhI%2FeWmf3tk%3D"
     },
+    "inotify-tools@latest": {
+      "last_modified": "2026-02-23T15:40:43Z",
+      "resolved": "github:NixOS/nixpkgs/80d901ec0377e19ac3f7bb8c035201e2e098cc97#inotify-tools",
+      "source": "devbox-search",
+      "version": "4.25.9.0",
+      "systems": {
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/5hbwyr26rqxjj28dqyqrsr3hgdlln1k7-inotify-tools-4.25.9.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/5hbwyr26rqxjj28dqyqrsr3hgdlln1k7-inotify-tools-4.25.9.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/w8rlyngk499nxavqlqx18ysyay2r96z8-inotify-tools-4.25.9.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/w8rlyngk499nxavqlqx18ysyay2r96z8-inotify-tools-4.25.9.0"
+        }
+      }
+    },
     "openldap.dev": {
       "resolved": "github:NixOS/nixpkgs/bb813de6d2241bcb1b5af2d3059f560c66329967?narHash=sha256-2bCmfCUZyi2yj9FFXYKwsDiaZmizN75cLhI%2FeWmf3tk%3D#openldap.dev",
       "source": "nixpkg"
@@ -662,6 +690,54 @@
             }
           ],
           "store_path": "/nix/store/cq0xdx5jwrp8vqxj1671hyj3sj70faik-prek-0.2.20"
+        }
+      }
+    },
+    "rsync@latest": {
+      "last_modified": "2026-02-23T15:40:43Z",
+      "resolved": "github:NixOS/nixpkgs/80d901ec0377e19ac3f7bb8c035201e2e098cc97#rsync",
+      "source": "devbox-search",
+      "version": "3.4.1",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/1ai1vbm4pvl39irbw51na3gha24pvqbi-rsync-3.4.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/1ai1vbm4pvl39irbw51na3gha24pvqbi-rsync-3.4.1"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/424av34nw81ck81v37dp3rh04a8x5gxl-rsync-3.4.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/424av34nw81ck81v37dp3rh04a8x5gxl-rsync-3.4.1"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/8a58qhgzh7f35vs4ygcnkg8s3jp3x56d-rsync-3.4.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/8a58qhgzh7f35vs4ygcnkg8s3jp3x56d-rsync-3.4.1"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/3x58811xjcgx11iagqhp8dsnn1qm1b03-rsync-3.4.1",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/3x58811xjcgx11iagqhp8dsnn1qm1b03-rsync-3.4.1"
         }
       }
     },

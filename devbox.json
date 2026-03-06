@@ -11,11 +11,13 @@
     "openssl@latest",
     "pkg-config@latest",
     "prek@latest",
-    "uv@latest"
+    "uv@latest",
+    "inotify-tools@latest",
+    "rsync@latest"
   ],
   "shell": {
     "init_hook": [
-      "[ -f ./.devbox/local-init.sh ] && . ./.devbox/local-init.sh || true"
+      ". ./.devbox/init.sh"
     ],
     "scripts": {
       "test": [
