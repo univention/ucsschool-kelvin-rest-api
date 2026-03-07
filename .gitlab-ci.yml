@@ -25,6 +25,7 @@ include:
     file:
       - fragments/misc.yaml
       - fragments/appcenter.yaml
+      - fragments/openstack.yaml
   - local: .gitlab-ci/SonarQube.yml
 
 workflow:
@@ -176,6 +177,28 @@ build_changelog_html:
   artifacts:
     paths:
       - changelog.html
+
+integration-tests:
+  extends: .run_openstack_cfg
+  stage: tests
+  timeout: 120 minutes
+  needs:
+    - create_app_version
+    - update_appcenter
+  when: manual
+  allow_failure: False
+  variables:
+    TARGET_VERSION: "5.2-4"
+    OPENSTACK_CFG_FILE: ".gitlab-ci/branch_tests.cfg"
+  script:
+    - mkdir results
+    - export APPVERSION_TO_INSTALL="$APP_VERSION"
+    - !reference [.run_openstack_cfg, script]
+    - .gitlab-ci/parse_junit.py
+  artifacts:
+    reports:
+      junit: results/**/test-reports/**/*.xml
+
 
 test ucs-school-lib:
   stage: tests
