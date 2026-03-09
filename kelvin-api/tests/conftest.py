@@ -235,30 +235,39 @@ def set_processes_to_one():
     restart_kelvin_api_server()
 
 
-@pytest.fixture(scope="session")
-def url_fragment():
-    return f"http://{kelvin_host()}:{kelvin_port()}/ucsschool/kelvin/v1"
+@pytest.fixture(scope="session", params=["v1", "v2"])
+def api_version(request):
+    return request.param
+
+
+def _url_fragment_for(host: str, port: int, api_version: str, scheme: str = "http") -> str:
+    return f"{scheme}://{host}:{port}/ucsschool/kelvin/{api_version}"
 
 
 @pytest.fixture(scope="session")
-def url_fragment_ip():
+def url_fragment(api_version):
+    return _url_fragment_for(kelvin_host(), kelvin_port(), api_version)
+
+
+@pytest.fixture(scope="session")
+def url_fragment_ip(api_version):
     addrinfo = socket.getaddrinfo(
         kelvin_host(), kelvin_port(), family=socket.AF_INET, proto=socket.IPPROTO_TCP
     )
     ip = addrinfo[0][4][0]
-    return f"http://{ip}/ucsschool/kelvin/v1"
+    return _url_fragment_for(ip, kelvin_port(), api_version)
 
 
 @pytest.fixture(scope="session")
-def url_fragment_scrambled_hostname():
+def url_fragment_scrambled_hostname(api_version):
     hostname = kelvin_host()
     res = "".join(random.choice((str.upper, str.lower))(char) for char in hostname)
-    return f"http://{res}:{kelvin_port()}/ucsschool/kelvin/v1"
+    return _url_fragment_for(res, kelvin_port(), api_version)
 
 
 @pytest.fixture(scope="session")
-def url_fragment_https():
-    return f"https://{kelvin_host()}:{kelvin_port()}/ucsschool/kelvin/v1"
+def url_fragment_https(api_version):
+    return _url_fragment_for(kelvin_host(), kelvin_port(), api_version, scheme="https")
 
 
 def get_access_token(username: str = "Administrator", password: str = "univention") -> str:
