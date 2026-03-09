@@ -26,7 +26,7 @@ To be more precise, let's take a look at the topology picture, starting with the
 .. image:: components.png
    :alt: Interaction of components.
 
-#. Clients are HTTP clients sending requests to ``https://<fqdn>/ucsschool/kelvin/v1/<resource>/`` with ``<fqdn>`` being the address of the DC master and ``<resource>`` being the object type (users, classes etc) to manage.
+#. Clients are HTTP clients sending requests to ``https://<fqdn>/ucsschool/kelvin/v1/<resource>/`` or ``https://<fqdn>/ucsschool/kelvin/v2/<resource>/`` with ``<fqdn>`` being the address of the DC master and ``<resource>`` being the object type (users, classes etc) to manage.
 #. The *UCS\@school Kelvin REST API* can only be accessed through HTTPS on the DC master or DC backup after installing an app (see installation and configuration instructions). The web server `Apache <https://httpd.apache.org/>`_ runs a reverse proxy for the URL path ``/ucsschool/kelvin/``. All access to that path is forwarded to the *UCS\@school Kelvin REST API* server running *inside a Docker container*.
 #. To manage the UCS\@school resources, a token must first be retrieved at ``https://<fqdn>/ucsschool/kelvin/token/``. The server will access the OpenLDAP server directly to authenticate and authorize the connecting client. If both succeed, a temporary token is issued to the client.
 #. When the client requests a resource (including a valid token in the transmission), the *UCS\@school Kelvin REST API* server will use its *UDM REST API client* component to access the UDM REST API on the DC master.
