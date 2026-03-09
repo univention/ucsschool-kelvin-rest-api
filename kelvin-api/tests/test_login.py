@@ -10,10 +10,11 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def removesuffix(input_string, suffix):
-    if suffix and input_string.endswith(suffix):
-        return input_string[: -len(suffix)]
-    return input_string
+def remove_version_suffix(url_fragment: str) -> str:
+    for suffix in ("/v1", "/v2"):
+        if url_fragment.endswith(suffix):
+            return url_fragment[: -len(suffix)]
+    return url_fragment
 
 
 @pytest.mark.asyncio
@@ -21,7 +22,7 @@ async def test_login(retry_http_502, url_fragment, create_ou_using_python, new_s
     password: str = "testpassword"
     school = await create_ou_using_python()
     user: User = await new_school_user(school, "staff", password=password)
-    login_url = f"{removesuffix(url_fragment, '/v1')}/token"
+    login_url = f"{remove_version_suffix(url_fragment)}/token"
     # login with the wrong password -> 401
     response1 = retry_http_502(
         requests.post,
@@ -48,7 +49,7 @@ async def test_login(retry_http_502, url_fragment, create_ou_using_python, new_s
 
 @pytest.mark.asyncio
 async def test_login_non_existing_user(retry_http_502, url_fragment):
-    login_url = f"{removesuffix(url_fragment, '/v1')}/token"
+    login_url = f"{remove_version_suffix(url_fragment)}/token"
     # login with non existing user
     response = retry_http_502(
         requests.post,
@@ -61,7 +62,7 @@ async def test_login_non_existing_user(retry_http_502, url_fragment):
 
 @pytest.mark.asyncio
 async def test_login_empty_password(retry_http_502, url_fragment):
-    login_url = f"{removesuffix(url_fragment, '/v1')}/token"
+    login_url = f"{remove_version_suffix(url_fragment)}/token"
     # login with empty password
     response = retry_http_502(
         requests.post,
@@ -84,7 +85,7 @@ async def test_login_empty_password(retry_http_502, url_fragment):
     ),
 )
 async def test_login_missing_parameters(parameter: dict, retry_http_502, url_fragment):
-    login_url = f"{removesuffix(url_fragment, '/v1')}/token"
+    login_url = f"{remove_version_suffix(url_fragment)}/token"
     # login with no password
     response = retry_http_502(
         requests.post,
@@ -99,7 +100,7 @@ async def test_login_missing_parameters(parameter: dict, retry_http_502, url_fra
 async def test_login_default_admin(retry_http_502, url_fragment):
     """like test_login, but dedicated to the default Administrator"""
 
-    login_url = f"{removesuffix(url_fragment, '/v1')}/token"
+    login_url = f"{remove_version_suffix(url_fragment)}/token"
     # login with the right password -> 200
     response1 = retry_http_502(
         requests.post, login_url, data={"username": "Administrator", "password": "univention"}
