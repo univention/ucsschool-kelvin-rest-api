@@ -64,6 +64,7 @@ from .constants import (
     URL_KELVIN_BASE,
     URL_TOKEN_BASE,
 )
+from .fastapi_doc_patch import get_swagger_ui_html as patched_get_swagger_ui_html
 from .import_config import get_import_config
 from .ldap import check_auth_and_get_user
 from .routers import role, school, school_class, user, workgroup
@@ -280,19 +281,17 @@ async def custom_swagger_ui_html_v2():
 
 @app.get(f"{URL_KELVIN_BASE}/docs", include_in_schema=False)
 async def custom_service_swagger_ui_html():
-    # TODO SwaggerUI supports several API version, which is not yet supported
-    #      by FastAPI's `get_swagger_ui_html`. We need to adapt get_swagger_ui_html
-    #      see https://github.com/fastapi/fastapi/discussions/14340
     urls = [
         {"url": f"{URL_KELVIN_BASE}/openapi-v1.json", "name": "V1"},
         {"url": f"{URL_KELVIN_BASE}/openapi-v2.json", "name": "V2"},
     ]
-    return get_swagger_ui_html(
-        openapi_url=urls[0]["url"],
+    return patched_get_swagger_ui_html(
+        openapi_urls=urls,
         **_swagger_ui_kwargs(static_prefix=URL_API_V1_PREFIX),
         swagger_ui_parameters={
             "urls": urls,
             "urls.primaryName": urls[0]["name"],
+            "layout": "StandaloneLayout",
         },
     )
 
