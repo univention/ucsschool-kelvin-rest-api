@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v3.2.1 (t.b.d.)
+---------------
+* Added: Versioned API routing for ``/ucsschool/kelvin/v1`` and ``/ucsschool/kelvin/v2`` with separate OpenAPI documents and docs endpoints. The service docs at ``/ucsschool/kelvin/docs`` now provide a landing page to switch between both API versions (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#194`).
+
 v3.2.0 (2026-02-10)
 -------------------
 * Fixed: Kelvin sometimes failed to create a school when installed on a backup directory node (Issue :spelling:ignore:`univention/components/ucsschool-kelvin-rest-api#89`).
