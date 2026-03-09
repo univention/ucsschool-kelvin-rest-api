@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v3.2.1 (t.b.d.)
+---------------
+* Added: Versioned API routing for ``/ucsschool/kelvin/v1`` and ``/ucsschool/kelvin/v2`` with separate OpenAPI documents and docs endpoints. The service docs at ``/ucsschool/kelvin/docs`` now provide a landing page to switch between both API versions (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#194`).
+
 v3.1.3 (2026-02-05)
 -------------------
 * Fixed: On upgrade or installation, it is now verified that the required Docker logging driver ``journald`` is active. If a custom logging solution is used, this check can be disabled by setting the UCR-V ``ucsschool/kelvin/accept-custom-log-driver`` to yes. (:uv:bug:`58934`, Issue :spelling:ignore:`univention/dev/ucs#3298`).
