@@ -5,9 +5,10 @@
 Changelog
 =========
 
-v3.2.1 (TBD)
+v3.3.0 (TBD)
 -------------------
 * Changed the application Docker base image from Alpine to the standard UCS base image (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#147`).
+* Added: Versioned API routing for ``/ucsschool/kelvin/v1`` and ``/ucsschool/kelvin/v2`` with separate OpenAPI documents and docs endpoints. The service docs at ``/ucsschool/kelvin/docs`` now provide a landing page to switch between both API versions (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#194`).
 
 v3.2.0 (2026-02-10)
 -------------------
