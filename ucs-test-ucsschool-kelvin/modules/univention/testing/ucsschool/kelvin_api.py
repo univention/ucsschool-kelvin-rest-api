@@ -82,15 +82,28 @@ IMPORT_CONFIG = {
     "default": "/usr/share/ucs-school-import/configs/ucs-school-testuser-http-import.json",
 }
 APP_ID = "ucsschool-kelvin-rest-api"
-URL_BASE_PATH = "/ucsschool/kelvin/v1/"
-_localhost_root_url = "https://{}.{}{}".format(ucr["hostname"], ucr["domainname"], URL_BASE_PATH)
+URL_BASE_PATH_V1 = "/ucsschool/kelvin/v1/"
+URL_BASE_PATH_V2 = "/ucsschool/kelvin/v2/"
+URL_BASE_PATH = URL_BASE_PATH_V1
+_localhost_root_url = "https://{}.{}{}".format(ucr["hostname"], ucr["domainname"], URL_BASE_PATH_V1)
+_localhost_root_url_v2 = "https://{}.{}{}".format(ucr["hostname"], ucr["domainname"], URL_BASE_PATH_V2)
 API_ROOT_URL = ucr.get("tests/ucsschool/http-api/root_url", _localhost_root_url).rstrip("/") + "/"
+API_ROOT_URL_V2 = (
+    ucr.get("tests/ucsschool/http-api/root_url_v2", _localhost_root_url_v2).rstrip("/") + "/"
+)
 OPENAPI_JSON_URL = urljoin(API_ROOT_URL, "openapi.json")
+OPENAPI_JSON_URL_V2 = urljoin(API_ROOT_URL_V2, "openapi.json")
 RESOURCE_URLS = {
     "roles": urljoin(API_ROOT_URL, "roles/"),
     "schools": urljoin(API_ROOT_URL, "schools/"),
     "users": urljoin(API_ROOT_URL, "users/"),
     "workgroups": urljoin(API_ROOT_URL, "workgroups/"),
+}
+RESOURCE_URLS_V2 = {
+    "roles": urljoin(API_ROOT_URL_V2, "roles/"),
+    "schools": urljoin(API_ROOT_URL_V2, "schools/"),
+    "users": urljoin(API_ROOT_URL_V2, "users/"),
+    "workgroups": urljoin(API_ROOT_URL_V2, "workgroups/"),
 }
 KELVIN_TOKEN_URL = API_ROOT_URL.replace("/v1/", "/token")
 HTTP_502_ERRORS = []
@@ -101,9 +114,12 @@ logger = logging.getLogger("univention.testing.ucsschool")
 
 
 print("*** API_ROOT_URL={!r} ***".format(API_ROOT_URL))
+print("*** API_ROOT_URL_V2={!r} ***".format(API_ROOT_URL_V2))
 print("*** OPENAPI_JSON_URL={!r} ***".format(OPENAPI_JSON_URL))
+print("*** OPENAPI_JSON_URL_V2={!r} ***".format(OPENAPI_JSON_URL_V2))
 print("*** KELVIN_TOKEN_URL={!r} ***".format(KELVIN_TOKEN_URL))
 print("*** RESOURCE_URLS={!r} ***".format(RESOURCE_URLS))
+print("*** RESOURCE_URLS_V2={!r} ***".format(RESOURCE_URLS_V2))
 
 
 def setup_logging():
