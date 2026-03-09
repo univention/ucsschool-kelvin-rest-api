@@ -55,8 +55,10 @@ COPY ucs-school-lib ./ucs-school-lib
 COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
 COPY univention-lib-slim ./univention-lib-slim
 COPY openapi-client-udm-1.0.2.tar.gz .
+COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 RUN uv sync --locked
+RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
 
 
 FROM base AS prod
@@ -67,6 +69,7 @@ RUN mkdir -pv /var/lib/ucs-school-import/kelvin-hooks
 RUN mkdir -pv /var/lib/ucs-school-lib/kelvin-hooks
 RUN mkdir -pv /var/cache/univention-config/
 COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
+COPY --from=builder /kelvin/ucs-test-ucsschool-kelvin*deb .
 COPY uv.lock .
 COPY pyproject.toml .
 COPY docker/start-kelvin.sh .
