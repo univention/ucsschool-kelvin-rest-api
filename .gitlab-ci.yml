@@ -219,7 +219,7 @@ build_changelog_html:
 integration-tests:
   extends: .run_openstack_cfg
   stage: tests
-  timeout: 120 minutes
+  timeout: 240 minutes
   needs:
     - create_app_version
     - update_appcenter

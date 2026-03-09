@@ -1,3 +1,12 @@
+ucs-test-ucsschool-kelvin (1.0.25) unstable; urgency=medium
+
+  * Issue univention/dev/education/ucsschool-kelvin-rest-api#194: Add
+    API v2 test support (v2 URLs/OpenAPI helpers) and extend API root tests
+    to verify unauthenticated OpenAPI access plus authenticated and
+    unauthenticated resource access for ``/ucsschool/kelvin/v2``.
+
+ -- Jan Gietzel <jan.gietzel@univention.de>  Thu, 12 Mar 2026 14:50:11 +0100
+
 ucs-test-ucsschool-kelvin (1.0.24) unstable; urgency=medium
 
   * Issue univention/dev/education/ucsschool-kelvin-rest-api#89: Don't require
