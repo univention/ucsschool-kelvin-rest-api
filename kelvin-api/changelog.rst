@@ -5,6 +5,10 @@
 Changelog
 =========
 
+v4.0.0 (TBD)
+------------
+* Added: Versioned API routing for ``/ucsschool/kelvin/v1`` and ``/ucsschool/kelvin/v2`` with separate OpenAPI documents and docs endpoints. The service docs at ``/ucsschool/kelvin/docs`` now provide a landing page to switch between both API versions (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#194`).
+
 v3.3.1 (2026-07-02)
 -------------------
 * Fixed: After a restart of the LDAP server, the first login request could be delayed by several seconds because the LDAP library waited before every reconnection attempt, including the first one.

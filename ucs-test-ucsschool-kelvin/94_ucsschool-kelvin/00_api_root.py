@@ -15,8 +15,11 @@ import requests
 
 from univention.testing.ucsschool.kelvin_api import (
     OPENAPI_JSON_URL,
+    OPENAPI_JSON_URL_V2,
     RESOURCE_URLS,
+    RESOURCE_URLS_V2,
     URL_BASE_PATH,
+    URL_BASE_PATH_V2,
     HttpApiUserTestBase,
 )
 
@@ -67,6 +70,53 @@ class Test(TestCase):
             if url == RESOURCE_URLS["workgroups"]:
                 schools = requests.get(  # nosec
                     RESOURCE_URLS["schools"], headers=self.auth_headers, verify=False
+                ).json()
+                params["school"] = schools[0]["name"]
+            response = requests.get(url, headers=self.auth_headers, verify=False, params=params)  # nosec
+            self.assertEqual(
+                response.status_code,
+                200,
+                "{!r} -> [{}] {!r}".format(response.url, response.status_code, response.text),
+            )
+
+    def test_05_unauth_connection_to_openapi_json_v2_allowed(self):
+        response = requests.get(OPENAPI_JSON_URL_V2, verify=False)  # nosec
+        self.assertEqual(
+            response.status_code,
+            200,
+            "response.status_code = {} for URL {!r} -> {!r}".format(
+                response.status_code, response.url, response.text
+            ),
+        )
+
+    def test_06_expected_resources_exit_in_openapi_json_v2(self):
+        response = requests.get(OPENAPI_JSON_URL_V2, verify=False)  # nosec
+        self.assertEqual(
+            response.status_code,
+            200,
+            "{!r} -> [{}] {!r}".format(response.url, response.status_code, response.text),
+        )
+        res = response.json()
+        print("*** Resource paths in openapi.json v2: {!r}".format(res["paths"].keys()))
+        for resource in RESOURCE_URLS_V2:
+            self.assertIn("{}{}".format(URL_BASE_PATH_V2, resource), res["paths"].keys())
+
+    def test_07_unauth_connection_to_resources_v2_not_allowed(self):
+        for url in RESOURCE_URLS_V2.values():
+            response = requests.get(url, verify=False)  # nosec
+            self.assertEqual(
+                response.status_code,
+                401,
+                "{!r} -> [{}] {!r}".format(response.url, response.status_code, response.text),
+            )
+
+    def test_08_auth_connection_to_resources_v2_allowed(self):
+        for url in RESOURCE_URLS_V2.values():
+            params = {}
+            # workgroups has a required parameter for GET
+            if url == RESOURCE_URLS_V2["workgroups"]:
+                schools = requests.get(  # nosec
+                    RESOURCE_URLS_V2["schools"], headers=self.auth_headers, verify=False
                 ).json()
                 params["school"] = schools[0]["name"]
             response = requests.get(url, headers=self.auth_headers, verify=False, params=params)  # nosec
