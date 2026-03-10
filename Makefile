@@ -47,17 +47,5 @@ dev-server: build-docker-image ## Start local Kelvin development server
 		exit 1; \
 	fi
 	@set -a && source $(VM_CONF_DIR)/env && set +a && \
-	docker run --rm --network host -ti \
-		-v "$$(pwd)/kelvin-api/:/kelvin/kelvin-api" \
-		-v "$$(pwd)/$(VM_CONF_DIR)/machine.secret":/etc/machine.secret:ro \
-		-v "$$(pwd)/$(VM_CONF_DIR)/ldap.secret":/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/cn_admin.secret:ro \
-		-v "$$(pwd)/$(VM_CONF_DIR)/ca-certificates.crt":/etc/ssl/certs/ca-certificates.crt:ro \
-		-v "$$(pwd)/$(VM_CONF_DIR)/tokens.secret":/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/tokens.secret:ro \
-		-v "$$(pwd)/$(VM_CONF_DIR)/base.conf":/etc/univention/base.conf \
-		-v "$$(pwd)/$(VM_CONF_DIR)/mapped_udm_properties.json":/etc/univention/ucsschool/kelvin/mapped_udm_properties.json:ro \
-		-v "$$(pwd)/custom_hooks/add_school_admins_to_admin_group.py":/var/lib/ucs-school-import/kelvin-hooks/add_school_admins_to_admin_group.py \
-		-v "$$(pwd)/$(VM_CONF_DIR)/user_import.json":/var/lib/ucs-school-import/configs/user_import.json \
-		--env-file $(VM_CONF_DIR)/env \
-		--add-host="$$LDAP_MASTER:$$TARGET" \
-		--hostname "$$HOSTNAME" \
-		ucsschool-kelvin-rest-api:dev
+	trap 'docker compose -f dev/docker-compose.yaml down' EXIT && \
+	docker compose -f dev/docker-compose.yaml up --watch

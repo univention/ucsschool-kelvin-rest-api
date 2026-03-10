@@ -1,0 +1,93 @@
+# Docker Compose configuration for Kelvin REST API development
+#
+# Prerequisites:
+#   1. Run `make fetch-vm-data TARGET=hostname` to populate _vm_config/
+#   2. Run `make build-docker-image` to build the Docker image
+#
+# Usage:
+#   docker compose up
+#
+# Access the API at: http://127.0.0.1:8911/ucsschool/kelvin/v1/docs
+
+services:
+  kelvin:
+    image: ucsschool-kelvin-rest-api:dev
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    network_mode: host
+    stdin_open: true
+    tty: true
+    env_file:
+      - _vm_config/env
+    extra_hosts:
+      - "${LDAP_MASTER}:${TARGET}"
+    hostname: "${HOSTNAME}"
+    volumes:
+      # Secrets and certificates
+      - ./_vm_config/machine.secret:/etc/machine.secret:ro
+      - ./_vm_config/ldap.secret:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/cn_admin.secret:ro
+      - ./_vm_config/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+      - ./_vm_config/tokens.secret:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/tokens.secret:ro
+
+      # Configuration files
+      - ./_vm_config/base.conf:/etc/univention/base.conf
+      - ./_vm_config/mapped_udm_properties.json:/etc/ucsschool/kelvin/mapped_udm_properties.json:ro
+      - ./_vm_config/user_import.json:/var/lib/ucs-school-import/configs/user_import.json
+
+      # Custom hooks
+      - ../custom_hooks/add_school_admins_to_admin_group.py:/var/lib/ucs-school-import/kelvin-hooks/add_school_admins_to_admin_group.py
+
+    develop:
+      watch:
+        # Kelvin API source code
+        - action: sync+restart
+          path: ../kelvin-api
+          target: /kelvin/kelvin-api
+          ignore:
+            - "**/__pycache__/"
+            - "**/*.pyc"
+
+        # UCS School Library
+        - action: sync+restart
+          path: ../ucs-school-lib
+          target: /kelvin/ucs-school-lib
+          ignore:
+            - "**/__pycache__/"
+            - "**/*.pyc"
+
+        # UCS School Import
+        - action: sync+restart
+          path: ../ucs-school-import
+          target: /kelvin/ucs-school-import
+          ignore:
+            - "**/__pycache__/"
+            - "**/*.pyc"
+
+        # Univention Directory Manager modules (slim)
+        - action: sync+restart
+          path: ../univention-directory-manager-modules-slim
+          target: /kelvin/univention-directory-manager-modules-slim
+          ignore:
+            - "**/__pycache__/"
+            - "**/*.pyc"
+
+        # Univention lib (slim)
+        - action: sync+restart
+          path: ../univention-lib-slim
+          target: /kelvin/univention-lib-slim
+          ignore:
+            - "**/__pycache__/"
+            - "**/*.pyc"
+
+        # VM configuration (secrets, certificates, config files)
+        - action: restart
+          path: ./_vm_config
+
+        # Rebuild on dependency changes
+        - action: rebuild
+          path: ../pyproject.toml
+        - action: rebuild
+          path: ../uv.lock
+        - action: rebuild
+          path: ../docker/Dockerfile
