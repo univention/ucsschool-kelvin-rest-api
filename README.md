@@ -120,6 +120,9 @@ make fetch-vm-data TARGET="IP OF UCS WHERE KELVIN WOULD BE INSTALLED"
 make dev-server
 ```
 
+Changes to the source code are automatically synced to the running container
+and should have an immediate effect.
+
 ## Installation of python packages
 
 It is useful to have all packages installed during development, so that the IDE can autocomplete and lint correctly.
