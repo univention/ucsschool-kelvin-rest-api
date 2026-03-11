@@ -762,7 +762,7 @@ def add_to_config(restart_kelvin_api_server_session):  # noqa: C901
                 logger.debug(
                     "Moving %s to %s.", target_configuration["active"], target_configuration["bak"]
                 )
-                shutil.move(target_configuration["active"], target_configuration["bak"])
+                # shutil.move(target_configuration["active"], target_configuration["bak"])
             config.update(kwargs)
         else:
             config = kwargs
