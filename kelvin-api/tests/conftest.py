@@ -232,13 +232,16 @@ def api_version(request):
     return request.param
 
 
-def _url_fragment_for(host: str, api_version: str, scheme: str = "http") -> str:
-    return f"{scheme}://{host}/ucsschool/kelvin/{api_version}"
+def _url_fragment_for(host: str, api_version: str, port: int = 80, scheme: str = "http") -> str:
+    return f"{scheme}://{host}:{port}/ucsschool/kelvin/{api_version}"
 
 
 @pytest.fixture(scope="session")
 def url_fragment(api_version):
-    return _url_fragment_for(os.environ["DOCKER_HOST_NAME"], api_version)
+    # TODO FIX ME!
+    # return _url_fragment_for(os.environ['DOCKER_HOST_NAME'], api_version)
+    # NOTE In pydantic V1 `localhost` is not accepted for `HttpUrl`
+    return _url_fragment_for("127.0.0.1", api_version, port=8911)
 
 
 @pytest.fixture(scope="session")
@@ -247,24 +250,28 @@ def url_fragment_ip(api_version):
         os.environ["DOCKER_HOST_NAME"], 80, family=socket.AF_INET, proto=socket.IPPROTO_TCP
     )
     ip = addrinfo[0][4][0]
-    return _url_fragment_for(ip, api_version)
+    return _url_fragment_for(ip, api_version, port=8911)
 
 
 @pytest.fixture(scope="session")
 def url_fragment_scrambled_hostname(api_version):
     hostname = os.environ["DOCKER_HOST_NAME"]
     res = "".join(random.choice((str.upper, str.lower))(char) for char in hostname)
-    return _url_fragment_for(res, api_version)
+    return _url_fragment_for(res, api_version, port=8911)
 
 
 @pytest.fixture(scope="session")
 def url_fragment_https(api_version):
-    return _url_fragment_for(os.environ["DOCKER_HOST_NAME"], api_version, scheme="https")
+    # TODO FIX ME!
+    # return _url_fragment_for(os.environ["DOCKER_HOST_NAME"], api_version, scheme="https")
+    # NOTE In pydantic V1 `localhost` is not accepted for `HttpUrl`
+    return _url_fragment_for("127.0.0.1", api_version, port=8911, scheme="https")
 
 
 def get_access_token(username: str = "Administrator", password: str = "univention") -> str:
     response = requests.post(
-        url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/token",
+        # url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/token",
+        url="http://127.0.0.1:8911/ucsschool/kelvin/token",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data=dict(username=username, password=password),
     )
