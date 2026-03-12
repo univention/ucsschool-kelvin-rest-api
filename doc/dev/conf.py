@@ -23,8 +23,8 @@ import sys
 
 # -- Project information -----------------------------------------------------
 
-project = "Kelvin API Developer"
-copyright = "2022, Univention GmbH"
+project = "Kelvin API Developer Reference"
+copyright = "2026, Univention GmbH"
 author = "Univention GmbH"
 
 # The short X.Y version
@@ -103,7 +103,7 @@ pygments_style = "sphinx"
 # -- Options for Mermaid Graphics --------------------------------------------
 
 # For HTML builds:
-mermaid_d3_zoom = True
+# mermaid_d3_zoom = True
 
 # -- Options for HTML output -------------------------------------------------
 
