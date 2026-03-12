@@ -32,6 +32,7 @@ from cachetools.keys import hashkey
 from fastapi import Request
 from pydantic import HttpUrl
 from starlette.datastructures import URL
+from starlette.routing import NoMatchFound, Router
 
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.utils import env_or_ucr
@@ -39,17 +40,63 @@ from ucsschool.lib.models.utils import env_or_ucr
 from .ldap import get_dn_of_user
 
 
+def _matching_path_segments(path_a: str, path_b: str) -> int:
+    segments_a = [part for part in path_a.strip("/").split("/") if part]
+    segments_b = [part for part in path_b.strip("/").split("/") if part]
+
+    matching = 0
+    for part_a, part_b in zip(segments_a, segments_b):
+        if part_a != part_b:
+            break
+        matching += 1
+    return matching
+
+
+def _request_route_signature(request: Request) -> str:
+    route = request.scope.get("route")
+    if route is not None and getattr(route, "path_format", None):
+        return route.path_format
+    return request.url.path
+
+
+def _url_for_same_api_prefix(request: Request, name: str, **path_params: Any) -> URL:
+    request_path = request.url.path
+    fallback_url = None
+    fallback_score = -1
+    router: Router = request.app.router
+
+    for route in router.routes:
+        try:
+            url_path = route.url_path_for(name, **path_params)
+        except NoMatchFound:
+            continue
+
+        url = URL(str(url_path.make_absolute_url(base_url=request.base_url)))
+        score = _matching_path_segments(request_path, url.path)
+        if score > fallback_score:
+            fallback_score = score
+            fallback_url = url
+
+    if fallback_url is not None:
+        return fallback_url
+    raise NoMatchFound(name, path_params)
+
+
 @cached(
     cache=LRUCache(maxsize=10240),
     key=lambda request, name, **path_params: hashkey(
-        name, request.headers.get("host", None), tuple(sorted(path_params.items()))
+        name,
+        request.base_url.scheme,
+        request.headers.get("host", None),
+        _request_route_signature(request),
+        tuple(sorted(path_params.items())),
     ),
 )
 def cached_url_for(request: Request, name: str, **path_params: Any) -> URL:
     """Cached drop-in replacement for `request.url_for()`."""
     # Using `cachetools`, because `lru_cache` does not support dropping a function argument. And we
     # don't want the `request` object to be part of the cache key.
-    return URL(str(request.url_for(name, **path_params)))
+    return _url_for_same_api_prefix(request, name, **path_params)
 
 
 @cached(
@@ -63,6 +110,12 @@ def url_to_name(request: Request, obj_type: str, url: Union[str, HttpUrl]) -> st
     https://.../kelvin/v1/schools/DEMOSCHOOL => DEMOSCHOOL
     https://.../kelvin/v1/users/demo_student => demo_student
     https://.../kelvin/v1/roles/student => student
+    https://.../kelvin/v2/schools/DEMOSCHOOL => DEMOSCHOOL
+    https://.../kelvin/v2/users/demo_student => demo_student
+    https://.../kelvin/v2/roles/student => student
+    https://.../kelvin/dev/schools/DEMOSCHOOL => DEMOSCHOOL
+    https://.../kelvin/dev/users/demo_student => demo_student
+    https://.../kelvin/dev/roles/student => student
     """
     if not url:
         return url
