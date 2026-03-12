@@ -69,7 +69,7 @@ RUN mkdir -pv /var/lib/ucs-school-import/kelvin-hooks
 RUN mkdir -pv /var/lib/ucs-school-lib/kelvin-hooks
 RUN mkdir -pv /var/cache/univention-config/
 COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
-COPY --from=builder /kelvin/ucs-test-ucsschool-kelvin*deb .
+COPY --from=builder /kelvin/ucs-test-ucsschool-kelvin*deb ./
 COPY uv.lock .
 COPY pyproject.toml .
 COPY docker/start-kelvin.sh .
