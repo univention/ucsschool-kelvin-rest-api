@@ -4,7 +4,8 @@
 #   TRUSTED_PROXY_IPS: Optional. Comma-separated IPs/CIDRs trusted for
 #   X-Forwarded-* headers. If unset, Gunicorn ignores forwarded headers.
 
-num_workers="$(ucr get ucsschool/kelvin/processes)"
+num_workers="$(python -c "from ucsschool.lib.models.utils import ucr; print(ucr.get('ucsschool/kelvin/processes', 2))")"
+
 if [ "$num_workers" = "" ]; then
     num_workers="2"
 elif [ "$num_workers" -lt  "1" ]; then
