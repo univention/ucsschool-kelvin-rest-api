@@ -14,6 +14,7 @@ Welcome to UCS\@school Kelvin API's Developer documentation!
    introduction
    requirements/index
    usecases
+   lifecycle
    architecture
    architecture-decisions
    api-reference
