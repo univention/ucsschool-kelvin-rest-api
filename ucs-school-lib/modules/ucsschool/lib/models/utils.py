@@ -41,6 +41,7 @@ from collections import OrderedDict
 from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import lru_cache
+from importlib.resources import files
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from random import choice, shuffle
@@ -51,7 +52,6 @@ import lazy_object_proxy
 import ruamel.yaml
 from asgi_correlation_id import CorrelationIdFilter
 from asgi_correlation_id.context import correlation_id
-from pkg_resources import resource_stream
 from six import string_types
 from uldap3 import LdapConfig, LdapRead, LdapWrite
 
@@ -93,7 +93,7 @@ class ValidationDataFilter(logging.Filter):
 
 
 def _load_logging_config() -> Dict[str, Dict[str, str]]:
-    with resource_stream("ucsschool.lib", "logging.yaml") as fp:
+    with files("ucsschool.lib").joinpath("logging.yaml").open("rb") as fp:
         return ruamel.yaml.load(fp, ruamel.yaml.RoundTripLoader)
 
 
