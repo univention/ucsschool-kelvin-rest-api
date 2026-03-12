@@ -223,6 +223,33 @@ To activate a hook, or or a change to a hook, restart the *UCS\@school Kelvin RE
 Further reading about the UCS\@school hooks is available for German readers in :ref:`pyhooks` in :cite:t:`uv-ucsschool-manual`.
 Please note that the example in that text is for the synchronous variant, missing the ``async/await`` keywords and not using the UDM REST API client. Compare with the examples linked in this chapter.
 
+Database settings
+^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 4.0
+
+   With Kelvin 4.0, the Kelvin REST API requires a PostgreSQL database.
+
+
+When you install Kelvin on a primary or backup node, a PostgreSQL database named
+``ucsschool-kelvin-rest-api`` is created by the App Center.
+This database is used by the Kelvin Application unless otherwise configured.
+
+There are three app settings that control the database connection: ``ucsschool/kelvin/db/uri``
+``ucsschool/kelvin/db/username`` and ``ucsschool/kelvin/db/password``. The URI has to be of the form
+:samp:`postgresql://{host}:{port}/{database}?{options}`, for example ``postgresql://primary.school.test:5432/kelvin?sslmode=require``.
+
+When you install Kelvin on multiple nodes,
+the database which has been created by the very
+first app installation will be used by all other Kelvin applications.
+
+When you have existing Kelvin installations and want to use a different database,
+you need to change the Kelvin app settings on all nodes manually.
+
+.. code-block:: console
+   :caption: An example of how to change the database URL via the command line.
+
+   univention-app configure ucsschool-kelvin-rest-api --set ucsschool/kelvin/db/uri="postgresql://backup1.school.test:5432/kelvin?sslmode=require"
 
 File locations
 --------------
