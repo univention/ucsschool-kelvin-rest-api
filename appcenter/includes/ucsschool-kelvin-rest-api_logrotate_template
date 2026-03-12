@@ -1,0 +1,15 @@
+@%@UCRWARNING=# @%@
+
+@!@
+import univention.lib.ucrLogrotate
+
+name = "ucsschool-kelvin-rest-api"
+settings = univention.lib.ucrLogrotate.getLogrotateConfig(name, configRegistry)
+print(f"/var/log/univention/{name}/http.log {{")
+for setting in sorted(settings):
+    print(f"\t{settings[setting]}")
+print("\tpostrotate")
+print("\t\t/usr/lib/rsyslog/rsyslog-rotate > /dev/null")
+print("\tendscript")
+print("}")
+@!@
