@@ -26,16 +26,16 @@
 # <http://www.gnu.org/licenses/>.
 
 import logging
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import lazy_object_proxy
-import pkg_resources
 
 
 def _app_version() -> str:
     try:
-        return pkg_resources.get_distribution(APP_ID).version
-    except pkg_resources.DistributionNotFound:
+        return version(APP_ID)
+    except PackageNotFoundError:
         pass
     # pytest before installation, try to read VERSION.txt or simply return a dummy value
     try:
