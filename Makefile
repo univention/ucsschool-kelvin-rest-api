@@ -1,4 +1,4 @@
-.PHONY: help format lint setup_devel_env
+.PHONY: help fetch-vm-data build-docker-image dev-server
 .DEFAULT_GOAL := help
 
 VM_CONF_DIR := "dev/_vm_config"
@@ -48,4 +48,4 @@ dev-server: build-docker-image ## Start local Kelvin development server
 	fi
 	@set -a && source $(VM_CONF_DIR)/env && set +a && \
 	trap 'docker compose -f dev/docker-compose.yaml down' EXIT && \
-	docker compose -f dev/docker-compose.yaml up --watch
+		docker compose -f dev/docker-compose.yaml up --watch
