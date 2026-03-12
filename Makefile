@@ -41,7 +41,7 @@ build-docker-image:  ## Builds the Kelvin docker image
 
 dev-server: build-docker-image ## Start local Kelvin development server
 	@echo "Starting development server..."
-	@echo "Access via http://127.0.0.1:8911/ucsschool/kelvin/v1/docs"
+	@echo "Access via http://127.0.0.1:8911/ucsschool/kelvin/"
 	@if [ ! -f $(VM_CONF_DIR)/env ]; then \
 		echo "Error: $(VM_CONF_DIR)/env not found. Run 'make fetch-vm-data TARGET=hostname' first."; \
 		exit 1; \
