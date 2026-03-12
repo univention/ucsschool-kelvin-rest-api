@@ -1,0 +1,138 @@
+#!/bin/bash
+
+# Copyright 2025 Univention GmbH
+#
+# http://www.univention.de/
+#
+# All rights reserved.
+#
+# The source code of this program is made available
+# under the terms of the GNU Affero General Public License version 3
+# (GNU AGPL V3) as published by the Free Software Foundation.
+#
+# Binary versions of this program provided by Univention to you as
+# well as other copyrighted, protected or trademarked materials like
+# Logos, graphics, fonts, specific documentations and configurations,
+# cryptographic keys etc. are subject to a license agreement between
+# you and Univention and not subject to the GNU AGPL V3.
+#
+# In the case you use this program under the terms of the GNU AGPL V3,
+# the program is provided in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License with the Debian GNU/Linux or Univention distribution in file
+# /usr/share/common-licenses/AGPL-3; if not, see
+# <http://www.gnu.org/licenses/>.
+
+action=$1
+
+. /usr/share/univention-lib/all.sh
+
+install_log_duplication() {
+    if [ -f /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf ]; then
+        return
+    fi
+    cat > /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf << 'EOF'
+{{ 'appcenter/includes/ucsschool-kelvin-rest-api_rsyslog.conf' | source }}
+EOF
+    systemctl restart rsyslog
+}
+
+install_log_rotation() {
+    if [ -f /etc/univention/templates/files/etc/logrotate.d/ucsschool-kelvin-rest-api ]; then
+        return
+    fi
+    cat > /etc/univention/templates/files/etc/logrotate.d/ucsschool-kelvin-rest-api << 'EOF'
+{{ 'appcenter/includes/ucsschool-kelvin-rest-api_logrotate_template' | source }}
+EOF
+    cat > /etc/univention/templates/info/ucsschool-kelvin-rest-api.info << 'EOF'
+{{ 'appcenter/includes/ucsschool-kelvin-rest-api_logrotate_template.info' | source }}
+EOF
+    ucr update
+    ucr commit /etc/logrotate.d/ucsschool-kelvin-rest-api
+}
+
+install_update_ca_hook() {
+    if [ -f /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api ]; then
+        return
+    fi
+    cat > /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api << 'EOF'
+{{ 'appcenter/includes/ucsschool-kelvin-rest-api_update_ca' | source }}
+EOF
+    chmod +x /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
+}
+
+adjust_kelvin_posgresql_db_settings() {
+    # If only one installation is configured,
+    # then setting the URI/username will be written to the settings/data object
+    python3 <<-%EOF
+{{ 'appcenter/includes/adjust_kelvin_posgresql_db_settings.py' | source }}
+%EOF
+}
+
+install_kelvin_postgresql_db() {
+
+    # Secret for local postgres database
+    chmod 640 "/etc/postgresql-kelvin.secret"
+    chgrp "DC Backup Hosts" "/etc/postgresql-kelvin.secret"
+
+
+    data="$(python3 <<-%EOF
+{{ 'appcenter/includes/install_kelvin_postgresql_db.py' | source }}
+%EOF
+)" || die
+    opts=( $(echo -e "$data" | awk -F'\n'  '{print $1, $2}') );
+    kelvin_db_uri="${opts[0]}"
+    kelvin_db_username="${opts[1]}"
+    db_password_host="${opts[2]}"
+    db_password_file="${opts[3]}"
+
+    # Secret for either local or remote database
+    chmod 640 "/etc/ucsschool/kelvin/postgresql-kelvin.secret"
+    chgrp "DC Backup Hosts" "/etc/ucsschool/kelvin/postgresql-kelvin.secret"
+
+    univention-scp /etc/machine.secret "$(hostname)"\$@"$(dig +short $db_password_host)":"$db_password_file" "$db_password_file"
+
+    univention-app configure ucsschool-kelvin-rest-api \
+        --set "ucsschool/kelvin/db/uri=$kelvin_db_uri" \
+        "ucsschool/kelvin/db/username=$kelvin_db_username" \
+        --run-script=no >/dev/null #dont log infos
+
+}
+
+
+remove_log_duplication() {
+    rm /etc/rsyslog.d/ucsschool-kelvin-rest-api.conf
+    systemctl restart rsyslog
+}
+
+remove_log_rotation() {
+    rm /etc/univention/templates/info/ucsschool-kelvin-rest-api.info
+    rm /etc/univention/templates/files/etc/logrotate.d/ucsschool-kelvin-rest-api
+    rm /etc/logrotate.d/ucsschool-kelvin-rest-api
+    ucr update
+}
+
+remove_update_ca_hook() {
+    rm /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
+}
+
+case "$action" in
+  install | upgrade)
+    install_log_duplication
+    install_log_rotation
+    install_update_ca_hook
+    install_kelvin_postgresql_db
+    ;;
+  remove)
+    remove_log_duplication
+    remove_log_rotation
+    remove_update_ca_hook
+    ;;
+  settings)
+    adjust_kelvin_posgresql_db_settings
+    ;;
+esac
