@@ -169,6 +169,14 @@ class WorkGroupFactory(factory.Factory):
     allowed_email_senders_groups = []
 
 
+def kelvin_host() -> str:
+    return os.environ.get("KELVIN_HOST", os.environ["DOCKER_HOST_NAME"])
+
+
+def kelvin_port(default: int = 80) -> int:
+    return int(os.environ.get("KELVIN_PORT", default))
+
+
 @pytest.fixture(scope="session")
 def udm_kwargs() -> Dict[str, Any]:
     with open(CN_ADMIN_PASSWORD_FILE, "r") as fp:
@@ -229,13 +237,13 @@ def set_processes_to_one():
 
 @pytest.fixture(scope="session")
 def url_fragment():
-    return f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/v1"
+    return f"http://{kelvin_host()}:{kelvin_port()}/ucsschool/kelvin/v1"
 
 
 @pytest.fixture(scope="session")
 def url_fragment_ip():
     addrinfo = socket.getaddrinfo(
-        os.environ["DOCKER_HOST_NAME"], 80, family=socket.AF_INET, proto=socket.IPPROTO_TCP
+        kelvin_host(), kelvin_port(), family=socket.AF_INET, proto=socket.IPPROTO_TCP
     )
     ip = addrinfo[0][4][0]
     return f"http://{ip}/ucsschool/kelvin/v1"
@@ -243,19 +251,19 @@ def url_fragment_ip():
 
 @pytest.fixture(scope="session")
 def url_fragment_scrambled_hostname():
-    hostname = os.environ["DOCKER_HOST_NAME"]
+    hostname = kelvin_host()
     res = "".join(random.choice((str.upper, str.lower))(char) for char in hostname)
-    return f"http://{res}/ucsschool/kelvin/v1"
+    return f"http://{res}:{kelvin_port()}/ucsschool/kelvin/v1"
 
 
 @pytest.fixture(scope="session")
 def url_fragment_https():
-    return f"https://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/v1"
+    return f"https://{kelvin_host()}:{kelvin_port()}/ucsschool/kelvin/v1"
 
 
 def get_access_token(username: str = "Administrator", password: str = "univention") -> str:
     response = requests.post(
-        url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/token",
+        url=f"http://{kelvin_host()}:{kelvin_port()}/ucsschool/kelvin/token",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data=dict(username=username, password=password),
     )

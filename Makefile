@@ -35,6 +35,8 @@ fetch-vm-data:  ## Fetches necessary information from a UCS host, to use its UDM
 	echo "HOSTNAME=$$(ssh $(TARGET) ucr get hostname)" >> $(VM_CONF_DIR)/env
 	echo "DOCKER_HOST_NAME=$(TARGET)" >> $(VM_CONF_DIR)/env
 	echo "TARGET=$(TARGET)" >> $(VM_CONF_DIR)/env
+	echo "KELVIN_HOST=127.0.0.1" >> $(VM_CONF_DIR)/env
+	echo "KELVIN_PORT=8911" >> $(VM_CONF_DIR)/env
 
 build-docker-image:  ## Builds the Kelvin docker image
 	@docker build --network host -t ucsschool-kelvin-rest-api:dev -f docker/Dockerfile .
