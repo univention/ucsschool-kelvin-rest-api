@@ -1,9 +1,10 @@
 [project]
 name = "ucsschool-kelvin-rest-api"
 version = "3.2.0"
-description = ""
+license = "AGPL-3.0-only"
+description = "UCS@school Kelvin REST API"
 authors = [
-    { name = "Univention", email = "ucsschool-maintainers@univention.de" }
+    { name = "Univention GmbH", email = "ucsschool-maintainers@univention.de" }
 ]
 requires-python = ">=3.11"
 dependencies = [
