@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+. /usr/share/univention-lib/ucr.sh
+
+if is_ucr_true ucsschool/kelvin/update-ca-restart; then
+    univention-app restart ucsschool-kelvin-rest-api
+fi
