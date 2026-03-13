@@ -1,3 +1,10 @@
+"""
+This module is a clone of fastapi.openapi.docs, with the get_swagger_ui_html
+function modified to support multiple OpenAPI URLs. This is a workaround for
+a known issue in FastAPI, see:
+
+https://github.com/fastapi/fastapi/discussions/14340
+"""
 import json
 
 from fastapi.encoders import jsonable_encoder
