@@ -26,6 +26,12 @@ The OpenAPI specifications can be downloaded at:
 * ``https://<fqdn>/ucsschool/kelvin/v1/openapi.json``
 * ``https://<fqdn>/ucsschool/kelvin/v2/openapi.json``
 
+.. note::
+  In its current state, version 2 of the Kelvin API behaves the same as version 1,
+  with the exception that no hooks are executed on ``GET`` requests.
+  This is due to the fact, that version 2 reads data from a separate database,
+  which is provisioned asynchronously.
+
 The service also provides versioned aliases that are used by the combined Swagger page:
 
 * ``https://<fqdn>/ucsschool/kelvin/openapi-v1.json``
