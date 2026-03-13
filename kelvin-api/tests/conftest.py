@@ -246,7 +246,7 @@ def url_fragment_ip():
         kelvin_host(), kelvin_port(), family=socket.AF_INET, proto=socket.IPPROTO_TCP
     )
     ip = addrinfo[0][4][0]
-    return f"http://{ip}/ucsschool/kelvin/v1"
+    return f"http://{ip}:{kelvin_port()}/ucsschool/kelvin/v1"
 
 
 @pytest.fixture(scope="session")
