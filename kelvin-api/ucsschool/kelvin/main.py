@@ -30,16 +30,13 @@ from datetime import timedelta
 from functools import lru_cache
 from typing import Any, Dict, List
 
-import aiofiles
 from asgi_correlation_id import CorrelationIdMiddleware
 from asgi_correlation_id.context import correlation_id
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
-from fastapi.openapi.utils import get_openapi
-from fastapi.responses import HTMLResponse, JSONResponse, ORJSONResponse, RedirectResponse
-from fastapi.routing import APIRoute
+from fastapi.openapi.docs import get_swagger_ui_oauth2_redirect_html
+from fastapi.responses import JSONResponse, ORJSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from starlette.routing import Match, Mount, Route
@@ -56,18 +53,14 @@ from .config import UDM_MAPPING_CONFIG, load_configurations
 from .constants import (
     APP_VERSION,
     DEFAULT_LOG_LEVELS,
-    STATIC_FILE_CHANGELOG,
-    STATIC_FILE_README,
     STATIC_FILES_PATH,
     URL_API_V1_PREFIX,
     URL_API_V2_PREFIX,
-    URL_KELVIN_BASE,
     URL_TOKEN_BASE,
 )
-from .fastapi_doc_patch import get_swagger_ui_html as patched_get_swagger_ui_html
 from .import_config import get_import_config
 from .ldap import check_auth_and_get_user
-from .routers import role, school, school_class, user, workgroup
+from .routers import doc, role, school, school_class, user, workgroup
 from .token_auth import Token, create_access_token, get_token_ttl
 
 
@@ -247,190 +240,9 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-def _swagger_ui_kwargs(*, static_prefix: str) -> Dict[str, Any]:
-    return {
-        "title": app.title + " - Swagger UI",
-        "oauth2_redirect_url": app.swagger_ui_oauth2_redirect_url,
-        "swagger_js_url": f"{static_prefix}/static/swagger-ui-bundle-5.17.14.js",
-        "swagger_css_url": f"{static_prefix}/static/swagger-ui-5.17.14.css",
-    }
-
-
-def swagger_ui_html(*, openapi_url: str, static_prefix: str) -> HTMLResponse:
-    return get_swagger_ui_html(
-        openapi_url=openapi_url,
-        **_swagger_ui_kwargs(static_prefix=static_prefix),
-    )
-
-
-@app.get(f"{URL_API_V1_PREFIX}/docs", include_in_schema=False)
-async def custom_swagger_ui_html_v1():
-    return swagger_ui_html(
-        openapi_url=f"{URL_API_V1_PREFIX}/openapi.json",
-        static_prefix=URL_API_V1_PREFIX,
-    )
-
-
-@app.get(f"{URL_API_V2_PREFIX}/docs", include_in_schema=False)
-async def custom_swagger_ui_html_v2():
-    return swagger_ui_html(
-        openapi_url=f"{URL_API_V2_PREFIX}/openapi.json",
-        static_prefix=URL_API_V2_PREFIX,
-    )
-
-
-@app.get(f"{URL_KELVIN_BASE}/docs", include_in_schema=False)
-async def custom_service_swagger_ui_html():
-    urls = [
-        {"url": f"{URL_KELVIN_BASE}/openapi-v1.json", "name": "V1"},
-        {"url": f"{URL_KELVIN_BASE}/openapi-v2.json", "name": "V2"},
-    ]
-    return patched_get_swagger_ui_html(
-        openapi_urls=urls,
-        **_swagger_ui_kwargs(static_prefix=URL_API_V1_PREFIX),
-        swagger_ui_parameters={
-            "urls": urls,
-            "urls.primaryName": urls[0]["name"],
-            "layout": "StandaloneLayout",
-        },
-    )
-
-
 @app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
 async def swagger_ui_redirect():
     return get_swagger_ui_oauth2_redirect_html()
-
-
-def redoc_html_for(*, openapi_url: str, static_prefix: str) -> HTMLResponse:
-    return get_redoc_html(
-        openapi_url=openapi_url,
-        title=app.title + " - ReDoc",
-        redoc_js_url=f"{static_prefix}/static/redoc.standalone-2.0.0-rc.75.js",
-    )
-
-
-@app.get(f"{URL_API_V1_PREFIX}/redoc", include_in_schema=False)
-async def redoc_html_v1():
-    return redoc_html_for(
-        openapi_url=f"{URL_API_V1_PREFIX}/openapi.json",
-        static_prefix=URL_API_V1_PREFIX,
-    )
-
-
-@app.get(f"{URL_API_V2_PREFIX}/redoc", include_in_schema=False)
-async def redoc_html_v2():
-    return redoc_html_for(
-        openapi_url=f"{URL_API_V2_PREFIX}/openapi.json",
-        static_prefix=URL_API_V2_PREFIX,
-    )
-
-
-@app.get(f"{URL_KELVIN_BASE}/redoc", include_in_schema=False)
-async def redoc_html():
-    return redoc_html_for(
-        openapi_url=f"{URL_KELVIN_BASE}/openapi-v1.json",
-        static_prefix=URL_API_V1_PREFIX,
-    )
-
-
-@app.get(f"{URL_KELVIN_BASE}")
-async def docs_redirect():
-    return RedirectResponse(url=f"{URL_KELVIN_BASE}/docs")
-
-
-@app.get(f"{URL_API_V1_PREFIX}/changelog", response_class=HTMLResponse)
-async def get_history():
-    async with aiofiles.open(STATIC_FILE_CHANGELOG) as fp:
-        return await fp.read()
-
-
-@app.get(f"{URL_API_V2_PREFIX}/changelog", response_class=HTMLResponse)
-async def get_history_v2():
-    async with aiofiles.open(STATIC_FILE_CHANGELOG) as fp:
-        return await fp.read()
-
-
-@app.get(f"{URL_API_V1_PREFIX}/readme", response_class=HTMLResponse)
-async def get_readme():
-    async with aiofiles.open(STATIC_FILE_README) as fp:
-        return await fp.read()
-
-
-@app.get(f"{URL_API_V2_PREFIX}/readme", response_class=HTMLResponse)
-async def get_readme_v2():
-    async with aiofiles.open(STATIC_FILE_README) as fp:
-        return await fp.read()
-
-
-def routes_for_prefix(app: FastAPI, prefix: str) -> List[APIRoute]:
-    selected_routes: List[APIRoute] = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
-            continue
-        if route.path == prefix or route.path.startswith(f"{prefix}/"):
-            selected_routes.append(route)
-    return selected_routes
-
-
-def build_openapi_for_prefix(
-    app: FastAPI,
-    *,
-    prefix: str,
-    title: str,
-    version: str,
-    description: str | None = None,
-) -> Dict[str, Any]:
-    routes = routes_for_prefix(app, prefix)
-    return get_openapi(
-        title=title,
-        version=version,
-        description=description,
-        routes=routes,
-    )
-
-
-_openapi_cache: Dict[str, Dict[str, Any]] = {}
-
-
-def get_versioned_openapi(
-    prefix: str, title: str, version: str, description: str | None = None
-) -> Dict[str, Any]:
-    cache_key = f"{prefix}:{version}"
-    if cache_key not in _openapi_cache:
-        _openapi_cache[cache_key] = build_openapi_for_prefix(
-            app,
-            prefix=prefix,
-            title=title,
-            version=version,
-            description=description,
-        )
-    return _openapi_cache[cache_key]
-
-
-@app.get(f"{URL_KELVIN_BASE}/openapi-v1.json", include_in_schema=False)
-@app.get(f"{URL_API_V1_PREFIX}/openapi.json", include_in_schema=False)
-def openapi_v1():
-    return JSONResponse(
-        get_versioned_openapi(
-            prefix=URL_API_V1_PREFIX,
-            title=f"{app.title} - V1",
-            version=str(APP_VERSION),
-            description=app.description,
-        )
-    )
-
-
-@app.get(f"{URL_KELVIN_BASE}/openapi-v2.json", include_in_schema=False)
-@app.get(f"{URL_API_V2_PREFIX}/openapi.json", include_in_schema=False)
-def openapi_v2():
-    return JSONResponse(
-        get_versioned_openapi(
-            prefix=URL_API_V2_PREFIX,
-            title=f"{app.title} - V2",
-            version=str(APP_VERSION),
-            description=app.description,
-        )
-    )
 
 
 v1 = APIRouter(prefix=URL_API_V1_PREFIX)
@@ -461,6 +273,7 @@ v1.include_router(
     prefix="/users",
     tags=["users"],
 )
+v1.include_router(doc.router)
 
 v2.include_router(
     school_class.router,
@@ -487,10 +300,12 @@ v2.include_router(
     prefix="/users",
     tags=["users"],
 )
+v2.include_router(doc.router)
 
 
 app.include_router(v1)
 app.include_router(v2)
+app.include_router(doc.service_router)
 app.mount(
     f"{URL_API_V1_PREFIX}/static",
     StaticFiles(directory=str(STATIC_FILES_PATH)),
