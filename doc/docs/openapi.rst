@@ -26,6 +26,9 @@ The OpenAPI specifications can be downloaded at:
 * ``https://<fqdn>/ucsschool/kelvin/v1/openapi.json``
 * ``https://<fqdn>/ucsschool/kelvin/v2/openapi.json``
 
+The ``v2`` endpoints use the same protocol as the ``v1`` endpoints.
+When reading or searching for objects, however, ``v2`` does not support PyHook.
+
 The service also provides versioned aliases that are used by the combined Swagger page:
 
 * ``https://<fqdn>/ucsschool/kelvin/openapi-v1.json``
