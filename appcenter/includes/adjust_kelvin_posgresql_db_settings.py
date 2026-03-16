@@ -29,12 +29,11 @@ try:
     obj = mod.get(f"cn={app_name},cn=data,{superordinate}")
     data = json.loads(obj.props.data.raw)
 
-    if len(data["installations"]) == 1:
-        data["database-uri"] = kelvin_db_uri or data["database-uri"]
-        data["database-user"] = kelvin_db_username or data["database-user"]
-        raw_value = json.dumps(data).encode("ascii")
-        obj.props.data = Base64Bzip2BinaryProperty("data", raw_value=raw_value)
-        obj.save()
+    data["database-uri"] = kelvin_db_uri or data["database-uri"]
+    data["database-user"] = kelvin_db_username or data["database-user"]
+    raw_value = json.dumps(data).encode("ascii")
+    obj.props.data = Base64Bzip2BinaryProperty("data", raw_value=raw_value)
+    obj.save()
 
 except NoObject:
     pass
