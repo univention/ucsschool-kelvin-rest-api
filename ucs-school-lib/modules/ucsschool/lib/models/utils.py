@@ -44,7 +44,8 @@ from functools import lru_cache
 from importlib.resources import files
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
-from random import choice, shuffle
+from random import shuffle
+from secrets import choice
 from typing import IO, Any, Dict, List, Sequence, Tuple, Union
 
 import colorlog
