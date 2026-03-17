@@ -100,7 +100,8 @@ exclude_dirs: [
     'venv',
     '.venv',
     'build_appcenter_changelog.py',
-    '.gitlab-ci/'
+    '.gitlab-ci/',
+    'doc/',
 ]
 skips: ['B101', 'B404']
 
