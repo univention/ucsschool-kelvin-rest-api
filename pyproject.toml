@@ -38,6 +38,10 @@ dependencies = [
     "uvicorn>=0.35.0",
 ]
 
+[project.scripts]
+ucr = "ucsschool.kelvin.cli:run_ucr"
+univention-config-registry = "ucsschool.kelvin.cli:run_ucr"
+
 [build-system]
 requires = ["uv_build>=0.8.0,<0.9"]
 build-backend = "uv_build"
@@ -60,8 +64,8 @@ univention-directory-manager-modules = { workspace = true }
 ucs-school-lib = { workspace = true }
 ucs-school-import = { workspace = true }
 openapi-client-udm = { path = "openapi-client-udm-1.0.2.tar.gz" }
-univention-configuration-registry = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/58bb70d7c4c23bf4fce4d097457f640fba5897c9/ucs-58bb70d7c4c23bf4fce4d097457f640fba5897c9.tar.gz?path=base/univention-config-registry", subdirectory = "base/univention-config-registry" }
-univention-debhelper = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/58bb70d7c4c23bf4fce4d097457f640fba5897c9/ucs-58bb70d7c4c23bf4fce4d097457f640fba5897c9.tar.gz?path=packaging/univention-debhelper", subdirectory = "packaging/univention-debhelper" }
+univention-debhelper = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/5.2-5/ucs-5.2-5.tar.gz?path=packaging/univention-debhelper", subdirectory = "packaging/univention-debhelper" }
+univention-configuration-registry = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/5.2-5/ucs-5.2-5.tar.gz?path=base/univention-config-registry", subdirectory = "base/univention-config-registry" }
 
 [dependency-groups]
 dev = [

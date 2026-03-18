@@ -1324,8 +1324,8 @@ requires-dist = [
     { name = "ucs-school-import", editable = "ucs-school-import" },
     { name = "ucs-school-lib", editable = "ucs-school-lib" },
     { name = "uldap3", git = "https://git.knut.univention.de/univention/dev/libraries/uldap3.git" },
-    { name = "univention-configuration-registry", url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/58bb70d7c4c23bf4fce4d097457f640fba5897c9/ucs-58bb70d7c4c23bf4fce4d097457f640fba5897c9.tar.gz?path=base/univention-config-registry", subdirectory = "base/univention-config-registry" },
-    { name = "univention-debhelper", url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/58bb70d7c4c23bf4fce4d097457f640fba5897c9/ucs-58bb70d7c4c23bf4fce4d097457f640fba5897c9.tar.gz?path=packaging/univention-debhelper", subdirectory = "packaging/univention-debhelper" },
+    { name = "univention-configuration-registry", url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/5.2-5/ucs-5.2-5.tar.gz?path=base/univention-config-registry", subdirectory = "base/univention-config-registry" },
+    { name = "univention-debhelper", url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/5.2-5/ucs-5.2-5.tar.gz?path=packaging/univention-debhelper", subdirectory = "packaging/univention-debhelper" },
     { name = "univention-directory-manager-modules", editable = "univention-directory-manager-modules-slim" },
     { name = "uvicorn", specifier = ">=0.35.0" },
 ]
@@ -1382,11 +1382,11 @@ wheels = [
 [[package]]
 name = "univention-configuration-registry"
 version = "0.0.0"
-source = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/58bb70d7c4c23bf4fce4d097457f640fba5897c9/ucs-58bb70d7c4c23bf4fce4d097457f640fba5897c9.tar.gz?path=base/univention-config-registry", subdirectory = "base/univention-config-registry" }
+source = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/5.2-5/ucs-5.2-5.tar.gz?path=base/univention-config-registry", subdirectory = "base/univention-config-registry" }
 dependencies = [
     { name = "lazy-object-proxy" },
 ]
-sdist = { hash = "sha256:25570babeaf80ad6932b4447344836489b092a5408b77162c157eeaff9918b2d" }
+sdist = { hash = "sha256:9e52c0778c5dc154157d367488316fbeabec881415ad84755312b1d7edd01d1e" }
 
 [package.metadata]
 requires-dist = [{ name = "lazy-object-proxy" }]
@@ -1394,8 +1394,8 @@ requires-dist = [{ name = "lazy-object-proxy" }]
 [[package]]
 name = "univention-debhelper"
 version = "1.0.0"
-source = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/58bb70d7c4c23bf4fce4d097457f640fba5897c9/ucs-58bb70d7c4c23bf4fce4d097457f640fba5897c9.tar.gz?path=packaging/univention-debhelper", subdirectory = "packaging/univention-debhelper" }
-sdist = { hash = "sha256:4bf1442e11414f5f7d1daf17c41f0b5f9b0d3b985d7b72b2e4f3e3c296427792" }
+source = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/5.2-5/ucs-5.2-5.tar.gz?path=packaging/univention-debhelper", subdirectory = "packaging/univention-debhelper" }
+sdist = { hash = "sha256:4fd6a555c48a9b0ef169e91c6011d5f914e12c89a655a6ae3c5adb3be8164678" }
 
 [[package]]
 name = "univention-directory-manager-modules"
