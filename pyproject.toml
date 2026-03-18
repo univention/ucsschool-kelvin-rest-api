@@ -56,6 +56,7 @@ members = [
     "univention-directory-manager-modules-slim",
     "ucs-school-lib",
     "ucs-school-import",
+    "ucsschool-objects",
 ]
 
 [tool.uv.sources]

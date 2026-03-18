@@ -7,6 +7,7 @@ members = [
     "ucs-school-import",
     "ucs-school-lib",
     "ucsschool-kelvin-rest-api",
+    "ucsschool-objects",
     "univention-directory-manager-modules",
     "univention-lib",
 ]
@@ -1343,6 +1344,11 @@ dev = [
     { name = "pytest-mock" },
     { name = "tenacity", specifier = ">=9.1.2" },
 ]
+
+[[package]]
+name = "ucsschool-objects"
+version = "0.1.0"
+source = { editable = "ucsschool-objects" }
 
 [[package]]
 name = "udm-rest-client"
