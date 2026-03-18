@@ -26,23 +26,15 @@
 # <http://www.gnu.org/licenses/>.
 
 import logging
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import lazy_object_proxy
 
+from ucsschool.kelvin import get_version
+
 
 def _app_version() -> str:
-    try:
-        return version(APP_ID)
-    except PackageNotFoundError:
-        pass
-    # pytest before installation, try to read VERSION.txt or simply return a dummy value
-    try:
-        with (Path(__file__).parent.parent.parent / "VERSION.txt").open("r") as fp:
-            return fp.read().strip()
-    except IOError:
-        return "1.8.6"
+    return get_version()
 
 
 APP_ID = "ucsschool-kelvin-rest-api"

@@ -17,6 +17,11 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "kelvin-api"))
+
+from ucsschool.kelvin import get_version  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
@@ -25,10 +30,7 @@ copyright = "2022, Univention GmbH"
 author = "Univention GmbH"
 
 # The short X.Y version
-version = ""
-# The full version, including alpha/beta/rc tags
-with open("../../kelvin-api/VERSION.txt", "r") as fp:
-    release = fp.read().strip("\n")
+version = get_version()
 
 
 # -- General configuration ---------------------------------------------------
