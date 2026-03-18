@@ -31,6 +31,7 @@ dependencies = [
     "timing-asgi>=0.3.1",
     "ucs-school-import",
     "ucs-school-lib",
+    "ucsschool-objects",
     "uldap3",
     "univention-configuration-registry",
     "univention-debhelper",
@@ -68,6 +69,7 @@ uldap3 = { git = "https://git.knut.univention.de/univention/dev/libraries/uldap3
 univention-directory-manager-modules = { workspace = true }
 ucs-school-lib = { workspace = true }
 ucs-school-import = { workspace = true }
+ucsschool-objects = { workspace = true }
 openapi-client-udm = { path = "openapi-client-udm-1.0.2.tar.gz" }
 # Don't use git for the ucs repo, a checkout takes around 3 min
 # https://github.com/astral-sh/uv/issues/1737
