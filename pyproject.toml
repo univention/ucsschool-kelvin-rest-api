@@ -1,6 +1,6 @@
 [project]
+dynamic = ["version"]
 name = "ucsschool-kelvin-rest-api"
-version = "3.2.1"
 license = "AGPL-3.0-only"
 description = "UCS@school Kelvin REST API"
 authors = [
@@ -48,6 +48,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["kelvin-api/ucsschool"]
+
+[tool.hatch.version]
+source = "code"
+path = "kelvin-api/ucsschool/kelvin/__init__.py"
+expression = "get_version()"
 
 [tool.uv.workspace]
 members = [

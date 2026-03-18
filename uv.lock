@@ -1252,7 +1252,6 @@ requires-dist = [
 
 [[package]]
 name = "ucsschool-kelvin-rest-api"
-version = "3.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiocache" },

@@ -166,7 +166,7 @@ build_docker_image:
   variables:
     KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/"
     DOCKERFILE_PATH: docker/Dockerfile
-    KANIKO_ARGS: --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
+    KANIKO_ARGS: --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg KELVIN_BUILD_VERSION="${CI_COMMIT_TAG:-'999.0.0'}" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
 
 build_changelog_html:
   stage: build
