@@ -54,6 +54,7 @@ COPY ucs-school-import ./ucs-school-import
 COPY ucs-school-lib ./ucs-school-lib
 COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
 COPY univention-lib-slim ./univention-lib-slim
+COPY ucsschool-objects ./ucsschool-objects
 COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
@@ -79,6 +80,7 @@ COPY ucs-school-import ./ucs-school-import
 COPY ucs-school-lib ./ucs-school-lib
 COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
 COPY univention-lib-slim ./univention-lib-slim
+COPY ucsschool-objects ./ucsschool-objects
 COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-school-import/usr/share/ucs-school-import/configs/ /usr/share/ucs-school-import/configs/
 COPY ucs-school-import/modules/ucsschool/lib/create_ou.py ucs-school-lib/modules/ucsschool/lib/create_ou.py
