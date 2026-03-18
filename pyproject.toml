@@ -43,12 +43,11 @@ ucr = "ucsschool.kelvin.cli:run_ucr"
 univention-config-registry = "ucsschool.kelvin.cli:run_ucr"
 
 [build-system]
-requires = ["uv_build>=0.8.0,<0.9"]
-build-backend = "uv_build"
+requires = ["hatchling<2"]
+build-backend = "hatchling.build"
 
-[tool.uv.build-backend]
-module-root = "kelvin-api"
-module-name = ["ucsschool.kelvin"]
+[tool.hatch.build.targets.wheel]
+packages = ["kelvin-api/ucsschool"]
 
 [tool.uv.workspace]
 members = [
