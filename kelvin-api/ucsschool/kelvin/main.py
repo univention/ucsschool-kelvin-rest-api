@@ -47,8 +47,8 @@ from .constants import (
 )
 from .ldap import check_auth_and_get_user
 from .routers import role, school, school_class, user, workgroup
-from .service.event_handler import add_event_handlers
 from .service.exception_handler import add_exception_handlers
+from .service.lifespan import build_app_lifespan
 from .service.middleware import add_middlewares
 from .token_auth import Token, create_access_token, get_token_ttl
 
@@ -58,6 +58,7 @@ def get_logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
+logger = get_logger()
 app = FastAPI(
     title="Kelvin API",
     description="UCS@school Kelvin REST API",
@@ -65,11 +66,10 @@ app = FastAPI(
     docs_url=None,
     redoc_url=None,
     openapi_url=f"{URL_API_PREFIX}/openapi.json",
+    lifespan=build_app_lifespan(logger),
     default_response_class=ORJSONResponse,
 )
-logger = get_logger()
 add_middlewares(app, logger)
-add_event_handlers(app, logger)
 add_exception_handlers(app, logger)
 
 

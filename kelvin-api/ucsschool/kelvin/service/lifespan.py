@@ -1,5 +1,6 @@
 import logging
-from functools import partial
+from contextlib import asynccontextmanager
+from typing import AsyncIterator, Callable
 
 from fastapi import FastAPI
 
@@ -45,8 +46,13 @@ def log_version(app: FastAPI, logger: logging.Logger) -> None:
     logger.info("Started %s version %s.", app.title, app.version)
 
 
-def add_event_handlers(app: FastAPI, logger: logging.Logger) -> None:
-    app.add_event_handler("startup", setup_logging)
-    app.add_event_handler("startup", partial(load_configs, logger=logger))
-    app.add_event_handler("startup", get_import_config)
-    app.add_event_handler("startup", partial(log_version, app=app, logger=logger))
+def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AsyncIterator[None]]:
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        setup_logging()
+        load_configs(logger)
+        get_import_config()
+        log_version(app, logger)
+        yield
+
+    return lifespan
