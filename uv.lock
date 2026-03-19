@@ -1636,8 +1636,24 @@ dependencies = [
     { name = "sqlalchemy" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "faker" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
+
 [package.metadata]
 requires-dist = [{ name = "sqlalchemy", specifier = ">=2,<=3" }]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "faker", specifier = ">=15.0.0" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.3" },
+    { name = "pytest", specifier = ">=9.0.0" },
+    { name = "pytest-cov", specifier = ">=4.0.0" },
+]
 
 [[package]]
 name = "udm-rest-client"
