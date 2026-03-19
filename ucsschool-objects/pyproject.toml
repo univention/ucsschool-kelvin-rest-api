@@ -14,3 +14,27 @@ dependencies = [
 [build-system]
 requires = ["uv_build>=0.10.8,<0.11.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "faker>=15.0.0",
+    "psycopg[binary]>=3.3.3",
+    "pytest>=9.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "--verbose --showlocals -p no:warnings  --cov=ucsschool_objects --cov-report=term-missing"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/ucsschool_objects"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
