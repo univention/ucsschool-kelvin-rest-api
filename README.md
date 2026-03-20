@@ -131,6 +131,12 @@ some additional requirements. Please follow the instructions provided [here](htt
 The Kelvin project uses [uv](https://docs.astral.sh/uv/) as a project manager. To get a virtual environment with all required packages installed,
 simply run `uv sync`. To run any command within this venv, simply run `uv run $COMMAND`.
 
+## Create alembic migrations
+
+```shell
+make alembic-migration
+```
+
 ## pre-commit
 
 The pipeline for this repository has a [pre-commit](https://pre-commit.com/) job which prevents code from being merged which does not conform to the pre-commit programs and configuration.
