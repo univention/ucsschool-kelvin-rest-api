@@ -45,6 +45,7 @@ from .constants import (
 )
 from .ldap import check_auth_and_get_user
 from .routers import doc, role, school, school_class, user, workgroup
+from .service.dependency import check_db_compatibility
 from .service.exception_handler import add_exception_handlers
 from .service.lifespan import build_app_lifespan
 from .service.middleware import add_middlewares
@@ -108,7 +109,7 @@ async def swagger_ui_redirect():
 
 
 v1 = APIRouter(prefix=URL_API_V1_PREFIX)
-v2 = APIRouter(prefix=URL_API_V2_PREFIX)
+v2 = APIRouter(prefix=URL_API_V2_PREFIX, dependencies=[Depends(check_db_compatibility)])
 
 v1.include_router(
     school_class.router,

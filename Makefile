@@ -1,3 +1,4 @@
+SHELL := /usr/bin/env bash
 .PHONY: help fetch-vm-data build-docker-image dev-server
 .DEFAULT_GOAL := help
 
@@ -28,9 +29,26 @@ update-architecture-docs:
 	python3 doc/dev/sqlalchemy_to_rst.py Group User School Role GroupType SchoolMembership doc/dev/architecture
 	python3 doc/dev/render_er_diagram.py doc/dev/architecture/er.md
 
-fetch-vm-data:  ## Fetches necessary information from a UCS host, to use its UDM REST API for a local Kelvin instance
+.get-target:
+ifeq ($(TARGET),)
+	$(eval TARGET := $(shell read -p "Enter value for TARGET: " val; echo $$val))
+endif
+
+.get-alembic-message:
+ifeq ($(ALEMBIC_MESSAGE),)
+	$(eval ALEMBIC_MESSAGE := $(shell read -p "Enter value for ALEMBIC_MESSAGE: " val; echo $$val))
+endif
+
+.running-dev-server:
+	@if ! $$(docker compose ls --filter name=kelvin-dev | grep --quiet running); then \
+		echo "Error: kelvin-dev not running. Run 'make dev-server' first."; \
+		exit 1; \
+	fi
+
+fetch-vm-data: .get-target ## Fetches necessary information from a UCS host, to use its UDM REST API for a local Kelvin instance
 	mkdir -p $(VM_CONF_DIR)
 	echo "dev" > $(VM_CONF_DIR)/tokens.secret
+	echo "univention" > $(VM_CONF_DIR)/postgresql-kelvin.secret
 	scp $(TARGET):/etc/machine.secret $(VM_CONF_DIR)/
 	scp $(TARGET):/etc/ldap.secret $(VM_CONF_DIR)/
 	scp $(TARGET):/etc/ssl/certs/ca-certificates.crt $(VM_CONF_DIR)/
@@ -46,13 +64,16 @@ fetch-vm-data:  ## Fetches necessary information from a UCS host, to use its UDM
 	echo "HOSTNAME=$$(ssh $(TARGET) ucr get hostname)" >> $(VM_CONF_DIR)/env
 	echo "DOCKER_HOST_NAME=$(TARGET)" >> $(VM_CONF_DIR)/env
 	echo "TARGET=$(TARGET)" >> $(VM_CONF_DIR)/env
+	echo "UCSSCHOOL_KELVIN_DB_URI=postgresql://postgres:5432/ucsschool-kelvin-rest-api?sslmode=disable" >> $(VM_CONF_DIR)/env
+	echo "UCSSCHOOL_KELVIN_DB_USERNAME=ucsschool-kelvin-rest-api" >> $(VM_CONF_DIR)/env
+	echo "UCSSCHOOL_KELVIN_DB_PASSWORD_FILE=/etc/ucsschool/kelvin/postgresql-kelvin.secret" >> $(VM_CONF_DIR)/env
 
 build-docker-image:  ## Builds the Kelvin docker image
 	@docker build --network host -t ucsschool-kelvin-rest-api:dev -f docker/Dockerfile .
 
 dev-server: build-docker-image ## Start local Kelvin development server
 	@echo "Starting development server..."
-	@echo "Access via http://127.0.0.1:8911/ucsschool/kelvin/v1/docs"
+	@echo "Access via http://127.0.0.1:8911/ucsschool/kelvin/"
 	@if [ ! -f $(VM_CONF_DIR)/env ]; then \
 		echo "Error: $(VM_CONF_DIR)/env not found. Run 'make fetch-vm-data TARGET=hostname' first."; \
 		exit 1; \
@@ -60,3 +81,6 @@ dev-server: build-docker-image ## Start local Kelvin development server
 	@set -a && source $(VM_CONF_DIR)/env && set +a && \
 	trap 'docker compose -f dev/docker-compose.yaml down' EXIT && \
 		docker compose -f dev/docker-compose.yaml up --watch
+
+alembic-migration: .running-dev-server .get-alembic-message ## Creates a new alembic revison from kelvin-dev
+	uv run --env-file .env.alembic alembic revision --autogenerate -m "$(ALEMBIC_MESSAGE)"
