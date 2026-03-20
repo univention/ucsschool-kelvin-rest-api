@@ -17,6 +17,17 @@ export PRINT_HELP_PYSCRIPT
 help:
 	@python3 -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
+update-architecture-docs:
+	# Updates entity tables and diagrams in the architecture documentation
+	# This is a semi manual process: If sqlalchemy class names change, they need to
+	# be changed here and included in the architecture.rst file.
+	# For example, sqlalchemy model class SchoolMembership will be rendered to
+	# schoolmembership-attributes.rst and schoolmembership-relations.rst
+	# The script has some inline unit tests: pytest doc/dev/sqlalchemy_to_rst.py
+
+	python3 doc/dev/sqlalchemy_to_rst.py Group User School Role GroupType SchoolMembership doc/dev/architecture
+	python3 doc/dev/render_er_diagram.py doc/dev/architecture/er.md
+
 fetch-vm-data:  ## Fetches necessary information from a UCS host, to use its UDM REST API for a local Kelvin instance
 	mkdir -p $(VM_CONF_DIR)
 	echo "dev" > $(VM_CONF_DIR)/tokens.secret
