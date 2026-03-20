@@ -75,6 +75,8 @@ COPY uv.lock .
 COPY pyproject.toml .
 COPY docker/start-kelvin.sh .
 COPY kelvin-api ./kelvin-api
+COPY alembic ./alembic
+COPY pyproject.toml .
 COPY ucs-school-import ./ucs-school-import
 COPY ucs-school-lib ./ucs-school-lib
 COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim

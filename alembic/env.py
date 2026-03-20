@@ -1,28 +1,57 @@
-from logging.config import fileConfig
+import hashlib
+import os
+import time
+from pathlib import Path
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, make_url, pool, text
+from ucsschool_objects.database_models import Base
 
 from alembic import context
+from ucsschool.kelvin.service.log import setup_logging
+from ucsschool.lib.models.utils import env_or_ucr
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+setup_logging()
+
 config = context.config
+target_metadata = Base.metadata
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+sqlalchemy_url = make_url(env_or_ucr("ucsschool/kelvin/db/uri")).set(
+    username=env_or_ucr("ucsschool/kelvin/db/username"),
+    password=Path(
+        os.getenv("UCSSCHOOL_KELVIN_DB_PASSWORDFILE", "/etc/ucsschool/kelvin/postgresql-kelvin.secret")
+    )
+    .read_text()
+    .strip(),
+)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+if sqlalchemy_url.drivername == "postgresql":
+    sqlalchemy_url = sqlalchemy_url.set(drivername="postgresql+psycopg")
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+config.set_main_option("sqlalchemy.url", sqlalchemy_url.render_as_string(hide_password=False))
+
+
+def acquire_lock(connection, timeout_seconds: int = 60) -> bool:
+    dialect = connection.dialect.name
+    lock_id = int(hashlib.sha256(b"alembic_lock").hexdigest()[:15], 16)
+    lock_acquired = False
+
+    if dialect == "postgresql":
+        start_time = time.time()
+        while time.time() - start_time < timeout_seconds:
+            # pg_try_advisory_lock returns True/False immediately
+            result = connection.execute(text(f"SELECT pg_try_advisory_lock({lock_id})")).scalar()
+            if result:
+                lock_acquired = True
+                print("Postgres advisory lock acquired.")
+                break
+            print("Waiting for migration lock...")
+            time.sleep(2)  # Wait 2 seconds before polling again
+        connection.commit()
+    else:
+        # Don't break other dialects just because we don't support locks.
+        # E.g. sqlite
+        lock_acquired = True
+    return lock_acquired
 
 
 def run_migrations_offline() -> None:
@@ -61,12 +90,18 @@ def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-
+    lock_timeout_seconds = 60
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        lock_acquired = acquire_lock(connection, timeout_seconds=lock_timeout_seconds)
+        if lock_acquired:
+            context.configure(connection=connection, target_metadata=target_metadata)
 
-        with context.begin_transaction():
-            context.run_migrations()
+            with context.begin_transaction():
+                context.run_migrations()
+        else:
+            raise RuntimeError(
+                f"Could not acquire lock after {lock_timeout_seconds}s. Migration aborted."
+            )
 
 
 if context.is_offline_mode():

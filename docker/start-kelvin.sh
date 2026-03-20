@@ -4,18 +4,25 @@
 #   TRUSTED_PROXY_IPS: Optional. Comma-separated IPs/CIDRs trusted for
 #   X-Forwarded-* headers. If unset, Gunicorn ignores forwarded headers.
 
-num_workers="$(python -c "from ucsschool.lib.models.utils import ucr; print(ucr.get('ucsschool/kelvin/processes', 2))")"
+APPCENTER_TIMEOUT=0
+while [ ! -f "/etc/machine.secret" ]; do
+    if [[ APPCENTER_TIMEOUT -le 60 ]]; then
+        echo "ERROR: univention appcenter did not write /etc/machine.secret"
+        exit 1
+    fi
+    # Currently the best way to wait for the appcenter to configure the container
+    echo "waiting for univention appcenter to create /etc/machine.secret"
+    sleep 1
+    ((APPCENTER_TIMEOUT++))
+done
+
+num_workers="$(ucr get ucsschool/kelvin/processes)"
 
 if [ "$num_workers" = "" ]; then
     num_workers="2"
 elif [ "$num_workers" -lt  "1" ]; then
     num_workers="$(nproc)"
 fi
-
-while [ ! -f "/etc/machine.secret" ]; do
-    echo "waiting for univention appcenter to create /etc/machine.secret"
-    sleep 1
-done
 
 python -c "import openapi_client_udm"
 
@@ -31,6 +38,16 @@ if [ $? -eq 1 ]; then
         --username "$MACHINE_USER" \
         --password "$MACHINE_PASSWORD" \
         "$DOCKER_HOST_NAME"
+fi
+
+if [ "$SKIP_UCSSCHOOL_KELVIN_DB_MIGRATION" != "true" ]; then
+    echo "Migration starting point:"
+    alembic --config pyproject.toml current
+    echo "Migration plan:"
+    alembic --config pyproject.toml history -r current:head
+    echo "Migration log:"
+    alembic --config pyproject.toml upgrade head
+    echo "... migration done"
 fi
 
 exec gunicorn \
