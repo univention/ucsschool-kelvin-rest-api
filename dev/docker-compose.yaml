@@ -7,17 +7,27 @@
 # Usage:
 #   docker compose up
 #
-# Access the API at: http://127.0.0.1:8911/ucsschool/kelvin/v1/docs
+# Access the API at: http://127.0.0.1:8911/ucsschool/kelvin/
 
+name: kelvin-dev
 services:
+  postgres:
+    image: postgres:15-bookworm # UCS 5.2 version
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: ucsschool-kelvin-rest-api
+      POSTGRES_PASSWORD: univention
   kelvin:
     image: ucsschool-kelvin-rest-api:dev
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    network_mode: host
+      network: host
     stdin_open: true
     tty: true
+    ports:
+      - 8911:8911
     env_file:
       - _vm_config/env
     extra_hosts:
@@ -29,6 +39,7 @@ services:
       - ./_vm_config/ldap.secret:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/cn_admin.secret:ro
       - ./_vm_config/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
       - ./_vm_config/tokens.secret:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/tokens.secret:ro
+      - ./_vm_config/postgresql-kelvin.secret:/etc/ucsschool/kelvin/postgresql-kelvin.secret:ro
 
       # Configuration files
       - ./_vm_config/base.conf:/etc/univention/base.conf
@@ -37,7 +48,6 @@ services:
 
       # Custom hooks
       - ../custom_hooks/add_school_admins_to_admin_group.py:/var/lib/ucs-school-import/kelvin-hooks/add_school_admins_to_admin_group.py
-
     develop:
       watch:
         # Kelvin API source code
@@ -76,6 +86,14 @@ services:
         - action: sync+restart
           path: ../univention-lib-slim
           target: /kelvin/univention-lib-slim
+          ignore:
+            - "**/__pycache__/"
+            - "**/*.pyc"
+
+        # alembic configuration and migration scripts
+        - action: sync+restart
+          path: ../alembic
+          target: /kelvin/alembic
           ignore:
             - "**/__pycache__/"
             - "**/*.pyc"
