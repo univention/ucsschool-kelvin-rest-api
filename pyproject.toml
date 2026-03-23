@@ -64,8 +64,11 @@ univention-directory-manager-modules = { workspace = true }
 ucs-school-lib = { workspace = true }
 ucs-school-import = { workspace = true }
 openapi-client-udm = { path = "openapi-client-udm-1.0.2.tar.gz" }
-univention-debhelper = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/5.2-5/ucs-5.2-5.tar.gz?path=packaging/univention-debhelper", subdirectory = "packaging/univention-debhelper" }
-univention-configuration-registry = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/5.2-5/ucs-5.2-5.tar.gz?path=base/univention-config-registry", subdirectory = "base/univention-config-registry" }
+# Don't use git for the ucs repo, a checkout takes around 3 min
+# https://github.com/astral-sh/uv/issues/1737
+# Also don't use a branch, because the checksum of the download changes on new commits
+univention-debhelper = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/release-5.2-5/ucs-release-5.2-5.tar.gz?path=packaging/univention-debhelper", subdirectory = "packaging/univention-debhelper" }
+univention-configuration-registry = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/release-5.2-5/ucs-release-5.2-5.tar.gz?path=base/univention-config-registry", subdirectory = "base/univention-config-registry" }
 
 [dependency-groups]
 dev = [
