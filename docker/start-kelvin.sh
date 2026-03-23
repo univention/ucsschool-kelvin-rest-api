@@ -5,7 +5,7 @@
 #   X-Forwarded-* headers. If unset, Gunicorn ignores forwarded headers.
 
 APPCENTER_TIMEOUT=0
-while [ ! -f "/etc/machine.secret" ]; do
+while [[ ! -f "/etc/machine.secret" ]]; do
     if [[ APPCENTER_TIMEOUT -le 60 ]]; then
         echo "ERROR: univention appcenter did not write /etc/machine.secret"
         exit 1
@@ -18,15 +18,15 @@ done
 
 num_workers="$(ucr get ucsschool/kelvin/processes)"
 
-if [ "$num_workers" = "" ]; then
+if [[ -z "$num_workers" ]]; then
     num_workers="2"
-elif [ "$num_workers" -lt  "1" ]; then
+elif [[ "$num_workers" -lt  "1" ]]; then
     num_workers="$(nproc)"
 fi
 
 python -c "import openapi_client_udm"
 
-if [ $? -eq 1 ]; then
+if [[ $? -eq 1 ]]; then
     echo "Module openapi_client_udm is not installed. Installing..."
     MACHINE_USER="$HOSTNAME\$"
     MACHINE_PASSWORD=$(cat /etc/machine.secret)
@@ -40,7 +40,7 @@ if [ $? -eq 1 ]; then
         "$DOCKER_HOST_NAME"
 fi
 
-if [ "$SKIP_UCSSCHOOL_KELVIN_DB_MIGRATION" != "true" ]; then
+if [[ "$SKIP_UCSSCHOOL_KELVIN_DB_MIGRATION" != "true" ]]; then
     echo "Migration starting point:"
     alembic --config pyproject.toml current
     echo "Migration plan:"
