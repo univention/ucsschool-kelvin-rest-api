@@ -251,6 +251,9 @@ you need to change the Kelvin app settings on all nodes manually.
 
    univention-app configure ucsschool-kelvin-rest-api --set ucsschool/kelvin/db/uri="postgresql://backup1.school.test:5432/kelvin?sslmode=require"
 
+The database schema, that is supplied by Kelvin, can change on app upgrades.
+Kelvin is checking the database revision on runtime and will throw an error if it is not compatible.
+
 File locations
 --------------
 
