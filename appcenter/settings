@@ -46,7 +46,7 @@ Scope = inside
 Type = String
 Description = The username with which to login into the Kelvin database.
 Description[de] = Der Benutzername mit dem die Applikation sich in die Kelvin Datenbank einloggt.
-InitialValue = kelvin
+InitialValue = ucsschool-kelvin-rest-api
 Scope = inside
 
 [ucsschool/kelvin/db/password]
