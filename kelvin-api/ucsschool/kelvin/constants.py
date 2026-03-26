@@ -62,6 +62,8 @@ DEFAULT_LOG_LEVELS = {
     "ucsschool": logging.INFO,
     "uvicorn.access": logging.INFO,
     "uvicorn.error": logging.INFO,
+    "alembic": logging.INFO,
+    "sqlalchemy": logging.INFO,
 }
 IMPORT_CONFIG_FILE_DEFAULT = Path("/usr/share/ucs-school-import/configs/kelvin_defaults.json")
 IMPORT_CONFIG_FILE_USER = Path("/var/lib/ucs-school-import/configs/kelvin.json")

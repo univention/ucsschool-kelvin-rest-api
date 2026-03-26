@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import os
 import time
 from pathlib import Path
@@ -11,6 +12,7 @@ from ucsschool.kelvin.service.log import setup_logging
 from ucsschool.lib.models.utils import env_or_ucr
 
 setup_logging()
+logger = logging.getLogger()
 
 config = context.config
 target_metadata = Base.metadata
@@ -42,9 +44,9 @@ def acquire_lock(connection, timeout_seconds: int = 60) -> bool:
             result = connection.execute(text(f"SELECT pg_try_advisory_lock({lock_id})")).scalar()
             if result:
                 lock_acquired = True
-                print("Postgres advisory lock acquired.")
+                logger.debug("Postgres advisory lock acquired.")
                 break
-            print("Waiting for migration lock...")
+            logger.warning("Waiting for migration lock...")
             time.sleep(2)  # Wait 2 seconds before polling again
         connection.commit()
     else:
@@ -85,6 +87,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    logger.info("Run alembic database migration")
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -102,6 +105,7 @@ def run_migrations_online() -> None:
             raise RuntimeError(
                 f"Could not acquire lock after {lock_timeout_seconds}s. Migration aborted."
             )
+    logger.info(f"Finished alembic database migration, current revision: {context.get_head_revision()}")
 
 
 if context.is_offline_mode():
