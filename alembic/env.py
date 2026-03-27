@@ -2,6 +2,7 @@ import hashlib
 import logging
 import os
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 from sqlalchemy import engine_from_config, make_url, pool, text
@@ -38,39 +39,40 @@ def _advisory_lock_id() -> int:
     return int(hashlib.sha256(b"alembic_lock").hexdigest()[:15], 16)
 
 
-def acquire_lock(connection, timeout_seconds: int = 60) -> bool:
+@contextmanager
+def advisory_lock(connection, timeout_seconds: int = 60):
     dialect = connection.dialect.name
     lock_id = _advisory_lock_id()
     lock_acquired = False
 
-    if dialect == "postgresql":
-        start_time = time.time()
-        while time.time() - start_time < timeout_seconds:
-            # pg_try_advisory_lock returns True/False immediately
-            result = connection.execute(text(f"SELECT pg_try_advisory_lock({lock_id})")).scalar()
-            if result:
-                lock_acquired = True
-                logger.debug("Postgres advisory lock acquired.")
-                break
-            logger.warning("Waiting for migration lock...")
-            time.sleep(2)  # Wait 2 seconds before polling again
-    else:
-        # Don't break other dialects just because we don't support locks.
-        # E.g. sqlite
-        lock_acquired = True
-    return lock_acquired
+    try:
+        if dialect == "postgresql":
+            start_time = time.time()
+            while time.time() - start_time < timeout_seconds:
+                # pg_try_advisory_lock returns True/False immediately
+                result = connection.execute(text(f"SELECT pg_try_advisory_lock({lock_id})")).scalar()
+                if result:
+                    lock_acquired = True
+                    logger.debug("Postgres advisory lock acquired.")
+                    break
+                logger.warning("Waiting for migration lock...")
+                time.sleep(2)  # Wait 2 seconds before polling again
 
+            if not lock_acquired:
+                raise RuntimeError(
+                    f"Could not acquire lock after {timeout_seconds}s. Migration aborted."
+                )
 
-def release_lock(connection) -> None:
-    if connection.dialect.name != "postgresql":
-        return
+        yield
+    finally:
+        if dialect != "postgresql" or not lock_acquired:
+            return
 
-    lock_id = _advisory_lock_id()
-    result = connection.execute(text(f"SELECT pg_advisory_unlock({lock_id})")).scalar()
-    if result:
-        logger.debug("Postgres advisory lock released.")
-    else:
-        logger.warning("Postgres advisory lock was not held when release was attempted.")
+        result = connection.execute(text(f"SELECT pg_advisory_unlock({lock_id})")).scalar()
+        if result:
+            logger.debug("Postgres advisory lock released.")
+        else:
+            logger.warning("Postgres advisory lock was not held when release was attempted.")
 
 
 def get_current_db_revision(connection) -> str | None:
@@ -145,33 +147,25 @@ def run_migrations_online() -> None:
     )
     lock_timeout_seconds = 60
     with connectable.connect() as connection:
-        lock_acquired = acquire_lock(connection, timeout_seconds=lock_timeout_seconds)
-        if lock_acquired:
-            try:
-                current_revision = get_current_db_revision(connection)
-                logger.info("Migration starting point: %s", current_revision or "<base>")
+        with advisory_lock(connection, timeout_seconds=lock_timeout_seconds):
+            current_revision = get_current_db_revision(connection)
+            logger.info("Migration starting point: %s", current_revision or "<base>")
 
-                logger.info("Migration plan:")
-                transitions = get_revision_transitions(current_revision)
-                if transitions:
-                    for transition in transitions:
-                        logger.info(transition)
-                else:
-                    logger.info("No pending migrations.")
+            logger.info("Migration plan:")
+            transitions = get_revision_transitions(current_revision)
+            if transitions:
+                for transition in transitions:
+                    logger.info(transition)
+            else:
+                logger.info("No pending migrations.")
 
-                logger.info("Migration log:")
-                context.configure(connection=connection, target_metadata=target_metadata)
+            logger.info("Migration log:")
+            context.configure(connection=connection, target_metadata=target_metadata)
 
-                with context.begin_transaction():
-                    context.run_migrations()
+            with context.begin_transaction():
+                context.run_migrations()
 
-                current_revision = get_current_db_revision(connection)
-            finally:
-                release_lock(connection)
-        else:
-            raise RuntimeError(
-                f"Could not acquire lock after {lock_timeout_seconds}s. Migration aborted."
-            )
+            current_revision = get_current_db_revision(connection)
     logger.info("Finished alembic database migration, current revision: %s", current_revision)
 
 
