@@ -41,10 +41,6 @@ if [[ $? -eq 1 ]]; then
 fi
 
 if [[ "$SKIP_UCSSCHOOL_KELVIN_DB_MIGRATION" != "true" ]]; then
-    echo "Migration starting point:"
-    alembic --config pyproject.toml current
-    echo "Migration plan:"
-    alembic --config pyproject.toml history -r current:head
     echo "Migration log:"
     alembic --config pyproject.toml upgrade head
     echo "... migration done"

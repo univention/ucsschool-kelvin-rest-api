@@ -8,6 +8,8 @@ from sqlalchemy import engine_from_config, make_url, pool, text
 from ucsschool_objects.database_models import Base
 
 from alembic import context
+from alembic.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from ucsschool.kelvin.service.log import setup_logging
 from ucsschool.lib.models.utils import env_or_ucr
 
@@ -32,9 +34,13 @@ if sqlalchemy_url.drivername == "postgresql":
 config.set_main_option("sqlalchemy.url", sqlalchemy_url.render_as_string(hide_password=False))
 
 
+def _advisory_lock_id() -> int:
+    return int(hashlib.sha256(b"alembic_lock").hexdigest()[:15], 16)
+
+
 def acquire_lock(connection, timeout_seconds: int = 60) -> bool:
     dialect = connection.dialect.name
-    lock_id = int(hashlib.sha256(b"alembic_lock").hexdigest()[:15], 16)
+    lock_id = _advisory_lock_id()
     lock_acquired = False
 
     if dialect == "postgresql":
@@ -48,12 +54,56 @@ def acquire_lock(connection, timeout_seconds: int = 60) -> bool:
                 break
             logger.warning("Waiting for migration lock...")
             time.sleep(2)  # Wait 2 seconds before polling again
-        connection.commit()
     else:
         # Don't break other dialects just because we don't support locks.
         # E.g. sqlite
         lock_acquired = True
     return lock_acquired
+
+
+def release_lock(connection) -> None:
+    if connection.dialect.name != "postgresql":
+        return
+
+    lock_id = _advisory_lock_id()
+    result = connection.execute(text(f"SELECT pg_advisory_unlock({lock_id})")).scalar()
+    if result:
+        logger.debug("Postgres advisory lock released.")
+    else:
+        logger.warning("Postgres advisory lock was not held when release was attempted.")
+
+
+def get_current_db_revision(connection) -> str | None:
+    migration_context = MigrationContext.configure(connection)
+    return migration_context.get_current_revision()
+
+
+def get_revision_transitions(current_revision: str | None) -> list[str]:
+    script_dir = ScriptDirectory.from_config(config)
+    heads = script_dir.get_heads()
+    if not heads:
+        return []
+
+    if len(heads) > 1:
+        logger.warning("Multiple Alembic heads found: %s", ", ".join(heads))
+        return []
+
+    head = heads[0]
+    revisions = list(script_dir.iterate_revisions(head, current_revision))
+    revisions.reverse()
+
+    transitions = []
+    for revision in revisions:
+        down_revision = revision.down_revision
+        if isinstance(down_revision, tuple):
+            source = ",".join(down_revision)
+        else:
+            source = down_revision or "<base>"
+        if revision.revision == head:
+            transitions.append(f"{source} -> {revision.revision} (head), {revision.doc}")
+        else:
+            transitions.append(f"{source} -> {revision.revision}, {revision.doc}")
+    return transitions
 
 
 def run_migrations_offline() -> None:
@@ -97,15 +147,32 @@ def run_migrations_online() -> None:
     with connectable.connect() as connection:
         lock_acquired = acquire_lock(connection, timeout_seconds=lock_timeout_seconds)
         if lock_acquired:
-            context.configure(connection=connection, target_metadata=target_metadata)
+            try:
+                current_revision = get_current_db_revision(connection)
+                logger.info("Migration starting point: %s", current_revision or "<base>")
 
-            with context.begin_transaction():
-                context.run_migrations()
+                logger.info("Migration plan:")
+                transitions = get_revision_transitions(current_revision)
+                if transitions:
+                    for transition in transitions:
+                        logger.info(transition)
+                else:
+                    logger.info("No pending migrations.")
+
+                logger.info("Migration log:")
+                context.configure(connection=connection, target_metadata=target_metadata)
+
+                with context.begin_transaction():
+                    context.run_migrations()
+
+                current_revision = get_current_db_revision(connection)
+            finally:
+                release_lock(connection)
         else:
             raise RuntimeError(
                 f"Could not acquire lock after {lock_timeout_seconds}s. Migration aborted."
             )
-    logger.info(f"Finished alembic database migration, current revision: {context.get_head_revision()}")
+    logger.info("Finished alembic database migration, current revision: %s", current_revision)
 
 
 if context.is_offline_mode():
