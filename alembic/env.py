@@ -87,8 +87,7 @@ def get_revision_transitions(current_revision: str | None) -> list[str]:
         return []
 
     if len(heads) > 1:
-        logger.warning("Multiple Alembic heads found: %s", ", ".join(heads))
-        return []
+        raise AssertionError("Multiple Alembic heads found: %s", ", ".join(heads))
 
     head = heads[0]
     revisions = list(script_dir.iterate_revisions(head, current_revision))
