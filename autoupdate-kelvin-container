@@ -4,7 +4,15 @@
 # The tool inotifycopy can be found in the dev toolshed
 
 
-TARGET="$1"
+TARGET=""
+USE_STOPPED=""
+
+for arg in "$@"; do
+	case "$arg" in
+		--stopped) USE_STOPPED=1 ;;
+		*) TARGET="$arg" ;;
+	esac
+done
 
 for tool in inotifycopy jq ssh ; do
 	which "$tool" > /dev/null || {
@@ -14,8 +22,10 @@ for tool in inotifycopy jq ssh ; do
 done
 
 [ -z "$TARGET" ] && {
-	echo "syntax: $(basename "$0") <host>"
+	echo "syntax: $(basename "$0") <host> [--stopped]"
 	echo "Please specify the hostname or IP address as first argument."
+	echo "Use --stopped to derive the target directory from a stopped Docker container"
+	echo "(uses UpperDir instead of MergedDir)."
 	exit 1
 }
 
@@ -24,15 +34,27 @@ done
 	exit 1
 }
 
-INSTANCE="$(ssh "root@$TARGET" docker ps | egrep "artifacts.software-univention.de/ucsschool/ucsschool-kelvin-rest-api:|gitregistry.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api:" | cut -d" " -f1)"
-TARGETDIR="$(ssh "root@$TARGET" docker inspect "$INSTANCE" | jq .[0].GraphDriver.Data.MergedDir -r)"
-echo "Container: $INSTANCE"
-echo "Container dir: $TARGETDIR"
+if [ -n "$USE_STOPPED" ]; then
+	INSTANCE="$(ssh "root@$TARGET" docker ps -a | grep -E "artifacts.software-univention.de/ucsschool/ucsschool-kelvin-rest-api:|gitregistry.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api:" | cut -d" " -f1)"
+	TARGETDIR="$(ssh "root@$TARGET" docker inspect "$INSTANCE" | jq .[0].GraphDriver.Data.UpperDir -r)"
+	echo "Container (stopped): $INSTANCE"
+	echo "Container dir: $TARGETDIR"
 
-[ -z "$INSTANCE" -o -z "$TARGETDIR" ] && {
-  echo "ERROR: Cannot determine running docker container. Stopping here."
-  exit 1
-}
+	[ -z "$INSTANCE" -o -z "$TARGETDIR" ] && {
+		echo "ERROR: Cannot determine stopped docker container. Stopping here."
+		exit 1
+	}
+else
+	INSTANCE="$(ssh "root@$TARGET" docker ps | grep -E "artifacts.software-univention.de/ucsschool/ucsschool-kelvin-rest-api:|gitregistry.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api:" | cut -d" " -f1)"
+	TARGETDIR="$(ssh "root@$TARGET" docker inspect "$INSTANCE" | jq .[0].GraphDriver.Data.MergedDir -r)"
+	echo "Container: $INSTANCE"
+	echo "Container dir: $TARGETDIR"
+
+	[ -z "$INSTANCE" -o -z "$TARGETDIR" ] && {
+		echo "ERROR: Cannot determine running docker container. Stopping here."
+		exit 1
+	}
+fi
 
 UCS_TEST_DIR="/usr/share/ucs-test/94_ucsschool-kelvin/"
 if ! ssh "root@$TARGET" test -d "$UCS_TEST_DIR"; then
@@ -44,6 +66,7 @@ inotifycopy \
 	-a kelvin-api/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ \
 	-a kelvin-api/tests/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/tests/ \
 	-a kelvin-api/ucsschool/kelvin/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ucsschool/kelvin/ \
+	-a kelvin-api/ucsschool/kelvin/service/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ucsschool/kelvin/service/ \
 	-a kelvin-api/ucsschool/kelvin/routers/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ucsschool/kelvin/routers/ \
 	-a ucs-school-import/modules/ucsschool/importer/models/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/models/ \
 	-a ucs-school-import/modules/ucsschool/importer/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/ \
