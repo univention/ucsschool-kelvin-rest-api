@@ -14,7 +14,13 @@ import pytest
 import requests
 
 from ucsschool.lib.models.utils import exec_cmd
-from univention.testing.ucsschool.kelvin_api import HTTP_502_ERRORS, KELVIN_TOKEN_URL, RESOURCE_URLS
+from univention.admin import modules, uldap
+from univention.config_registry import ucr
+from univention.testing.ucsschool.kelvin_api import (
+    HTTP_502_ERRORS,
+    KELVIN_TOKEN_URL,
+    RESOURCE_URLS,
+)
 
 if TYPE_CHECKING:
     from ucsschool.importer.models.import_user import ImportUser  # noqa: F401
@@ -26,7 +32,7 @@ APP_ID = "ucsschool-kelvin-rest-api"
 IMPORT_CONFIG = {
     "active": "/var/lib/ucs-school-import/configs/user_import.json",
     "bak": f"/var/lib/ucs-school-import/configs/user_import.json.bak"
-    f'.{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}',
+    f".{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}",
     "default": "/usr/share/ucs-school-import/configs/ucs-school-testuser-http-import.json",
 }
 MAPPED_UDM_PROPERTIES = (
@@ -56,6 +62,9 @@ IMPORT_CONFIG_KWARGS = {
 }
 _ucs_school_import_framework_initialized = False
 _ucs_school_import_framework_error = None  # type: Optional[InitialisationError]
+
+
+KELVIN_READER_USER = "kelvin_reader"
 
 
 class InitialisationError(Exception):
@@ -119,6 +128,34 @@ def import_config(init_ucs_school_import_framework):
     return init_ucs_school_import_framework()
 
 
+@pytest.fixture(scope="session")
+def create_reader_user():
+    lo, position = uldap.getAdminConnection()
+    modules.update()
+    base = ucr["ldap/base"]
+    name = KELVIN_READER_USER
+
+    users = modules.get("users/user")
+    modules.init(lo, position, users)
+    position.setDn("cn=users,%s" % (base,))
+    res = users.lookup(None, lo, "uid=%s" % name)
+    if res:
+        user = res[0]
+    else:
+        user = users.object(None, lo, position)
+        user.open()
+        user["lastname"] = name
+        user["firstname"] = name
+        user["password"] = "univention"
+        user["username"] = name
+        user["groups"] = f"cn=ucsschool-kelvin-rest-api-readers,cn=groups,{base}"
+        user.create()
+
+    yield user.dn
+
+    user.remove()
+
+
 def get_access_token(username="Administrator", password="univention"):  # type: (str, str) -> str # nosec
     response = requests.post(
         url=KELVIN_TOKEN_URL,
@@ -133,6 +170,12 @@ def get_access_token(username="Administrator", password="univention"):  # type: 
 @pytest.fixture(scope="session")
 def auth_header():  # type: () -> Dict[str, str]
     token = get_access_token()
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="session")
+def auth_header_reader(create_reader_user):  # type: (str) -> Dict[str, str]
+    token = get_access_token(username=KELVIN_READER_USER)
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -157,7 +200,13 @@ def make_user_attrs(import_config, mail_domain, random_int, random_username):
     def _func(ous, partial=False, **kwargs):
         # type: (List[str], Optional[bool], **Any) -> Dict[str, Any]
         roles = kwargs.pop("roles", None) or random.choice(  # nosec
-            (("staff",), ("staff", "teacher"), ("student",), ("teacher",), ("legal_guardian",))
+            (
+                ("staff",),
+                ("staff", "teacher"),
+                ("student",),
+                ("teacher",),
+                ("legal_guardian",),
+            )
         )
         if roles == ("staff",):
             school_classes = {}

@@ -1,3 +1,10 @@
+ucs-test-ucsschool-kelvin (1.0.25) unstable; urgency=medium
+
+  * Issue univention/dev/education/ucsschool-kelvin-rest-api#186: Add
+    integration tests for reader users
+
+ -- Johannes Königer <koeniger@univention.de>  Thu, 02 Apr 2026 12:20:11 +0200
+
 ucs-test-ucsschool-kelvin (1.0.24) unstable; urgency=medium
 
   * Issue univention/dev/education/ucsschool-kelvin-rest-api#89: Don't require
