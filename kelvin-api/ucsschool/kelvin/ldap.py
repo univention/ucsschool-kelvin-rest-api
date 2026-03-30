@@ -39,7 +39,12 @@ from uldap3 import Entry, LdapConfig as uLdapConfig, escape_filter_chars
 
 from ucsschool.lib.models.utils import env_or_ucr, uldap_admin_read_local
 
-from .constants import API_USERS_GROUP_NAME, CN_ADMIN_PASSWORD_FILE, MACHINE_PASSWORD_FILE
+from .constants import (
+    API_READERS_GROUP_NAME,
+    API_USERS_GROUP_NAME,
+    CN_ADMIN_PASSWORD_FILE,
+    MACHINE_PASSWORD_FILE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,20 +82,29 @@ class LdapUser(BaseModel):
     disabled: bool
     dn: str
     kelvin_admin: bool = False
+    kelvin_reader: bool = False
     attributes: Optional[Dict[str, List[Any]]] = None
 
 
-def admin_group_members() -> List[str]:
+def group_members(group: str) -> list[str]:
     ldap_base = env_or_ucr("ldap/base")
-    search_filter = f"(cn={escape_filter_chars(API_USERS_GROUP_NAME)})"
+    search_filter = f"(cn={escape_filter_chars(group)})"
     base = f"cn=groups,{ldap_base}"
     uldap = uldap_admin_read_local()
     results = uldap.search(search_filter=search_filter, attributes=["uniqueMember"], search_base=base)
     if len(results) == 1:
         return results[0]["uniqueMember"].values
     else:
-        logger.error("Reading group %r from LDAP: results=%r", API_USERS_GROUP_NAME, results)
+        logger.error("Reading group %r from LDAP: results=%r", group, results)
         return []
+
+
+def admin_group_members() -> list[str]:
+    return group_members(API_USERS_GROUP_NAME)
+
+
+def reader_group_members() -> list[str]:
+    return group_members(API_READERS_GROUP_NAME)
 
 
 def user_is_disabled(ldap_result: Entry) -> bool:
@@ -197,6 +211,9 @@ def check_auth_and_get_user(username: str, password: str) -> Optional[LdapUser]:
             admin_users = admin_group_members()
             if user_dn in admin_users:
                 user.kelvin_admin = True
+            reader_users = reader_group_members()
+            if user_dn in reader_users:
+                user.kelvin_reader = True
         else:
             logger.debug("Wrong password for existing user %r.", username)
         return user

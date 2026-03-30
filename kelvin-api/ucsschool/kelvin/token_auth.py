@@ -69,7 +69,7 @@ def get_token_ttl() -> int:
     return int(ucr.get(UCRV_TOKEN_TTL, 60))
 
 
-async def create_access_token(*, data: dict, expires_delta: timedelta = None) -> bytes:
+async def create_access_token(*, data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -116,9 +116,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> LdapUser:
     except PyJWTError as exc:
         raise credentials_exception from exc
     user = get_user(username=token_data.username, school_only=False)
-    user.kelvin_admin = sub.get("kelvin_admin", False)
     if user is None:
         raise credentials_exception
+    user.kelvin_admin = sub.get("kelvin_admin", False)
+    user.kelvin_reader = sub.get("kelvin_reader", False)
     return user
 
 
@@ -130,7 +131,13 @@ async def get_current_active_user(
     return current_user
 
 
-async def get_kelvin_admin(user: LdapUser = Depends(get_current_active_user)) -> LdapUser:
+def get_kelvin_admin(user: LdapUser = Depends(get_current_active_user)) -> LdapUser:
     if not user.kelvin_admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    return user
+
+
+def get_kelvin_reader(user: LdapUser = Depends(get_current_active_user)) -> LdapUser:
+    if not (user.kelvin_admin or user.kelvin_reader):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
     return user

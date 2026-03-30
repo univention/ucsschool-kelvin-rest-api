@@ -53,10 +53,29 @@ The response body will be:
 Authorization
 -------------
 
-Only members of the group ``ucsschool-kelvin-rest-api-admins`` are allowed to access the API.
+Access to the Kelvin REST API is controlled by two LDAP groups:
 
-The user ``Administrator`` is automatically added to this group for testing purposes.
-In production a regular admin user account or a dedicated service account should be used.
+``ucsschool-kelvin-rest-api-admins``
+   Members of this group have **full read and write access** to all API endpoints
+   (``GET``, ``HEAD``, ``POST``, ``PUT``, ``PATCH``, ``DELETE``).
+
+   The user ``Administrator`` is automatically added to this group for testing purposes.
+   In production a regular admin user account or a dedicated service account should be used.
+
+``ucsschool-kelvin-rest-api-readers``
+   Members of this group have **read-only access** to the API.  They may only use
+   ``GET`` and ``HEAD`` endpoints.  Attempts to call write endpoints (``POST``,
+   ``PUT``, ``PATCH``, ``DELETE``) by members of this group are denied with
+   ``HTTP 401 Unauthorized``.
+
+   This group is intended for external partners or monitoring systems that need to
+   query data without the ability to make changes.
+
+A user must be a member of at least one of these two groups in order to obtain a
+valid access token.  Users belonging to neither group will receive
+``HTTP 401 Unauthorized`` when attempting to authenticate.
+If a user is in both groups, he will effectively be handled as only being a member of
+admin group ``ucsschool-kelvin-rest-api-admins``.
 
 Irrespective of the actually authenticated user, all operations will be executed using the ``cn=admin`` LDAP account.
 

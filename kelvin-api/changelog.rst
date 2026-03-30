@@ -5,9 +5,12 @@
 Changelog
 =========
 
-v3.2.1 (TBD)
+v3.3.0 (TBD)
 -------------------
 * Changed the application Docker base image from Alpine to the standard UCS base image (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#147`).
+* Added: Users who are members of the group ``ucsschool-kelvin-rest-api-readers`` are now able to access read endpoints of the Kelvin API.
+  Access to ``HEAD`` and ``GET`` requests will be accepted, while ``POST``, ``PATCH``, ``PUT`` and ``DELETE`` requests will be rejected with status code ``401``.
+  (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#186`).
 
 v3.2.0 (2026-02-10)
 -------------------

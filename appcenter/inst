@@ -33,10 +33,11 @@
 #  Join script that runs on the docker host.
 #
 
-VERSION=10
+VERSION=11
 
 APP_ID="ucsschool-kelvin-rest-api"
 ADMIN_GROUP="$APP_ID-admins"
+READERS_GROUP="$APP_ID-readers"
 UDM_REST_GROUP="UDM-API-enabled-machines"
 TOKEN_SIGN_SECRET_FILE="/var/lib/univention-appcenter/apps/$APP_ID/conf/tokens.secret"
 KELVIN_IMPORT_CONFIG_FILE="/var/lib/ucs-school-import/configs/kelvin.json"
@@ -112,6 +113,13 @@ The "__pycache__" directory can be safely ignored.
 		--set name="$ADMIN_GROUP" \
 		--set description="Users that are allowed to connect to the Kelvin API." \
 		--append "users=uid=Administrator,cn=users,$ldap_base" || die
+
+  echo "Creating group for users with read-only access to the Kelvin API"
+  echo "($READERS_GROUP)..."
+	univention-directory-manager groups/group create "$@" --ignore_exists \
+		--position "cn=groups,$ldap_base" \
+		--set name="$READERS_GROUP" \
+		--set description="Users with read-only access to the Kelvin API." || die
 
   echo "Creating group '$UDM_REST_GROUP' for machine accounts that are allowed to access the UDM REST API."
   univention-directory-manager groups/group create "$@" --ignore_exists \

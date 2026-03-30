@@ -54,7 +54,7 @@ from udm_rest_client import UDM
 
 from ...lib.models.base import UDMPropertiesError
 from ..ldap import LdapUser, uldap_admin_read_local
-from ..token_auth import get_kelvin_admin
+from ..token_auth import get_kelvin_admin, get_kelvin_reader
 from ..urls import cached_url_for
 from .base import APIAttributesMixin, LibModelHelperMixin, udm_ctx
 
@@ -234,7 +234,7 @@ async def school_search(
     ),
     logger: logging.Logger = Depends(get_logger),
     udm: UDM = Depends(udm_ctx),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_reader),
 ) -> List[SchoolModel]:
     """
     Search for schools (OUs).
@@ -260,7 +260,7 @@ async def school_get(
         title="name",
     ),
     udm: UDM = Depends(udm_ctx),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_reader),
 ) -> SchoolModel:
     """
     Fetch a specific school (OU).
@@ -280,7 +280,7 @@ async def school_create(
     alter_dhcpd_base: Optional[bool] = None,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_admin),
 ) -> SchoolModel:
     """
     Create a school (OU) with all the information:
@@ -367,7 +367,7 @@ async def school_exists(
         description="School (OU) with this name.",
         title="name",
     ),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_reader),
 ):
     """
     Check if school (OU) with a provided name exists.

@@ -85,7 +85,7 @@ async def login_for_access_token(
             detail="Incorrect username or password",
         )
     access_token_expires = timedelta(minutes=get_token_ttl())
-    sub_data = user.dict(include={"username", "kelvin_admin"})
+    sub_data = user.dict(include={"username", "kelvin_admin", "kelvin_reader"})
     sub_data["schools"] = user.attributes.get("ucsschoolSchool", [])
     sub_data["roles"] = user.attributes.get("ucsschoolRole", [])
     access_token = await create_access_token(data={"sub": sub_data}, expires_delta=access_token_expires)

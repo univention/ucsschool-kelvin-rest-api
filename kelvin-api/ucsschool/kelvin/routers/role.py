@@ -48,7 +48,7 @@ from ucsschool.lib.roles import (
 
 from ..import_config import init_ucs_school_import_framework
 from ..ldap import LdapUser
-from ..token_auth import get_kelvin_admin
+from ..token_auth import get_kelvin_reader
 from ..urls import cached_url_for
 
 router = APIRouter()
@@ -127,7 +127,7 @@ class RoleModel(BaseModel):
 
 @router.get("/", response_model=List[RoleModel])
 async def search(
-    request: Request, kelvin_admin: LdapUser = Depends(get_kelvin_admin)
+    request: Request, authenticated_user: LdapUser = Depends(get_kelvin_reader)
 ) -> List[RoleModel]:
     """
     List all available roles.
@@ -151,7 +151,7 @@ async def get(
         default=...,
         title="name",
     ),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_reader),
 ) -> RoleModel:
     """Get a role by name.
 

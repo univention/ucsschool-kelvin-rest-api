@@ -272,10 +272,21 @@ def auth_header():
 @pytest.fixture
 def generate_jwt():
     async def _generate_jwt(
-        username: str, is_admin: bool, schools: Iterable[str], roles: Iterable[str]
+        username: str,
+        is_admin: bool,
+        schools: Iterable[str],
+        roles: Iterable[str],
+        is_reader: bool = False,
     ) -> str:
-        sub_data = dict(username=username, kelvin_admin=is_admin, schools=schools, roles=roles)
-        return (await create_access_token(data=dict(sub=sub_data))).decode()
+        sub_data = dict(
+            username=username,
+            kelvin_admin=is_admin,
+            kelvin_reader=is_reader,
+            schools=schools,
+            roles=roles,
+        )
+
+        return await create_access_token(data=dict(sub=sub_data))
 
     return _generate_jwt
 
@@ -287,8 +298,9 @@ def generate_auth_header(generate_jwt):
         is_admin: bool = False,
         schools: Iterable[str] = (),
         roles: Iterable[str] = (),
+        is_reader: bool = False,
     ):
-        generated_token = await generate_jwt(username, is_admin, schools, roles)
+        generated_token = await generate_jwt(username, is_admin, schools, roles, is_reader)
         return {"Authorization": f"Bearer {generated_token}"}
 
     return _generate_auth_header

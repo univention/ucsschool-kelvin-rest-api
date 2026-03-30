@@ -40,6 +40,7 @@ def _app_version() -> str:
 APP_ID = "ucsschool-kelvin-rest-api"
 APP_VERSION = lazy_object_proxy.Proxy(_app_version)
 API_USERS_GROUP_NAME = f"{APP_ID}-admins"
+API_READERS_GROUP_NAME = f"{APP_ID}-readers"
 APP_BASE_PATH = Path("/var/lib/univention-appcenter/apps", APP_ID)
 APP_CONFIG_BASE_PATH = APP_BASE_PATH / "conf"
 KELVIN_CONFIG_BASE_PATH = Path("/etc/ucsschool/kelvin")

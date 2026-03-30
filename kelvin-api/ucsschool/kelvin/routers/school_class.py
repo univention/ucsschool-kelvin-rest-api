@@ -39,7 +39,7 @@ from udm_rest_client import UDM, CreateError, ModifyError
 
 from ..config import UDM_MAPPING_CONFIG
 from ..ldap import LdapUser
-from ..token_auth import get_kelvin_admin
+from ..token_auth import get_kelvin_admin, get_kelvin_reader
 from ..urls import cached_url_for, url_to_dn, url_to_name
 from .base import (
     APIAttributesMixin,
@@ -180,7 +180,7 @@ async def search(
         title="name",
     ),
     udm: UDM = Depends(udm_ctx),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_reader),
 ) -> List[SchoolClassModel]:
     """
     Search for school classes.
@@ -205,7 +205,7 @@ async def get(
     school: str,
     request: Request,
     udm: UDM = Depends(udm_ctx),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_reader),
 ) -> SchoolClassModel:
     sc = await get_lib_obj(udm, SchoolClass, f"{school}-{class_name}", school)
     return await SchoolClassModel.from_lib_model(sc, request, udm)
@@ -217,7 +217,7 @@ async def create(
     request: Request,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_admin),
 ) -> SchoolClassModel:
     """
     Create a **school class** with all the information:
@@ -279,7 +279,7 @@ async def partial_update(
     request: Request,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_admin),
 ) -> SchoolClassModel:
     """
     Update a **school class** with all the information:
@@ -349,7 +349,7 @@ async def complete_update(
     request: Request,
     udm: UDM = Depends(udm_ctx),
     logger: logging.Logger = Depends(get_logger),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_admin),
 ) -> SchoolClassModel:
     """
     Update a **school class** with all the information:
@@ -434,7 +434,7 @@ async def delete(
     school: str,
     request: Request,
     udm: UDM = Depends(udm_ctx),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    authenticated_user: LdapUser = Depends(get_kelvin_admin),
 ) -> Response:
     sc = await get_lib_obj(udm, SchoolClass, f"{school}-{class_name}", school)
     await sc.remove(udm)
