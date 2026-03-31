@@ -268,6 +268,32 @@ test ucs-school-lib:
         coverage_format: cobertura
         path: coverage.xml
 
+test ucsschool-objects:
+  stage: tests
+  rules:
+    - changes:
+        - ucsschool-objects/**/*
+  needs:
+    - job: build_docker_image
+  image:
+    name: $IMAGE_TAG
+    entrypoint: [""]
+  script:
+    - cd ucsschool-objects
+    - >
+        pytest -lvv
+        --junitxml=${CI_PROJECT_DIR}/report.xml
+        --cov-fail-under=100
+        --cov-report xml:${CI_PROJECT_DIR}/coverage.xml
+        .
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
 test kelvin-api:
   stage: tests
   rules:
