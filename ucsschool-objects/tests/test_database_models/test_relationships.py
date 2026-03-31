@@ -1,7 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
-from sqlalchemy.orm import Session
 from ucsschool_objects.database_models import (
     GroupGroupEmailSendersAssociation,
     GroupMemberAssociation,
@@ -11,6 +14,13 @@ from ucsschool_objects.database_models import (
     SchoolMembership,
     SchoolMembershipRoleAssociation,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from typing import Any
+
+    from sqlalchemy.orm import Session
+    from tests.test_types import ModelFactory
 
 
 @pytest.mark.parametrize(
@@ -23,7 +33,9 @@ from ucsschool_objects.database_models import (
     ],
     indirect=["model_factory"],
 )
-def test_foreign_key_not_nullable(db_session, model_factory, fk_name):
+def test_foreign_key_not_nullable(
+    db_session: Session, model_factory: ModelFactory, fk_name: str
+) -> None:
     instance = model_factory()
     setattr(instance, fk_name, None)
     db_session.add(instance)
@@ -38,7 +50,7 @@ def test_foreign_key_not_nullable(db_session, model_factory, fk_name):
     ],
     indirect=["model_factory"],
 )
-def test_foreign_key_nullable(db_session, model_factory, fk_name):
+def test_foreign_key_nullable(db_session: Session, model_factory: ModelFactory, fk_name: str) -> None:
     instance = model_factory()
     setattr(instance, fk_name, None)
     db_session.add(instance)
@@ -55,7 +67,9 @@ def test_foreign_key_nullable(db_session, model_factory, fk_name):
     ],
     indirect=["model_factory"],
 )
-def test_foreign_key_prevents_deletion(db_session, model_factory, relation_name):
+def test_foreign_key_prevents_deletion(
+    db_session: Session, model_factory: ModelFactory, relation_name: str
+) -> None:
     instance = model_factory()
     db_session.delete(getattr(instance, relation_name))
     with pytest.raises(IntegrityError, match="FOREIGN KEY constraint failed"):
@@ -77,7 +91,12 @@ def test_foreign_key_prevents_deletion(db_session, model_factory, relation_name)
     ],
     indirect=["model_factory", "model_factory2"],
 )
-def test_many_to_many_fk_delete_cascade(db_session, model_factory, model_factory2, relation_name):
+def test_many_to_many_fk_delete_cascade(
+    db_session: Session,
+    model_factory: ModelFactory,
+    model_factory2: ModelFactory,
+    relation_name: str,
+) -> None:
     instance1 = model_factory()
     instance2 = model_factory2(**{relation_name: [instance1]})
     db_session.delete(instance1)
@@ -112,11 +131,15 @@ def test_many_to_many_fk_delete_cascade(db_session, model_factory, model_factory
     indirect=["model_factory", "model_factory2"],
 )
 def test_many_to_many_orm_delete_cascade(
-    db_session: Session, model_factory, model_factory2, relation_name, association_cls
-):
+    db_session: Session,
+    model_factory: ModelFactory,
+    model_factory2: ModelFactory,
+    relation_name: str,
+    association_cls: type,
+) -> None:
     instance1 = model_factory()
     model_factory2(**{relation_name: [instance1]})
-    associations = db_session.execute(select(association_cls)).all()
+    associations: Sequence[Any] = db_session.execute(select(association_cls)).all()
     assert len(associations) == 1
     db_session.delete(instance1)
     db_session.flush()
@@ -134,13 +157,16 @@ def test_many_to_many_orm_delete_cascade(
     ],
     indirect=["model_factory"],
 )
-def test_relation_is_eager_loaded(db_session, model_factory, relation_name):
+def test_relation_is_eager_loaded(
+    db_session: Session, model_factory: ModelFactory, relation_name: str
+) -> None:
     instance = model_factory()
     model_cls = type(instance)
     instance_id = instance.id
     db_session.expunge(instance)
-    instance = db_session.query(model_cls).get(instance_id)
-    getattr(instance, relation_name)
+    loaded_instance = db_session.query(model_cls).get(instance_id)
+    assert loaded_instance is not None
+    getattr(loaded_instance, relation_name)
 
 
 @pytest.mark.parametrize(
@@ -158,14 +184,17 @@ def test_relation_is_eager_loaded(db_session, model_factory, relation_name):
     ],
     indirect=["model_factory"],
 )
-def test_relation_no_indirect_loading(db_session, model_factory, relation_name):
+def test_relation_no_indirect_loading(
+    db_session: Session, model_factory: ModelFactory, relation_name: str
+) -> None:
     instance = model_factory()
     model_cls = type(instance)
     instance_id = instance.id
     db_session.expunge(instance)
-    instance = db_session.query(model_cls).get(instance_id)
+    loaded_instance = db_session.query(model_cls).get(instance_id)
+    assert loaded_instance is not None
     with pytest.raises(InvalidRequestError, match="is not available due to lazy='raise'"):
-        getattr(instance, relation_name)
+        getattr(loaded_instance, relation_name)
 
 
 @pytest.mark.parametrize(
@@ -179,8 +208,12 @@ def test_relation_no_indirect_loading(db_session, model_factory, relation_name):
     indirect=["model_factory", "model_factory2"],
 )
 def test_many_to_many_relation_back_population(
-    db_session: Session, model_factory, relation_name, model_factory2, relation_name2
-):
+    db_session: Session,
+    model_factory: ModelFactory,
+    relation_name: str,
+    model_factory2: ModelFactory,
+    relation_name2: str,
+) -> None:
     instance = model_factory()
     db_session.refresh(instance, attribute_names=[relation_name])
     instance2 = model_factory2(**{relation_name2: [instance]})

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import uuid
 from datetime import date
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     BOOLEAN,
@@ -14,6 +17,10 @@ from sqlalchemy import (
     event,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Connection
+    from sqlalchemy.orm import Mapper
 
 
 class Base(DeclarativeBase):
@@ -70,7 +77,7 @@ class School(Base):
     home_share_file_server: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     @validates("educational_servers")
-    def validate_educational_servers(self, _key, value):
+    def validate_educational_servers(self, _key: str, value: list[str]) -> list[str]:
         if not value or len(value) == 0:
             raise ValueError("The attribute educational_servers must not be None or empty.")
         return value
@@ -113,7 +120,7 @@ class Group(Base):
         JSON, nullable=False, default=dict, info={"udm_attr": "displayName"}
     )
     has_share: Mapped[bool] = mapped_column(BOOLEAN, nullable=False, default=False)
-    email: Mapped[str] = mapped_column(
+    email: Mapped[str | None] = mapped_column(
         String(255), nullable=True, unique=True, info={"udm_attr": "mailAddress"}
     )
 
@@ -186,11 +193,13 @@ class User(Base):
     )
     firstname: Mapped[str] = mapped_column(String(255), nullable=False, info={"udm_attr": "firstname"})
     lastname: Mapped[str] = mapped_column(String(255), nullable=False, info={"udm_attr": "lastname"})
-    email: Mapped[str] = mapped_column(
+    email: Mapped[str | None] = mapped_column(
         String(255), nullable=True, unique=True, info={"udm_attr": "mailPrimaryAddress"}
     )
-    birthday: Mapped[date] = mapped_column(DATE, nullable=True, info={"udm_attr": "birthday"})
-    expiration_date: Mapped[date] = mapped_column(DATE, nullable=True, info={"udm_attr": "userexpiry"})
+    birthday: Mapped[date | None] = mapped_column(DATE, nullable=True, info={"udm_attr": "birthday"})
+    expiration_date: Mapped[date | None] = mapped_column(
+        DATE, nullable=True, info={"udm_attr": "userexpiry"}
+    )
     active: Mapped[bool] = mapped_column(
         BOOLEAN, nullable=False, default=True, info={"udm_attr": "disabled"}
     )
@@ -241,7 +250,7 @@ class SchoolMembership(Base):
     # This is a column for putting a unique constraint on it.
     # In combination with a hook that sets it to the user_id,
     # if is_primary=True, we can enforce at most one primary school per user.
-    primary_user_constraint: Mapped[int] = mapped_column(
+    primary_user_constraint: Mapped[int | None] = mapped_column(
         INTEGER,
         nullable=True,
         unique=True,
@@ -268,7 +277,9 @@ class SchoolMembership(Base):
 
 @event.listens_for(SchoolMembership, "before_insert")
 @event.listens_for(SchoolMembership, "before_update")
-def sync_primary_user_constraint(mapper, connection, target):
+def sync_primary_user_constraint(
+    mapper: Mapper[SchoolMembership], connection: Connection, target: SchoolMembership
+) -> None:
     target.primary_user_constraint = target.user_id if target.is_primary else None
 
 
