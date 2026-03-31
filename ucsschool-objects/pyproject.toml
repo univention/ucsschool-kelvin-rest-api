@@ -18,6 +18,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "faker>=15.0.0",
+    "mypy>=1.20.0",
     "psycopg[binary]>=3.3.3",
     "pytest>=9.0.0",
     "pytest-cov>=4.0.0",

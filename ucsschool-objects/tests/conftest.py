@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import random
 import uuid
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from sqlalchemy import Engine, create_engine, event
@@ -14,18 +18,36 @@ from ucsschool_objects.database_models import (
     User,
 )
 
+if TYPE_CHECKING:
+    from pytest import FixtureRequest
+    from sqlalchemy.orm import Session
+    from tests.test_types import (
+        GroupDataFactory,
+        GroupFactory,
+        GroupTypeDataFactory,
+        GroupTypeFactory,
+        ModelFactory,
+        RoleDataFactory,
+        RoleFactory,
+        SchoolDataFactory,
+        SchoolFactory,
+        SchoolMembershipFactory,
+        UserDataFactory,
+        UserFactory,
+    )
+
 
 @pytest.fixture(scope="session")
-def unset_sentinel():
+def unset_sentinel() -> object:
     return object()
 
 
 @pytest.fixture(scope="session")
-def db_engine():
+def db_engine() -> Iterator[Engine]:
     engine = create_engine("sqlite://")
 
     @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
+    def set_sqlite_pragma(dbapi_connection: Any, _connection_record: Any) -> None:
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
@@ -37,7 +59,7 @@ def db_engine():
 
 
 @pytest.fixture(scope="function")
-def db_session(db_engine: Engine):
+def db_session(db_engine: Engine) -> Iterator[Session]:
     connection = db_engine.connect()
     transaction = connection.begin()
     session = sessionmaker(bind=connection)()
@@ -49,28 +71,28 @@ def db_session(db_engine: Engine):
 
 
 @pytest.fixture
-def model_factory(request):
+def model_factory(request: FixtureRequest) -> ModelFactory:
     """Generic fixture that resolves to a specific factory based on param."""
     return request.getfixturevalue(request.param)
 
 
 @pytest.fixture
-def model_factory2(request):
+def model_factory2(request: FixtureRequest) -> ModelFactory:
     """There are tests, which need to combine two different model factories."""
     return request.getfixturevalue(request.param)
 
 
 @pytest.fixture
-def school_data_factory(faker):
-    def _school_data_factory():
+def school_data_factory(faker: Any) -> SchoolDataFactory:
+    def _school_data_factory() -> dict[str, object]:
         return {
             "public_id": uuid.uuid4(),
             "record_uid": faker.unique.ssn(),
             "source_uid": faker.unique.ssn(),
             "name": faker.unique.company(),
             "display_name": {"de": faker.name(), "en": faker.name()},
-            "educational_servers": [faker.domain_name() for i in range(5)],
-            "administrative_servers": [faker.domain_name() for i in range(5)],
+            "educational_servers": [faker.domain_name() for _ in range(5)],
+            "administrative_servers": [faker.domain_name() for _ in range(5)],
             "class_share_file_server": faker.domain_name(),
             "home_share_file_server": faker.domain_name(),
         }
@@ -79,8 +101,12 @@ def school_data_factory(faker):
 
 
 @pytest.fixture
-def school_factory(db_session, school_data_factory, unset_sentinel):
-    def _school_factory(persisted=True, **overrides):
+def school_factory(
+    db_session: Session,
+    school_data_factory: SchoolDataFactory,
+    unset_sentinel: object,
+) -> SchoolFactory:
+    def _school_factory(persisted: bool = True, **overrides: object) -> School:
         school_data = {**school_data_factory(), **overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del school_data[unset_key]
@@ -94,8 +120,8 @@ def school_factory(db_session, school_data_factory, unset_sentinel):
 
 
 @pytest.fixture
-def group_data_factory(faker):
-    def _group_data_factory():
+def group_data_factory(faker: Any) -> GroupDataFactory:
+    def _group_data_factory() -> dict[str, object]:
         return {
             "public_id": uuid.uuid4(),
             "record_uid": faker.unique.ssn(),
@@ -110,8 +136,14 @@ def group_data_factory(faker):
 
 
 @pytest.fixture
-def group_factory(db_session, group_data_factory, group_type_factory, school_factory, unset_sentinel):
-    def _group_factory(persisted=True, **overrides):
+def group_factory(
+    db_session: Session,
+    group_data_factory: GroupDataFactory,
+    group_type_factory: GroupTypeFactory,
+    school_factory: SchoolFactory,
+    unset_sentinel: object,
+) -> GroupFactory:
+    def _group_factory(persisted: bool = True, **overrides: object) -> Group:
         group_data = {**group_data_factory(), **overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del group_data[unset_key]
@@ -129,8 +161,8 @@ def group_factory(db_session, group_data_factory, group_type_factory, school_fac
 
 
 @pytest.fixture
-def user_data_factory(faker):
-    def _user_data_factory():
+def user_data_factory(faker: Any) -> UserDataFactory:
+    def _user_data_factory() -> dict[str, object]:
         return {
             "public_id": uuid.uuid4(),
             "name": faker.unique.user_name(),
@@ -148,8 +180,12 @@ def user_data_factory(faker):
 
 
 @pytest.fixture
-def user_factory(db_session, user_data_factory, unset_sentinel):
-    def _user_factory(persisted=True, **overrides):
+def user_factory(
+    db_session: Session,
+    user_data_factory: UserDataFactory,
+    unset_sentinel: object,
+) -> UserFactory:
+    def _user_factory(persisted: bool = True, **overrides: object) -> User:
         user_data = {**user_data_factory(), **overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del user_data[unset_key]
@@ -163,8 +199,8 @@ def user_factory(db_session, user_data_factory, unset_sentinel):
 
 
 @pytest.fixture
-def role_data_factory(faker):
-    def _role_data_factory():
+def role_data_factory(faker: Any) -> RoleDataFactory:
+    def _role_data_factory() -> dict[str, object]:
         return {
             "public_id": uuid.uuid4(),
             "name": faker.unique.name(),
@@ -175,8 +211,12 @@ def role_data_factory(faker):
 
 
 @pytest.fixture
-def role_factory(db_session, role_data_factory, unset_sentinel):
-    def _role_factory(persisted=True, **overrides):
+def role_factory(
+    db_session: Session,
+    role_data_factory: RoleDataFactory,
+    unset_sentinel: object,
+) -> RoleFactory:
+    def _role_factory(persisted: bool = True, **overrides: object) -> Role:
         role_data = {**role_data_factory(), **overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del role_data[unset_key]
@@ -190,8 +230,8 @@ def role_factory(db_session, role_data_factory, unset_sentinel):
 
 
 @pytest.fixture
-def group_type_data_factory(faker):
-    def _group_type_data_factory():
+def group_type_data_factory(faker: Any) -> GroupTypeDataFactory:
+    def _group_type_data_factory() -> dict[str, object]:
         return {
             "name": faker.unique.name(),
             "display_name": {"de": faker.name(), "en": faker.name()},
@@ -201,8 +241,12 @@ def group_type_data_factory(faker):
 
 
 @pytest.fixture
-def group_type_factory(db_session, group_type_data_factory, unset_sentinel):
-    def _group_type_factory(persisted=True, **overrides):
+def group_type_factory(
+    db_session: Session,
+    group_type_data_factory: GroupTypeDataFactory,
+    unset_sentinel: object,
+) -> GroupTypeFactory:
+    def _group_type_factory(persisted: bool = True, **overrides: object) -> GroupType:
         group_type_data = {**group_type_data_factory(), **overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del group_type_data[unset_key]
@@ -216,8 +260,13 @@ def group_type_factory(db_session, group_type_data_factory, unset_sentinel):
 
 
 @pytest.fixture
-def school_membership_factory(db_session, school_factory, user_factory, unset_sentinel):
-    def _school_membership_factory(persisted=True, **overrides):
+def school_membership_factory(
+    db_session: Session,
+    school_factory: SchoolFactory,
+    user_factory: UserFactory,
+    unset_sentinel: object,
+) -> SchoolMembershipFactory:
+    def _school_membership_factory(persisted: bool = True, **overrides: object) -> SchoolMembership:
         school_membership_data = {**overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del school_membership_data[unset_key]
