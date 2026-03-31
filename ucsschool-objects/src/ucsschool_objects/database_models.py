@@ -241,7 +241,15 @@ class SchoolMembership(Base):
     # This is a column for putting a unique constraint on it.
     # In combination with a hook that sets it to the user_id,
     # if is_primary=True, we can enforce at most one primary school per user.
-    primary_user_constraint: Mapped[int] = mapped_column(INTEGER, nullable=True, unique=True)
+    primary_user_constraint: Mapped[int] = mapped_column(
+        INTEGER,
+        nullable=True,
+        unique=True,
+        info={
+            "doc": "This is an internally managed field only, "
+            "to ensure at most one primary school per user."
+        },
+    )
 
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     user: Mapped["User"] = relationship("User", lazy="selectin")
