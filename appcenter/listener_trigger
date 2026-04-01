@@ -30,7 +30,7 @@
 echo "$$" > /tmp/update
 sleep 15
 if [ "$(cat /tmp/update)" = "$$" ]; then
-    MACHINE_USER="$HOSTNAME\$"
+    MACHINE_USER="$(hostname)\$"
     MACHINE_PASSWORD=$(cat /etc/machine.secret)
     UPDATE_LOCKFILE="/tmp/update_openapi_client_lock"
     /usr/bin/flock "$UPDATE_LOCKFILE" \

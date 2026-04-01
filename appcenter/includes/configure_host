@@ -96,6 +96,9 @@ install_kelvin_postgresql_db() {
 
     univention-scp /etc/machine.secret "$(hostname)"\$@"$(dig +short $db_password_host)":"$db_password_file" "$db_password_file"
 
+    echo "$kelvin_db_uri" > /etc/ucsschool/kelvin/postgresql-kelvin.uri
+    echo "$kelvin_db_username" > /etc/ucsschool/kelvin/postgresql-kelvin.username
+
     univention-app configure ucsschool-kelvin-rest-api \
         --set "ucsschool/kelvin/db/uri=$kelvin_db_uri" \
         "ucsschool/kelvin/db/username=$kelvin_db_username" \
