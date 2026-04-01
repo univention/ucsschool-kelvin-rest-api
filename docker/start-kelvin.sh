@@ -28,7 +28,7 @@ python -c "import openapi_client_udm"
 
 if [[ $? -eq 1 ]]; then
     echo "Module openapi_client_udm is not installed. Installing..."
-    MACHINE_USER="$HOSTNAME\$"
+    MACHINE_USER="$(hostname)\$"
     MACHINE_PASSWORD=$(cat /etc/machine.secret)
     UPDATE_LOCKFILE="/tmp/update_openapi_client_lock"
     /usr/bin/flock "$UPDATE_LOCKFILE" \
