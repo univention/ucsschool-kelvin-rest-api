@@ -148,7 +148,7 @@ Not yet implemented in ``SQLAlchemy``.
 Entity-Relationship diagram
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. mermaid:: architecture/er.md
+.. mermaid:: architecture/er.mmd
 
 .. attention::
 
