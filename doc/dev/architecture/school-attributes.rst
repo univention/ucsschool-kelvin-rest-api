@@ -45,13 +45,13 @@
      -
      - ``dict()``
    * - ``educational_servers``
-     - ``ARRAY``
+     - ``JSON``
      -
      -
      -
      - ``list()``
    * - ``administrative_servers``
-     - ``ARRAY``
+     - ``JSON``
      -
      -
      -

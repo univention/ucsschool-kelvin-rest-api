@@ -48,4 +48,4 @@
      - UDM
    * - ``primary_user_constraint``
      - This is an internally managed field only, to ensure at most one primary school per user.
-     - ````
+     -
