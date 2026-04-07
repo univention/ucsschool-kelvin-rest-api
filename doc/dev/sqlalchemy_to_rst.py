@@ -171,7 +171,7 @@ def model_to_rst(
                 [
                     f"``{col.name}``",
                     _rst_escape(doc),
-                    f"``{_rst_escape(udm_attr)}``",
+                    f"``{_rst_escape(udm_attr)}``" if udm_attr else "",
                 ]
             )
         if len(col_rows_2) > 0:
