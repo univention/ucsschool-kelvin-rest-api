@@ -1,10 +1,10 @@
 classDiagram
   class school{
     *INTEGER id NOT NULL
-    ARRAY administrative_servers NOT NULL
+    JSON administrative_servers NOT NULL
     VARCHAR<255> class_share_file_server
     JSON display_name NOT NULL
-    ARRAY educational_servers NOT NULL
+    JSON educational_servers NOT NULL
     VARCHAR<255> home_share_file_server
     VARCHAR<255> name NOT NULL
     UUID public_id NOT NULL
@@ -41,8 +41,6 @@ classDiagram
     JSON display_name NOT NULL
     VARCHAR<255> name NOT NULL
     UUID public_id NOT NULL
-    VARCHAR<255> record_uid NOT NULL
-    VARCHAR<255> source_uid NOT NULL
   }
   class school_membership{
     *INTEGER id NOT NULL
@@ -82,16 +80,16 @@ classDiagram
   }
   school "1" -- "0..n" group
   group_type "1" -- "0..n" group
-  school "1" -- "0..n" school_membership
   user "1" -- "0..n" school_membership
+  school "1" -- "0..n" school_membership
   school_membership "1" -- "0..n" group_member_association
   group "1" -- "0..n" group_member_association
-  role "1" -- "0..n" group_role_association
   group "1" -- "0..n" group_role_association
-  role "1" -- "0..n" school_membership_role_association
+  role "1" -- "0..n" group_role_association
   school_membership "1" -- "0..n" school_membership_role_association
-  user "1" -- "0..n" group_user_email_senders_association
+  role "1" -- "0..n" school_membership_role_association
   group "1" -- "0..n" group_user_email_senders_association
+  user "1" -- "0..n" group_user_email_senders_association
   group "1" -- "1" group_group_email_senders_association
   group "1" -- "1" group_group_email_senders_association
   user "1" -- "1" legal_guardian_association
