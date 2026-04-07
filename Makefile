@@ -27,7 +27,7 @@ update-architecture-docs:
 	# The script has some inline unit tests: pytest doc/dev/sqlalchemy_to_rst.py
 
 	python3 doc/dev/sqlalchemy_to_rst.py Group User School Role GroupType SchoolMembership doc/dev/architecture
-	python3 doc/dev/render_er_diagram.py doc/dev/architecture/er.md
+	python3 doc/dev/render_er_diagram.py doc/dev/architecture/er.mmd
 
 .get-target:
 ifeq ($(TARGET),)

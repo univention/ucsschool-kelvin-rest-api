@@ -78,18 +78,18 @@ classDiagram
     *INTEGER legal_guardian_id NOT NULL
     *INTEGER legal_ward_id NOT NULL
   }
-  group_type "1" -- "0..n" group
   school "1" -- "0..n" group
+  group_type "1" -- "0..n" group
   user "1" -- "0..n" school_membership
   school "1" -- "0..n" school_membership
-  group "1" -- "0..n" group_member_association
   school_membership "1" -- "0..n" group_member_association
+  group "1" -- "0..n" group_member_association
   group "1" -- "0..n" group_role_association
   role "1" -- "0..n" group_role_association
   school_membership "1" -- "0..n" school_membership_role_association
   role "1" -- "0..n" school_membership_role_association
-  user "1" -- "0..n" group_user_email_senders_association
   group "1" -- "0..n" group_user_email_senders_association
+  user "1" -- "0..n" group_user_email_senders_association
   group "1" -- "1" group_group_email_senders_association
   group "1" -- "1" group_group_email_senders_association
   user "1" -- "1" legal_guardian_association
