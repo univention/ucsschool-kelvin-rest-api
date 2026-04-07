@@ -17,7 +17,7 @@ if not path.parent.exists():
     print(f"Directory {path.parent} does not exist")
     sys.exit(1)
 
-render_er(ucsschool_objects.database_models.Base, str(path.absolute()))
+render_er(ucsschool_objects.database_models.Base, str(path.absolute()), mode="mermaid")
 
 with open(path, "r") as f:
     match = re.search(r"<!--(.*?)-->", f.read(), re.DOTALL)
