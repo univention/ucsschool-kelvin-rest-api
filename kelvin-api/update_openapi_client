@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-MACHINE_USER="$(hostname)\$"
+MACHINE_USER="$(python -c "import ldap; print(ldap.dn.str2dn(\"$LDAP_HOSTDN\")[0][0][1])")\$"
 MACHINE_PASSWORD="$(cat /etc/machine.secret)"
 
 echo "Building OpenAPI client library using host ${DOCKER_HOST_NAME}..."

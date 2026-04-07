@@ -27,28 +27,12 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-APP_ID="ucsschool-kelvin-rest-api"
-UDM_CLIENT_UPDATE_SCRIPT="/var/lib/univention-appcenter/apps/$APP_ID/data/update_openapi_client"
 
-if [ "$0" = "configure" ] || [ "$1" = "install" ] || [ "$1" = "upgrade" ] ; then
-  cat >"$UDM_CLIENT_UPDATE_SCRIPT" <<__EOF__
-#!/bin/sh
-MACHINE_USER="\$(hostname)\$"
-MACHINE_PASSWORD="\$(cat /etc/machine.secret)"
+if [ "$1" = "upgrade" ] ; then
 
-echo "Building OpenAPI client library using host \${DOCKER_HOST_NAME}..."
-update_openapi_client \
-  --generator java \
-  --jar /kelvin/openapi-generator/jar/openapi-generator-cli-*.jar \
-  --insecure \
-  --username "\$MACHINE_USER" \
-  --password "\$MACHINE_PASSWORD" \
-  "\$DOCKER_HOST_NAME"
-echo "Finished building OpenAPI client library."
-__EOF__
-  chmod 0755 "$UDM_CLIENT_UPDATE_SCRIPT"
-
-  "$UDM_CLIENT_UPDATE_SCRIPT" || echo "==> Error can be ignored, if updating from version 1.0.x. The join script will rebuild the library."
+  # On install we don't have an ldap account yet,
+  # the join script handles updating the openapi client.
+  /kelvin/kelvin-api/update_openapi_client
 
   echo "Restarting UCS@school Kelvin REST API server..."
   kill -HUP 1
