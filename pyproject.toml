@@ -91,6 +91,7 @@ dev = [
     "pytest-mock",
     "pyfakefs~=4.7.0",
     "tenacity>=9.1.2",
+    "eralchemy[graphviz]>=1.6.0",
 ]
 
 [tool.pytest.ini_options]
