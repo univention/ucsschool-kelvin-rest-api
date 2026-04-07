@@ -20,18 +20,6 @@
      -
      - ✓
      - ``uuid4()``
-   * - ``record_uid``
-     - ``VARCHAR(255)``
-     -
-     -
-     - ``(record_uid, source_uid)``
-     -
-   * - ``source_uid``
-     - ``VARCHAR(255)``
-     -
-     -
-     - ``(record_uid, source_uid)``
-     -
    * - ``name``
      - ``VARCHAR(255)``
      -
