@@ -172,7 +172,7 @@ class User(Base):
         info={
             "doc": (
                 "The ``record_uid`` is the ID for record of this user of an external source"
-                "which is itself identified by the source_uid"
+                " which is itself identified by the source_uid"
             ),
             "udm_attr": "ucsschoolRecordUID",
         },
