@@ -86,7 +86,7 @@
      -
      - ``univentionObjectIdentifier``
    * - ``record_uid``
-     - The ``record_uid`` is the ID for record of this user of an external sourcewhich is itself identified by the source_uid
+     - The ``record_uid`` is the ID for record of this user of an external source which is itself identified by the source_uid
      - ``ucsschoolRecordUID``
    * - ``source_uid``
      - The ``source_uid`` is the ID of the source of this user, which could be an external database.
