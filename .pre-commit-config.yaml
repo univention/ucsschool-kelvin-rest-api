@@ -3,6 +3,8 @@ exclude: |
       venv/
     | _bmad/
     | \.ai/skills/
+    | \.github/skills/
+    | \.opencode/skills/
     | kelvin-api/static/
     | ucs-school-import/usr/share/ucs-school-import/scripts/ucs-school-import
     | univention-directory-manager-modules-slim/
