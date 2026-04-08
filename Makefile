@@ -1,5 +1,5 @@
 SHELL := /usr/bin/env bash
-.PHONY: help fetch-vm-data build-docker-image dev-server
+.PHONY: help fetch-vm-data build-docker-image dev-server typecheck-ucsschool-objects
 .DEFAULT_GOAL := help
 
 VM_CONF_DIR := "dev/_vm_config"
@@ -84,3 +84,6 @@ dev-server: build-docker-image ## Start local Kelvin development server
 
 alembic-migration: .running-dev-server .get-alembic-message ## Creates a new alembic revison from kelvin-dev
 	uv run --env-file .env.alembic alembic revision --autogenerate -m "$(ALEMBIC_MESSAGE)"
+
+typecheck-ucsschool-objects: ## Runs strict mypy checks for the ucsschool-objects package
+	cd ucsschool-objects && uv run --group dev mypy --config-file pyproject.toml
