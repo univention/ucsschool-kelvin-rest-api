@@ -36,8 +36,8 @@ import six
 from ipaddr import AddressValueError, IPv4Network, NetmaskValueError
 from ldap.filter import escape_filter_chars, filter_format
 
-from udm_rest_client import UDM, UdmObject
 from univention.admin.filter import conjunction, expression, parse
+from univention.admin.rest.async_client import UDM, Object as UdmObject
 from univention.admin.uexceptions import nextFreeIp
 
 from ..roles import (
@@ -47,8 +47,20 @@ from ..roles import (
     role_teacher_computer,
     role_win_computer,
 )
-from .attributes import Attribute, Groups, InventoryNumber, IPAddress, MACAddress, SubnetMask
-from .base import MultipleObjectsError, RoleSupportMixin, SuperOrdinateType, UCSSchoolHelperAbstractClass
+from .attributes import (
+    Attribute,
+    Groups,
+    InventoryNumber,
+    IPAddress,
+    MACAddress,
+    SubnetMask,
+)
+from .base import (
+    MultipleObjectsError,
+    RoleSupportMixin,
+    SuperOrdinateType,
+    UCSSchoolHelperAbstractClass,
+)
 from .dhcp import AnyDHCPService, DHCPServer
 from .group import BasicGroup
 from .network import Network
@@ -93,16 +105,16 @@ class SchoolDCSlave(RoleSupportMixin, SchoolDC):
     groups: List[str] = Groups(_("Groups"))
 
     async def do_create(self, udm_obj: UdmObject, lo: UDM) -> None:
-        udm_obj.props.unixhome = "/dev/null"
-        udm_obj.props.shell = "/bin/bash"
-        udm_obj.props.primaryGroup = BasicGroup.cache("DC Slave Hosts").dn
+        udm_obj.properties["unixhome"] = "/dev/null"
+        udm_obj.properties["shell"] = "/bin/bash"
+        udm_obj.properties["primaryGroup"] = BasicGroup.cache("DC Slave Hosts").dn
         return await super(SchoolDCSlave, self).do_create(udm_obj, lo)
 
     async def _alter_udm_obj(self, udm_obj: UdmObject) -> None:
         if self.groups:
             for group in self.groups:
-                if group not in udm_obj.props.groups:
-                    udm_obj.props.groups.append(group)
+                if group not in udm_obj.properties["groups"]:
+                    udm_obj.properties["groups"]["append"](group)
         return await super(SchoolDCSlave, self)._alter_udm_obj(udm_obj)
 
     async def get_schools_from_udm_obj(self, udm_obj: UdmObject) -> str:
@@ -123,18 +135,22 @@ class SchoolDCSlave(RoleSupportMixin, SchoolDC):
             old_dn = udm_obj.dn
             school = await self.get_school_obj(lo)
             group_dn = school.get_administrative_group_name("educational", ou_specific=True, as_dn=True)
-            if group_dn not in udm_obj.props.groups:
+            if group_dn not in udm_obj.properties["groups"]:
                 self.logger.error("%r has no LDAP access to %r", self, school)
                 return False
             if old_dn == self.dn:
                 self.logger.info(
-                    'DC Slave "%s" is already located in "%s" - stopping here', self.name, self.school
+                    'DC Slave "%s" is already located in "%s" - stopping here',
+                    self.name,
+                    self.school,
                 )
             self.set_dn(old_dn)
             if await self.exists_outside_school(lo):
                 if not force:
                     self.logger.error(
-                        'DC Slave "%s" is located in another OU - %s', self.name, udm_obj.dn
+                        'DC Slave "%s" is located in another OU - %s',
+                        self.name,
+                        udm_obj.dn,
                     )
                     self.logger.error("Use force=True to override")
                     return False
@@ -195,7 +211,11 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
 
     @classmethod
     async def lookup(
-        cls, lo: UDM, school: str, filter_s: str = "", superordinate: SuperOrdinateType = None
+        cls,
+        lo: UDM,
+        school: str,
+        filter_s: str = "",
+        superordinate: SuperOrdinateType = None,
     ) -> List[UdmObject]:
         """
         This override limits the returned objects to actual ucsschoolComputers. Does not contain
@@ -233,17 +253,17 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
         await super(SchoolComputer, self)._alter_udm_obj(udm_obj)
         inventory_numbers = self.get_inventory_numbers()
         if inventory_numbers:
-            udm_obj.props.inventoryNumber = inventory_numbers
+            udm_obj.properties["inventoryNumber"] = inventory_numbers
         ipv4_network = self.get_ipv4_network()
-        if ipv4_network and len(udm_obj.props.ip) < 2:
+        if ipv4_network and len(udm_obj.properties["ip"]) < 2:
             if self._ip_is_set_to_subnet(ipv4_network):
                 self.logger.info(
                     "IP was set to subnet. Unsetting it on the computer so that UDM can do some magic: "
                     "Assign next free IP!"
                 )
-                udm_obj.props.ip = []
+                udm_obj.properties["ip"] = []
             else:
-                udm_obj.props.ip = [str(ipv4_network.ip)]
+                udm_obj.properties["ip"] = [str(ipv4_network.ip)]
             # set network after ip. Otherwise UDM does not do any
             #   nextIp magic...
             network = self.get_network()
@@ -251,7 +271,7 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
                 # reset network, so that next line triggers free ip
                 udm_obj.old_network = None
                 try:
-                    udm_obj.props.network = network.dn
+                    udm_obj.properties["network"] = network.dn
                 except nextFreeIp:
                     self.logger.error("Tried to set IP automatically, but failed! %r is full", network)
                     raise nextFreeIp(_("There are no free addresses left in the subnet!"))
@@ -300,7 +320,11 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
             netmask = str(ipv4_network.netmask)
             broadcast = str(ipv4_network.broadcast)
             return Network.cache(
-                network_name, self.school, network=network, netmask=netmask, broadcast=broadcast
+                network_name,
+                self.school,
+                network=network,
+                netmask=netmask,
+                broadcast=broadcast,
             )
 
     async def create_network(self, lo: UDM) -> Network:
@@ -312,10 +336,11 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
     async def validate(self, lo: UDM, validate_unlikely_changes: bool = False) -> None:
         await super(SchoolComputer, self).validate(lo, validate_unlikely_changes)
         for ip_address in self.ip_address:
-            filter_s = filter_format(
-                "(&(objectClass=univentionHost)(!(cn=%s))(ip=%s))", (self.name, ip_address)
+            filter_str = filter_format(
+                "(&(objectClass=univentionHost)(!(cn=%s))(ip=%s))",
+                (self.name, ip_address),
             )
-            if uldap_exists(filter_s):
+            if uldap_exists(filter_str):
                 self.add_error(
                     "ip_address",
                     _(
@@ -324,10 +349,11 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
                     ),
                 )
         for mac_address in self.mac_address:
-            filter_s = filter_format(
-                "(&(objectClass=univentionHost)(!(cn=%s))(mac=%s))", (self.name, mac_address)
+            filter_str = filter_format(
+                "(&(objectClass=univentionHost)(!(cn=%s))(mac=%s))",
+                (self.name, mac_address),
             )
-            if uldap_exists(filter_s):
+            if uldap_exists(filter_str):
                 self.add_error(
                     "mac_address",
                     _(
@@ -345,13 +371,13 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
                     "the creation of the computer object."
                 ),
             )
-            mod = lo.get("networks/network")
+            mod = await lo.get("networks/network")
             networks = [
                 (
-                    network.props.name,
-                    IPv4Network(network.props.network + "/" + network.props.netmask),
+                    network.properties["name"],
+                    IPv4Network(network.properties["network"] + "/" + network.properties["netmask"]),
                 )
-                async for network in mod.search()
+                async for network in mod.search(opened=True)
             ]
             is_singlemaster = ucr.get("ucsschool/singlemaster", False)
             for network in networks:
@@ -383,23 +409,23 @@ class SchoolComputer(UCSSchoolHelperAbstractClass):
         from ucsschool.lib.models.school import School
 
         obj = await super(SchoolComputer, cls).from_udm_obj(udm_obj, school, lo)
-        obj.ip_address = udm_obj.props.ip
+        obj.ip_address = udm_obj.properties["ip"]
         school_obj: School = School.cache(obj.school)
         edukativnetz_group = school_obj.get_administrative_group_name(
             "educational", domain_controller=False, as_dn=True
         )
-        if edukativnetz_group in udm_obj.props.groups:
+        if edukativnetz_group in udm_obj.properties["groups"]:
             obj.zone = "edukativ"
         verwaltungsnetz_group = school_obj.get_administrative_group_name(
             "administrative", domain_controller=False, as_dn=True
         )
-        if verwaltungsnetz_group in udm_obj.props.groups:
+        if verwaltungsnetz_group in udm_obj.properties["groups"]:
             obj.zone = "verwaltung"
-        network_dn = udm_obj.props.network
+        network_dn = udm_obj.properties["network"]
         if network_dn:
             netmask = await Network.get_netmask(network_dn, school, lo)
             obj.subnet_mask = netmask
-        obj.inventory_number = ", ".join(udm_obj.props.inventoryNumber)
+        obj.inventory_number = ", ".join(udm_obj.properties["inventoryNumber"])
         return obj
 
     def to_dict(self) -> Dict[str, Any]:

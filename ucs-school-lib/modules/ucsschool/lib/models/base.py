@@ -54,10 +54,25 @@ from ldap.dn import escape_dn_chars
 from ldap.filter import escape_filter_chars
 from six import add_metaclass, iteritems
 
-from udm_rest_client import UDM, NoObject as UdmNoObject, UdmModule, UdmObject
 from univention.admin.filter import conjunction, expression
-from univention.admin.uexceptions import noObject, noProperty, valueError, valueInvalidSyntax
-from univention.admin.uldap import LoType, PoType, getAdminConnection, getMachineConnection
+from univention.admin.rest.async_client import UDM, Object as UdmObject
+from univention.admin.rest.client import (
+    Module as UdmModule,
+    NotFound as UdmNoObject,
+    UnprocessableEntity,
+)
+from univention.admin.uexceptions import (
+    noObject,
+    noProperty,
+    valueError,
+    valueInvalidSyntax,
+)
+from univention.admin.uldap import (
+    LoType,
+    PoType,
+    getAdminConnection,
+    getMachineConnection,
+)
 
 from ..pyhooks.pyhooks_loader import PyHooksLoader
 from ..roles import all_roles, create_ucsschool_role_string
@@ -76,7 +91,9 @@ PYHOOKS_PATH = os.getenv("KELVIN_SCHOOL_LIB_HOOKS_PATH", "/var/lib/ucs-school-li
 PYHOOKS_BASE_CLASS = "ucsschool.lib.models.hook.Hook"
 _pyhook_loader: PyHooksLoader = lazy_object_proxy.Proxy(
     lambda: PyHooksLoader(
-        PYHOOKS_PATH, PYHOOKS_BASE_CLASS, filter_func=lambda x: issubclass(x, KelvinHook)
+        PYHOOKS_PATH,
+        PYHOOKS_BASE_CLASS,
+        filter_func=lambda x: issubclass(x, KelvinHook),
     )
 )
 
@@ -343,7 +360,11 @@ class UCSSchoolHelperAbstractClass(object):
         """
         if self.name and self.position:
             name = self.name
-            return "%s=%s,%s" % (self._meta.ldap_name_part, escape_dn_chars(name), self.position)
+            return "%s=%s,%s" % (
+                self._meta.ldap_name_part,
+                escape_dn_chars(name),
+                self.position,
+            )
         return self.old_dn
 
     def set_attributes(self, **kwargs) -> None:
@@ -516,7 +537,10 @@ class UCSSchoolHelperAbstractClass(object):
         t0 = time.time()
         await self._call_pyhooks(hook_time, func_name, udm)
         self.logger.debug(
-            "Timings self._call_pyhooks(%r, %r): %.3f", hook_time, func_name, time.time() - t0
+            "Timings self._call_pyhooks(%r, %r): %.3f",
+            hook_time,
+            func_name,
+            time.time() - t0,
         )
 
     def build_hook_line(self, hook_time, func_name):  # type: (str, str) -> Optional[str]
@@ -568,7 +592,7 @@ class UCSSchoolHelperAbstractClass(object):
         """
         for property_, value in (self.udm_properties or {}).items():
             try:
-                udm_obj.props[property_] = value
+                udm_obj.properties[property_] = value
             except (KeyError, noProperty) as exc:
                 raise UDMPropertiesError(
                     "UDM property '{}' could not be set. {}: {}".format(
@@ -600,7 +624,7 @@ class UCSSchoolHelperAbstractClass(object):
             if attr.udm_name:
                 value = getattr(self, name)
                 if attr.map_to_udm:
-                    setattr(udm_obj.props, attr.udm_name, value)
+                    udm_obj.properties[attr.udm_name] = value
         # TODO: move g[s]et_default_options() from User here to update udm_obj.options
         self._handle_udm_properties(udm_obj)
 
@@ -654,7 +678,7 @@ class UCSSchoolHelperAbstractClass(object):
                 superordinate_arg = None
             t2 = time.time()
             # TODO: this takes 240 ms:
-            udm_obj = await lo.get(self._meta.udm_module).new(superordinate=superordinate_arg)
+            udm_obj = await (await lo.get(self._meta.udm_module)).new(superordinate=superordinate_arg)
             t3 = time.time()
             if not udm_obj.superordinate:
                 # TODO: remove this, once new() has been fixed
@@ -744,13 +768,13 @@ class UCSSchoolHelperAbstractClass(object):
             return False
 
         try:
-            old_attrs = deepcopy(udm_obj.props)
+            old_attrs = deepcopy(udm_obj.properties)
             await self.modify_without_hooks_roles(udm_obj)
             await self.do_modify(udm_obj, lo)
             # get it fresh from the database
             self.set_dn(self.dn)
             udm_obj = await self.get_udm_object(lo)
-            same = old_attrs == deepcopy(udm_obj.props)
+            same = old_attrs == deepcopy(udm_obj.properties)
             if move_if_necessary:
                 if udm_obj.dn != self.dn:
                     if await self.move_without_hooks(lo, udm_obj, force=True):
@@ -822,9 +846,12 @@ class UCSSchoolHelperAbstractClass(object):
         return True
 
     async def do_move(self, udm_obj: UdmObject, lo: UDM) -> None:
-        old_school, new_school = self.get_school_from_dn(self.old_dn), self.get_school_from_dn(self.dn)
+        old_school, new_school = (
+            self.get_school_from_dn(self.old_dn),
+            self.get_school_from_dn(self.dn),
+        )
         udm_obj.position = self.position
-        setattr(udm_obj.props, self._attributes["name"].udm_name, self.name)
+        udm_obj.properties[self._attributes["name"].udm_name] = self.name
         await udm_obj.save()
         if self.supports_school() and old_school and old_school != new_school:
             await self.do_school_change(udm_obj, lo, old_school)
@@ -843,7 +870,12 @@ class UCSSchoolHelperAbstractClass(object):
         return await self.move(lo, force=True)
 
     async def do_school_change(self, udm_obj: UdmObject, lo: UDM, old_school: str) -> None:
-        self.logger.info("Going to move %r from school %r to %r", self.old_dn, old_school, self.school)
+        self.logger.info(
+            "Going to move %r from school %r to %r",
+            self.old_dn,
+            old_school,
+            self.school,
+        )
 
     async def remove(self, lo: UDM) -> bool:
         """
@@ -947,7 +979,7 @@ class UCSSchoolHelperAbstractClass(object):
             else:
                 self.logger.debug("Getting %s UDM object by dn: %s", self.__class__.__name__, dn)
                 try:
-                    self._udm_obj = await lo.get(self._meta.udm_module).get(dn)
+                    self._udm_obj = await (await lo.get(self._meta.udm_module)).get(dn)
                 except UdmNoObject:
                     self._udm_obj = None
                 else:
@@ -1034,16 +1066,23 @@ class UCSSchoolHelperAbstractClass(object):
 
     @classmethod
     async def lookup(
-        cls, lo: UDM, school: str, filter_s: UldapFilter = "", superordinate: SuperOrdinateType = None
+        cls,
+        lo: UDM,
+        school: str,
+        filter_s: UldapFilter = "",
+        superordinate: SuperOrdinateType = None,
     ) -> List[UdmObject]:  # TODO: make this a generator?
         try:
             return [
                 obj
-                async for obj in lo.get(cls._meta.udm_module).search(
-                    filter_s=filter_s, base=cls.get_container(school), scope="sub"
+                async for obj in (await lo.get(cls._meta.udm_module)).search(
+                    filter=filter_s,
+                    position=cls.get_container(school),
+                    scope="sub",
+                    opened=True,
                 )
             ]
-        except UdmNoObject as exc:
+        except (UdmNoObject, UnprocessableEntity) as exc:
             cls.logger.warning(
                 "Error while getting all %s of %s (probably %r does not exist): %s",
                 cls.__name__,
@@ -1082,12 +1121,16 @@ class UCSSchoolHelperAbstractClass(object):
         klass = await cls.get_class_for_udm_obj(udm_obj, school)
         if klass is None:
             cls.logger.warning(
-                "UDM object %r does not correspond to a Python class in the UCS school lib.", udm_obj.dn
+                "UDM object %r does not correspond to a Python class in the UCS school lib.",
+                udm_obj.dn,
             )
             raise UnknownModel(udm_obj.dn, cls)
         if klass is not cls:
             cls.logger.debug(
-                "UDM object %s is not %s, but actually %s", udm_obj.dn, cls.__name__, klass.__name__
+                "UDM object %s is not %s, but actually %s",
+                udm_obj.dn,
+                cls.__name__,
+                klass.__name__,
             )
             if not issubclass(klass, cls):
                 # security!
@@ -1102,10 +1145,10 @@ class UCSSchoolHelperAbstractClass(object):
             "school": cls.get_school_from_dn(udm_obj.dn) or school
         }  # TODO: is this adjustment okay?
         if cls.supports_schools():
-            attrs["schools"] = udm_obj.props.school
+            attrs["schools"] = udm_obj.properties.get("school")
         for name, attr in iteritems(cls._attributes):
             if attr.udm_name:
-                udm_value = getattr(udm_obj.props, attr.udm_name)
+                udm_value = udm_obj.properties.get(attr.udm_name)
                 if udm_value == "":
                     udm_value = None
                 attrs[name] = udm_value
@@ -1171,7 +1214,7 @@ class UCSSchoolHelperAbstractClass(object):
                 cls.logger.warning("Unable to guess school from %r", dn)
         try:
             cls.logger.debug("Looking up %s with dn %r", cls.__name__, dn)
-            mod: UdmModule = lo.get(cls._meta.udm_module)
+            mod: UdmModule = await lo.get(cls._meta.udm_module)
             udm_obj: UdmObject = await mod.get(dn)
             return await cls.from_udm_obj(udm_obj, school, lo)
         except UdmNoObject as exc:
@@ -1182,7 +1225,11 @@ class UCSSchoolHelperAbstractClass(object):
 
     @classmethod
     async def get_only_udm_obj(
-        cls, lo: UDM, filter_str: str = None, superordinate: str = None, base: str = None
+        cls,
+        lo: UDM,
+        filter_str: str = None,
+        superordinate: str = None,
+        base: str = None,
     ) -> Optional[UdmObject]:
         """
         Returns the one UDM object of class cls._meta.udm_module that
@@ -1196,10 +1243,14 @@ class UCSSchoolHelperAbstractClass(object):
                 udm_filter = f"({udm_filter})"
             filter_str = f"(&{udm_filter}({filter_str}))"
         cls.logger.debug("Getting %s UDM object by filter: %s", cls.__name__, filter_str)
+        search_base = base or env_or_ucr("ldap/base")
         objs = [
             obj
-            async for obj in lo.get(cls._meta.udm_module).search(
-                filter_s=str(filter_str), base=base or env_or_ucr("ldap/base"), scope="sub"
+            async for obj in (await lo.get(cls._meta.udm_module)).search(
+                filter=str(filter_str),
+                position=search_base,
+                scope="sub",
+                opened=True,
             )
         ]
         if len(objs) == 0:
@@ -1227,7 +1278,7 @@ class UCSSchoolHelperAbstractClass(object):
 
     @classmethod
     async def find_udm_superordinate(cls, dn: str, lo: UDM) -> Optional[SuperOrdinateType]:
-        obj = await lo.get(cls._meta.udm_module).get(dn)
+        obj = await (await lo.get(cls._meta.udm_module)).get(dn)
         return obj.superordinate
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1278,18 +1329,20 @@ class RoleSupportMixin(object):
 
     async def get_schools_from_udm_obj(self, udm_obj: UdmObject) -> List[str]:
         if self._school_in_name:
-            return [udm_obj.props.name]
+            return [udm_obj.properties["name"]]
         elif self._school_in_name_prefix:
             try:
-                return [udm_obj.props.name.split("-", 1)[0]]
+                return [udm_obj.properties["name"]["split"]("-", 1)[0]]
             except KeyError:
                 return []
         else:
             try:
-                return udm_obj.props.school
+                return udm_obj.properties["school"]
             except AttributeError as exc:
                 self.logger.exception(
-                    "AttributeError in RoleSupportMixin.get_schools_from_udm_obj(%r): %s", udm_obj, exc
+                    "AttributeError in RoleSupportMixin.get_schools_from_udm_obj(%r): %s",
+                    udm_obj,
+                    exc,
                 )
                 raise
 

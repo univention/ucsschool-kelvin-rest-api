@@ -49,8 +49,8 @@ from ucsschool.lib.models.base import (
 )
 from ucsschool.lib.models.school import School
 from ucsschool.lib.models.utils import get_stream_handler, ucr
-from udm_rest_client import UdmObject
 from univention.admin.filter import conjunction, expression, parse, walk
+from univention.admin.rest.async_client import Object as UdmObject
 from univention.admin.uexceptions import ldapError, noObject
 from univention.admin.uldap import access as LoType, getAdminConnection, position as PoType
 

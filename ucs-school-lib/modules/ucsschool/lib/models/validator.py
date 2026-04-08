@@ -60,7 +60,7 @@ from ucsschool.lib.roles import (
     role_workgroup_share,
 )
 from ucsschool.lib.schoolldap import SchoolSearchBase
-from udm_rest_client import UdmObject
+from univention.admin.rest.async_client import Object as UdmObject
 
 LOG_FILE = "/var/log/univention/ucsschool-kelvin-rest-api/ucs-school-validation.log"
 VALIDATION_LOGGER = "UCSSchool-Validation"
@@ -87,7 +87,16 @@ def get_position_from(dn: str) -> Optional[str]:
 
 
 def obj_to_dict(obj: UdmObject) -> Dict[str, Any]:
-    return obj.to_dict()
+    return {
+        "dn": obj.dn,
+        "uri": getattr(obj, "uri", None),
+        "uuid": obj.representation.get("entryUUID"),
+        "options": obj.options,
+        "policies": obj.policies,
+        "position": obj.position,
+        "props": obj.properties,
+        "superordinate": obj.superordinate,
+    }
 
 
 def obj_to_dict_conversion(obj: Union[UdmObject, Dict[str, Any]]) -> Dict[str, Any]:
@@ -236,7 +245,12 @@ class UserValidator(SchoolValidator):
         """
         Students should not have teacher, staff or school_admin role.
         """
-        not_allowed_for_students = [role_teacher, role_legal_guardian, role_staff, role_school_admin]
+        not_allowed_for_students = [
+            role_teacher,
+            role_legal_guardian,
+            role_staff,
+            role_school_admin,
+        ]
         for r, c, s in roles:
             if (cls.is_student and r in not_allowed_for_students) or (
                 not cls.is_student and r in [role_student, role_exam_user]
@@ -356,7 +370,8 @@ class ExamStudentValidator(StudentValidator):
         """
         return [
             "cn={},cn=ucsschool,cn=groups,{}".format(
-                SchoolSearchBase._examGroupNameTemplate % {"ou": school.lower()}, ucr["ldap/base"]
+                SchoolSearchBase._examGroupNameTemplate % {"ou": school.lower()},
+                ucr["ldap/base"],
             )
             for school in schools
         ]

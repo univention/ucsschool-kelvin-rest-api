@@ -41,17 +41,37 @@ import magic
 from six import reraise, string_types
 
 from ucsschool.lib.models.user import Staff
-from ucsschool.lib.models.utils import udm_rest_client_cn_admin_kwargs
-from ucsschool.lib.roles import role_legal_guardian, role_pupil, role_staff, role_teacher
-from udm_rest_client import UDM
+from ucsschool.lib.models.utils import udm_rest_api_client_cn_admin_kwargs
+from ucsschool.lib.roles import (
+    role_legal_guardian,
+    role_pupil,
+    role_staff,
+    role_teacher,
+)
+from univention.admin.rest.async_client import UDM
 
 from ..contrib.csv import DictReader
-from ..exceptions import ConfigurationError, InitialisationError, NoRole, UnknownProperty, UnknownRole
+from ..exceptions import (
+    ConfigurationError,
+    InitialisationError,
+    NoRole,
+    UnknownProperty,
+    UnknownRole,
+)
 from .base_reader import BaseReader
 
 try:
     from csv import Dialect  # noqa: F401
-    from typing import Any, BinaryIO, Callable, Dict, Iterable, Iterator, Optional, Union  # noqa: F401
+    from typing import (  # noqa: F401
+        Any,
+        BinaryIO,
+        Callable,
+        Dict,
+        Iterable,
+        Iterator,
+        Optional,
+        Union,
+    )
 
     from ..models.import_user import ImportUser  # noqa: F401
 except ImportError:
@@ -325,15 +345,15 @@ class CsvReader(BaseReader):
                 setattr(import_user, v, input_data[k])
             else:
                 # must be a UDM property
-                async with UDM(**udm_rest_client_cn_admin_kwargs()) as udm:
+                async with UDM(**udm_rest_api_client_cn_admin_kwargs()) as udm:
                     udm_user = await import_user.get_udm_object(udm)
-                if not hasattr(udm_user.props, v):
+                if v not in udm_user.properties:
                     raise UnknownProperty(
                         "Unknown UDM property: '{}'.".format(v),
                         entry_count=self.entry_count,
                         import_user=import_user,
                     )
-                if isinstance(udm_user.props[v], list):
+                if isinstance(udm_user.properties[v], list):
                     try:
                         delimiter = self.config["csv"]["incell-delimiter"][k]
                     except KeyError:

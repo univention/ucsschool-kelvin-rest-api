@@ -37,7 +37,7 @@ Copy to /usr/share/ucs-school-import/pyhooks to activate it.
 
 from ucsschool.lib.models.group import SchoolClass
 from ucsschool.lib.models.hook import Hook
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 
 class MailForSchoolClass(Hook):

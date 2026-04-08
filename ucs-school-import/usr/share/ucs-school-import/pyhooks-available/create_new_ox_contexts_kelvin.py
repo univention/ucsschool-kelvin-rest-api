@@ -1,6 +1,6 @@
 from ucsschool.importer.utils.user_pyhook import UserPyHook
 from ucsschool.lib.models.utils import ucr
-from udm_rest_client import CreateError
+from univention.admin.rest.client import BadRequest as CreateError
 
 DEFAULT_CONTEXT_ID = "10"
 

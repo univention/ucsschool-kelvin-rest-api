@@ -35,7 +35,7 @@ import ipaddr
 from ldap.dn import dn2str, str2dn
 from ldap.filter import filter_format
 
-from udm_rest_client import UDM, UdmObject
+from univention.admin.rest.async_client import UDM, Object as UdmObject
 from univention.admin.uldap_docker import parentDn
 
 from .attributes import (
@@ -58,7 +58,9 @@ class DHCPService(UCSSchoolHelperAbstractClass):
 
     async def do_create(self, udm_obj: UdmObject, lo: UDM) -> None:
         udm_obj.options["options"] = True
-        udm_obj.props.option = ['wpad "http://%s.%s/proxy.pac"' % (self.hostname, self.domainname)]
+        udm_obj.properties["option"] = [
+            'wpad "http://%s.%s/proxy.pac"' % (self.hostname, self.domainname)
+        ]
         await super(DHCPService, self).do_create(udm_obj, lo)
 
     @classmethod
@@ -109,7 +111,10 @@ class DHCPService(UCSSchoolHelperAbstractClass):
                         existing_dhcp_server_dn, lo
                     )
                     old_dhcp_server = await DHCPServer.from_dn(
-                        existing_dhcp_server_dn, None, lo, superordinate=old_superordinate
+                        existing_dhcp_server_dn,
+                        None,
+                        lo,
+                        superordinate=old_superordinate,
                     )
                     await old_dhcp_server.remove(lo)
                     await dhcp_server.create(lo)
@@ -208,7 +213,7 @@ class DHCPServer(UCSSchoolHelperAbstractClass):
     @classmethod
     async def find_any_dn_with_name(cls, name: str, lo: UDM) -> str:
         cls.logger.debug("Searching first dhcpServer with cn=%s", name)
-        mod = lo.get(cls.Meta.udm_module)
+        mod = await lo.get(cls.Meta.udm_module)
         objs = [obj async for obj in mod.search(filter_format("cn=%s", (name,)))]
         if objs:
             dn = objs[0].dn
@@ -250,7 +255,7 @@ class DHCPSubnet(UCSSchoolHelperAbstractClass):
     @classmethod
     async def find_all_dns_below_base(cls, dn: str, lo: UDM) -> List[str]:
         cls.logger.debug("Searching all univentionDhcpSubnet in %r", dn)
-        mod = lo.get(cls.Meta.udm_module)
+        mod = await lo.get(cls.Meta.udm_module)
         return [obj.dn async for obj in mod.search(base=dn)]
 
     class Meta:

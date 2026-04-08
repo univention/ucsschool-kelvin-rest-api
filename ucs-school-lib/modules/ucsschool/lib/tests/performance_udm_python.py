@@ -67,7 +67,7 @@ def create_objs_via_UDM_python_sequential(
         obj.policies = data["policies"].keys()
         obj.position = data["position"]
         for k, v in data["properties"].items():
-            setattr(obj.props, k, v)
+            obj.properties["k"] = v
         obj.save()
         res.append(obj.dn)
     return res
@@ -146,14 +146,14 @@ def modify_objs_via_UDM_python(dns: List[str]) -> float:
     t_delta = 0.0
     for dn in dns:
         obj: BaseObject = user_mod.get(dn)
-        obj.props.firstname = random_name()
-        obj.props.lastname = random_name()
+        obj.properties["firstname"] = random_name()
+        obj.properties["lastname"] = random_name()
         t0 = time.time()
         obj.save()
         t_delta += time.time() - t0
         obj_new: BaseObject = user_mod.get(dn)
-        assert obj_new.props.firstname == obj.props.firstname
-        assert obj_new.props.lastname == obj.props.lastname
+        assert obj_new.properties["firstname"] == obj.properties["firstname"]
+        assert obj_new.properties["lastname"] == obj.properties["lastname"]
     return t_delta
 
 

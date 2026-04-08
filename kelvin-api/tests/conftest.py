@@ -67,7 +67,7 @@ from ucsschool.kelvin.routers.user import PasswordsHashes, UserCreateModel
 from ucsschool.kelvin.token_auth import create_access_token
 from ucsschool.lib.models.user import User
 from ucsschool.lib.models.utils import env_or_ucr, uldap_admin_read_local, uldap_admin_read_primary
-from udm_rest_client import UDM, UdmObject
+from univention.admin.rest.async_client import UDM, Object as UdmObject
 from univention.config_registry import ConfigRegistry
 
 # Patch STATIC_FILES_PATH to /tmp only when the configured directory is absent
@@ -115,7 +115,7 @@ pytest_plugins = ["ucsschool.lib.tests.conftest"]
 fake = Faker()
 logger = logging.getLogger("ucsschool")
 logger.setLevel(logging.DEBUG)
-logger = logging.getLogger("udm_rest_client")
+logger = logging.getLogger("univention.admin.rest")
 logger.setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -531,13 +531,13 @@ def create_exam_user(new_udm_user, ldap_base, random_name, udm_kwargs):
         ]
         logger.debug("Modifying student %r to be an exam user...", user["username"])
         async with UDM(**udm_kwargs) as udm:
-            udm_user: UdmObject = await udm.get("users/user").get(dn)
+            udm_user: UdmObject = await (await udm.get("users/user")).get(dn)
             udm_user.options["ucsschoolExam"] = True
             udm_user.position = f"cn=examusers,ou={school},{ldap_base}"
-            udm_user.props.groups.append(
+            udm_user.properties["groups"].append(
                 f"cn=OU{school.lower()}-Klassenarbeit,cn=ucsschool,cn=groups,{ldap_base}"
             )
-            udm_user.props.ucsschoolRole = user["ucsschoolRole"]
+            udm_user.properties["ucsschoolRole"] = user["ucsschoolRole"]
             await udm_user.save()
         logger.debug("Done: %r", dn)
         return dn, user
@@ -861,9 +861,9 @@ async def setup_import_config_for_mail(
     domain_name = ucr().get("domainname", "ucs.test")
     mail_domain = f'{"".join(fake.random_letters())}.{domain_name}'
     async with UDM(**udm_kwargs) as udm:
-        udm_domain: UdmObject = await udm.get("mail/domain").new()
+        udm_domain: UdmObject = await (await udm.get("mail/domain")).new()
         udm_domain.position = f"cn=domain,cn=mail,{ldap_base}"
-        udm_domain.props.name = mail_domain
+        udm_domain.properties["name"] = mail_domain
         await udm_domain.save()
         mail_domain_dn = udm_domain.dn
 
@@ -886,7 +886,7 @@ async def setup_import_config_for_mail(
 
     # cleanup mail domain object
     async with UDM(**udm_kwargs) as udm:
-        udm_domain: UdmObject = await udm.get("mail/domain").get(mail_domain_dn)
+        udm_domain: UdmObject = await (await udm.get("mail/domain")).get(mail_domain_dn)
         await udm_domain.delete()
 
 

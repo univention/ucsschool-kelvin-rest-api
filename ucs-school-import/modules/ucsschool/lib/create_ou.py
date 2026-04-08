@@ -41,7 +41,7 @@ from ldap.filter import filter_format
 
 from ucsschool.lib.models.school import School
 from ucsschool.lib.models.utils import ucr, uldap_admin_read_primary
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 MAX_HOSTNAME_LENGTH = 13
 logger = logging.getLogger(__name__)

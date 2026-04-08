@@ -38,7 +38,8 @@ from ucsschool.lib.roles import (
     role_workgroup_share,
 )
 from ucsschool.lib.schoolldap import SchoolSearchBase
-from udm_rest_client import UDM, NoObject as UdmNoObject
+from univention.admin.rest.async_client import UDM
+from univention.admin.rest.client import NotFound as UdmNoObject
 
 APP_ID = "ucsschool-kelvin-rest-api"
 APP_BASE_PATH = Path(os.getenv("KELVIN_APP_BASE_PATH", f"/var/lib/univention-appcenter/apps/{APP_ID}"))
@@ -51,7 +52,7 @@ _cached_ous: Set[Tuple[str, str]] = set()
 fake = Faker()
 logger = logging.getLogger("ucsschool")
 logger.setLevel(logging.DEBUG)
-logger = logging.getLogger("udm_rest_client")
+logger = logging.getLogger("univention.admin.rest")
 logger.setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -111,9 +112,9 @@ def udm_kwargs() -> Dict[str, Any]:
         cn_admin_password = fp.read().strip()
     host = env_or_ucr("ldap/server/name")
     return {
+        "uri": f"https://{host}/univention/udm/",
         "username": "cn=admin",
         "password": cn_admin_password,
-        "url": f"https://{host}/univention/udm/",
     }
 
 
@@ -193,17 +194,17 @@ class UserFactory(factory.Factory):
 @pytest.fixture(scope="session")
 async def mail_domain(udm_kwargs, wait_for_replication) -> str:
     async with UDM(**udm_kwargs) as udm:
-        mod = udm.get("mail/domain")
-        async for obj in mod.search():
+        mod = await udm.get("mail/domain")
+        async for obj in mod.search(opened=True):
             created_domain = ""
-            name = obj.props.name
+            name = obj.properties["name"]
             logger.debug("Using existing mail/domain %r.", name)
             break
         else:
             name = env_or_ucr("domainname") or fake.domain_name()
             logger.debug("Creating mail/domain object %r...", name)
             obj = await mod.new()
-            obj.props.name = name
+            obj.properties["name"] = name
             await obj.save()
             wait_for_replication(obj.dn)
             created_domain = name
@@ -213,7 +214,7 @@ async def mail_domain(udm_kwargs, wait_for_replication) -> str:
     if created_domain:
         logger.debug("Deleting mail/domain object %r...", created_domain)
         async with UDM(**udm_kwargs) as udm:
-            mod = udm.get("mail/domain")
+            mod = await udm.get("mail/domain")
             async for obj in mod.search(f"(cn={created_domain})"):
                 await obj.delete()
 
@@ -293,26 +294,26 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs, 
     async def _func(school: str, **kwargs) -> Tuple[str, Dict[str, str]]:
         async with UDM(**udm_kwargs) as udm:
             sc_attrs = school_class_attrs(school, **kwargs)
-            grp_obj = await udm.get("groups/group").new()
+            grp_obj = await (await udm.get("groups/group")).new()
             grp_obj.position = f"cn=klassen,cn=schueler,cn=groups,ou={sc_attrs['school']},{ldap_base}"
-            grp_obj.props.name = f"{sc_attrs['school']}-{sc_attrs['name']}"
-            grp_obj.props.description = sc_attrs["description"]
-            grp_obj.props.users = sc_attrs["users"]
-            grp_obj.props.ucsschoolRole = sc_attrs["ucsschool_roles"]
+            grp_obj.properties["name"] = f"{sc_attrs['school']}-{sc_attrs['name']}"
+            grp_obj.properties["description"] = sc_attrs["description"]
+            grp_obj.properties["users"] = sc_attrs["users"]
+            grp_obj.properties["ucsschoolRole"] = sc_attrs["ucsschool_roles"]
             await grp_obj.save()
             wait_for_replication(grp_obj.dn)
             created_school_classes.append(grp_obj.dn)
             logger.debug("Created new SchoolClass: %r.", grp_obj)
 
-            share_obj = await udm.get("shares/share").new()
+            share_obj = await (await udm.get("shares/share")).new()
             share_obj.position = f"cn=klassen,cn=shares,ou={school},{ldap_base}"
-            share_obj.props.name = grp_obj.props.name
-            share_obj.props.host = f"{school}.{env_or_ucr('domainname')}"
-            share_obj.props.owner = 0
-            share_obj.props.group = 0
-            share_obj.props.path = f"/home/tmp/{grp_obj.props.name}"
-            share_obj.props.directorymode = "0770"
-            share_obj.props.ucsschoolRole = [
+            share_obj.properties["name"] = grp_obj.properties["name"]
+            share_obj.properties["host"] = f"{school}.{env_or_ucr('domainname')}"
+            share_obj.properties["owner"] = 0
+            share_obj.properties["group"] = 0
+            share_obj.properties["path"] = f"/home/tmp/{grp_obj.properties['name']}"
+            share_obj.properties["directorymode"] = "0770"
+            share_obj.properties["ucsschoolRole"] = [
                 create_ucsschool_role_string(role_school_class_share, school),
             ]
             try:
@@ -328,7 +329,7 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs, 
     yield _func
 
     async with UDM(**udm_kwargs) as udm:
-        grp_mod = udm.get("groups/group")
+        grp_mod = await udm.get("groups/group")
         for dn in created_school_classes:
             try:
                 grp_obj = await grp_mod.get(dn)
@@ -337,7 +338,7 @@ async def new_school_class_using_udm(udm_kwargs, ldap_base, school_class_attrs, 
                 continue
             await grp_obj.delete()
             logger.debug("Deleted SchoolClass %r through UDM.", dn)
-        share_mod = udm.get("shares/share")
+        share_mod = await udm.get("shares/share")
         for dn in created_school_shares:
             try:
                 share_obj = await share_mod.get(dn)
@@ -357,26 +358,26 @@ async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs, wait_f
     async def _func(school: str, **kwargs) -> Tuple[str, Dict[str, str]]:
         async with UDM(**udm_kwargs) as udm:
             wg_attrs = workgroup_attrs(school, **kwargs)
-            grp_obj = await udm.get("groups/group").new()
+            grp_obj = await (await udm.get("groups/group")).new()
             grp_obj.position = f"cn=schueler,cn=groups,ou={wg_attrs['school']},{ldap_base}"
-            grp_obj.props.name = f"{wg_attrs['school']}-{wg_attrs['name']}"
-            grp_obj.props.description = wg_attrs["description"]
-            grp_obj.props.users = wg_attrs["users"]
-            grp_obj.props.ucsschoolRole = wg_attrs["ucsschool_roles"]
+            grp_obj.properties["name"] = f"{wg_attrs['school']}-{wg_attrs['name']}"
+            grp_obj.properties["description"] = wg_attrs["description"]
+            grp_obj.properties["users"] = wg_attrs["users"]
+            grp_obj.properties["ucsschoolRole"] = wg_attrs["ucsschool_roles"]
             await grp_obj.save()
             wait_for_replication(grp_obj.dn)
             created_workgroups.append(grp_obj.dn)
             logger.debug("Created new WorkGroup: %r.", grp_obj)
 
-            share_obj = await udm.get("shares/share").new()
+            share_obj = await (await udm.get("shares/share")).new()
             share_obj.position = f"cn=shares,ou={school},{ldap_base}"
-            share_obj.props.name = grp_obj.props.name
-            share_obj.props.host = f"{school}.{env_or_ucr('domainname')}"
-            share_obj.props.owner = 0
-            share_obj.props.group = 0
-            share_obj.props.path = f"/home/tmp/{grp_obj.props.name}"
-            share_obj.props.directorymode = "0770"
-            share_obj.props.ucsschoolRole = [
+            share_obj.properties["name"] = grp_obj.properties["name"]
+            share_obj.properties["host"] = f"{school}.{env_or_ucr('domainname')}"
+            share_obj.properties["owner"] = 0
+            share_obj.properties["group"] = 0
+            share_obj.properties["path"] = f"/home/tmp/{grp_obj.properties['name']}"
+            share_obj.properties["directorymode"] = "0770"
+            share_obj.properties["ucsschoolRole"] = [
                 create_ucsschool_role_string(role_workgroup_share, school),
             ]
             try:
@@ -392,7 +393,7 @@ async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs, wait_f
     yield _func
 
     async with UDM(**udm_kwargs) as udm:
-        grp_mod = udm.get("groups/group")
+        grp_mod = await udm.get("groups/group")
         for dn in created_workgroups:
             try:
                 grp_obj = await grp_mod.get(dn)
@@ -401,7 +402,7 @@ async def new_workgroup_using_udm(udm_kwargs, ldap_base, workgroup_attrs, wait_f
                 continue
             await grp_obj.delete()
             logger.debug("Deleted WorkGroup %r through UDM.", dn)
-        share_mod = udm.get("shares/share")
+        share_mod = await udm.get("shares/share")
         for dn in created_wg_shares:
             try:
                 share_obj = await share_mod.get(dn)
@@ -487,26 +488,28 @@ def new_udm_user(
         }[role]
         user_props.update(udm_properties)
         async with UDM(**udm_kwargs) as udm:
-            user_obj = await udm.get("users/user").new()
+            user_obj = await (await udm.get("users/user")).new()
             user_obj.options.update(dict((opt, True) for opt in options))
             user_obj.position = position
-            user_obj.props.update(user_props)
-            user_obj.props.primaryGroup = f"cn=Domain Users {school},cn=groups,ou={school},{ldap_base}"
-            user_obj.props.ucsschoolRecordUID = school_user_kwargs.get(
+            user_obj.properties["update"](user_props)
+            user_obj.properties[
+                "primaryGroup"
+            ] = f"cn=Domain Users {school},cn=groups,ou={school},{ldap_base}"
+            user_obj.properties["ucsschoolRecordUID"] = school_user_kwargs.get(
                 "record_uid", user_props["username"]
             )
 
-            user_obj.props.ucsschoolSourceUID = school_user_kwargs.get("source_uid", "Kelvin")
-            user_obj.props.groups = user_props["groups"]
-            user_obj.props.groups.extend(role_groups)
+            user_obj.properties["ucsschoolSourceUID"] = school_user_kwargs.get("source_uid", "Kelvin")
+            user_obj.properties["groups"] = user_props["groups"]
+            user_obj.properties["groups"].extend(role_groups)
             if role != "staff" and "school_classes" not in school_user_kwargs:
                 cls_dn1, _ = await new_school_class_using_udm(school=school)
                 cls_dn2, _ = await new_school_class_using_udm(school=school)
-                user_obj.props.groups.extend([cls_dn1, cls_dn2])
+                user_obj.properties["groups"].extend([cls_dn1, cls_dn2])
             if "workgroups" not in school_user_kwargs:
                 wg_dn1, _ = await new_workgroup_using_udm(school=school)
                 wg_dn2, _ = await new_workgroup_using_udm(school=school)
-                user_obj.props.groups.extend([wg_dn1, wg_dn2])
+                user_obj.properties["groups"].extend([wg_dn1, wg_dn2])
             await user_obj.save()
 
             schedule_delete_user_dn(user_obj.dn)
@@ -543,18 +546,20 @@ def new_udm_admin_user(
         user_props["ucsschoolRole"].extend(extra_roles)
 
         async with UDM(**udm_kwargs) as udm:
-            user_obj = await udm.get("users/user").new()
+            user_obj = await (await udm.get("users/user")).new()
             user_obj.options["ucsschoolAdministrator"] = True
             user_obj.position = SchoolSearchBase([school]).admins
-            user_obj.props.update(user_props)
-            user_obj.props.primaryGroup = f"cn=Domain Users {school},cn=groups,ou={school},{ldap_base}"
-            user_obj.props.ucsschoolRecordUID = school_user_kwargs.get(
+            user_obj.properties["update"](user_props)
+            user_obj.properties[
+                "primaryGroup"
+            ] = f"cn=Domain Users {school},cn=groups,ou={school},{ldap_base}"
+            user_obj.properties["ucsschoolRecordUID"] = school_user_kwargs.get(
                 "record_uid", user_props["username"]
             )
 
-            user_obj.props.ucsschoolSourceUID = school_user_kwargs.get("source_uid", "Kelvin")
-            user_obj.props.groups = [user_obj.props.primaryGroup]
-            user_obj.props.groups.extend(
+            user_obj.properties["ucsschoolSourceUID"] = school_user_kwargs.get("source_uid", "Kelvin")
+            user_obj.properties["groups"] = [user_obj.properties["primaryGroup"]]
+            user_obj.properties["groups"].extend(
                 SchoolSearchBase([school]).admins_group for school in user_props.get("school", [school])
             )
             await user_obj.save()
@@ -632,7 +637,7 @@ async def schedule_delete_udm_obj(udm_kwargs):
 
     async with UDM(**udm_kwargs) as udm:
         for dn, udm_mod_name in objs:
-            mod = udm.get(udm_mod_name)
+            mod = await udm.get(udm_mod_name)
             try:
                 udm_obj = await mod.get(dn)
             except UdmNoObject:
@@ -660,7 +665,7 @@ async def schedule_delete_user_name_using_udm(udm_kwargs):
     yield _func
 
     async with UDM(**udm_kwargs) as udm:
-        user_mod = udm.get("users/user")
+        user_mod = await udm.get("users/user")
         for username in usernames:
             async for user_obj in user_mod.search(f"uid={username}"):
                 await user_obj.delete()
@@ -696,10 +701,10 @@ async def new_cn(udm_kwargs, ldap_base, cn_attrs, wait_for_replication):
     async def _func() -> Tuple[str, Dict[str, str]]:
         async with UDM(**udm_kwargs) as udm:
             attr = cn_attrs()
-            obj = await udm.get("container/cn").new()
+            obj = await (await udm.get("container/cn")).new()
             obj.position = f"ou={attr['school']},{ldap_base}"
-            obj.props.name = attr["name"]
-            obj.props.description = attr["description"]
+            obj.properties["name"] = attr["name"]
+            obj.properties["description"] = attr["description"]
             await obj.save()
             wait_for_replication(obj.dn)
             created_cns.append(obj.dn)
@@ -710,7 +715,7 @@ async def new_cn(udm_kwargs, ldap_base, cn_attrs, wait_for_replication):
     yield _func
 
     async with UDM(**udm_kwargs) as udm:
-        mod = udm.get("container/cn")
+        mod = await udm.get("container/cn")
         for dn in created_cns:
             try:
                 obj = await mod.get(dn)
@@ -736,7 +741,15 @@ def installed_ssh():
     if not Path("/usr/bin/ssh").exists() or not Path("/usr/bin/sshpass").exists():
         logger.debug("Installing 'ssh' and 'sshpass'...")
         returncode, stdout, stderr = exec_cmd(
-            ["apt-get", "install", "--assume-yes", "--no-install-recommends", "ssh", "sshpass"], log=True
+            [
+                "apt-get",
+                "install",
+                "--assume-yes",
+                "--no-install-recommends",
+                "ssh",
+                "sshpass",
+            ],
+            log=True,
         )
         logger.debug("stdout=%s", stdout or "<empty>")
         logger.debug("stderr=%s", stderr or "<empty>")
@@ -794,7 +807,7 @@ def delete_ou_cleanup(ldap_base, udm_kwargs):
             f"cn=OU{ou_name.lower()}-Member-Verwaltungsnetz,cn=ucsschool,cn=groups,{ldap_base}",
         ]
         async with UDM(**udm_kwargs) as udm:
-            mod = udm.get("groups/group")
+            mod = await udm.get("groups/group")
             for dn in group_dns:
                 logger.debug("Deleting group: %r...", dn)
                 try:
@@ -805,20 +818,20 @@ def delete_ou_cleanup(ldap_base, udm_kwargs):
         if ucr.is_true("ucsschool/singlemaster"):
             master_hostname = env_or_ucr("ldap/master").split(".", 1)[0]
             async with UDM(**udm_kwargs) as udm:
-                mod = udm.get("computers/domaincontroller_master")
-                async for obj in mod.search(f"cn={master_hostname}"):
+                mod = await udm.get("computers/domaincontroller_master")
+                async for obj in mod.search(f"cn={master_hostname}", opened=True):
                     logger.debug(
                         "Removing 'ucsschoolRole=single_master:school:%s' from %r...",
                         ou_name,
                         obj.dn,
                     )
                     try:
-                        obj.props.ucsschoolRole.remove(f"single_master:school:{ou_name}")
+                        obj.properties["ucsschoolRole"].remove(f"single_master:school:{ou_name}")
                         await obj.save()
                     except ValueError:
                         logger.debug(
                             "Error: role was no set: ucsschoolRole=%r",
-                            obj.props.ucsschoolRole,
+                            obj.properties["ucsschoolRole"],
                         )
 
     return _func
@@ -914,7 +927,7 @@ def create_ou_using_ssh(
                 args["edu_name"],
                 args["admin_name"],
                 f"--sharefileserver={args['share_name']}",
-                f"--displayName=\"{args['display_name']}\"",
+                f'--displayName="{args["display_name"]}"',
                 f"--alter-dhcpd-base={str(args['alter_dhcpd_base']).lower()}",
             ]
         )
@@ -926,7 +939,7 @@ def create_ou_using_ssh(
         dn = f"ou={ou_name},{ldap_base}"
         async with UDM(**udm_kwargs) as udm:
             try:
-                await udm.get("container/ou").get(dn)
+                await (await udm.get("container/ou")).get(dn)
             except UdmNoObject:
                 raise AssertionError(f"Creation of OU {ou_name} failed.")
         wait_for_replication(dn)
@@ -982,7 +995,7 @@ def create_ou_using_python(
         async with UDM(**udm_kwargs) as udm:
             await create_ou(lo=udm, **create_ou_python_kwargs)
             try:
-                await udm.get("container/ou").get(dn)
+                await (await udm.get("container/ou")).get(dn)
             except UdmNoObject:
                 raise AssertionError(f"Creation of OU {ou_name} failed.")
         wait_for_replication(dn)

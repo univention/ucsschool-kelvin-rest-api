@@ -52,7 +52,7 @@ DEFAULT_LOG_LEVELS = {
     "fastapi": logging.INFO,
     "multipart": logging.WARNING,
     "requests": logging.INFO,
-    "udm_rest_client": logging.INFO,
+    "univention.admin.rest": logging.INFO,
     "univention": logging.INFO,
     "ucsschool": logging.INFO,
     "uvicorn.access": logging.INFO,

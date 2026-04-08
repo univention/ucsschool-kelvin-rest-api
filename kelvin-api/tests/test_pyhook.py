@@ -53,7 +53,7 @@ from ucsschool.lib.models.user import (
     User,
 )
 from ucsschool.lib.models.utils import env_or_ucr
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 pytestmark = [
     pytest.mark.skipif(
@@ -273,7 +273,7 @@ import datetime
 import inspect
 import univention.admin.uldap_docker
 from pathlib import Path
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 from ucsschool.lib.models.hook import Hook
 from ucsschool.lib.models.user import Student, Teacher, Staff, SchoolAdmin, User, LegalGuardian
 from ucsschool.lib.models.utils import env_or_ucr
@@ -312,7 +312,7 @@ import inspect
 import datetime
 from pathlib import Path
 
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 import univention.admin.uldap_docker
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.importer.utils.user_pyhook import UserPyHook, KelvinUserHook

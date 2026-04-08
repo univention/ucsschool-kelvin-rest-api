@@ -65,7 +65,7 @@ from ucsschool.lib.models.utils import (
     env_or_ucr,
     get_stream_handler as _get_stream_handler,
 )
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 from ..configuration import setup_configuration as _setup_configuration
 from ..exceptions import UcsSchoolImportFatalError as _UcsSchoolImportFatalError

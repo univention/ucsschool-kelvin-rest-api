@@ -5,7 +5,7 @@ import pytest
 
 from ucsschool.lib.models.user import User
 from ucsschool.lib.schoolldap import SchoolSearchBase
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 logging.basicConfig(format="%(message)s", handlers=[logging.StreamHandler()])
 
@@ -39,8 +39,8 @@ async def test_add_school_admins_to_admin_group(
 
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school1, f"username={user.name}")
-        udm_user = await udm.get("users/user").get(lib_users[0].dn)
+        udm_user = await (await udm.get("users/user")).get(lib_users[0].dn)
         domadm_dn1: str = SchoolSearchBase([school1]).admins_group
-        assert domadm_dn1 in udm_user.props.groups
+        assert domadm_dn1 in udm_user.properties["groups"]
         domadm_dn2: str = SchoolSearchBase([school2]).admins_group
-        assert domadm_dn2 in udm_user.props.groups
+        assert domadm_dn2 in udm_user.properties["groups"]

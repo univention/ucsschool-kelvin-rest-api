@@ -16,8 +16,7 @@ requires = ["hatchling<2"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-sources = ["modules/"]
-packages = ["modules/"]
+packages = ["modules/ucsschool"]
 
 [tool.uv.sources]
 ucs-school-lib = { workspace = true }

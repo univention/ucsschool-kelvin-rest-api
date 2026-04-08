@@ -13,7 +13,7 @@ from ucsschool.lib.models.base import PYHOOKS_PATH, _pyhook_loader
 from ucsschool.lib.models.dhcp import DHCPService
 from ucsschool.lib.models.group import SchoolClass
 from ucsschool.lib.models.share import MarketplaceShare
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 HOOK_TEXT = """
 # -*- coding: utf-8 -*-
@@ -96,13 +96,13 @@ del MODIFY_MODULES["WorkGroup"]  # (*3)
 #
 # (*1) model does not support modify operation
 # (*2) possibly a bug in the UDM REST API OpenAPI
-# schema properties->emptyAttributes->nullable=true? -> udm_rest_client.exceptions.ModifyError:
+# schema properties->emptyAttributes->nullable=true? -> udm-rest-api-client.exceptions.ModifyError:
 # Unprocessable Entity: {'emptyAttributes': 'The property emptyAttributes has an
 # invalid value: Invalid syntax. The property Empty attribute must be a list'}
 # (*3) possibly a bug in the UDM REST API:
 # PATCH /udm/groups/group/cn=DEMOSCHOOL-dvargas,cn=klassen,cn=schueler,cn=groups,ou=...
-# -> udm_rest_client.exceptions.APICommunicationError: [HTTP 401] Credentials invalid or no permissions
-# for operation 'update' on 'groups/group' with arguments {'groups_group': {'options': {'ucsschoolAdministratorGroup': False, 'samba': True, 'posix': True, 'ucsschoolImportGroup': False}, 'position': 'cn=klassen,cn=schueler,cn=groups,ou=...', 'properties': {'description': 'jeremydawson'}}, 'dn': 'cn=DEMOSCHOOL-dvargas,cn=klassen,cn=schueler,cn=groups,ou=...'}.  # noqa: E501
+# -> udm-rest-api-client.exceptions.APICommunicationError: [HTTP 401] Credentials invalid
+# for operation 'update' on 'groups/group' with arguments {...}.  # noqa: E501
 #
 
 MOVE_MODULES = copy.deepcopy(CLASSES_MODULES)
@@ -120,7 +120,7 @@ del MOVE_MODULES["TeachersAndStaff"]  # (*3)
 # PUT /udm/users/user/uid=geraldbenitez,cn=examusers,ou=...;
 # UDM_Error: This operation is not allowed on this object. Destination object can't have sub objects.
 # (*3) Bug in ucsschool.lib!! TB starts at "await obj.change_school(ou2, udm)"
-# -> udm_rest_client.exceptions.MoveError: Error moving
+# -> udm-rest-api-client.exceptions.MoveError: Error moving
 # UdmObject('users/user', 'uid=smithkyle,cn=admins,cn=users,ou=testou2176,...')
 # to 'cn=admins,cn=users,ou=testou1991,...': [401] Unauthorized
 #
@@ -421,7 +421,9 @@ async def test_move_hooks(
     if model == "SchoolAdmin":
         async with UDM(**udm_kwargs) as udm:
             # check that target container exists
-            target_cn = await udm.get("container/cn").get(f"cn=admins,cn=users,ou={ou2},{ldap_base}")
+            target_cn = await (await udm.get("container/cn")).get(
+                f"cn=admins,cn=users,ou={ou2},{ldap_base}"
+            )
             logger.debug("Trying to move to existing %r.", target_cn)
 
     if hasattr(obj, "schools"):

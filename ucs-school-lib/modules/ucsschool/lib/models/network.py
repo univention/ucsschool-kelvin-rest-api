@@ -33,7 +33,7 @@ from typing import Dict, Optional
 
 from ipaddr import AddressValueError, IPv4Network, NetmaskValueError
 
-from udm_rest_client import UDM, UdmObject
+from univention.admin.rest.async_client import UDM, Object as UdmObject
 from univention.admin.uexceptions import noObject
 
 from .attributes import Netmask, NetworkAttribute, NetworkBroadcastAddress, SubnetName
@@ -102,13 +102,16 @@ class Network(UCSSchoolHelperAbstractClass):
         # if iprange:
         # 	object['ipRange']=[[str(iprange[0]), str(iprange[1])]]
         # TODO: this is a DHCPServer created when school is created (not implemented yet)
-        udm_obj.props.dhcpEntryZone = "cn=%s,cn=dhcp,%s" % (self.school, School.cache(self.school).dn)
-        udm_obj.props.dnsEntryZoneForward = "zoneName=%s,cn=dns,%s" % (
+        udm_obj.properties["dhcpEntryZone"] = "cn=%s,cn=dhcp,%s" % (
+            self.school,
+            School.cache(self.school).dn,
+        )
+        udm_obj.properties["dnsEntryZoneForward"] = "zoneName=%s,cn=dns,%s" % (
             ucr.get("domainname"),
             ucr.get("ldap/base"),
         )
         reversed_subnet = ".".join(reversed(self.get_subnet().split(".")))
-        udm_obj.props.dnsEntryZoneReverse = "zoneName=%s.in-addr.arpa,cn=dns,%s" % (
+        udm_obj.properties["dnsEntryZoneReverse"] = "zoneName=%s.in-addr.arpa,cn=dns,%s" % (
             reversed_subnet,
             ucr.get("ldap/base"),
         )
@@ -151,8 +154,8 @@ class DNSReverseZone(UCSSchoolHelperAbstractClass):
         return "cn=dns,%s" % ucr.get("ldap/base")
 
     async def do_create(self, udm_obj: UdmObject, lo: UDM) -> None:
-        udm_obj.props.nameserver = ucr.get("ldap/master")
-        udm_obj.props.contact = "root@%s" % ucr.get("domainname")
+        udm_obj.properties["nameserver"] = ucr.get("ldap/master")
+        udm_obj.properties["contact"] = "root@%s" % ucr.get("domainname")
         return await super(DNSReverseZone, self).do_create(udm_obj, lo)
 
     class Meta:

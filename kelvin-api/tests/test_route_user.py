@@ -70,7 +70,7 @@ from ucsschool.lib.models.user import (
     User,
 )
 from ucsschool.lib.roles import role_legal_guardian, role_school_admin, role_student
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 pytestmark = pytest.mark.skipif(
     not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
@@ -126,12 +126,12 @@ async def compare_lib_api_user(  # noqa: C901
         elif key == "url":
             assert api_user.unscheme_and_unquote(value) == f"{url_fragment}/users/{lib_user.name}"
         elif key == "record_uid":
-            assert value == udm_obj.props.ucsschoolRecordUID
+            assert value == udm_obj.properties["ucsschoolRecordUID"]
         elif key == "source_uid":
-            assert value == udm_obj.props.ucsschoolSourceUID
+            assert value == udm_obj.properties["ucsschoolSourceUID"]
         elif key == "udm_properties":
             for prop, prop_val in value.items():
-                assert prop_val == getattr(udm_obj.props, prop)
+                assert prop_val == udm_obj.properties.get(prop)
         elif key == "roles":
             api_roles = {role.split("/")[-1] for role in value}
             lib_roles = {SchoolUserRole.from_lib_role(role).value for role in lib_user.ucsschool_roles}
@@ -462,11 +462,13 @@ async def test_search_filter_udm_properties(
     async with UDM(**udm_kwargs) as udm:
         udm_user = await user.get_udm_object(udm)
     if filter_param in {"uidNumber", "gidNumber"}:
-        filter_value = udm_user.props[filter_param]
+        filter_value = udm_user.properties[filter_param]
     elif filter_param in {"e-mail", "phone"}:
-        assert set(udm_user.props[filter_param]) == set(create_kwargs["udm_properties"][filter_param])
+        assert set(udm_user.properties[filter_param]) == set(
+            create_kwargs["udm_properties"][filter_param]
+        )
     else:
-        assert udm_user.props[filter_param] == create_kwargs["udm_properties"][filter_param]
+        assert udm_user.properties[filter_param] == create_kwargs["udm_properties"][filter_param]
     params = {filter_param: filter_value}
     response = retry_http_502(
         requests.get,
@@ -512,8 +514,8 @@ async def test_search_user_without_firstname(
     assert any(u["firstname"] == lib_user.firstname for u in json_resp)
     # reading the user is OK at this point
     async with UDM(**udm_kwargs) as udm:
-        udm_user = await udm.get("users/user").get(lib_user.dn)
-        udm_user.props.firstname = ""
+        udm_user = await (await udm.get("users/user")).get(lib_user.dn)
+        udm_user.properties["firstname"] = ""
         await udm_user.save()
     # should fail now:
     response = retry_http_502(
@@ -716,12 +718,12 @@ async def test_create(
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
         assert len(lib_users) == 1
         assert isinstance(lib_users[0], role.klass)
-        udm_props = (await lib_users[0].get_udm_object(udm)).props
+        udm_props = (await lib_users[0].get_udm_object(udm)).properties
     assert api_user.udm_properties["title"] == title
     assert api_user.school.split("/")[-1] == school
     assert set(api_user.udm_properties["phone"]) == set(phone)
-    assert udm_props.title == title
-    assert set(udm_props.phone) == set(phone)
+    assert udm_props["title"] == title
+    assert set(udm_props["phone"]) == set(phone)
     await compare_lib_api_user(lib_users[0], api_user, udm, url_fragment)
     await asyncio.sleep(5)
     compare_ldap_json_obj(api_user.dn, response_json, url_fragment)
@@ -732,19 +734,22 @@ async def test_create(
         await check_password(response_json["dn"], r_user.password)
     # Bug #52668: check sambahome and profilepath
     async with UDM(**udm_kwargs) as udm:
-        user_udm = await udm.get("users/user").get(response_json["dn"])
+        user_udm = await (await udm.get("users/user")).get(response_json["dn"])
         if role.name == "staff":
-            assert user_udm.props.profilepath is None
-            assert user_udm.props.sambahome is None
+            assert user_udm.properties["profilepath"] is None
+            assert user_udm.properties["sambahome"] is None
         else:
-            assert user_udm.props.profilepath == r"%LOGONSERVER%\%USERNAME%\windows-profiles\default"
+            assert (
+                user_udm.properties["profilepath"]
+                == r"%LOGONSERVER%\%USERNAME%\windows-profiles\default"
+            )
             school = await School.from_dn(School.cache(lib_users[0].school).dn, None, udm)
             home_share_file_server = school.home_share_file_server
             assert (
                 home_share_file_server
             ), f"No 'home_share_file_server' set for OU {lib_users[0].school!r}."
             samba_home_path = rf"\\{school.get_name_from_dn(home_share_file_server)}\{lib_users[0].name}"
-            assert user_udm.props.sambahome == samba_home_path
+            assert user_udm.properties["sambahome"] == samba_home_path
 
 
 @pytest.mark.asyncio
@@ -1350,9 +1355,9 @@ async def test_put(
         assert isinstance(lib_users[0], role.klass)
         assert api_user.udm_properties["title"] == title
         assert set(api_user.udm_properties["phone"]) == set(phone)
-        udm_props = (await lib_users[0].get_udm_object(udm)).props
-        assert udm_props.title == title
-        assert set(udm_props.phone) == set(phone)
+        udm_props = (await lib_users[0].get_udm_object(udm)).properties
+        assert udm_props["title"] == title
+        assert set(udm_props["phone"]) == set(phone)
         await compare_lib_api_user(lib_users[0], api_user, udm, url_fragment)
     json_resp = response.json()
     compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
@@ -1481,9 +1486,9 @@ async def test_patch(
         assert api_user.udm_properties["title"] == title
         assert getattr(lib_users[0], null_value) is None
         assert set(api_user.udm_properties["phone"]) == set(phone)
-        udm_props = (await lib_users[0].get_udm_object(udm)).props
-        assert udm_props.title == title
-        assert set(udm_props.phone) == set(phone)
+        udm_props = (await lib_users[0].get_udm_object(udm)).properties
+        assert udm_props["title"] == title
+        assert set(udm_props["phone"]) == set(phone)
         await compare_lib_api_user(lib_users[0], api_user, udm, url_fragment)
     json_resp = response.json()
     compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
@@ -2189,8 +2194,10 @@ async def test_school_change(
     json_response = response.json()
     assert response.status_code == 200, response.reason
     async with UDM(**udm_kwargs) as udm:
-        async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
-            udm_user_schools = udm_user.props.school
+        async for udm_user in (await udm.get("users/user")).search(
+            filter_format("uid=%s", (user.name,)), opened=True
+        ):
+            udm_user_schools = udm_user.properties["school"]
             assert udm_user_schools == [ou2_name]
         api_user = UserModel(**json_response)
         assert (
@@ -2245,9 +2252,9 @@ async def test_school_change_verify_groups(
     )[0]
     async with UDM(**udm_kwargs) as udm:
         lib_user = (await User.get_all(udm, ou1_name, f"username={user.name}"))[0]
-        udm_user = await udm.get("users/user").get(lib_user.dn)
+        udm_user = await (await udm.get("users/user")).get(lib_user.dn)
         udm_user.options["ucsschoolAdministrator"] = True
-        udm_user.props.groups.extend(
+        udm_user.properties["groups"].extend(
             [
                 f"cn=admins-{ou1_name},cn=ouadmins,cn=groups,{ldap_base}",
                 f"cn=admins-{ou2_name},cn=ouadmins,cn=groups,{ldap_base}",
@@ -2294,16 +2301,18 @@ async def test_school_change_verify_groups(
     json_response = response.json()
     assert response.status_code == 200, response.reason
     async with UDM(**udm_kwargs) as udm:
-        async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
-            udm_user_schools = udm_user.props.school
+        async for udm_user in (await udm.get("users/user")).search(
+            filter_format("uid=%s", (user.name,)), opened=True
+        ):
+            udm_user_schools = udm_user.properties["school"]
             assert set(udm_user_schools) == {ou1_name, ou3_name}
         api_user = UserModel(**json_response)
         assert (
             api_user.unscheme_and_unquote(str(api_user.school)) == f"{url_fragment}/schools/{ou1_name}"
         )
         lib_user = (await User.get_all(udm, ou1_name, f"username={user.name}"))[0]
-        udm_user = await udm.get("users/user").get(lib_user.dn)
-        groups = udm_user.props.groups
+        udm_user = await (await udm.get("users/user")).get(lib_user.dn)
+        groups = udm_user.properties["groups"]
     expected_groups: Set[str] = {
         f"cn=Domain Users {ou1_name},cn=groups,ou={ou1_name},{ldap_base}",
         f"cn=lehrer-{ou1_name},cn=groups,ou={ou1_name},{ldap_base}",
@@ -2708,8 +2717,10 @@ async def test_add_additional_schools(
         logger.debug(json_response)
         assert response.status_code == 200, response.reason
         async with UDM(**udm_kwargs) as udm:
-            async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
-                assert set(udm_user.props.school) == set(new_schools)
+            async for udm_user in (await udm.get("users/user")).search(
+                filter_format("uid=%s", (user.name,)), opened=True
+            ):
+                assert set(udm_user.properties["school"]) == set(new_schools)
             api_user = UserModel(**json_response)
             lib_users = await User.get_all(udm, school1, f"username={user.name}")
         assert len(lib_users) == 1
@@ -2826,8 +2837,10 @@ async def test_set_school_with_multiple_schools(
     json_response = response.json()
     assert response.status_code == 200, response.reason
     async with UDM(**udm_kwargs) as udm:
-        async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
-            assert set(udm_user.props.school) == {school2}
+        async for udm_user in (await udm.get("users/user")).search(
+            filter_format("uid=%s", (user.name,)), opened=True
+        ):
+            assert set(udm_user.properties["school"]) == {school2}
         api_user = UserModel(**json_response)
         lib_users = await User.get_all(udm, school2, f"username={user.name}")
     assert len(lib_users) == 1
@@ -2951,8 +2964,10 @@ async def test_change_school_with_multiple_schools(
     logger.debug(json_response)
     assert response.status_code == 200, response.reason
     async with UDM(**udm_kwargs) as udm:
-        async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
-            assert set(udm_user.props.school) == {school1, school2, school3}
+        async for udm_user in (await udm.get("users/user")).search(
+            filter_format("uid=%s", (user.name,)), opened=True
+        ):
+            assert set(udm_user.properties["school"]) == {school1, school2, school3}
         api_user = UserModel(**json_response)
         lib_users = await User.get_all(udm, school2, f"username={user.name}")
     assert len(lib_users) == 1
@@ -3084,8 +3099,10 @@ async def test_change_school_and_schools(
     expected_school = sorted([school2, school3])[0]
     assert response.status_code == 200, response.reason
     async with UDM(**udm_kwargs) as udm:
-        async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
-            assert set(udm_user.props.school) == {school2, school3}
+        async for udm_user in (await udm.get("users/user")).search(
+            filter_format("uid=%s", (user.name,)), opened=True
+        ):
+            assert set(udm_user.properties["school"]) == {school2, school3}
         api_user = UserModel(**json_response)
         lib_users = await User.get_all(udm, expected_school, f"username={user.name}")
     assert len(lib_users) == 1
@@ -3211,8 +3228,10 @@ async def test_change_schools_and_classes(
     expected_school = school1
     assert response.status_code == 200, response.reason
     async with UDM(**udm_kwargs) as udm:
-        async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
-            assert set(udm_user.props.school) == {school1, school3}
+        async for udm_user in (await udm.get("users/user")).search(
+            filter_format("uid=%s", (user.name,)), opened=True
+        ):
+            assert set(udm_user.properties["school"]) == {school1, school3}
         api_user = UserModel(**json_response)
         lib_users = await User.get_all(udm, expected_school, f"username={user.name}")
     assert len(lib_users) == 1

@@ -42,8 +42,8 @@ from ldap.filter import filter_format
 
 from ucsschool.lib.models.attributes import ValidationError
 from ucsschool.lib.models.base import NoObject, WrongObjectType
-from ucsschool.lib.models.utils import udm_rest_client_cn_admin_kwargs
-from udm_rest_client import UDM
+from ucsschool.lib.models.utils import udm_rest_api_client_cn_admin_kwargs
+from univention.admin.rest.async_client import UDM
 
 from ..configuration import Configuration
 from ..exceptions import (
@@ -96,7 +96,7 @@ class UserImport(object):
         self.config = Configuration()  # type: ReadOnlyDict
         self.logger = logging.getLogger(__name__)
         self.connection, self.position = get_readonly_connection() if dry_run else get_admin_connection()
-        self.udm = UDM(**udm_rest_client_cn_admin_kwargs())
+        self.udm = UDM(**udm_rest_api_client_cn_admin_kwargs())
         self.udm.session.open()
         self.factory = Factory()
         self.reader = self.factory.make_reader()

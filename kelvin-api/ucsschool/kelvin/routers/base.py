@@ -37,7 +37,7 @@ from fastapi import HTTPException, Request, status
 from pydantic import BaseModel, HttpUrl, validator
 
 from ucsschool.lib.models.base import NoObject, UCSSchoolModel
-from udm_rest_client import UDM, UdmObject
+from univention.admin.rest.async_client import UDM, Object as UdmObject
 
 from ..config import UDM_MAPPING_CONFIG
 from ..constants import API_SCHEME
@@ -141,7 +141,7 @@ class LibModelHelperMixin(BaseModel):
         property_list = getattr(UDM_MAPPING_CONFIG, cls.Config.config_id, [])
         for prop in property_list:
             try:
-                udm_properties[prop] = udm_obj.props[prop]
+                udm_properties[prop] = udm_obj.properties[prop]
             except KeyError:
                 raise UnknownUDMProperty(f"Unknown UDM property {prop!r}.")
         return udm_properties
@@ -268,9 +268,27 @@ def get_language_from_header(request: Request) -> str:
     return language
 
 
-async def udm_ctx(request: Request):
+async def udm_ctx(
+    request: Request,
+    request_id: Optional[str] = "",
+):
     language = get_language_from_header(request)
-    async with UDM(**udm_kwargs(), language=language) as udm:
+    kwargs = udm_kwargs()
+    url = kwargs.pop("url")
+
+    def request_id_generator():
+        return request_id
+
+    # Initialize UDM directly to pass language to the underlying session
+    # Ensure language is not None to avoid header issues
+    udm = UDM(
+        url,
+        username=kwargs["username"],
+        password=kwargs["password"],
+        request_id_generator=request_id_generator,
+        language=language if language else "en-US",
+    )
+    async with udm:
         yield udm
 
 

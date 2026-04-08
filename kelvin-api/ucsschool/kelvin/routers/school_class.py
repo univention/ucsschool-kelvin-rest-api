@@ -35,7 +35,11 @@ from ucsschool.lib.models.attributes import ValidationError as LibValidationErro
 from ucsschool.lib.models.base import UDMPropertiesError
 from ucsschool.lib.models.group import SchoolClass
 from ucsschool.lib.schoolldap import name_from_dn
-from udm_rest_client import UDM, CreateError, ModifyError
+from univention.admin.rest.async_client import UDM
+from univention.admin.rest.client import (
+    BadRequest as CreateError,
+    BadRequest as ModifyError,
+)
 
 from ..config import UDM_MAPPING_CONFIG
 from ..ldap import LdapUser

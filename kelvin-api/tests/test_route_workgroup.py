@@ -37,7 +37,7 @@ from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.group import WorkGroup
 from ucsschool.lib.models.share import WorkGroupShare
 from ucsschool.lib.models.user import Student, User
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 fake = Faker()
 pytestmark = pytest.mark.skipif(

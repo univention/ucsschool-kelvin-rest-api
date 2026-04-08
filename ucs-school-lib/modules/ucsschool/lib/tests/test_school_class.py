@@ -5,7 +5,8 @@ from faker import Faker
 from ldap.filter import filter_format
 
 from ucsschool.lib.models.group import Group, SchoolClass
-from udm_rest_client import UDM, NoObject as UdmNoObject
+from univention.admin.rest.async_client import UDM
+from univention.admin.rest.client import NotFound as UdmNoObject
 
 
 def _inside_docker():
@@ -101,7 +102,7 @@ async def test_get_class_for_udm_obj(create_ou_using_python, new_school_class_us
     ou = await create_ou_using_python()
     dn, attr = await new_school_class_using_udm(ou)
     async with UDM(**udm_kwargs) as udm:
-        udm_obj = await udm.get(SchoolClass._meta.udm_module).get(dn)
+        udm_obj = await (await udm.get(SchoolClass._meta.udm_module)).get(dn)
         klass = await Group.get_class_for_udm_obj(udm_obj, ou)
         assert klass is SchoolClass
         obj = await SchoolClass.from_dn(dn, ou, udm)

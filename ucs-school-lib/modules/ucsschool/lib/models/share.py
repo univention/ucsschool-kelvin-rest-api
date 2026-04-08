@@ -35,11 +35,15 @@ from typing import List, Optional, Type
 from ldap.filter import filter_format
 from six import iteritems
 
-from udm_rest_client import UDM, NoObject as UdmNoObject, UdmObject
+from univention.admin.rest.async_client import UDM, Object as UdmObject
 from univention.admin.uldap import getMachineConnection
 from univention.lib.misc import custom_groupname
 
-from ..roles import role_marketplace_share, role_school_class_share, role_workgroup_share
+from ..roles import (
+    role_marketplace_share,
+    role_school_class_share,
+    role_workgroup_share,
+)
 from .attributes import SchoolClassAttribute, ShareName, WorkgroupAttribute
 from .base import (
     RoleSupportMixin,
@@ -133,7 +137,10 @@ class SetNTACLsMixin(object):
         """
         res = self.get_aces_deny_students_change_permissions(lo)
         search_base = self.get_search_base(self.school)
-        domain_users_dn = "cn=Domain Users %s,%s" % (self.school.lower(), search_base.groups)
+        domain_users_dn = "cn=Domain Users %s,%s" % (
+            self.school.lower(),
+            search_base.groups,
+        )
         samba_sid = self.get_groups_samba_sid(lo, domain_users_dn)
         res.append("(A;OICI;0x001f01ff;;;{})".format(samba_sid))
         res.extend(self.get_ou_admin_full_control(lo))
@@ -157,12 +164,12 @@ class SetNTACLsMixin(object):
 
     def set_nt_acls(self, udm_obj: UdmObject, lo: UDM) -> None:
         try:
-            udm_obj.props.appendACL = self.get_nt_acls(lo)
+            udm_obj.properties["appendACL"] = self.get_nt_acls(lo)
         except NoSID as exc:
             self.logger.warning("Not setting NTACLs for %s: %s", self.__class__.__name__, exc)
             return
-        udm_obj.props.sambaInheritOwner = True
-        udm_obj.props.sambaInheritPermissions = True
+        udm_obj.properties["sambaInheritOwner"] = True
+        udm_obj.properties["sambaInheritPermissions"] = True
 
 
 class Share(UCSSchoolHelperAbstractClass):
@@ -190,23 +197,23 @@ class Share(UCSSchoolHelperAbstractClass):
 
     async def do_create(self, udm_obj: UdmObject, lo: UDM) -> None:
         for k, v in iteritems(self.create_defaults):
-            setattr(udm_obj.props, k, v)
-        udm_obj.props.host = await self.get_server_fqdn(lo)
-        udm_obj.props.path = self.get_share_path()
+            udm_obj.properties[k] = v
+        udm_obj.properties["host"] = await self.get_server_fqdn(lo)
+        udm_obj.properties["path"] = self.get_share_path()
         try:
-            udm_obj.props.sambaForceGroup = self.create_defaults["sambaForceGroup"].format(
+            udm_obj.properties["sambaForceGroup"] = self.create_defaults["sambaForceGroup"].format(
                 name=self.name
             )
         except KeyError:
             # MarketplaceShare doesn't set this
             pass
-        udm_obj.props.group = await self.get_gid_number(lo)
+        udm_obj.properties["group"] = await self.get_gid_number(lo)
         if ucr.is_false("ucsschool/default/share/nfs", True):
             try:
                 udm_obj.options["nfs"] = False  # deactivate NFS
             except ValueError:
                 pass
-        self.logger.info('Creating share on "%s"', udm_obj.props.host)
+        self.logger.info('Creating share on "%s"', udm_obj.properties["host"])
         return await super(Share, self).do_create(udm_obj, lo)
 
     async def get_gid_number(self, lo: UDM) -> str:
@@ -223,22 +230,20 @@ class Share(UCSSchoolHelperAbstractClass):
     async def do_modify(self, udm_obj: UdmObject, lo: UDM) -> None:
         old_name = self.get_name_from_dn(self.old_dn)
         if old_name != self.name:
-            head, tail = os.path.split(udm_obj.props.path)
+            head, tail = os.path.split(udm_obj.properties["path"])
             tail = self.name
-            udm_obj.props.path = os.path.join(head, tail)
-            if udm_obj.props.sambaName == old_name:
-                udm_obj.props.sambaName = self.name
-            if udm_obj.props.sambaForceGroup == "+%s" % old_name:
-                udm_obj.props.sambaForceGroup = "+%s" % self.name
+            udm_obj.properties["path"] = os.path.join(head, tail)
+            if udm_obj.properties["sambaName"] == old_name:
+                udm_obj.properties["sambaName"] = self.name
+            if udm_obj.properties["sambaForceGroup"] == "+%s" % old_name:
+                udm_obj.properties["sambaForceGroup"] = "+%s" % self.name
         return await super(Share, self).do_modify(udm_obj, lo)
 
     @staticmethod
     async def get_server_udm_object(dn: str, lo: UDM) -> Optional[UdmObject]:
         try:
-            object_type = await lo.session.get_object_type(dn)
-            mod = lo.get(object_type)
-            return await mod.get(dn)
-        except UdmNoObject:
+            return await lo.obj_by_dn(dn)
+        except Exception:
             return None
 
     async def get_server_fqdn(self, lo: UDM) -> Optional[str]:
@@ -252,12 +257,14 @@ class Share(UCSSchoolHelperAbstractClass):
 
         school: School = await School.from_dn(school_dn, None, lo)
         school_udm_obj = await school.get_udm_object(lo)
-        class_share_file_server_dn: str = school_udm_obj.props.ucsschoolClassShareFileServer
+        class_share_file_server_dn: str = school_udm_obj.properties["ucsschoolClassShareFileServer"]
         if class_share_file_server_dn:
             server_udm = await self.get_server_udm_object(class_share_file_server_dn, lo)
             if server_udm:
-                server_domain_name = server_udm.props.domain if server_udm.props.domain else domainname
-                server_hostname = server_udm.props.name
+                server_domain_name = (
+                    server_udm.properties["domain"] if server_udm.properties["domain"] else domainname
+                )
+                server_hostname = server_udm.properties["name"]
                 if server_hostname:
                     return "%s.%s" % (server_hostname, server_domain_name)
 
@@ -271,7 +278,8 @@ class Share(UCSSchoolHelperAbstractClass):
             )
             if len(ou_attr_ldap_access_write) > 1:
                 self.logger.warning(
-                    "more than one corresponding univentionLDAPAccessWrite found at ou=%s", self.school
+                    "more than one corresponding univentionLDAPAccessWrite found at ou=%s",
+                    self.school,
                 )
 
         # build fqdn of alternative server and set serverfqdn
@@ -299,12 +307,16 @@ class GroupShare(SetNTACLsMixin, Share):
 
         if not isinstance(school_group, Group):
             raise WrongObjectType(dn=getattr(school_group, "dn", "<no 'dn' attribute>"), cls=Group)
-        return cls(name=school_group.name, school=school_group.school, school_group=school_group)
+        return cls(
+            name=school_group.name,
+            school=school_group.school,
+            school_group=school_group,
+        )
 
     from_school_class = from_school_group  # legacy
 
     async def get_gid_number(self, lo: UDM) -> str:
-        return (await self.school_group.get_udm_object(lo)).props.gidNumber
+        return (await self.school_group.get_udm_object(lo)).properties["gidNumber"]
 
     def get_share_path(self, school=None) -> str:
         school = school or self.school_group.school
@@ -397,9 +409,9 @@ class MarketplaceShare(RoleSupportMixin, SetNTACLsMixin, Share):
         group_name = ucr.get("ucsschool/import/generate/share/marktplatz/group") or custom_groupname(
             "Domain Users"
         )
-        mod = lo.get("groups/group")
-        async for group in mod.search(filter_format("cn=%s", [group_name])):
-            return group.props.gidNumber
+        mod = await lo.get("groups/group")
+        async for group in mod.search(filter_format("cn=%s", [group_name]), opened=True):
+            return group.properties["gidNumber"]
         raise RuntimeError(f"Group {group_name!r} for Marktplatz for OU {self.school!r} not found.")
 
     def get_share_path(self, school: str = None) -> str:

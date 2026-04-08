@@ -29,7 +29,8 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from udm_rest_client import UDM, CreateError
+from univention.admin.rest.async_client import UDM
+from univention.admin.rest.client import BadRequest as CreateError
 from univention.admin.uldap import position as uldap_position
 
 from .attributes import Attribute  # noqa: F401
@@ -55,9 +56,9 @@ class OU(UCSSchoolHelperAbstractClass):
         self.logger.info("Creating %r", self)
         pos = uldap_position(ucr.get("ldap/base"))
         pos.setDn(self.position)
-        udm_obj = await lo.get(self._meta.udm_module).new()
+        udm_obj = await (await lo.get(self._meta.udm_module)).new()
         udm_obj.position = pos.getDn()
-        udm_obj.props.name = self.name
+        udm_obj.properties["name"] = self.name
         try:
             await self.do_create(udm_obj, lo)
         except CreateError as exc:

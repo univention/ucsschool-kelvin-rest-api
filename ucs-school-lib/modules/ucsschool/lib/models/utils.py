@@ -575,7 +575,7 @@ def _write_logging_config(path: str) -> None:
 
 
 @lru_cache(maxsize=1)
-def udm_rest_client_cn_admin_kwargs() -> Dict[str, str]:
+def udm_rest_api_client_cn_admin_kwargs() -> Dict[str, str]:
     global _udm_kwargs
     if not _udm_kwargs:
         host = env_or_ucr("ldap/server/name")

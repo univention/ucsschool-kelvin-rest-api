@@ -38,7 +38,7 @@ from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.group import SchoolClass
 from ucsschool.lib.models.share import ClassShare
 from ucsschool.lib.models.user import Student, User
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 fake = Faker()
 pytestmark = pytest.mark.skipif(
@@ -218,7 +218,7 @@ async def test_create(
         await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
         compare_ldap_json_obj(json_resp["dn"], json_resp, url_fragment)
         udm_obj = await udm.obj_by_dn(json_resp["dn"])
-        assert udm_obj.props["mailAddress"] == f"{name}@{mail_domain}"
+        assert udm_obj.properties["mailAddress"] == f"{name}@{mail_domain}"
         assert await ClassShare.from_school_group(lib_obj).exists(udm) is True
         await SchoolClass(name=lib_obj.name, school=lib_obj.school).remove(udm)
         assert await SchoolClass(name=lib_obj.name, school=lib_obj.school).exists(udm) is False
@@ -310,7 +310,7 @@ async def change_operation(
         assert api_obj.dn == sc1_dn
         assert api_obj.udm_properties["mailAddress"] == f"{sc1_attr['name']}@{mail_domain}"
         assert api_obj.school.split("/")[-1] == school
-        assert udm_obj.props["mailAddress"] == f"{sc1_attr['name']}@{mail_domain}"
+        assert udm_obj.properties["mailAddress"] == f"{sc1_attr['name']}@{mail_domain}"
         assert api_obj.description == change_data["description"]
         assert {api_obj.unscheme_and_unquote(url) for url in api_obj.users} == set(change_data["users"])
         usernames_in_response = {url2username(url) for url in api_obj.users}

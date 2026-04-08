@@ -28,8 +28,11 @@ from ucsschool.lib.models.user import (
 )
 from ucsschool.lib.roles import role_school_admin
 from ucsschool.lib.schoolldap import SchoolSearchBase
-from udm_rest_client import UDM
-from udm_rest_client.exceptions import CreateError, ModifyError
+from univention.admin.rest.async_client import UDM
+from univention.admin.rest.client import (
+    BadRequest as CreateError,
+    BadRequest as ModifyError,
+)
 from univention.admin.uexceptions import noObject
 
 UserType = Union[
@@ -196,7 +199,7 @@ async def test_get_class_for_udm_obj(
     ou = await create_ou_using_python()
     dn, attr = await new_udm_user(ou, role.name)
     async with UDM(**udm_kwargs) as udm:
-        udm_obj = await udm.get(User._meta.udm_module).get(dn)
+        udm_obj = await (await udm.get(User._meta.udm_module)).get(dn)
         klass = await User.get_class_for_udm_obj(udm_obj, ou)
         assert klass is role.klass
 
@@ -396,7 +399,11 @@ async def test_modify(create_ou_using_python, new_udm_user, udm_kwargs, role: Ro
 @pytest.mark.parametrize("role", USER_ROLES, ids=role_id)
 @pytest.mark.parametrize("check_password_policies", [True, False])
 async def test_modify_check_password_policies(
-    create_ou_using_python, new_udm_user, udm_kwargs, role: Role, check_password_policies
+    create_ou_using_python,
+    new_udm_user,
+    udm_kwargs,
+    role: Role,
+    check_password_policies,
 ):
     ou = await create_ou_using_python()
     dn, attr = await new_udm_user(ou, role.name)
@@ -430,14 +437,14 @@ async def test_modify_role(
     ou1, ou2 = await create_multiple_ous(2)
     dn, attr = await new_udm_user(ou1, role_from.name)
     async with UDM(**udm_kwargs) as udm:
-        use_old_udm = await udm.get("users/user").get(dn)
+        use_old_udm = await (await udm.get("users/user")).get(dn)
         # add a school class also to staff users, so we can check if it is kept upon conversion to other
         # role
         cls_dn1, cls_attr1 = await new_school_class_using_udm(school=ou1)
         cls_dn2, cls_attr2 = await new_school_class_using_udm(school=ou1)
         role_ou2 = f"teacher:school:{ou2}"
         cls_dn3, cls_attr3 = await new_school_class_using_udm(school=ou2)
-        use_old_udm.props.school.append(ou2)
+        use_old_udm.properties["school"].append(ou2)
         role_group_prefix = {
             "staff": "mitarbeiter",
             "student": "schueler",
@@ -449,7 +456,7 @@ async def test_modify_role(
         role_groupdn_suffix = (
             f"cn=ouadmins,cn=groups,{ldap_base}" if role_from.name == "school_admin" else ou2_group_cn
         )
-        use_old_udm.props.groups.extend(
+        use_old_udm.properties["groups"].extend(
             [
                 cls_dn1,
                 cls_dn3,
@@ -458,7 +465,7 @@ async def test_modify_role(
             ]
         )
         non_school_role = f"{fake.first_name()}:{fake.last_name()}:{fake.user_name()}"
-        use_old_udm.props.ucsschoolRole.extend([role_ou2, non_school_role])
+        use_old_udm.properties["ucsschoolRole"].extend([role_ou2, non_school_role])
         await use_old_udm.save()
         user_old = await role_from.klass.from_dn(dn, attr["school"][0], udm)
         assert isinstance(user_old, role_from.klass)
@@ -488,9 +495,9 @@ async def test_modify_role(
             assert user_old is user_new
             return
 
-        user_new_udm = await udm.get("users/user").get(user_new.dn)
+        user_new_udm = await (await udm.get("users/user")).get(user_new.dn)
         user_new_ucsschool_roles = set(user_new.ucsschool_roles)
-        new_groups = {grp.lower() for grp in user_new_udm.props.groups}
+        new_groups = {grp.lower() for grp in user_new_udm.properties["groups"]}
 
         # check class
         assert isinstance(user_new, role_to.klass)
@@ -924,7 +931,7 @@ async def test_unixhome(
         assert success is True
         user = await role.klass.from_dn(user.dn, school, udm)
         udm_user = await user.get_udm_object(udm)
-        assert f"/home/{school}/{unixhomes[role.name]}/{user.name}" == udm_user.props.unixhome
+        assert f"/home/{school}/{unixhomes[role.name]}/{user.name}" == udm_user.properties["unixhome"]
 
 
 @pytest.mark.asyncio
@@ -993,9 +1000,9 @@ async def test_remove_from_groups_of_school_admin_user(
         },
     )
     async with UDM(**udm_kwargs) as udm:
-        user_udm = await udm.get("users/user").get(user_dn)
+        user_udm = await (await udm.get("users/user")).get(user_dn)
         user_udm.options["ucsschoolAdministrator"] = True
-        user_udm.props.groups.extend(
+        user_udm.properties["groups"].extend(
             [
                 school2_domain_users,
                 school2_teachers,
@@ -1022,8 +1029,8 @@ async def test_remove_from_groups_of_school_admin_user(
             wg1_dn,
             wg2_dn,
         }
-        user_udm_saved = await udm.get("users/user").get(user_dn)
-        assert set(user_udm_saved.props.groups) == expected_pre_test_groups
+        user_udm_saved = await (await udm.get("users/user")).get(user_dn)
+        assert set(user_udm_saved.properties["groups"]) == expected_pre_test_groups
 
         # Testing
         user = await User.from_dn(user_dn, school1_name, udm)
@@ -1036,8 +1043,8 @@ async def test_remove_from_groups_of_school_admin_user(
             class1_dn,
             wg1_dn,
         }
-        user_udm_post_test = await udm.get("users/user").get(user_dn)
-        assert set(user_udm_post_test.props.groups) == expected_post_test_groups
+        user_udm_post_test = await (await udm.get("users/user")).get(user_dn)
+        assert set(user_udm_post_test.properties["groups"]) == expected_post_test_groups
 
 
 @pytest.mark.asyncio
@@ -1095,9 +1102,9 @@ async def test_add_and_remove_from_groups_of_school_on_school_change_with_modify
         },
     )
     async with UDM(**udm_kwargs) as udm:
-        user_udm = await udm.get("users/user").get(user_dn)
+        user_udm = await (await udm.get("users/user")).get(user_dn)
         user_udm.options["ucsschoolAdministrator"] = True
-        user_udm.props.groups.extend(
+        user_udm.properties["groups"].extend(
             [
                 school1_admins,
                 school2_admins,
@@ -1118,8 +1125,8 @@ async def test_add_and_remove_from_groups_of_school_on_school_change_with_modify
             wg1_dn,
             wg2_dn,
         }
-        user_udm_saved = await udm.get("users/user").get(user_dn)
-        assert set(user_udm_saved.props.groups) == expected_pre_test_groups
+        user_udm_saved = await (await udm.get("users/user")).get(user_dn)
+        assert set(user_udm_saved.properties["groups"]) == expected_pre_test_groups
 
         # Testing
         user = await User.from_dn(user_dn, school1_name, udm)
@@ -1141,8 +1148,8 @@ async def test_add_and_remove_from_groups_of_school_on_school_change_with_modify
             class3_dn,
             wg3_dn,
         }
-        user_udm_post_test = await udm.get("users/user").get(user_dn)
-        assert set(user_udm_post_test.props.groups) == expected_post_test_groups
+        user_udm_post_test = await (await udm.get("users/user")).get(user_dn)
+        assert set(user_udm_post_test.properties["groups"]) == expected_post_test_groups
 
 
 @pytest.mark.asyncio
@@ -1201,7 +1208,15 @@ async def test_is_exam_student(create_ou_using_python, new_udm_user, udm_kwargs)
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "role", ("student", "staff", "teacher", "teacher_and_staff", "legal_guardian", "school_admin")
+    "role",
+    (
+        "student",
+        "staff",
+        "teacher",
+        "teacher_and_staff",
+        "legal_guardian",
+        "school_admin",
+    ),
 )
 async def test_is_exam_student_false(create_ou_using_python, new_udm_user, udm_kwargs, role: str):
     ou = await create_ou_using_python()

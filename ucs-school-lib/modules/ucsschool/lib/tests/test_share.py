@@ -2,7 +2,7 @@ import pytest
 
 from ucsschool.lib.models.group import SchoolClass, WorkGroup
 from ucsschool.lib.models.share import ClassShare, MarketplaceShare, WorkGroupShare
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 
 def _inside_docker():
@@ -25,7 +25,7 @@ async def check_acls(share, udm, expected_acls):
     assert not any(["b'" in acl for acl in school_lib_acls])
     # Test if the school lib acls are set correct in UDM.
     share_udm = await share.get_udm_object(udm)
-    udm_acls = set(share_udm.props.appendACL)
+    udm_acls = set(share_udm.properties["appendACL"])
     assert udm_acls == set(school_lib_acls)
     # The acls are not fixed strings and depend on the sids of the groups,
     # but we can amongst others, test if the composition of them is correct.

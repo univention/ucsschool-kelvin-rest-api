@@ -27,14 +27,8 @@
 
 FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-524:latest AS base
 
-ARG OPENAPI_CLIENT_GENERATOR_VERSION="5.4.0"
-ARG OPENAPI_CLIENT_GENERATOR_JAR="openapi-generator-cli-$OPENAPI_CLIENT_GENERATOR_VERSION.jar"
-ARG OPENAPI_CLIENT_GENERATOR_JAR_URL="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/$OPENAPI_CLIENT_GENERATOR_VERSION/$OPENAPI_CLIENT_GENERATOR_JAR"
-
 ENV PYTHONUNBUFFERED=1
 ENV VIRTUAL_ENV="/venv"
-
-ADD $OPENAPI_CLIENT_GENERATOR_JAR_URL /kelvin/openapi-generator/jar/
 
 WORKDIR /kelvin
 
@@ -55,7 +49,6 @@ COPY ucs-school-lib ./ucs-school-lib
 COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
 COPY univention-lib-slim ./univention-lib-slim
 COPY ucsschool-objects ./ucsschool-objects
-COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 ARG KELVIN_BUILD_VERSION="999.0.0"
@@ -65,7 +58,7 @@ RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
 
 FROM base AS prod
 
-RUN apt-get install -y libldap-2.5-0 openjdk-17-jre-headless procps libmagic1
+RUN apt-get install -y libldap-2.5-0 procps libmagic1
 RUN mkdir -pv /etc/univention/kelvin
 RUN mkdir -pv /var/lib/ucs-school-import/kelvin-hooks
 RUN mkdir -pv /var/lib/ucs-school-lib/kelvin-hooks
@@ -83,7 +76,6 @@ COPY ucs-school-lib ./ucs-school-lib
 COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
 COPY univention-lib-slim ./univention-lib-slim
 COPY ucsschool-objects ./ucsschool-objects
-COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-school-import/usr/share/ucs-school-import/configs/ /usr/share/ucs-school-import/configs/
 COPY ucs-school-import/modules/ucsschool/lib/create_ou.py ucs-school-lib/modules/ucsschool/lib/create_ou.py
 COPY kelvin-api/usr/share/ucs-school-import/checks/*.py /usr/share/ucs-school-import/checks/

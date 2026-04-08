@@ -36,7 +36,17 @@ from functools import lru_cache
 from operator import attrgetter
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    HTTPException,
+    Path,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from ldap import explode_dn
 from ldap.filter import escape_filter_chars
 from pydantic import (
@@ -81,8 +91,13 @@ from ucsschool.lib.roles import (
     create_ucsschool_role_string,
     get_role_info,
 )
-from udm_rest_client import UDM, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
+from univention.admin.rest.async_client import UDM
+from univention.admin.rest.client import (
+    BadRequest as CreateError,
+    BadRequest as ModifyError,
+    BadRequest as MoveError,
+)
 
 from ..config import UDM_MAPPING_CONFIG
 from ..import_config import get_import_config, init_ucs_school_import_framework
@@ -380,8 +395,8 @@ class UserModel(UserBaseModel, APIAttributesMixin):
             }
         )
         kwargs["roles"] = [cls.scheme_and_quote(str(role.to_url(request))) for role in roles]
-        kwargs["source_uid"] = udm_obj.props.ucsschoolSourceUID
-        kwargs["record_uid"] = udm_obj.props.ucsschoolRecordUID
+        kwargs["source_uid"] = udm_obj.properties["ucsschoolSourceUID"]
+        kwargs["record_uid"] = udm_obj.properties["ucsschoolRecordUID"]
         kwargs["school_classes"] = dict(
             (
                 school,
@@ -476,7 +491,9 @@ class UserPatchModel(BaseModel):
             ]
         if "school" in kwargs:
             kwargs["school"] = url_to_name(
-                request, "school", UserCreateModel.unscheme_and_unquote(kwargs["school"])
+                request,
+                "school",
+                UserCreateModel.unscheme_and_unquote(kwargs["school"]),
             )
         for key in ("birthday", "expiration_date"):
             if key in kwargs:
@@ -698,7 +715,8 @@ async def search(  # noqa: C901
 
     logger.debug("Looking for %r with filter %r...", user_class.__name__, udm_filter)
     t0 = time.time()
-    udm_objs = [udm_obj async for udm_obj in udm.get("users/user").search(udm_filter)]
+    module = await udm.get("users/user")
+    udm_objs = [udm_obj async for udm_obj in module.search(udm_filter, opened=True)]
     t1 = time.time()
     users: List[ImportUser] = []
     for udm_obj in udm_objs:
@@ -869,7 +887,10 @@ async def create(
     t1 = time.time()
 
     # Check that legal-guardian parameters are only used with the correct role
-    for param, role in [["legal_guardians", "student"], ["legal_wards", "legal_guardian"]]:
+    for param, role in [
+        ["legal_guardians", "student"],
+        ["legal_wards", "legal_guardian"],
+    ]:
         if getattr(request_user, param, None) and not check_role(role, user):
             error_msg = f"Parameter {param!r} only valid for user-role {role!r}"
             logger.error(error_msg)
@@ -897,7 +918,12 @@ async def create(
         logger.info("Going to create %s with %r...", user, user.to_dict())
         res = await user.create(udm)  # TODO: this takes 750 ms
         t5 = time.time()
-    except (CreateError, LibValidationError, UcsSchoolImportError, WorkgroupDoesNotExistError) as exc:
+    except (
+        CreateError,
+        LibValidationError,
+        UcsSchoolImportError,
+        WorkgroupDoesNotExistError,
+    ) as exc:
         error_msg = f"Failed to create {user!r}: {exc}"
         logger.exception(error_msg)
         if isinstance(exc, CreateError):
@@ -1091,7 +1117,8 @@ async def partial_update(  # noqa: C901
         }
 
     """
-    async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
+    module = await udm.get("users/user")
+    async for udm_obj in module.search(f"uid={escape_filter_chars(username)}"):
         break
     else:
         raise HTTPException(
@@ -1102,7 +1129,10 @@ async def partial_update(  # noqa: C901
     user_current = await get_import_user(udm, udm_obj.dn)
 
     # Check that legal-guardian parameters are only used with the correct role
-    for param, role in [["legal_guardians", "student"], ["legal_wards", "legal_guardian"]]:
+    for param, role in [
+        ["legal_guardians", "student"],
+        ["legal_wards", "legal_guardian"],
+    ]:
         if to_change.get(param, None) and not check_role(role, user_current, to_change):
             error_msg = f"Parameter {param!r} only valid for user-role {role!r}"
             logger.error(error_msg)
@@ -1313,7 +1343,8 @@ async def complete_update(  # noqa: C901
     **Note:** Eventhough only **school** or **schools** needs to be set,
         its advised to set both as best practice.
     """
-    async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
+    module = await udm.get("users/user")
+    async for udm_obj in module.search(f"uid={escape_filter_chars(username)}"):
         break
     else:
         raise HTTPException(
@@ -1330,7 +1361,10 @@ async def complete_update(  # noqa: C901
     user_current: ImportUser = await get_import_user(udm, udm_obj.dn)
 
     # Check that legal-guardian parameters are only used with the correct role
-    for param, role in [["legal_guardians", "student"], ["legal_wards", "legal_guardian"]]:
+    for param, role in [
+        ["legal_guardians", "student"],
+        ["legal_wards", "legal_guardian"],
+    ]:
         if getattr(user, param, None) and not check_role(role, user_current):
             error_msg = f"Parameter {param!r} only valid for user-role {role!r}"
             logger.error(error_msg)
@@ -1425,7 +1459,8 @@ async def delete(
     """
     Delete a school user
     """
-    async for udm_obj in udm.get("users/user").search(f"uid={escape_filter_chars(username)}"):
+    module = await udm.get("users/user")
+    async for udm_obj in module.search(f"uid={escape_filter_chars(username)}"):
         break
     else:
         raise HTTPException(

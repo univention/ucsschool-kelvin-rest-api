@@ -38,7 +38,7 @@ import logging
 from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 
 from ucsschool.lib.pyhooks import PyHook, PyHooksLoader
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 from univention.admin.uldap import LoType
 
 from ..exceptions import InitialisationError

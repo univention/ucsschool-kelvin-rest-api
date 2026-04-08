@@ -69,8 +69,8 @@ from ucsschool.lib.roles import (
     role_student,
     role_teacher,
 )
-from udm_rest_client import UDM, UdmObject
-from univention.admin import property as uadmin_property
+from univention.admin.basic import property as uadmin_property
+from univention.admin.rest.async_client import UDM, Object as UdmObject
 from univention.admin.syntax import gid as gid_syntax
 from univention.config_registry import ConfigRegistry
 
@@ -268,7 +268,7 @@ class ImportUser(User):
             # copy only those UDM properties from LDAP that were originally
             # set in self.udm_properties
             for k in self.udm_properties.keys():
-                user.udm_properties[k] = user_udm.props[k]
+                user.udm_properties[k] = user_udm.properties[k]
             self.update(user)
 
         self.in_hook = True
@@ -548,7 +548,7 @@ class ImportUser(User):
     async def _alter_udm_obj(self, udm_obj):  # type: (UdmObject) -> None
         await super(ImportUser, self)._alter_udm_obj(udm_obj)
         if self._purge_ts is not None:
-            udm_obj.props["ucsschoolPurgeTimestamp"] = self._purge_ts
+            udm_obj.properties["ucsschoolPurgeTimestamp"] = self._purge_ts
 
     @classmethod
     async def get_all_school_names(cls) -> Iterable[str]:
@@ -1944,8 +1944,8 @@ class ImportUserTypeConverter(UserTypeConverter):
     @staticmethod
     def _dump_user_data(udm_user: UdmObject) -> str:
         res = super(ImportUserTypeConverter, ImportUserTypeConverter)._dump_user_data(udm_user)
-        record_uid = udm_user.props.ucsschoolRecordUID
-        source_uid = udm_user.props.ucsschoolSourceUID
+        record_uid = udm_user.properties["ucsschoolRecordUID"]
+        source_uid = udm_user.properties["ucsschoolSourceUID"]
         return f"{res} record_uid: {record_uid!r} source_uid: {source_uid!r}"
 
 

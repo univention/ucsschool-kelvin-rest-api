@@ -33,7 +33,8 @@ from typing import Any, AsyncIterator, Dict, List, Optional, Type
 
 from ldap.dn import str2dn
 
-from udm_rest_client import UDM, NoObject as UdmNoObject, UdmObject
+from univention.admin.rest.async_client import UDM, Object as UdmObject
+from univention.admin.rest.client import NotFound as UdmNoObject
 
 from ..roles import (
     create_ucsschool_role_string,

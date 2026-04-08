@@ -42,8 +42,8 @@ from six import iteritems
 from tenacity import RetryCallState, retry, stop_after_attempt, wait_random
 
 import univention.admin.syntax as syntax
-from udm_rest_client import UDM, UdmObject
 from univention.admin.filter import conjunction, parse
+from univention.admin.rest.async_client import UDM, Object as UdmObject
 from univention.admin.uexceptions import noObject, valueError
 
 from ..roles import (
@@ -72,7 +72,12 @@ from .attributes import (
     Username,
     WorkgroupsAttribute,
 )
-from .base import RoleSupportMixin, UCSSchoolHelperAbstractClass, UnknownModel, WrongModel
+from .base import (
+    RoleSupportMixin,
+    UCSSchoolHelperAbstractClass,
+    UnknownModel,
+    WrongModel,
+)
 from .computer import AnyComputer
 from .group import BasicGroup, Group, SchoolClass, SchoolGroup, WorkGroup
 from .misc import MailDomain
@@ -99,10 +104,16 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     name: str = Username(_("Username"), aka=["Username", "Benutzername"])
     schools: List[str] = Schools(_("Schools"))
     firstname: str = Firstname(
-        _("First name"), aka=["First name", "Vorname"], required=True, unlikely_to_change=True
+        _("First name"),
+        aka=["First name", "Vorname"],
+        required=True,
+        unlikely_to_change=True,
     )
     lastname: str = Lastname(
-        _("Last name"), aka=["Last name", "Nachname"], required=True, unlikely_to_change=True
+        _("Last name"),
+        aka=["Last name", "Nachname"],
+        required=True,
+        unlikely_to_change=True,
     )
     birthday: str = Birthday(_("Birthday"), aka=["Birthday", "Geburtstag"], unlikely_to_change=True)
     expiration_date: str = UserExpirationDate(
@@ -266,28 +277,28 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
             self.logger.debug("No password given. Generating random one")
             self.password = create_passwd(dn=self.dn)
             password_created = True
-        udm_obj.props.primaryGroup = await self.primary_group_dn(lo)
-        udm_obj.props.groups = await self.groups_used(lo)
+        udm_obj.properties["primaryGroup"] = await self.primary_group_dn(lo)
+        udm_obj.properties["groups"] = await self.groups_used(lo)
         subdir = self.get_roleshare_home_subdir()
-        udm_obj.props.unixhome = "/home/" + os.path.join(subdir, self.name)
+        udm_obj.properties["unixhome"] = "/home/" + os.path.join(subdir, self.name)
         if password_created or not self.check_password_policies:
-            udm_obj.props.overridePWHistory = True
-            udm_obj.props.overridePWLength = True
+            udm_obj.properties["overridePWHistory"] = True
+            udm_obj.properties["overridePWLength"] = True
         else:
-            udm_obj.props.overridePWHistory = False
-            udm_obj.props.overridePWLength = False
+            udm_obj.properties["overridePWHistory"] = False
+            udm_obj.properties["overridePWLength"] = False
         if self.disabled is None:
-            udm_obj.props.disabled = False
-        if hasattr(udm_obj.props, "mailbox"):
-            udm_obj.props.mailbox = "/var/spool/%s/" % self.name
+            udm_obj.properties["disabled"] = False
+        if "mailbox" in udm_obj.properties:
+            udm_obj.properties["mailbox"] = "/var/spool/%s/" % self.name
         if samba_home := await self.get_samba_home_path(lo):
-            udm_obj.props.sambahome = samba_home
+            udm_obj.properties["sambahome"] = samba_home
         if profile_path := await self.get_profile_path(lo):
-            udm_obj.props.profilepath = profile_path
+            udm_obj.properties["profilepath"] = profile_path
         if home_drive := self.get_samba_home_drive():
-            udm_obj.props.homedrive = home_drive
+            udm_obj.properties["homedrive"] = home_drive
         if script_path := self.get_samba_netlogon_script_path():
-            udm_obj.props.scriptpath = script_path
+            udm_obj.properties["scriptpath"] = script_path
         t1 = time.time()
         success = await super(User, self).do_create(udm_obj, lo)  # TODO: this takes 680 ms
         t2 = time.time()
@@ -315,10 +326,10 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         self.password = self.password or None
 
         wanted_schools = self.schools.copy()
-        removed_schools = set(udm_obj.props.school) - set(self.schools)
+        removed_schools = set(udm_obj.properties.get("school", [])) - set(self.schools)
         if removed_schools:
             # change self.schools back, so schools can be removed by remove_from_school()
-            self.schools = udm_obj.props.school
+            self.schools = udm_obj.properties.get("school", [])
         for removed_school in removed_schools:
             self.logger.info("Removing %r from school %r...", self, removed_school)
             if not await self.remove_from_school(removed_school, lo):
@@ -332,13 +343,15 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         # remove SchoolClasses or WorkGroups the user is not part of anymore
         # ignore all others (global groups and $OU-groups)
         mandatory_groups = await self.groups_used(lo)
-        for group_dn in [dn for dn in udm_obj.props.groups if dn not in mandatory_groups]:
+        for group_dn in [
+            dn for dn in udm_obj.properties.get("groups", []) if dn not in mandatory_groups
+        ]:
             try:
                 school_class = await SchoolClass.from_dn(group_dn, None, lo)
                 classes = self.school_classes.get(school_class.school, [])
                 if school_class.name not in classes and school_class.get_relative_name() not in classes:
                     self.logger.debug("Removing %r from SchoolClass %r.", self, group_dn)
-                    udm_obj.props.groups.remove(group_dn)
+                    udm_obj.properties["groups"]["remove"](group_dn)
             # it's not a class but could be a workgroup
             except noObject:
                 try:
@@ -349,63 +362,66 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                         and workgroup.get_relative_name() not in workgroups
                     ):
                         self.logger.debug("Removing %r from WorkGroup %r.", self, group_dn)
-                        udm_obj.props.groups.remove(group_dn)
+                        udm_obj.properties["groups"]["remove"](group_dn)
                 except noObject:
                     continue
 
         # make sure user is in all mandatory groups and school classes
-        current_groups = set(grp_dn.lower() for grp_dn in udm_obj.props.groups)
+        current_groups = set(grp_dn.lower() for grp_dn in udm_obj.properties.get("groups", []))
         groups_to_add = [dn for dn in mandatory_groups if dn.lower() not in current_groups]
         if groups_to_add:
             self.logger.debug("Adding %r to groups %r.", self, groups_to_add)
-            udm_obj.props.groups.extend(groups_to_add)
+            udm_obj.properties["groups"]["extend"](groups_to_add)
         if not self.check_password_policies:
-            udm_obj.props.overridePWHistory = True
-            udm_obj.props.overridePWLength = True
+            udm_obj.properties["overridePWHistory"] = True
+            udm_obj.properties["overridePWLength"] = True
         elif self.check_password_policies:
-            udm_obj.props.overridePWHistory = False
-            udm_obj.props.overridePWLength = False
+            udm_obj.properties["overridePWHistory"] = False
+            udm_obj.properties["overridePWLength"] = False
         return await super(User, self).do_modify(udm_obj, lo)
 
     async def do_school_change(self, udm_obj, lo, old_school) -> None:
         await super(User, self).do_school_change(udm_obj, lo, old_school)
         school = self.school
 
-        self.logger.info("User is part of the following groups: %r", udm_obj.props.groups)
+        self.logger.info(
+            "User is part of the following groups: %r",
+            udm_obj.properties.get("groups", []),
+        )
         # This removes all groups from the user except the primary group (because of UDM)
         await self.remove_from_groups_of_school(old_school, lo)
         self.school_classes.pop(old_school, None)
         self.workgroups.pop(old_school, None)
         udm_obj = await self.get_udm_object(lo)
         # The primary group has to be removed here from the groups list
-        udm_obj.props.groups.remove(udm_obj.props.primaryGroup)
-        udm_obj.props.primaryGroup = await self.primary_group_dn(lo)
-        groups = set(udm_obj.props.groups)
+        udm_obj.properties["groups"]["remove"](udm_obj.properties.get("primaryGroup"))
+        udm_obj.properties["primaryGroup"] = await self.primary_group_dn(lo)
+        groups = set(udm_obj.properties.get("groups", []))
         at_least_groups = set(await self.groups_used(lo))
         if (groups | at_least_groups) != groups:
-            udm_obj.props.groups = list(groups | at_least_groups)
+            udm_obj.properties["groups"] = list(groups | at_least_groups)
         subdir = self.get_roleshare_home_subdir()
-        udm_obj.props.unixhome = "/home/" + os.path.join(subdir, self.name)
+        udm_obj.properties["unixhome"] = "/home/" + os.path.join(subdir, self.name)
         if samba_home := await self.get_samba_home_path(lo):
-            udm_obj.props.sambahome = samba_home
+            udm_obj.properties["sambahome"] = samba_home
         if profile_path := await self.get_profile_path(lo):
-            udm_obj.props.profilepath = profile_path
+            udm_obj.properties["profilepath"] = profile_path
         if home_drive := self.get_samba_home_drive():
-            udm_obj.props.homedrive = home_drive
+            udm_obj.properties["homedrive"] = home_drive
         if script_path := self.get_samba_netlogon_script_path():
-            udm_obj.props.scriptpath = script_path
-        if udm_obj.props.departmentNumber == [old_school]:
-            udm_obj.props.departmentNumber = [school]
-        if school not in udm_obj.props.school:
-            udm_obj.props.school.append(school)
-        if old_school in udm_obj.props.school:
-            udm_obj.props.school.remove(old_school)
+            udm_obj.properties["scriptpath"] = script_path
+        if udm_obj.properties.get("departmentNumber") == [old_school]:
+            udm_obj.properties["departmentNumber"] = [school]
+        if school not in udm_obj.properties.get("school", []):
+            udm_obj.properties["school"]["append"](school)
+        if old_school in udm_obj.properties.get("school", []):
+            udm_obj.properties["school"]["remove"](old_school)
         await udm_obj.save()
 
     async def _alter_udm_obj(self, udm_obj: UdmObject) -> None:
         if self.email is not None:
-            setattr(udm_obj.props, "e-mail", [self.email])
-        udm_obj.props.departmentNumber = [self.school]
+            udm_obj.properties["e-mail"] = [self.email]
+        udm_obj.properties["departmentNumber"] = [self.school]
         return await super(User, self)._alter_udm_obj(udm_obj)
 
     def get_mail_domain(self) -> MailDomain:
@@ -460,7 +476,11 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                     "It is not supported to change the role of a user. %(old_role)s %(name)s cannot "
                     "become a %(new_role)s."
                 )
-                % {"old_role": exc.model.type_name, "name": self.name, "new_role": self.type_name},
+                % {
+                    "old_role": exc.model.type_name,
+                    "name": self.name,
+                    "new_role": self.type_name,
+                },
             )
         t2 = time.time()
         if udm_obj:
@@ -479,11 +499,11 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                     },
                 )
         if self.email:
-            filter_s = filter_format(
+            filter_str = filter_format(
                 "(&(univentionObjectType=users/user)(!(uid=%s))(mailPrimaryAddress=%s))",
                 (self.name, self.email),
             )
-            if uldap_exists(filter_s):
+            if uldap_exists(filter_str):
                 self.add_error(
                     "email",
                     _(
@@ -590,16 +610,19 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
         self._udm_obj_searched = False
         udm_obj = await self.get_udm_object(lo)
-        old_groups = udm_obj.props.groups
+        old_groups = udm_obj.properties["groups"]
         # Don't remove the primary group here as this can't be done through UDM
-        removed_groups.discard(udm_obj.props.primaryGroup.lower())
+        removed_groups.discard(udm_obj.properties["primaryGroup"]["lower"]())
         for group_dn in removed_groups:
             self.logger.info(
-                "Removing group %r of school %r from the user %r.", group_dn, school, self.dn
+                "Removing group %r of school %r from the user %r.",
+                group_dn,
+                school,
+                self.dn,
             )
 
-        udm_obj.props.groups = [dn for dn in old_groups if dn.lower() not in removed_groups]
-        if len(old_groups) != len(udm_obj.props.groups) + len(removed_groups):
+        udm_obj.properties["groups"] = [dn for dn in old_groups if dn.lower() not in removed_groups]
+        if len(old_groups) != len(udm_obj.properties["groups"]) + len(removed_groups):
             old_groups_lower = {dn.lower() for dn in old_groups}
             for group_dn in removed_groups - old_groups_lower:
                 self.logger.warning(
@@ -667,9 +690,8 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
         :raises RuntimeError: if a work group does not exist.
         """
-        filter_s, search_base = group_dn.split(",", 1)
-        filter_s = f"({filter_s})"
-        if uldap_exists(search_filter=filter_s, search_base=search_base):
+        filter_str, search_base = group_dn.split(",", 1)
+        if uldap_exists(search_filter=filter_str, search_base=search_base):
             return
         name = cls.get_name_from_dn(group_dn)
         school = cls.get_school_from_dn(group_dn)
@@ -733,7 +755,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     @classmethod
     async def get_school_classes(cls, udm_obj: UdmObject, obj: "User") -> Dict[str, List[str]]:
         school_classes = {}
-        for group in udm_obj.props.groups:
+        for group in udm_obj.properties["groups"]:
             for school in obj.schools:
                 if Group.is_school_class(school, group):
                     school_class_name = cls.get_name_from_dn(group)
@@ -743,7 +765,7 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
     @classmethod
     async def get_workgroups(cls, udm_obj: UdmObject, obj: "User") -> Dict[str, List[str]]:
         workgroups = {}
-        for group in udm_obj.props.groups:
+        for group in udm_obj.properties["groups"]:
             for school in obj.schools:
                 if Group.is_school_workgroup(school, group):
                     workgroup_name = cls.get_name_from_dn(group)
@@ -756,19 +778,27 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
 
     @classmethod
     async def lookup(
-        cls, lo: UDM, school: str, filter_s: str = "", superordinate: SuperOrdinateType = None
+        cls,
+        lo: UDM,
+        school: str,
+        filter_s: str = "",
+        superordinate: SuperOrdinateType = None,
     ) -> List[UdmObject]:
-        # cls.logger.debug("**** school=%r filter_s=%r", school, filter_s)
+        # cls.logger.debug("**** school=%r filter=%r", school, filter_s)
         filter_object_type = conjunction(
-            "&", [parse(cls.type_filter), parse(filter_format("ucsschoolSchool=%s", [school]))]
+            "&",
+            [
+                parse(cls.type_filter),
+                parse(filter_format("ucsschoolSchool=%s", [school])),
+            ],
         )
         if filter_s:
             filter_object_type = conjunction("&", [filter_object_type, parse(filter_s)])
         t0 = time.time()
         objects = [
             o
-            async for o in lo.get(cls._meta.udm_module).search(
-                filter_s=unicode_s(filter_object_type), scope="sub"
+            async for o in (await lo.get(cls._meta.udm_module)).search(
+                filter=unicode_s(filter_object_type), scope="sub", opened=True
             )
         ]
         cls.logger.debug("Timings: retrieved %d users in %.3f sec.", len(objects), time.time() - t0)
@@ -795,14 +825,16 @@ class Student(User):
         self, lo, validate_unlikely_changes: Optional[bool] = False, check_name=True
     ) -> None:
         await super().validate(
-            lo, validate_unlikely_changes=validate_unlikely_changes, check_name=check_name
+            lo,
+            validate_unlikely_changes=validate_unlikely_changes,
+            check_name=check_name,
         )
 
         if not self.legal_guardians:
             return
 
         dn_filter = [f"(entryDN={escape_filter_chars(dn)})" for dn in self.legal_guardians]
-        search_result = lo.get(self._meta.udm_module).search(f"(|{''.join(dn_filter)})")
+        search_result = (await lo.get(self._meta.udm_module)).search(f"(|{''.join(dn_filter)})")
         dns = [result.dn async for result in search_result]
         if len(dns) < len(self.legal_guardians):
             missing_dns = [dn for dn in self.legal_guardians if dn not in dns]
@@ -866,14 +898,16 @@ class LegalGuardian(User):
         self, lo, validate_unlikely_changes: Optional[bool] = False, check_name=True
     ) -> None:
         await super().validate(
-            lo, validate_unlikely_changes=validate_unlikely_changes, check_name=check_name
+            lo,
+            validate_unlikely_changes=validate_unlikely_changes,
+            check_name=check_name,
         )
 
         if not self.legal_wards:
             return
 
         dn_filter = [f"(entryDN={escape_filter_chars(dn)})" for dn in self.legal_wards]
-        search_result = lo.get(self._meta.udm_module).search(f"(|{''.join(dn_filter)})")
+        search_result = (await lo.get(self._meta.udm_module)).search(f"(|{''.join(dn_filter)})")
         dns = [result.dn async for result in search_result]
         if len(dns) < len(self.legal_wards):
             missing_dns = [dn for dn in self.legal_wards if dn not in dns]
@@ -989,7 +1023,13 @@ class ExamStudent(Student):
 
 
 ConcreteUserClass = TypeVar(
-    "ConcreteUserClass", Staff, Student, Teacher, LegalGuardian, TeachersAndStaff, SchoolAdmin
+    "ConcreteUserClass",
+    Staff,
+    Student,
+    Teacher,
+    LegalGuardian,
+    TeachersAndStaff,
+    SchoolAdmin,
 )
 
 
@@ -1043,7 +1083,11 @@ class UserTypeConverter:
             logger.warning("Additional school classes will be ignored during conversion to {new_cls!r}.")
         new_cls_name = new_cls.__name__
         if set(user.roles) == set(new_cls.roles):
-            logger.debug("No type conversion necessary, user type is already %r: %r", new_cls_name, user)
+            logger.debug(
+                "No type conversion necessary, user type is already %r: %r",
+                new_cls_name,
+                user,
+            )
             return user
         udm_obj = await user.get_udm_object(udm)
         if issubclass(new_cls, Student) and udm_obj.options.get(
@@ -1077,13 +1121,14 @@ class UserTypeConverter:
         )
         udm_obj.options = options
         udm_obj.position = position
-        udm_obj.props.groups = groups
-        udm_obj.props.ucsschoolRole = ucsschool_roles
+        udm_obj.properties["groups"] = groups
+        udm_obj.properties["ucsschoolRole"] = ucsschool_roles
         await udm_obj.save()
         new_user: ConcreteUserClass = await new_cls.from_dn(udm_obj.dn, user.school, udm)
         logger.info("Conversion to %r finished.", new_cls_name)
         logger.debug(
-            "Data after conversion:\n%s", cls._dump_user_data(await new_user.get_udm_object(udm))
+            "Data after conversion:\n%s",
+            cls._dump_user_data(await new_user.get_udm_object(udm)),
         )
         return new_user
 
@@ -1092,9 +1137,9 @@ class UserTypeConverter:
         return (
             f"DN: {udm_user.dn!r}:\n"
             f"  options: {udm_user.options!r}\n"
-            f"  schools: {sorted(udm_user.props.school)!r}\n"
-            f"  groups: {sorted(udm_user.props.groups)!r}\n"
-            f"  ucsschool_roles: {sorted(udm_user.props.ucsschoolRole)!r}"
+            f"  schools: {sorted(udm_user.properties['school'])!r}\n"
+            f"  groups: {sorted(udm_user.properties['groups'])!r}\n"
+            f"  ucsschool_roles: {sorted(udm_user.properties['ucsschoolRole'])!r}"
         )
 
     @staticmethod
@@ -1130,7 +1175,7 @@ class UserTypeConverter:
                 user.get_staff_groups() + user.get_students_groups() + user.get_school_admin_groups()
             )
         else:
-            raise RuntimeError(f"Unknown class defined: {new_cls!r} " f"({type(new_cls)!r}).")
+            raise RuntimeError(f"Unknown class defined: {new_cls!r} ({type(new_cls)!r}).")
         # not beautiful, but keeps lower/upper case intact:
         rm_groups = set(g.lower() for g in rm_groups)
         if issubclass(new_cls, Staff):
@@ -1148,7 +1193,7 @@ class UserTypeConverter:
             for school, workgroups in additional_workgroups.items():
                 cn = WorkGroup.get_container(school)
                 add_groups.extend(f"cn={school}-{wg},{cn}" for wg in workgroups)
-        groups = set(grp for grp in udm_obj.props.groups if grp.lower() not in rm_groups)
+        groups = set(grp for grp in udm_obj.properties["groups"] if grp.lower() not in rm_groups)
         groups_lower = {grp.lower() for grp in groups}
         groups.update(grp for grp in add_groups if grp.lower() not in groups_lower)
         return sorted(groups)

@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse, ORJSONResponse
 
 from ucsschool.lib.models.attributes import ValidationError as SchooLibValidationError
 from ucsschool.lib.models.base import NoObject
-from udm_rest_client import UdmError
+from univention.admin.rest.client import HTTPError as UdmError
 
 
 async def udm_exception_handler(
@@ -21,17 +21,15 @@ async def udm_exception_handler(
 
     error_type = f"UdmError:{exc.__class__.__name__}"
     errors: List[Dict[str, Any]]
-    if exc.error is not None:
+    if exc.error_details is not None:
         errors = [
             {"loc": (location,), "msg": message, "type": error_type}
-            for (location, message) in exc.error.items()
+            for (location, message) in exc.error_details.items()
         ]
-    elif exc.reason is not None:
-        errors = [{"loc": (), "msg": exc.reason, "type": error_type}]
     else:
         errors = [{"loc": (), "msg": str(exc), "type": error_type}]
 
-    status_code = exc.status or 500
+    status_code = exc.code or 500
 
     logger.error(f"Encountered exception {exc} responding with {errors}")
 

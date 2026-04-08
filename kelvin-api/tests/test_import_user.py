@@ -58,7 +58,7 @@ from ucsschool.lib.models.user import (
     Teacher,
     TeachersAndStaff,
 )
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 UserType = Union[
     Type[ImportStaff],
@@ -122,14 +122,14 @@ async def test_modify_role(
     ou1, ou2 = await create_multiple_ous(2)
     dn, attr = await new_udm_user(ou1, role_from.name)
     async with (UDM(**udm_kwargs) as udm):
-        use_old_udm = await udm.get("users/user").get(dn)
+        use_old_udm = await (await udm.get("users/user")).get(dn)
         # add a school class also to staff users, so we can check if it is kept upon conversion to other
         # role
         cls_dn1, cls_attr1 = await new_school_class_using_lib(ou1)
         cls_dn2, cls_attr2 = await new_school_class_using_lib(ou1)
         role_ou2 = f"teacher:school:{ou2}"
         cls_dn3, cls_attr3 = await new_school_class_using_lib(ou2)
-        use_old_udm.props.school.append(ou2)
+        use_old_udm.properties["school"].append(ou2)
         role_group_prefix = {
             "staff": "mitarbeiter",
             "student": "schueler",
@@ -142,7 +142,7 @@ async def test_modify_role(
         ou2_role_group_cn = (
             ou2_group_cn if role_from.name != "school_admin" else f"cn=ouadmins,cn=groups,{ldap_base}"
         )
-        use_old_udm.props.groups.extend(
+        use_old_udm.properties["groups"].extend(
             [
                 cls_dn1,
                 cls_dn3,
@@ -151,7 +151,7 @@ async def test_modify_role(
             ]
         )
         non_school_role = f"{random_name()}:{random_name()}:{random_name()}"
-        use_old_udm.props.ucsschoolRole.extend([role_ou2, non_school_role])
+        use_old_udm.properties["ucsschoolRole"].extend([role_ou2, non_school_role])
         await use_old_udm.save()
         user_old = await role_from.klass.from_dn(dn, attr["school"][0], udm)
         assert isinstance(user_old, role_from.klass)
@@ -182,9 +182,9 @@ async def test_modify_role(
             assert user_old is user_new
             return
 
-        user_new_udm = await udm.get("users/user").get(user_new.dn)
+        user_new_udm = await (await udm.get("users/user")).get(user_new.dn)
         user_new_ucsschool_roles = set(user_new.ucsschool_roles)
-        new_groups = {grp.lower() for grp in user_new_udm.props.groups}
+        new_groups = {grp.lower() for grp in user_new_udm.properties["groups"]}
 
         # check class
         assert isinstance(user_new, role_to.klass)
@@ -332,8 +332,8 @@ async def test_modify_role_forbidden(
         user_obj = await ImportTeacher.from_dn(dn, attr["school"][0], udm)
         user_udm = await user_obj.get_udm_object(udm)
         user_udm.options["ucsschoolAdministrator"] = True
-        user_udm.props.ucsschoolRecordUID = user_obj.name
-        user_udm.props.ucsschoolSourceUID = "TESTID"
+        user_udm.properties["ucsschoolRecordUID"] = user_obj.name
+        user_udm.properties["ucsschoolSourceUID"] = "TESTID"
         await user_udm.save()
         with pytest.raises(TypeError, match=r"not allowed for school administrator"):
             new_user_obj = await convert_to_student(user_obj, udm)

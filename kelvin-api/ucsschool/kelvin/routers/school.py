@@ -50,7 +50,7 @@ from ucsschool.lib.models.computer import AnyComputer, SchoolDCSlave
 from ucsschool.lib.models.school import School
 from ucsschool.lib.models.utils import env_or_ucr, ucr, uldap_admin_read_primary
 from ucsschool.lib.schoolldap import name_from_dn
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 from ...lib.models.base import UDMPropertiesError
 from ..ldap import LdapUser, uldap_admin_read_local

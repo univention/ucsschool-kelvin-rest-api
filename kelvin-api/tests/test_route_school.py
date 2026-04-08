@@ -37,7 +37,7 @@ from ucsschool.kelvin.routers.school import SchoolCreateModel, SchoolModel
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.school import School
 from ucsschool.lib.schoolldap import name_from_dn
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 pytestmark = pytest.mark.skipif(
     not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
@@ -86,7 +86,7 @@ async def test_search_no_filter(auth_header, udm_kwargs):
                 lib_schools.add(await School.from_dn(dn, ou, udm))
             except NoObject as exc:
                 print(f"Deleting container of broken school {ou!r} that failed to load ({exc!s})...")
-                container_ou_obj = await udm.get("container/ou").get(dn)
+                container_ou_obj = await (await udm.get("container/ou")).get(dn)
                 await container_ou_obj.delete()
                 reload_ldap_ous = True
     if reload_ldap_ous:
@@ -296,7 +296,7 @@ async def test_create(
         )
         udm_obj = await udm.obj_by_dn(lib_obj.dn)
     assert api_obj.udm_properties["description"] == "DESCRIPTION"
-    assert udm_obj.props["description"] == "DESCRIPTION"
+    assert udm_obj.properties["description"] == "DESCRIPTION"
     assert lib_obj.dn == api_obj.dn
     await compare_lib_api_obj(lib_obj, api_obj)
     assert (

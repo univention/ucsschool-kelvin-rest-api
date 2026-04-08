@@ -13,7 +13,7 @@ dependencies = [
     "ruamel-yaml<0.18.0",
     "setuptools<81",
     "six>=1.17.0",
-    "udm-rest-client>=1.3.1",
+    "udm-rest-api-client[async,sync]>=0.1.2",
     "uldap3",
     "univention-directory-manager-modules",
     "univention-lib",
@@ -30,3 +30,4 @@ packages = ["modules/ucsschool"]
 univention-directory-manager-modules = { workspace = true }
 univention-lib = { workspace = true }
 uldap3 = { git = "https://git.knut.univention.de/univention/dev/libraries/uldap3.git" }
+udm-rest-api-client = { git = "https://git.knut.univention.de/univention/dev/libraries/udm-rest-api-client.git", branch = "juern/for_kelvin" }

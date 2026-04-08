@@ -204,7 +204,7 @@ To add custom initialization code, ``__init__()`` can be implemented the followi
 .. code-block:: python
 
     from ucsschool.lib.models.hook import Hook
-    # from udm_rest_client import UDM
+    # from univention.admin.rest.async_client import UDM
     # from univention.admin.uldap import LoType
 
     class MailForSchoolClass(Hook):

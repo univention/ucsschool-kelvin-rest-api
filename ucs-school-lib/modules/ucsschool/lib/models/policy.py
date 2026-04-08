@@ -29,7 +29,8 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from udm_rest_client import UDM, ModifyError, UdmObject
+from univention.admin.rest.async_client import UDM, Object as UdmObject
+from univention.admin.rest.client import BadRequest as ModifyError
 
 from .attributes import EmptyAttributes
 from .base import UCSSchoolHelperAbstractClass, UCSSchoolModel

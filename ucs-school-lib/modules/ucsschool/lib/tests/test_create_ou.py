@@ -13,7 +13,8 @@ from ucsschool.lib.roles import (
     role_student,
     role_teacher,
 )
-from udm_rest_client import UDM, NoObject as UdmNoObject
+from univention.admin.rest.async_client import UDM
+from univention.admin.rest.client import NotFound as UdmNoObject
 
 
 def _inside_docker():
@@ -86,14 +87,14 @@ async def test_attached_policies(create_ou_using_python, udm_kwargs):
         ou_dn = "ou={},{}".format(ou, env_or_ucr("ldap/base"))
         udm_mod = udm.get("policies/registry")
         udm_obj = await udm_mod.get("cn=ou-default-ucr-policy,cn=policies,{}".format(ou_dn))
-        assert "cn=dhcp,{}".format(ou_dn.lower()) == udm_obj.props.registry["dhcpd/ldap/base"]
+        assert "cn=dhcp,{}".format(ou_dn.lower()) == udm_obj.properties["registry"]["dhcpd/ldap/base"]
 
-        udm_obj = await udm.get("container/ou").get(ou_dn)
+        udm_obj = await (await udm.get("container/ou")).get(ou_dn)
         policy_dn = "cn=ou-default-ucr-policy,cn=policies,{}".format(ou_dn).lower()
         assert policy_dn in udm_obj.policies["policies/registry"]
 
         dhcp_dns_policy_dn = "cn=dhcp-dns-{},cn=policies,{}".format(ou.lower(), ou_dn)
-        udm_obj = await udm.get("container/cn").get("cn=dhcp,{}".format(ou_dn))
+        udm_obj = await (await udm.get("container/cn")).get("cn=dhcp,{}".format(ou_dn))
         assert dhcp_dns_policy_dn in udm_obj.policies["policies/dhcp_dns"]
 
         udm_mod = udm.get("groups/group")
@@ -104,9 +105,9 @@ async def test_attached_policies(create_ou_using_python, udm_kwargs):
             in udm_obj.policies["policies/umc"]
         )
         assert "ucsschoolImportGroup" in udm_obj.options
-        assert [ou] == udm_obj.props.ucsschoolImportSchool
+        assert [ou] == udm_obj.properties["ucsschoolImportSchool"]
         for role in [role_student, role_staff, "teacher_and_staff", role_teacher]:
-            assert role in udm_obj.props.ucsschoolImportRole
+            assert role in udm_obj.properties["ucsschoolImportRole"]
 
 
 @pytest.mark.asyncio
@@ -120,9 +121,9 @@ async def test_ucsschool_roles(create_ou_using_python, udm_kwargs):
         if ucr.is_true("ucsschool/singlemaster", True):
             filter_s = filter_format("cn=%s", [ucr["ldap/master"].split(".", 1)[0]])
             mod = udm.get("computers/domaincontroller_master")
-            obj = [o async for o in mod.search(filter_s)][0]
+            obj = [o async for o in mod.search(filter_s, opened=True)][0]
             ucsschool_role = create_ucsschool_role_string(role_single_master, ou_name)
-            assert ucsschool_role in obj.props.ucsschoolRole
+            assert ucsschool_role in obj.properties["ucsschoolRole"]
         else:
             ou_lower = ou_name.lower()
             adm_net_filter = "cn=OU{}-DC-Verwaltungsnetz".format(ou_lower)
@@ -132,14 +133,15 @@ async def test_ucsschool_roles(create_ou_using_python, udm_kwargs):
                 (adm_net_filter, "dc_slave_admin"),
                 (edu_net_filter, "dc_slave_edu"),
             ]:
-                groups = [grp async for grp in udm.get("groups/group").search(ldap_filter, base=base)]
+                module = await udm.get("groups/group")
+                groups = [grp async for grp in module.search(ldap_filter, base=base, opened=True)]
                 if groups:
                     try:
-                        server_dn: str = groups[0].props.hosts[0]
+                        server_dn: str = groups[0].properties["hosts"][0]
                     except IndexError:
                         continue
                     try:
-                        await udm.get("computers/domaincontroller_slave").get(server_dn)
+                        await (await udm.get("computers/domaincontroller_slave")).get(server_dn)
                     except UdmNoObject:
                         assert True is False, "A DC slave was expected at {}".format(server_dn)
 

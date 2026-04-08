@@ -33,7 +33,7 @@ import pytest
 import ucsschool.kelvin.constants
 import ucsschool.kelvin.ldap
 import ucsschool.lib.models.utils
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 must_run_in_container = pytest.mark.skipif(
     not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),

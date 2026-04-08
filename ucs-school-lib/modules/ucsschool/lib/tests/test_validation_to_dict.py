@@ -12,7 +12,7 @@ from ucsschool.lib.models.user import (
     TeachersAndStaff,
 )
 from ucsschool.lib.models.validator import obj_to_dict
-from udm_rest_client import UDM
+from univention.admin.rest.async_client import UDM
 
 
 def _inside_docker():
@@ -69,7 +69,7 @@ async def test_udm_obj_to_dict(
         udm_obj = await user.get_udm_object(udm)
     dict_obj = obj_to_dict(udm_obj)
     assert dict_obj["props"]
-    for key, value in udm_obj.props.items():
+    for key, value in udm_obj.properties["items"]():
         assert key in dict_obj["props"].keys()
         assert dict_obj["props"][key] == value
     assert udm_obj.dn == dict_obj["dn"]
@@ -108,7 +108,7 @@ async def test_udm_share_to_dict(GroupShareClass, udm_kwargs, random_user_name, 
         udm_obj = await share.get_udm_object(udm)
         dict_obj = obj_to_dict(udm_obj)
         assert dict_obj["props"]
-        for key, value in udm_obj.props.items():
+        for key, value in udm_obj.properties["items"]():
             assert key in dict_obj["props"].keys()
             assert dict_obj["props"][key] == value
         assert udm_obj.dn == dict_obj["dn"]
