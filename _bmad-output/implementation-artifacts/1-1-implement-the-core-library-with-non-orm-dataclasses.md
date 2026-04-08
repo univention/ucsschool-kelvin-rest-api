@@ -23,33 +23,33 @@ so that objects are correctly abstracted from the persistence layer for better t
 
 ## Tasks / Subtasks
 
-- [ ] Define core domain contracts and models (AC: 1, 8)
-  - [ ] Add non-ORM dataclasses for School, User, and Group in `kelvin-api/ucsschool/kelvin/corelib/domain/models.py`.
-  - [ ] Add domain error taxonomy in `kelvin-api/ucsschool/kelvin/corelib/domain/errors.py` (`InvalidFilter`, `UnsupportedOperation`, `NotFound`).
-  - [ ] Add query AST in `kelvin-api/ucsschool/kelvin/corelib/domain/query.py` with `Filter`, `And`, `Or`, `Not` and operator support including `gt`, `gte`, `lt`, `lte`.
-  - [ ] Add explicit relationship loading contract in `kelvin-api/ucsschool/kelvin/corelib/domain/load_spec.py`.
+- [x] Define core domain contracts and models (AC: 1, 8)
+  - [x] Add non-ORM dataclasses for School, User, and Group in `kelvin-api/ucsschool/kelvin/corelib/domain/models.py`.
+  - [x] Add domain error taxonomy in `kelvin-api/ucsschool/kelvin/corelib/domain/errors.py` (`InvalidFilter`, `UnsupportedOperation`, `NotFound`).
+  - [x] Add query AST in `kelvin-api/ucsschool/kelvin/corelib/domain/query.py` with `Filter`, `And`, `Or`, `Not` and operator support including `gt`, `gte`, `lt`, `lte`.
+  - [x] Add explicit relationship loading contract in `kelvin-api/ucsschool/kelvin/corelib/domain/load_spec.py`.
 
-- [ ] Define reader ports for read/search use-cases (AC: 2, 3, 6)
-  - [ ] Add `SchoolReader`, `UserReader`, `GroupReader` protocols in `kelvin-api/ucsschool/kelvin/corelib/ports/readers.py`.
-  - [ ] Ensure APIs include get-by-id and search/list with deterministic ordering and pagination inputs.
-  - [ ] Ensure interfaces are read/search-only; no write methods in MVP.
+- [x] Define reader ports for read/search use-cases (AC: 2, 3, 6)
+  - [x] Add `SchoolReader`, `UserReader`, `GroupReader` protocols in `kelvin-api/ucsschool/kelvin/corelib/ports/readers.py`.
+  - [x] Ensure APIs include get-by-id and search/list with deterministic ordering and pagination inputs.
+  - [x] Ensure interfaces are read/search-only; no write methods in MVP.
 
-- [ ] Implement adapters against Issue #195 persistence baseline (AC: 2, 4, 8)
-  - [ ] Implement PostgreSQL adapter readers in `kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/readers.py`.
-  - [ ] Implement in-memory SQLite parity adapter readers in `kelvin-api/ucsschool/kelvin/corelib/adapters/sqlite_memory/readers.py`.
-  - [ ] Add query translation logic in `kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py`.
-  - [ ] Ensure adapter exceptions are mapped to domain errors before crossing port boundaries.
+- [x] Implement adapters against Issue #195 persistence baseline (AC: 2, 4, 8)
+  - [x] Implement PostgreSQL adapter readers in `kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/readers.py`.
+  - [x] Implement in-memory SQLite parity adapter readers in `kelvin-api/ucsschool/kelvin/corelib/adapters/sqlite_memory/readers.py`.
+  - [x] Add query translation logic in `kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py`.
+  - [x] Ensure adapter exceptions are mapped to domain errors before crossing port boundaries.
 
-- [ ] Document no-hooks behavior and MVP boundaries (AC: 5, 6)
-  - [ ] Add explicit note in corelib docs/README that UDM hooks and Kelvin PyHooks are intentionally not executed.
-  - [ ] Add explicit statement that writes and Nubus synchronization are out of scope for this story.
+- [x] Document no-hooks behavior and MVP boundaries (AC: 5, 6)
+  - [x] Add explicit note in corelib docs/README that UDM hooks and Kelvin PyHooks are intentionally not executed.
+  - [x] Add explicit statement that writes and Nubus synchronization are out of scope for this story.
 
-- [ ] Add contract and parity tests (AC: 3, 7, 8)
-  - [ ] Add shared contract tests under `kelvin-api/tests/corelib/contracts/` for School, User, and Group readers.
-  - [ ] Add tests for numeric/date range operators and negation semantics.
-  - [ ] Add deterministic sort/pagination tests with stable tie-break behavior.
-  - [ ] Add adapter binding tests under `kelvin-api/tests/corelib/adapters/postgres/` and `kelvin-api/tests/corelib/adapters/sqlite_memory/`.
-  - [ ] Add/verify tests that no UDM hooks/PyHooks are executed in read/search path.
+- [x] Add contract and parity tests (AC: 3, 7, 8)
+  - [x] Add shared contract tests under `kelvin-api/tests/corelib/contracts/` for School, User, and Group readers.
+  - [x] Add tests for numeric/date range operators and negation semantics.
+  - [x] Add deterministic sort/pagination tests with stable tie-break behavior.
+  - [x] Add adapter binding tests under `kelvin-api/tests/corelib/adapters/postgres/` and `kelvin-api/tests/corelib/adapters/sqlite_memory/`.
+  - [x] Add/verify tests that no UDM hooks/PyHooks are executed in read/search path.
 
 ## Dev Notes
 
@@ -145,13 +145,53 @@ GPT-5.3-Codex
 
 - Create-story workflow executed from `.github/skills/bmad-create-story/workflow.md`.
 - Source inputs discovered from `_bmad-output/planning-artifacts/` and `_bmad-output/project-context.md`.
+- Implementation tests: `/home/jgietzel/projects/dev/education/ucsschool-kelvin-rest-api/.venv/bin/python -m pytest -q --confcutdir=kelvin-api/tests/corelib kelvin-api/tests/corelib`.
+- Broader suite attempt blocked by environment permissions when UCR tried to write `/etc/univention/base-forced.conf`.
 
 ### Completion Notes List
 
-- Story context generated from user-provided request and planning artifacts.
-- Since sprint status file was not present, no sprint status update was applied.
-- Story status set to `ready-for-dev`.
+- Implemented `corelib` domain dataclasses, query AST, error taxonomy, load specification, and read-only ports.
+- Implemented PostgreSQL and SQLite-memory reader adapters and shared query translation utilities with domain-level invalid-filter errors.
+- Added explicit no-hook design documentation in `kelvin-api/ucsschool/kelvin/corelib/README.md`.
+- Added contract tests for readers, date-range and negation filters, deterministic sorting/pagination, invalid filter handling, and no-PyHook import behavior.
+- Corelib suite passed: 16 tests passed.
+- Full repo and documented broad test runs were attempted but blocked by unrelated environment constraints (`yaml` missing in `_bmad` tests and UCR write permissions for `/etc/univention/base-forced.conf`).
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/1-1-implement-the-core-library-with-non-orm-dataclasses.md`
+- `kelvin-api/ucsschool/kelvin/corelib/__init__.py`
+- `kelvin-api/ucsschool/kelvin/corelib/README.md`
+- `kelvin-api/ucsschool/kelvin/corelib/py.typed`
+- `kelvin-api/ucsschool/kelvin/corelib/domain/__init__.py`
+- `kelvin-api/ucsschool/kelvin/corelib/domain/models.py`
+- `kelvin-api/ucsschool/kelvin/corelib/domain/errors.py`
+- `kelvin-api/ucsschool/kelvin/corelib/domain/query.py`
+- `kelvin-api/ucsschool/kelvin/corelib/domain/load_spec.py`
+- `kelvin-api/ucsschool/kelvin/corelib/ports/__init__.py`
+- `kelvin-api/ucsschool/kelvin/corelib/ports/readers.py`
+- `kelvin-api/ucsschool/kelvin/corelib/translation/__init__.py`
+- `kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py`
+- `kelvin-api/ucsschool/kelvin/corelib/adapters/__init__.py`
+- `kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/__init__.py`
+- `kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/mapping.py`
+- `kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/readers.py`
+- `kelvin-api/ucsschool/kelvin/corelib/adapters/sqlite_memory/__init__.py`
+- `kelvin-api/ucsschool/kelvin/corelib/adapters/sqlite_memory/mapping.py`
+- `kelvin-api/ucsschool/kelvin/corelib/adapters/sqlite_memory/readers.py`
+- `kelvin-api/tests/corelib/conftest.py`
+- `kelvin-api/tests/corelib/domain/test_query_ast.py`
+- `kelvin-api/tests/corelib/domain/test_load_spec.py`
+- `kelvin-api/tests/corelib/domain/test_errors.py`
+- `kelvin-api/tests/corelib/fixtures/corelib_contract_data.py`
+- `kelvin-api/tests/corelib/fixtures/adapter_factories.py`
+- `kelvin-api/tests/corelib/contracts/test_reader_contract_school.py`
+- `kelvin-api/tests/corelib/contracts/test_reader_contract_user.py`
+- `kelvin-api/tests/corelib/contracts/test_reader_contract_group.py`
+- `kelvin-api/tests/corelib/contracts/test_query_ranges_numeric_datetime.py`
+- `kelvin-api/tests/corelib/contracts/test_query_negation_semantics.py`
+- `kelvin-api/tests/corelib/contracts/test_invalid_filter_behavior.py`
+- `kelvin-api/tests/corelib/contracts/test_no_pyhook_execution.py`
+- `kelvin-api/tests/corelib/contracts/test_sort_pagination_determinism.py`
+- `kelvin-api/tests/corelib/adapters/postgres/test_postgres_contract_binding.py`
+- `kelvin-api/tests/corelib/adapters/sqlite_memory/test_sqlite_contract_binding.py`
