@@ -122,10 +122,15 @@ class PostgresGroupReader:
         }
 
         stmt = select(GroupModel)
+        sort_fields = {spec.field for spec in sort_by}
+        needs_school_join = any(field.startswith("school_") for field in sort_fields)
         if query is not None and query.where is not None:
             query_fields = {term.field for term in _iter_filters(query.where)}
             if any(field.startswith("school_") for field in query_fields):
-                stmt = stmt.join(GroupModel.school)
+                needs_school_join = True
+
+        if needs_school_join:
+            stmt = stmt.join(GroupModel.school)
 
         if load.includes("school"):
             stmt = stmt.options(selectinload(GroupModel.school))

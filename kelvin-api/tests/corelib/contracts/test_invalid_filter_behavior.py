@@ -1,6 +1,11 @@
+from datetime import date
+
 import pytest
 
-from ucsschool.kelvin.corelib.adapters.sqlite_memory.readers import SqliteMemorySchoolReader
+from ucsschool.kelvin.corelib.adapters.sqlite_memory.readers import (
+    SqliteMemorySchoolReader,
+    SqliteMemoryUserReader,
+)
 from ucsschool.kelvin.corelib.domain import Filter, InvalidFilter, Operator, SearchQuery, SortSpec
 
 
@@ -20,3 +25,21 @@ async def test_invalid_sort_field_raises_domain_error(db_session, school_factory
 
     with pytest.raises(InvalidFilter, match="Unsupported sort field"):
         await reader.search(sort_by=(SortSpec(field="invalid", ascending=True),))
+
+
+@pytest.mark.asyncio
+async def test_range_filter_with_none_raises_domain_error(db_session, user_factory) -> None:
+    user_factory(name="user-a", birthday=date(2010, 1, 1))
+    reader = SqliteMemoryUserReader(db_session)
+
+    with pytest.raises(InvalidFilter, match="requires a numeric or date-like field and non-null value"):
+        await reader.search(SearchQuery(where=Filter(field="birthday", op=Operator.GTE, value=None)))
+
+
+@pytest.mark.asyncio
+async def test_range_filter_on_non_range_field_raises_domain_error(db_session, user_factory) -> None:
+    user_factory(name="user-a")
+    reader = SqliteMemoryUserReader(db_session)
+
+    with pytest.raises(InvalidFilter, match="requires a numeric or date-like field and non-null value"):
+        await reader.search(SearchQuery(where=Filter(field="name", op=Operator.GTE, value="m")))

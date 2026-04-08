@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import os
 import random
 import uuid
 from collections.abc import Iterator
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 import pytest
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from ucsschool_objects.database_models import Base, Group, GroupType, School, SchoolMembership, User
+
+POSTGRES_TEST_URL_ENV = "CORELIB_POSTGRES_TEST_URL"
 
 
 @pytest.fixture(scope="session")
@@ -21,6 +24,19 @@ def db_engine() -> Iterator[Engine]:
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
 
+    Base.metadata.create_all(engine)
+    yield engine
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+
+
+@pytest.fixture(scope="session")
+def postgres_db_engine() -> Iterator[Engine]:
+    database_url = os.getenv(POSTGRES_TEST_URL_ENV)
+    if not database_url:
+        pytest.skip(f"Set {POSTGRES_TEST_URL_ENV} to run PostgreSQL corelib tests.")
+
+    engine = create_engine(database_url)
     Base.metadata.create_all(engine)
     yield engine
     Base.metadata.drop_all(engine)
@@ -40,8 +56,21 @@ def db_session(db_engine: Engine) -> Iterator[Session]:
 
 
 @pytest.fixture
+def postgres_db_session(postgres_db_engine: Engine) -> Iterator[Session]:
+    connection = postgres_db_engine.connect()
+    transaction = connection.begin()
+    session = sessionmaker(bind=connection)()
+    session.begin_nested()
+    yield session
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+
+@pytest.fixture
 def school_factory(db_session: Session) -> Callable[..., School]:
     def _factory(**overrides: object) -> School:
+        target_session = cast(Session, overrides.pop("db_session", db_session))
         school = School(
             public_id=overrides.get("public_id", uuid.uuid4()),
             record_uid=overrides.get("record_uid", f"school-record-{uuid.uuid4()}"),
@@ -53,8 +82,8 @@ def school_factory(db_session: Session) -> Callable[..., School]:
             class_share_file_server=overrides.get("class_share_file_server", "class.example"),
             home_share_file_server=overrides.get("home_share_file_server", "home.example"),
         )
-        db_session.add(school)
-        db_session.flush()
+        target_session.add(school)
+        target_session.flush()
         return school
 
     return _factory
@@ -63,11 +92,12 @@ def school_factory(db_session: Session) -> Callable[..., School]:
 @pytest.fixture
 def group_factory(db_session: Session, school_factory: Callable[..., School]) -> Callable[..., Group]:
     def _factory(**overrides: object) -> Group:
+        target_session = cast(Session, overrides.pop("db_session", db_session))
         group_type = GroupType(
             name=overrides.get("group_type_name", f"type-{uuid.uuid4()}"),
             display_name={"de": "Typ", "en": "Type"},
         )
-        school = overrides.get("school") or school_factory()
+        school = overrides.get("school") or school_factory(db_session=target_session)
         group = Group(
             public_id=overrides.get("public_id", uuid.uuid4()),
             record_uid=overrides.get("record_uid", f"group-record-{uuid.uuid4()}"),
@@ -79,8 +109,8 @@ def group_factory(db_session: Session, school_factory: Callable[..., School]) ->
             group_type=group_type,
             school=school,
         )
-        db_session.add(group)
-        db_session.flush()
+        target_session.add(group)
+        target_session.flush()
         return group
 
     return _factory
@@ -89,6 +119,7 @@ def group_factory(db_session: Session, school_factory: Callable[..., School]) ->
 @pytest.fixture
 def user_factory(db_session: Session) -> Callable[..., User]:
     def _factory(**overrides: object) -> User:
+        target_session = cast(Session, overrides.pop("db_session", db_session))
         user = User(
             public_id=overrides.get("public_id", uuid.uuid4()),
             record_uid=overrides.get("record_uid", f"user-record-{uuid.uuid4()}"),
@@ -101,8 +132,8 @@ def user_factory(db_session: Session) -> Callable[..., User]:
             expiration_date=overrides.get("expiration_date", None),
             active=bool(overrides.get("active", True)),
         )
-        db_session.add(user)
-        db_session.flush()
+        target_session.add(user)
+        target_session.flush()
         return user
 
     return _factory
@@ -115,13 +146,14 @@ def membership_factory(
     user_factory: Callable[..., User],
 ) -> Callable[..., SchoolMembership]:
     def _factory(**overrides: object) -> SchoolMembership:
+        target_session = cast(Session, overrides.pop("db_session", db_session))
         membership = SchoolMembership(
-            user=overrides.get("user") or user_factory(),
-            school=overrides.get("school") or school_factory(),
+            user=overrides.get("user") or user_factory(db_session=target_session),
+            school=overrides.get("school") or school_factory(db_session=target_session),
             is_primary=bool(overrides.get("is_primary", False)),
         )
-        db_session.add(membership)
-        db_session.flush()
+        target_session.add(membership)
+        target_session.flush()
         return membership
 
     return _factory

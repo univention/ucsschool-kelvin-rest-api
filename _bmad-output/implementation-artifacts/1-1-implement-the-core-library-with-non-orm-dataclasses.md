@@ -1,6 +1,6 @@
 # Story 1.1: Implement the core library with non-ORM dataclasses
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -53,10 +53,10 @@ so that objects are correctly abstracted from the persistence layer for better t
 
   ### Review Findings
 
-  - [ ] [Review][Patch] Group sorting by school fields fails without the required join [kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/readers.py:104]
-  - [ ] [Review][Patch] Invalid range filters leak SQLAlchemy exceptions instead of domain errors [kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py:19]
-  - [ ] [Review][Patch] Explicit sorts do not add a stable tie-break, so pagination is not deterministic on duplicate keys [kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py:72]
-  - [ ] [Review][Patch] PostgreSQL adapter parity is not validated because the postgres binding test still runs on SQLite only [kelvin-api/tests/corelib/conftest.py:12]
+  - [x] [Review][Patch] Group sorting by school fields fails without the required join [kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/readers.py:104]
+  - [x] [Review][Patch] Invalid range filters leak SQLAlchemy exceptions instead of domain errors [kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py:19]
+  - [x] [Review][Patch] Explicit sorts do not add a stable tie-break, so pagination is not deterministic on duplicate keys [kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py:72]
+  - [x] [Review][Patch] PostgreSQL adapter parity is not validated because the postgres binding test still runs on SQLite only [kelvin-api/tests/corelib/conftest.py:12]
 
 ## Dev Notes
 

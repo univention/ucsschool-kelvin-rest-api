@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from typing import Any
 
-from sqlalchemy import Select, and_, asc, desc, not_, or_
+from sqlalchemy import Date, DateTime, Float, Integer, Numeric, Select, and_, asc, desc, not_, or_
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from ucsschool.kelvin.corelib.domain import (
     And,
@@ -15,6 +16,19 @@ from ucsschool.kelvin.corelib.domain import (
     SearchQuery,
     SortSpec,
 )
+
+RANGE_CAPABLE_TYPES = (Date, DateTime, Float, Integer, Numeric)
+
+
+def _get_column_type(column: Any) -> Any | None:
+    if isinstance(column, InstrumentedAttribute):
+        return column.property.columns[0].type
+    return getattr(column, "type", None)
+
+
+def _supports_range_filters(column: Any) -> bool:
+    column_type = _get_column_type(column)
+    return column_type is not None and isinstance(column_type, RANGE_CAPABLE_TYPES)
 
 
 def build_expression(query_expr: Filter | And | Or | Not, field_map: dict[str, Any]) -> Any:
@@ -42,12 +56,32 @@ def build_expression(query_expr: Filter | And | Or | Not, field_map: dict[str, A
                 )
             return column.ilike(query_expr.value)
         if query_expr.op is Operator.GT:
+            if query_expr.value is None or not _supports_range_filters(column):
+                raise InvalidFilter(
+                    "GT operator requires a numeric or date-like field and non-null value "
+                    f"for field '{query_expr.field}'."
+                )
             return column > query_expr.value
         if query_expr.op is Operator.GTE:
+            if query_expr.value is None or not _supports_range_filters(column):
+                raise InvalidFilter(
+                    "GTE operator requires a numeric or date-like field and non-null value "
+                    f"for field '{query_expr.field}'."
+                )
             return column >= query_expr.value
         if query_expr.op is Operator.LT:
+            if query_expr.value is None or not _supports_range_filters(column):
+                raise InvalidFilter(
+                    "LT operator requires a numeric or date-like field and non-null value "
+                    f"for field '{query_expr.field}'."
+                )
             return column < query_expr.value
         if query_expr.op is Operator.LTE:
+            if query_expr.value is None or not _supports_range_filters(column):
+                raise InvalidFilter(
+                    "LTE operator requires a numeric or date-like field and non-null value "
+                    f"for field '{query_expr.field}'."
+                )
             return column <= query_expr.value
         raise InvalidFilter(f"Unsupported operator: {query_expr.op}")
 
@@ -81,7 +115,9 @@ def apply_sort(
     *,
     default_field: str = "public_id",
 ) -> Select[Any]:
-    specs = sort_by or (SortSpec(default_field),)
+    specs = tuple(sort_by) or (SortSpec(default_field),)
+    if default_field in field_map and all(spec.field != default_field for spec in specs):
+        specs = (*specs, SortSpec(default_field))
     for spec in specs:
         if spec.field not in field_map:
             raise InvalidFilter(f"Unsupported sort field: {spec.field}")
