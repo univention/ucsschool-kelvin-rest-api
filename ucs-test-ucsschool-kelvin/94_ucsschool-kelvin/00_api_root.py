@@ -99,7 +99,7 @@ class Test(TestCase):
         res = response.json()
         print("*** Resource paths in openapi.json v2: {!r}".format(res["paths"].keys()))
         for resource in RESOURCE_URLS_V2:
-            self.assertIn("{}{}".format(URL_BASE_PATH_V2, resource), res["paths"].keys())
+            self.assertIn("{}{}/".format(URL_BASE_PATH_V2, resource), res["paths"].keys())
 
     def test_07_unauth_connection_to_resources_v2_not_allowed(self):
         for url in RESOURCE_URLS_V2.values():
