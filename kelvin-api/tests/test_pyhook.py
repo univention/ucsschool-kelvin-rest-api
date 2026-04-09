@@ -55,10 +55,13 @@ from ucsschool.lib.models.user import (
 from ucsschool.lib.models.utils import env_or_ucr
 from udm_rest_client import UDM
 
-pytestmark = pytest.mark.skipif(
-    not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-    reason="Must run inside Docker container started by appcenter.",
-)
+pytestmark = [
+    pytest.mark.skipif(
+        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
+        reason="Must run inside Docker container started by appcenter.",
+    ),
+    pytest.mark.usefixtures("import_config"),
+]
 
 UserType = Type[Union[Staff, Student, Teacher, TeachersAndStaff, User]]
 Role = NamedTuple("Role", [("name", str), ("klass", UserType)])
