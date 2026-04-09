@@ -36,7 +36,7 @@ from urllib.parse import SplitResult, urlsplit
 
 import pytest
 import requests
-from conftest import MAPPED_UDM_PROPERTIES
+from constants import MAPPED_UDM_PROPERTIES
 from faker import Faker
 from ldap.filter import filter_format
 from pydantic import HttpUrl, error_wrappers
