@@ -104,13 +104,14 @@ def school_factory(
     unset_sentinel: object,
 ) -> SchoolFactory:
     def _school_factory(persisted: bool = True, **overrides: object) -> School:
+        target_session = cast(Session, overrides.pop("db_session", db_session))
         school_data = {**school_data_factory(), **overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del school_data[unset_key]
         school = School(**school_data)
         if persisted:
-            db_session.add(school)
-            db_session.flush()
+            target_session.add(school)
+            target_session.flush()
         return school
 
     return _school_factory
@@ -141,17 +142,18 @@ def group_factory(
     unset_sentinel: object,
 ) -> GroupFactory:
     def _group_factory(persisted: bool = True, **overrides: object) -> Group:
+        target_session = cast(Session, overrides.pop("db_session", db_session))
         group_data = {**group_data_factory(), **overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del group_data[unset_key]
         group = Group(**group_data)
         if "group_type" not in overrides:
-            group.group_type = group_type_factory(persisted=False)
+            group.group_type = group_type_factory(persisted=False, db_session=target_session)
         if "school" not in overrides:
-            group.school = school_factory(persisted=False)
+            group.school = school_factory(persisted=False, db_session=target_session)
         if persisted:
-            db_session.add(group)
-            db_session.flush()
+            target_session.add(group)
+            target_session.flush()
         return group
 
     return _group_factory
@@ -183,13 +185,14 @@ def user_factory(
     unset_sentinel: object,
 ) -> UserFactory:
     def _user_factory(persisted: bool = True, **overrides: object) -> User:
+        target_session = cast(Session, overrides.pop("db_session", db_session))
         user_data = {**user_data_factory(), **overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del user_data[unset_key]
         user = User(**user_data)
         if persisted:
-            db_session.add(user)
-            db_session.flush()
+            target_session.add(user)
+            target_session.flush()
         return user
 
     return _user_factory
@@ -214,13 +217,14 @@ def role_factory(
     unset_sentinel: object,
 ) -> RoleFactory:
     def _role_factory(persisted: bool = True, **overrides: object) -> Role:
+        target_session = cast(Session, overrides.pop("db_session", db_session))
         role_data = {**role_data_factory(), **overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del role_data[unset_key]
         role = Role(**role_data)
         if persisted:
-            db_session.add(role)
-            db_session.flush()
+            target_session.add(role)
+            target_session.flush()
         return role
 
     return _role_factory
@@ -244,13 +248,14 @@ def group_type_factory(
     unset_sentinel: object,
 ) -> GroupTypeFactory:
     def _group_type_factory(persisted: bool = True, **overrides: object) -> GroupType:
+        target_session = cast(Session, overrides.pop("db_session", db_session))
         group_type_data = {**group_type_data_factory(), **overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del group_type_data[unset_key]
         group_type = GroupType(**group_type_data)
         if persisted:
-            db_session.add(group_type)
-            db_session.flush()
+            target_session.add(group_type)
+            target_session.flush()
         return group_type
 
     return _group_type_factory
@@ -264,17 +269,18 @@ def school_membership_factory(
     unset_sentinel: object,
 ) -> SchoolMembershipFactory:
     def _school_membership_factory(persisted: bool = True, **overrides: object) -> SchoolMembership:
+        target_session = cast(Session, overrides.pop("db_session", db_session))
         school_membership_data = {**overrides}
         for unset_key in (key for key, value in overrides.items() if value == unset_sentinel):
             del school_membership_data[unset_key]
         school_membership = SchoolMembership(**school_membership_data)
         if "user" not in overrides:
-            school_membership.user = user_factory(persisted=False)
+            school_membership.user = user_factory(persisted=False, db_session=target_session)
         if "school" not in overrides:
-            school_membership.school = school_factory(persisted=False)
+            school_membership.school = school_factory(persisted=False, db_session=target_session)
         if persisted:
-            db_session.add(school_membership)
-            db_session.flush()
+            target_session.add(school_membership)
+            target_session.flush()
         return school_membership
 
     return _school_membership_factory

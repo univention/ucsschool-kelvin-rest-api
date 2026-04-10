@@ -12,11 +12,11 @@ def seed_school_user_group_graph(
     school_factory: Callable[..., object],
     user_factory: Callable[..., object],
     group_factory: Callable[..., Group],
-    membership_factory: Callable[..., SchoolMembership],
+    school_membership_factory: Callable[..., SchoolMembership],
 ) -> tuple[object, object, Group]:
     school = school_factory(name="alpha")
     user = user_factory(name="anna", firstname="Anna", lastname="A")
-    membership = membership_factory(user=user, school=school, is_primary=True)
+    membership = school_membership_factory(user=user, school=school, is_primary=True)
     group = group_factory(name="alpha-team", school=school)
     membership.groups.append(group)
     session.flush()
