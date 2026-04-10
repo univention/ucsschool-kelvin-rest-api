@@ -57,7 +57,6 @@ class PostgresSchoolReader:
         self._session = session
 
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> School | None:
-        del load
         stmt = select(SchoolModel).where(SchoolModel.public_id == public_id)
         result = self._session.execute(stmt).scalar_one_or_none()
         return to_school(result) if result is not None else None
@@ -71,7 +70,6 @@ class PostgresSchoolReader:
         offset: int = 0,
         load: LoadSpec | None = None,
     ) -> Sequence[School]:
-        del load
         field_map = {
             "public_id": SchoolModel.public_id,
             "record_uid": SchoolModel.record_uid,
