@@ -1,4 +1,5 @@
 from datetime import date
+from typing import TYPE_CHECKING
 
 import pytest
 from ucsschool_objects.core.adapters.sqlite_memory.readers import (
@@ -7,9 +8,15 @@ from ucsschool_objects.core.adapters.sqlite_memory.readers import (
 )
 from ucsschool_objects.core.domain import Filter, InvalidFilter, Operator, SearchQuery, SortSpec
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+    from tests.test_types import SchoolFactory, UserFactory
+
 
 @pytest.mark.asyncio
-async def test_invalid_filter_field_raises_domain_error(db_session, school_factory) -> None:
+async def test_invalid_filter_field_raises_domain_error(
+    db_session: Session, school_factory: SchoolFactory
+) -> None:
     school_factory(name="school-a")
     reader = SqliteMemorySchoolReader(db_session)
 
@@ -18,7 +25,9 @@ async def test_invalid_filter_field_raises_domain_error(db_session, school_facto
 
 
 @pytest.mark.asyncio
-async def test_invalid_sort_field_raises_domain_error(db_session, school_factory) -> None:
+async def test_invalid_sort_field_raises_domain_error(
+    db_session: Session, school_factory: SchoolFactory
+) -> None:
     school_factory(name="school-a")
     reader = SqliteMemorySchoolReader(db_session)
 
@@ -27,7 +36,9 @@ async def test_invalid_sort_field_raises_domain_error(db_session, school_factory
 
 
 @pytest.mark.asyncio
-async def test_range_filter_with_none_raises_domain_error(db_session, user_factory) -> None:
+async def test_range_filter_with_none_raises_domain_error(
+    db_session: Session, user_factory: UserFactory
+) -> None:
     user_factory(name="user-a", birthday=date(2010, 1, 1))
     reader = SqliteMemoryUserReader(db_session)
 
@@ -36,7 +47,9 @@ async def test_range_filter_with_none_raises_domain_error(db_session, user_facto
 
 
 @pytest.mark.asyncio
-async def test_range_filter_on_non_range_field_raises_domain_error(db_session, user_factory) -> None:
+async def test_range_filter_on_non_range_field_raises_domain_error(
+    db_session: Session, user_factory: UserFactory
+) -> None:
     user_factory(name="user-a")
     reader = SqliteMemoryUserReader(db_session)
 

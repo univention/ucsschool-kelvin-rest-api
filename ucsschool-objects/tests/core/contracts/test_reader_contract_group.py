@@ -1,10 +1,16 @@
+from typing import TYPE_CHECKING
+
 import pytest
 from ucsschool_objects.core.adapters.sqlite_memory.readers import SqliteMemoryGroupReader
 from ucsschool_objects.core.domain import Filter, Operator, SearchQuery, SortSpec
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+    from tests.test_types import GroupFactory, SchoolFactory
+
 
 @pytest.mark.asyncio
-async def test_group_reader_get_and_search(db_session, group_factory) -> None:
+async def test_group_reader_get_and_search(db_session: Session, group_factory: GroupFactory) -> None:
     group = group_factory(name="admins")
     reader = SqliteMemoryGroupReader(db_session)
 
@@ -21,7 +27,9 @@ async def test_group_reader_get_and_search(db_session, group_factory) -> None:
 
 @pytest.mark.asyncio
 async def test_group_reader_supports_sorting_by_school_fields(
-    db_session, school_factory, group_factory
+    db_session: Session,
+    school_factory: SchoolFactory,
+    group_factory: GroupFactory,
 ) -> None:
     school_a = school_factory(name="alpha")
     school_b = school_factory(name="beta")

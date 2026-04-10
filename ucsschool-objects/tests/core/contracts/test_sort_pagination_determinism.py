@@ -1,12 +1,19 @@
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 import pytest
 from ucsschool_objects.core.adapters.sqlite_memory.readers import SqliteMemorySchoolReader
 from ucsschool_objects.core.domain import SortSpec
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+    from tests.test_types import SchoolFactory
+
 
 @pytest.mark.asyncio
-async def test_deterministic_sort_and_pagination(db_session, school_factory) -> None:
+async def test_deterministic_sort_and_pagination(
+    db_session: Session, school_factory: SchoolFactory
+) -> None:
     school_factory(name="s2")
     school_factory(name="s1")
     school_factory(name="s3")
@@ -21,7 +28,7 @@ async def test_deterministic_sort_and_pagination(db_session, school_factory) -> 
 
 @pytest.mark.asyncio
 async def test_deterministic_sort_and_pagination_with_duplicate_sort_keys(
-    db_session, school_factory
+    db_session: Session, school_factory: SchoolFactory
 ) -> None:
     first = school_factory(
         name="s1",
