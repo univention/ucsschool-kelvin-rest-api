@@ -318,54 +318,53 @@ ucsschool-kelvin-rest-api/
 ├── kelvin-api/
 │   ├── ucsschool/
 │   │   └── kelvin/
-│   │       ├── corelib/
-│   │       │   ├── __init__.py
-│   │       │   ├── domain/
-│   │       │   │   ├── __init__.py
-│   │       │   │   ├── models.py
-│   │       │   │   ├── query.py
-│   │       │   │   ├── load_spec.py
-│   │       │   │   └── errors.py
-│   │       │   ├── ports/
-│   │       │   │   ├── __init__.py
-│   │       │   │   └── readers.py
-│   │       │   ├── adapters/
-│   │       │   │   ├── __init__.py
-│   │       │   │   ├── postgres/
-│   │       │   │   │   ├── __init__.py
-│   │       │   │   │   ├── mapping.py
-│   │       │   │   │   └── readers.py
-│   │       │   │   └── sqlite_memory/
-│   │       │   │       ├── __init__.py
-│   │       │   │       ├── mapping.py
-│   │       │   │       └── readers.py
-│   │       │   └── translation/
-│   │       │       ├── __init__.py
-│   │       │       └── query_to_backend.py
 │   │       └── routers/
 │   │           └── ...
-│   └── tests/
-│       ├── corelib/
-│       │   ├── domain/
-│       │   │   ├── test_query_ast.py
-│       │   │   ├── test_load_spec.py
-│       │   │   └── test_errors.py
-│       │   ├── contracts/
-│       │   │   ├── test_reader_contract_school.py
-│       │   │   ├── test_reader_contract_user.py
-│       │   │   ├── test_reader_contract_group.py
-│       │   │   ├── test_query_ranges_numeric_datetime.py
-│       │   │   └── test_query_negation_semantics.py
-│       │   ├── adapters/
-│       │   │   ├── postgres/
-│       │   │   │   └── test_postgres_contract_binding.py
-│       │   │   └── sqlite_memory/
-│       │   │       └── test_sqlite_contract_binding.py
-│       │   └── fixtures/
-│       │       ├── corelib_contract_data.py
-│       │       └── adapter_factories.py
-│       └── ...
 ├── ucsschool-objects/
+│   ├── tests/
+│   │   ├── core/
+│   │   │   ├── domain/
+│   │   │   │   ├── test_query_ast.py
+│   │   │   │   ├── test_load_spec.py
+│   │   │   │   └── test_errors.py
+│   │   │   ├── contracts/
+│   │   │   │   ├── test_reader_contract_school.py
+│   │   │   │   ├── test_reader_contract_user.py
+│   │   │   │   ├── test_reader_contract_group.py
+│   │   │   │   ├── test_query_ranges_numeric_datetime.py
+│   │   │   │   └── test_query_negation_semantics.py
+│   │   │   ├── adapters/
+│   │   │   │   ├── postgres/
+│   │   │   │   │   └── test_postgres_contract_binding.py
+│   │   │   │   └── sqlite_memory/
+│   │   │   │       └── test_sqlite_contract_binding.py
+│   │   │   └── fixtures/
+│   |   │       ├── corelib_contract_data.py
+│   |   │       └── adapter_factories.py
+│   ├── src/core/
+│   │   ├── __init__.py
+│   │   ├── domain/
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py
+│   │   │   ├── query.py
+│   │   │   ├── load_spec.py
+│   │   │   └── errors.py
+│   │   ├── ports/
+│   │   │   ├── __init__.py
+│   │   │   └── readers.py
+│   │   ├── adapters/
+│   │   │   ├── __init__.py
+│   │   │   ├── postgres/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── mapping.py
+│   │   │   │   └── readers.py
+│   │   │   └── sqlite_memory/
+│   │   │       ├── __init__.py
+│   │   │       ├── mapping.py
+│   │   │       └── readers.py
+│   │   └── translation/
+│   │       ├── __init__.py
+│   │       └── query_to_backend.py
 │   └── src/ucsschool_objects/database_models.py
 └── _bmad-output/planning-artifacts/architecture.md
 ```
@@ -374,8 +373,8 @@ ucsschool-kelvin-rest-api/
 
 **API Boundaries:**
 
-- Kelvin routers call corelib reader ports, not ORM entities directly for new read/search paths.
-- Auth/authz remains in Kelvin transport layer before corelib invocation.
+- Kelvin routers call core reader ports, not ORM entities directly for new read/search paths.
+- Auth/authz remains in Kelvin transport layer before core invocation.
 
 **Component Boundaries:**
 
@@ -399,10 +398,10 @@ ucsschool-kelvin-rest-api/
 
 **Feature/Epic Mapping:**
 
-- FR1-FR7 (domain object access) -> corelib/domain/models.py, corelib/ports/readers.py, adapters/*/readers.py
-- FR8-FR14 (search/filter/ranges/negation/pagination) -> corelib/domain/query.py, corelib/translation/query_to_backend.py, contract tests
-- FR24-FR26 (error semantics) -> corelib/domain/errors.py, adapter mapping, router-level mappings
-- FR27-FR29 (adapter substitution) -> tests/corelib/contracts/*, adapter binding tests
+- FR1-FR7 (domain object access) -> core/domain/models.py, core/ports/readers.py, adapters/*/readers.py
+- FR8-FR14 (search/filter/ranges/negation/pagination) -> core/domain/query.py, core/translation/query_to_backend.py, contract tests
+- FR24-FR26 (error semantics) -> core/domain/errors.py, adapter mapping, router-level mappings
+- FR27-FR29 (adapter substitution) -> tests/core/contracts/*, adapter binding tests
 
 **Cross-Cutting Concerns:**
 
@@ -437,13 +436,13 @@ ucsschool-kelvin-rest-api/
 
 **Source Organization:**
 
-- New code is additive under `kelvin-api/ucsschool/kelvin/corelib/`.
+- New code is additive under `ucsschool-objects/src/ucsschool_objects/core/`.
 - Existing router/service modules integrate via explicit import boundaries.
 
 **Test Organization:**
 
-- Shared contract tests live in `kelvin-api/tests/corelib/contracts/`.
-- Adapter-specific setup lives in `kelvin-api/tests/corelib/adapters/...`.
+- Shared contract tests live in `ucsschool-objects/tests/core/contracts/`.
+- Adapter-specific setup lives in `ucsschool-objects/tests/core/adapters/...`.
 
 **Asset Organization:**
 
@@ -599,6 +598,6 @@ ucsschool-kelvin-rest-api/
 
 **First Implementation Priority:**
 
-- Create corelib/domain and corelib/ports plus query/error contracts.
+- Create core/domain and core/ports plus query/error contracts.
 - Add conformance tests that encode agreed range/negation semantics.
 - Bind PostgreSQL and SQLite adapters to the same contracts.

@@ -24,20 +24,20 @@ so that objects are correctly abstracted from the persistence layer for better t
 ## Tasks / Subtasks
 
 - [x] Define core domain contracts and models (AC: 1, 8)
-  - [x] Add non-ORM dataclasses for School, User, and Group in `kelvin-api/ucsschool/kelvin/corelib/domain/models.py`.
-  - [x] Add domain error taxonomy in `kelvin-api/ucsschool/kelvin/corelib/domain/errors.py` (`InvalidFilter`, `UnsupportedOperation`, `NotFound`).
-  - [x] Add query AST in `kelvin-api/ucsschool/kelvin/corelib/domain/query.py` with `Filter`, `And`, `Or`, `Not` and operator support including `gt`, `gte`, `lt`, `lte`.
-  - [x] Add explicit relationship loading contract in `kelvin-api/ucsschool/kelvin/corelib/domain/load_spec.py`.
+  - [x] Add non-ORM dataclasses for School, User, and Group in `ucsschool-objects/src/ucsschool_objects/core/domain/models.py`.
+  - [x] Add domain error taxonomy in `ucsschool-objects/src/ucsschool_objects/core/domain/errors.py` (`InvalidFilter`, `UnsupportedOperation`, `NotFound`).
+  - [x] Add query AST in `ucsschool-objects/src/ucsschool_objects/core/domain/query.py` with `Filter`, `And`, `Or`, `Not` and operator support including `gt`, `gte`, `lt`, `lte`.
+  - [x] Add explicit relationship loading contract in `ucsschool-objects/src/ucsschool_objects/core/domain/load_spec.py`.
 
 - [x] Define reader ports for read/search use-cases (AC: 2, 3, 6)
-  - [x] Add `SchoolReader`, `UserReader`, `GroupReader` protocols in `kelvin-api/ucsschool/kelvin/corelib/ports/readers.py`.
+  - [x] Add `SchoolReader`, `UserReader`, `GroupReader` protocols in `ucsschool-objects/src/ucsschool_objects/core/ports/readers.py`.
   - [x] Ensure APIs include get-by-id and search/list with deterministic ordering and pagination inputs.
   - [x] Ensure interfaces are read/search-only; no write methods in MVP.
 
 - [x] Implement adapters against Issue #195 persistence baseline (AC: 2, 4, 8)
-  - [x] Implement PostgreSQL adapter readers in `kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/readers.py`.
-  - [x] Implement in-memory SQLite parity adapter readers in `kelvin-api/ucsschool/kelvin/corelib/adapters/sqlite_memory/readers.py`.
-  - [x] Add query translation logic in `kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py`.
+  - [x] Implement PostgreSQL adapter readers in `ucsschool-objects/src/ucsschool_objects/core/adapters/postgres/readers.py`.
+  - [x] Implement in-memory SQLite parity adapter readers in `ucsschool-objects/src/ucsschool_objects/core/adapters/sqlite_memory/readers.py`.
+  - [x] Add query translation logic in `ucsschool-objects/src/ucsschool_objects/core/translation/query_to_backend.py`.
   - [x] Ensure adapter exceptions are mapped to domain errors before crossing port boundaries.
 
 - [x] Document no-hooks behavior and MVP boundaries (AC: 5, 6)
@@ -53,9 +53,9 @@ so that objects are correctly abstracted from the persistence layer for better t
 
   ### Review Findings
 
-  - [x] [Review][Patch] Group sorting by school fields fails without the required join [kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/readers.py:104]
-  - [x] [Review][Patch] Invalid range filters leak SQLAlchemy exceptions instead of domain errors [kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py:19]
-  - [x] [Review][Patch] Explicit sorts do not add a stable tie-break, so pagination is not deterministic on duplicate keys [kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py:72]
+  - [x] [Review][Patch] Group sorting by school fields fails without the required join [ucsschool-objects/src/ucsschool_objects/core/adapters/postgres/readers.py:104]
+  - [x] [Review][Patch] Invalid range filters leak SQLAlchemy exceptions instead of domain errors [ucsschool-objects/src/ucsschool_objects/core/translation/query_to_backend.py:19]
+  - [x] [Review][Patch] Explicit sorts do not add a stable tie-break, so pagination is not deterministic on duplicate keys [ucsschool-objects/src/ucsschool_objects/core/translation/query_to_backend.py:72]
   - [x] [Review][Patch] PostgreSQL adapter parity is not validated because the postgres binding test still runs on SQLite only [kelvin-api/tests/corelib/conftest.py:12]
 
 ## Dev Notes
@@ -81,10 +81,10 @@ so that objects are correctly abstracted from the persistence layer for better t
 ### Architecture Compliance
 
 - Follow module boundaries described in architecture:
-  - Domain: `kelvin-api/ucsschool/kelvin/corelib/domain/`
-  - Ports: `kelvin-api/ucsschool/kelvin/corelib/ports/`
-  - Adapters: `kelvin-api/ucsschool/kelvin/corelib/adapters/`
-  - Translation: `kelvin-api/ucsschool/kelvin/corelib/translation/`
+  - Domain: `ucsschool-objects/src/ucsschool_objects/core/domain/`
+  - Ports: `ucsschool-objects/src/ucsschool_objects/core/ports/`
+  - Adapters: `ucsschool-objects/src/ucsschool_objects/core/adapters/`
+  - Translation: `ucsschool-objects/src/ucsschool_objects/core/translation/`
 - Keep router/auth behavior in existing Kelvin transport layer; core library assumes authorized caller context.
 - Avoid hidden lazy-loading side effects; relationship loading must be explicit through `LoadSpec`.
 
@@ -97,14 +97,14 @@ so that objects are correctly abstracted from the persistence layer for better t
 ### File Structure Requirements
 
 - Primary code targets:
-  - `kelvin-api/ucsschool/kelvin/corelib/domain/models.py`
-  - `kelvin-api/ucsschool/kelvin/corelib/domain/query.py`
-  - `kelvin-api/ucsschool/kelvin/corelib/domain/load_spec.py`
-  - `kelvin-api/ucsschool/kelvin/corelib/domain/errors.py`
-  - `kelvin-api/ucsschool/kelvin/corelib/ports/readers.py`
-  - `kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/readers.py`
-  - `kelvin-api/ucsschool/kelvin/corelib/adapters/sqlite_memory/readers.py`
-  - `kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py`
+  - `ucsschool-objects/src/ucsschool_objects/core/domain/models.py`
+  - `ucsschool-objects/src/ucsschool_objects/core/domain/query.py`
+  - `ucsschool-objects/src/ucsschool_objects/core/domain/load_spec.py`
+  - `ucsschool-objects/src/ucsschool_objects/core/domain/errors.py`
+  - `ucsschool-objects/src/ucsschool_objects/core/ports/readers.py`
+  - `ucsschool-objects/src/ucsschool_objects/core/adapters/postgres/readers.py`
+  - `ucsschool-objects/src/ucsschool_objects/core/adapters/sqlite_memory/readers.py`
+  - `ucsschool-objects/src/ucsschool_objects/core/translation/query_to_backend.py`
 - Primary test targets:
   - `kelvin-api/tests/corelib/contracts/test_reader_contract_school.py`
   - `kelvin-api/tests/corelib/contracts/test_reader_contract_user.py`
@@ -159,7 +159,7 @@ GPT-5.3-Codex
 
 - Implemented `corelib` domain dataclasses, query AST, error taxonomy, load specification, and read-only ports.
 - Implemented PostgreSQL and SQLite-memory reader adapters and shared query translation utilities with domain-level invalid-filter errors.
-- Added explicit no-hook design documentation in `kelvin-api/ucsschool/kelvin/corelib/README.md`.
+- Added explicit no-hook design documentation in `ucsschool-objects/src/ucsschool_objects/core/README.md`.
 - Added contract tests for readers, date-range and negation filters, deterministic sorting/pagination, invalid filter handling, and no-PyHook import behavior.
 - Corelib suite passed: 16 tests passed.
 - Full repo and documented broad test runs were attempted but blocked by unrelated environment constraints (`yaml` missing in `_bmad` tests and UCR write permissions for `/etc/univention/base-forced.conf`).
@@ -167,25 +167,25 @@ GPT-5.3-Codex
 ### File List
 
 - `_bmad-output/implementation-artifacts/1-1-implement-the-core-library-with-non-orm-dataclasses.md`
-- `kelvin-api/ucsschool/kelvin/corelib/__init__.py`
-- `kelvin-api/ucsschool/kelvin/corelib/README.md`
-- `kelvin-api/ucsschool/kelvin/corelib/py.typed`
-- `kelvin-api/ucsschool/kelvin/corelib/domain/__init__.py`
-- `kelvin-api/ucsschool/kelvin/corelib/domain/models.py`
-- `kelvin-api/ucsschool/kelvin/corelib/domain/errors.py`
-- `kelvin-api/ucsschool/kelvin/corelib/domain/query.py`
-- `kelvin-api/ucsschool/kelvin/corelib/domain/load_spec.py`
-- `kelvin-api/ucsschool/kelvin/corelib/ports/__init__.py`
-- `kelvin-api/ucsschool/kelvin/corelib/ports/readers.py`
-- `kelvin-api/ucsschool/kelvin/corelib/translation/__init__.py`
-- `kelvin-api/ucsschool/kelvin/corelib/translation/query_to_backend.py`
-- `kelvin-api/ucsschool/kelvin/corelib/adapters/__init__.py`
-- `kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/__init__.py`
-- `kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/mapping.py`
-- `kelvin-api/ucsschool/kelvin/corelib/adapters/postgres/readers.py`
-- `kelvin-api/ucsschool/kelvin/corelib/adapters/sqlite_memory/__init__.py`
-- `kelvin-api/ucsschool/kelvin/corelib/adapters/sqlite_memory/mapping.py`
-- `kelvin-api/ucsschool/kelvin/corelib/adapters/sqlite_memory/readers.py`
+- `ucsschool-objects/src/ucsschool_objects/core/__init__.py`
+- `ucsschool-objects/src/ucsschool_objects/core/README.md`
+- `ucsschool-objects/src/ucsschool_objects/core/py.typed`
+- `ucsschool-objects/src/ucsschool_objects/core/domain/__init__.py`
+- `ucsschool-objects/src/ucsschool_objects/core/domain/models.py`
+- `ucsschool-objects/src/ucsschool_objects/core/domain/errors.py`
+- `ucsschool-objects/src/ucsschool_objects/core/domain/query.py`
+- `ucsschool-objects/src/ucsschool_objects/core/domain/load_spec.py`
+- `ucsschool-objects/src/ucsschool_objects/core/ports/__init__.py`
+- `ucsschool-objects/src/ucsschool_objects/core/ports/readers.py`
+- `ucsschool-objects/src/ucsschool_objects/core/translation/__init__.py`
+- `ucsschool-objects/src/ucsschool_objects/core/translation/query_to_backend.py`
+- `ucsschool-objects/src/ucsschool_objects/core/adapters/__init__.py`
+- `ucsschool-objects/src/ucsschool_objects/core/adapters/postgres/__init__.py`
+- `ucsschool-objects/src/ucsschool_objects/core/adapters/postgres/mapping.py`
+- `ucsschool-objects/src/ucsschool_objects/core/adapters/postgres/readers.py`
+- `ucsschool-objects/src/ucsschool_objects/core/adapters/sqlite_memory/__init__.py`
+- `ucsschool-objects/src/ucsschool_objects/core/adapters/sqlite_memory/mapping.py`
+- `ucsschool-objects/src/ucsschool_objects/core/adapters/sqlite_memory/readers.py`
 - `kelvin-api/tests/corelib/conftest.py`
 - `kelvin-api/tests/corelib/domain/test_query_ast.py`
 - `kelvin-api/tests/corelib/domain/test_load_spec.py`
