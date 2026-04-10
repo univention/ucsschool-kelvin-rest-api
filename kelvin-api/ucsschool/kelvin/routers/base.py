@@ -40,6 +40,7 @@ from ucsschool.lib.models.base import NoObject, UCSSchoolModel
 from udm_rest_client import UDM, UdmObject
 
 from ..config import UDM_MAPPING_CONFIG
+from ..constants import API_SCHEME
 from ..exceptions import UnknownUDMProperty
 from ..ldap import udm_kwargs
 from ..urls import cached_url_for, url_to_name
@@ -106,16 +107,16 @@ class LibModelHelperMixin(BaseModel):
     @staticmethod
     @lru_cache(maxsize=10240)
     def scheme_and_quote(url: str) -> str:
-        """Add 's' to scheme (http) and quote characters for HTTP URL."""
+        """Set the configured scheme and quote special characters in the path."""
         up: ParseResult = urlparse(url)
-        replaced = up._replace(scheme="https", path=quote(up.path))
+        replaced = up._replace(scheme=API_SCHEME, path=quote(up.path))
         return replaced.geturl()
 
     @staticmethod
     @lru_cache(maxsize=10240)
     def unscheme_and_unquote(url: str) -> str:
         """
-        Remove 's' from https and replace '%xx' escapes with their
+        Revert scheme_and_quote: restore http and replace '%xx' escapes with their
         single-character equivalents.
         """
         up: ParseResult = urlparse(url)

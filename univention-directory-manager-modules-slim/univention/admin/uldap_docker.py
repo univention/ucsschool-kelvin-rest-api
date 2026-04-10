@@ -55,9 +55,16 @@ logger = logging.getLogger(__name__)
 basestring = unicode = str
 
 APP_ID = "ucsschool-kelvin-rest-api"
-APP_BASE_PATH = Path("/var/lib/univention-appcenter/apps", APP_ID)
-APP_CONFIG_BASE_PATH = APP_BASE_PATH / "conf"
-CN_ADMIN_PASSWORD_FILE = APP_CONFIG_BASE_PATH / "cn_admin.secret"
+APP_BASE_PATH = Path(
+    os.getenv("KELVIN_APP_BASE_PATH", f"/var/lib/univention-appcenter/apps/{APP_ID}")
+)
+APP_CONFIG_BASE_PATH = Path(
+    os.getenv("KELVIN_APP_CONFIG_BASE_PATH", str(APP_BASE_PATH / "conf"))
+)
+CN_ADMIN_PASSWORD_FILE = Path(
+    os.getenv("KELVIN_CN_ADMIN_PASSWORD_FILE", str(APP_CONFIG_BASE_PATH / "cn_admin.secret"))
+)
+MACHINE_PASSWORD_FILE = os.getenv("KELVIN_MACHINE_PASSWORD_FILE", "/etc/machine.secret")  # nosec
 
 
 def _ucr():  # type: () -> ConfigRegistry
@@ -139,7 +146,7 @@ def getMachineConnection(  # nosec
     start_tls=2,
     decode_ignorelist=[],
     ldap_master=True,
-    secret_file="/etc/machine.secret",
+    secret_file=None,
     reconnect=True,
 ):
     # type: (int, List[str], bool, str, bool) -> access
@@ -157,6 +164,8 @@ def getMachineConnection(  # nosec
     :return: A LDAP access object.
     :rtype: univention.uldap.access
     """
+    if secret_file is None:
+        secret_file = MACHINE_PASSWORD_FILE
     bindpw = open(secret_file).read().rstrip("\n")
     base_dn = env_or_ucr("ldap/base")
     host_dn = env_or_ucr("ldap/hostdn")

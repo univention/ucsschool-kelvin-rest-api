@@ -52,6 +52,7 @@ from __future__ import absolute_import
 import asyncio
 import json
 import logging
+import os
 import os.path
 import pprint
 from pathlib import Path
@@ -133,7 +134,10 @@ logger.info("Configuration is:\n%s", pprint.pformat(config))
 
 _udm_kwargs: Dict[str, str] = {}
 CN_ADMIN_PASSWORD_FILE = Path(
-    "/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/cn_admin.secret"
+    os.getenv(
+        "KELVIN_CN_ADMIN_PASSWORD_FILE",
+        "/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/cn_admin.secret",
+    )
 )
 
 

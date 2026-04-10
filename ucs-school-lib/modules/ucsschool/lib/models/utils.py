@@ -118,10 +118,12 @@ LOG_DATETIME_FORMAT: str = lazy_object_proxy.Proxy(lambda: _logging_config["date
 LOG_COLORS: Dict[str, str] = lazy_object_proxy.Proxy(lambda: _logging_config["colors"])
 
 APP_ID = "ucsschool-kelvin-rest-api"
-APP_BASE_PATH = Path("/var/lib/univention-appcenter/apps", APP_ID)
-APP_CONFIG_BASE_PATH = APP_BASE_PATH / "conf"
-CN_ADMIN_PASSWORD_FILE = APP_CONFIG_BASE_PATH / "cn_admin.secret"
-MACHINE_PASSWORD_FILE = "/etc/machine.secret"  # nosec
+APP_BASE_PATH = Path(os.getenv("KELVIN_APP_BASE_PATH", f"/var/lib/univention-appcenter/apps/{APP_ID}"))
+APP_CONFIG_BASE_PATH = Path(os.getenv("KELVIN_APP_CONFIG_BASE_PATH", str(APP_BASE_PATH / "conf")))
+CN_ADMIN_PASSWORD_FILE = Path(
+    os.getenv("KELVIN_CN_ADMIN_PASSWORD_FILE", str(APP_CONFIG_BASE_PATH / "cn_admin.secret"))
+)
+MACHINE_PASSWORD_FILE = os.getenv("KELVIN_MACHINE_PASSWORD_FILE", "/etc/machine.secret")  # nosec
 DEFAULT_UCS_SSL_CA_CERT = "/usr/local/share/ca-certificates/ucs.crt"
 
 _handler_cache: Dict[str, logging.Handler] = {}

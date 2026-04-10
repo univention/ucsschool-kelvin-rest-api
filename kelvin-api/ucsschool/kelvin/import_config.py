@@ -49,7 +49,14 @@ from ucsschool.importer.frontend.user_import_cmdline import (
     UserImportCommandLine as _UserImportCommandLine,
 )
 
-from .constants import IMPORT_CONFIG_FILE_DEFAULT, IMPORT_CONFIG_FILE_USER
+from .constants import (
+    IMPORT_CONFIG_FILE_DEFAULT,
+    IMPORT_CONFIG_FILE_GLOBAL_DEFAULTS,
+    IMPORT_CONFIG_FILE_GLOBAL_USER,
+    IMPORT_CONFIG_FILE_USER,
+    IMPORT_CONFIG_FILE_USER_DEFAULTS,
+    IMPORT_CONFIG_FILE_USER_IMPORT,
+)
 
 _ucs_school_import_framework_initialized = False
 _ucs_school_import_framework_error = None
@@ -63,11 +70,20 @@ class InitialisationError(Exception):
 class KelvinUserImportCommandLine(_UserImportCommandLine):
     @property
     def configuration_files(self) -> List[str]:
-        res = super(KelvinUserImportCommandLine, self).configuration_files
-        res.append(str(IMPORT_CONFIG_FILE_DEFAULT))
-        if IMPORT_CONFIG_FILE_USER.is_file():
-            res.append(str(IMPORT_CONFIG_FILE_USER))
-        return res
+        # Build the full chain explicitly from configurable constants instead of
+        # calling super(), so that all paths are env-var-overridable and optional
+        # files are skipped when absent (e.g. during local development).
+        required = [
+            IMPORT_CONFIG_FILE_GLOBAL_DEFAULTS,
+            IMPORT_CONFIG_FILE_USER_DEFAULTS,
+            IMPORT_CONFIG_FILE_DEFAULT,
+        ]
+        optional = [
+            IMPORT_CONFIG_FILE_GLOBAL_USER,
+            IMPORT_CONFIG_FILE_USER_IMPORT,
+            IMPORT_CONFIG_FILE_USER,
+        ]
+        return [str(f) for f in required] + [str(f) for f in optional if f.is_file()]
 
 
 def init_ucs_school_import_framework(**config_kwargs) -> ReadOnlyDict:

@@ -55,7 +55,12 @@ import ucsschool.lib.models.group
 import ucsschool.lib.models.user
 from ucsschool.importer.configuration import Configuration, ReadOnlyDict
 from ucsschool.importer.models.import_user import ImportUser
-from ucsschool.kelvin.constants import UDM_MAPPED_PROPERTIES_CONFIG_FILE
+from ucsschool.kelvin.constants import (
+    CN_ADMIN_PASSWORD_FILE,
+    IMPORT_CONFIG_FILE_USER,
+    IMPORT_CONFIG_FILE_USER_IMPORT,
+    UDM_MAPPED_PROPERTIES_CONFIG_FILE,
+)
 from ucsschool.kelvin.import_config import get_import_config
 from ucsschool.kelvin.routers.school import SchoolCreateModel
 from ucsschool.kelvin.routers.user import PasswordsHashes, UserCreateModel
@@ -65,29 +70,28 @@ from ucsschool.lib.models.utils import env_or_ucr, uldap_admin_read_local, uldap
 from udm_rest_client import UDM, UdmObject
 from univention.config_registry import ConfigRegistry
 
-# handle RuntimeError: Directory '/kelvin/kelvin-api/static' does not exist
-with patch("ucsschool.kelvin.constants.STATIC_FILES_PATH", "/tmp"):
+# Patch STATIC_FILES_PATH to /tmp only when the configured directory is absent
+# (e.g. CI without KELVIN_STATIC_FILES_PATH set).  When the env var points at
+# the repo-local kelvin-api/static the directory exists and no patch is needed.
+if not ucsschool.kelvin.constants.STATIC_FILES_PATH.exists():
+    with patch("ucsschool.kelvin.constants.STATIC_FILES_PATH", Path("/tmp")):
+        import ucsschool.kelvin.main
+else:
     import ucsschool.kelvin.main
 
-APP_ID = "ucsschool-kelvin-rest-api"
-APP_BASE_PATH = Path("/var/lib/univention-appcenter/apps", APP_ID)
-APP_CONFIG_BASE_PATH = APP_BASE_PATH / "conf"
-CN_ADMIN_PASSWORD_FILE = APP_CONFIG_BASE_PATH / "cn_admin.secret"
+_ts = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 
 KELVIN_CONFIG = {
-    "active": Path("/var/lib/ucs-school-import/configs/kelvin.json"),
+    "active": IMPORT_CONFIG_FILE_USER,
 }
 
 IMPORT_CONFIG = {
-    "active": Path("/var/lib/ucs-school-import/configs/user_import.json"),
+    "active": IMPORT_CONFIG_FILE_USER_IMPORT,
 }
+
 MAPPED_UDM_PROPERTIES_CONFIG = {
-    "active": Path("/etc/ucsschool/kelvin/mapped_udm_properties.json"),
-    "bak": Path(
-        "/etc/ucsschool/kelvin/mapped_udm_properties.json.bak.{}".format(
-            datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-        )
-    ),
+    "active": UDM_MAPPED_PROPERTIES_CONFIG_FILE,
+    "bak": Path(f"{UDM_MAPPED_PROPERTIES_CONFIG_FILE}.bak.{_ts}"),
 }
 MAPPED_UDM_PROPERTIES = [
     "title",
@@ -115,6 +119,15 @@ logger = logging.getLogger("udm_rest_client")
 logger.setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+def _running_in_container() -> bool:
+    """Return True when tests are running inside the Kelvin Docker container.
+
+    Set KELVIN_IN_CONTAINER=1 to enable server-side config writes and API
+    restarts (only valid when running inside the container).
+    """
+    return os.getenv("KELVIN_IN_CONTAINER", "0") == "1"
 
 
 @lru_cache(maxsize=1)
@@ -243,8 +256,26 @@ def api_version(request):
     return request.param
 
 
-def _url_fragment_for(host: str, api_version: str, scheme: str = "http") -> str:
-    return f"{scheme}://{host}/ucsschool/kelvin/{api_version}"
+def _kelvin_authority() -> str:
+    """Return host[:port] for the Kelvin instance under test.
+
+    Set KELVIN_API_PORT to a non-empty value to include a port (e.g. 8911
+    when running gunicorn locally).  Leave it unset for the default HTTP/HTTPS
+    ports used by a production server.
+    """
+    host = os.environ["DOCKER_HOST_NAME"]
+    port = os.getenv("KELVIN_API_PORT", "")
+    return f"{host}:{port}" if port else host
+
+
+def _kelvin_scheme() -> str:
+    return os.getenv("KELVIN_API_SCHEME", "https")
+
+
+def _url_fragment_for(host: str, api_version: str, scheme: str = None) -> str:
+    port = os.getenv("KELVIN_API_PORT", "")
+    authority = f"{host}:{port}" if port else host
+    return f"{scheme or _kelvin_scheme()}://{authority}/ucsschool/kelvin/{api_version}"
 
 
 @pytest.fixture(scope="session")
@@ -254,8 +285,9 @@ def url_fragment(api_version):
 
 @pytest.fixture(scope="session")
 def url_fragment_ip(api_version):
+    port = int(os.getenv("KELVIN_API_PORT", "80"))
     addrinfo = socket.getaddrinfo(
-        os.environ["DOCKER_HOST_NAME"], 80, family=socket.AF_INET, proto=socket.IPPROTO_TCP
+        os.environ["DOCKER_HOST_NAME"], port, family=socket.AF_INET, proto=socket.IPPROTO_TCP
     )
     ip = addrinfo[0][4][0]
     return _url_fragment_for(ip, api_version)
@@ -270,12 +302,12 @@ def url_fragment_scrambled_hostname(api_version):
 
 @pytest.fixture(scope="session")
 def url_fragment_https(api_version):
-    return _url_fragment_for(os.environ["DOCKER_HOST_NAME"], api_version, scheme="https")
+    return _url_fragment_for(os.environ["DOCKER_HOST_NAME"], api_version)
 
 
 def get_access_token(username: str = "Administrator", password: str = "univention") -> str:
     response = requests.post(
-        url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/token",
+        url=f"{_kelvin_scheme()}://{_kelvin_authority()}/ucsschool/kelvin/token",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
         data=dict(username=username, password=password),
     )
@@ -643,8 +675,11 @@ async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kw
 
 def restart_kelvin_api_server() -> None:
     logger.debug("Reloading Kelvin API server...")
-    # Send HUP signal to gunicorn master process to reload workers
-    subprocess.check_call(["kill", "-HUP", "1"])
+    if _running_in_container():
+        pid = "1"
+    else:
+        pid = Path("dev/gunicorn.pid").read_text().strip()
+    subprocess.check_call(["kill", "-HUP", pid])
 
     # Wait for the service to be ready
     while True:
@@ -683,8 +718,7 @@ def put_away_mapped_udm_properties_test_config():
 @pytest.fixture(scope="session")
 def mapped_udm_properties_test_config(restart_kelvin_api_server_session):
     def _func():
-        if not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists():
-            # not in Docker container
+        if not _running_in_container():
             return
         if MAPPED_UDM_PROPERTIES_CONFIG["active"].exists():
             shutil.move(MAPPED_UDM_PROPERTIES_CONFIG["active"], MAPPED_UDM_PROPERTIES_CONFIG["bak"])
@@ -753,9 +787,6 @@ def _backup_and_restore_configs():
 
 def _write_config(config_type: str, **kwargs) -> None:  # noqa: C901
     target_configuration = {"user_import": IMPORT_CONFIG, "kelvin": KELVIN_CONFIG}[config_type]
-    if not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists():
-        # not in Docker container
-        return
     if target_configuration["active"].exists():
         with open(target_configuration["active"], "r") as fp:
             config = json.load(fp)

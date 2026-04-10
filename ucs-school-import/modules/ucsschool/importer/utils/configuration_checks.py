@@ -64,6 +64,7 @@ from __future__ import absolute_import
 
 import inspect
 import logging
+import os
 from operator import itemgetter
 
 from ucsschool.lib.pyhooks.pyhooks_loader import PyHooksLoader
@@ -81,7 +82,9 @@ except ImportError:
 
 __all__ = ["ConfigurationChecks"]
 
-CONFIG_CHECKS_CODE_DIR = "/usr/share/ucs-school-import/checks"
+CONFIG_CHECKS_CODE_DIR = os.getenv(
+    "KELVIN_IMPORT_CONFIG_CHECKS_DIR", "/usr/share/ucs-school-import/checks"
+)
 
 
 class ConfigurationChecks(object):

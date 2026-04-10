@@ -29,6 +29,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 import inspect
+import os
 import time
 from copy import deepcopy
 from functools import lru_cache
@@ -71,7 +72,7 @@ SuperOrdinateType = Union[str, UdmObject]
 UldapFilter = Union[str, conjunction, expression]
 UCSSchoolModel = TypeVar("UCSSchoolModel", bound="UCSSchoolHelperAbstractClass")
 
-PYHOOKS_PATH = "/var/lib/ucs-school-lib/kelvin-hooks"
+PYHOOKS_PATH = os.getenv("KELVIN_SCHOOL_LIB_HOOKS_PATH", "/var/lib/ucs-school-lib/kelvin-hooks")
 PYHOOKS_BASE_CLASS = "ucsschool.lib.models.hook.Hook"
 _pyhook_loader: PyHooksLoader = lazy_object_proxy.Proxy(
     lambda: PyHooksLoader(
