@@ -46,6 +46,7 @@ from ucsschool.lib.roles import (
     role_teacher,
 )
 
+from ..constants import API_SCHEME
 from ..import_config import init_ucs_school_import_framework
 from ..ldap import LdapUser
 from ..token_auth import get_kelvin_admin
@@ -115,8 +116,8 @@ class SchoolUserRole(str, Enum):
     def to_url(self, request: Request) -> HttpUrl:
         url = cached_url_for(request, "get", role_name=self.value)
         up: ParseResult = urlparse(str(url))
-        replaced = up._replace(scheme="https")
-        return HttpUrl(replaced.geturl(), scheme="https", host=up.netloc)
+        replaced = up._replace(scheme=API_SCHEME)
+        return HttpUrl(replaced.geturl(), scheme=API_SCHEME, host=up.netloc)
 
 
 class RoleModel(BaseModel):

@@ -26,6 +26,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 from pathlib import Path
 
 import lazy_object_proxy
@@ -40,10 +41,12 @@ def _app_version() -> str:
 APP_ID = "ucsschool-kelvin-rest-api"
 APP_VERSION = lazy_object_proxy.Proxy(_app_version)
 API_USERS_GROUP_NAME = f"{APP_ID}-admins"
-APP_BASE_PATH = Path("/var/lib/univention-appcenter/apps", APP_ID)
-APP_CONFIG_BASE_PATH = APP_BASE_PATH / "conf"
-KELVIN_CONFIG_BASE_PATH = Path("/etc/ucsschool/kelvin")
-CN_ADMIN_PASSWORD_FILE = APP_CONFIG_BASE_PATH / "cn_admin.secret"
+APP_BASE_PATH = Path(os.getenv("KELVIN_APP_BASE_PATH", f"/var/lib/univention-appcenter/apps/{APP_ID}"))
+APP_CONFIG_BASE_PATH = Path(os.getenv("KELVIN_APP_CONFIG_BASE_PATH", str(APP_BASE_PATH / "conf")))
+KELVIN_CONFIG_BASE_PATH = Path(os.getenv("KELVIN_CONFIG_BASE_PATH", "/etc/ucsschool/kelvin"))
+CN_ADMIN_PASSWORD_FILE = Path(
+    os.getenv("KELVIN_CN_ADMIN_PASSWORD_FILE", str(APP_CONFIG_BASE_PATH / "cn_admin.secret"))
+)
 DEFAULT_LOG_LEVELS = {
     None: logging.INFO,
     "fastapi": logging.INFO,
@@ -57,16 +60,57 @@ DEFAULT_LOG_LEVELS = {
     "alembic": logging.WARNING,
     "sqlalchemy": logging.WARNING,
 }
-IMPORT_CONFIG_FILE_DEFAULT = Path("/usr/share/ucs-school-import/configs/kelvin_defaults.json")
-IMPORT_CONFIG_FILE_USER = Path("/var/lib/ucs-school-import/configs/kelvin.json")
-KELVIN_IMPORTUSER_HOOKS_PATH = Path("/var/lib/ucs-school-import/kelvin-hooks")
-MACHINE_PASSWORD_FILE = "/etc/machine.secret"  # nosec
-STATIC_FILES_PATH = Path("/kelvin/kelvin-api/static")
+IMPORT_CONFIG_FILE_GLOBAL_DEFAULTS = Path(
+    os.getenv(
+        "KELVIN_IMPORT_CONFIG_FILE_GLOBAL_DEFAULTS",
+        "/usr/share/ucs-school-import/configs/global_defaults.json",
+    )
+)
+IMPORT_CONFIG_FILE_GLOBAL_USER = Path(
+    os.getenv(
+        "KELVIN_IMPORT_CONFIG_FILE_GLOBAL_USER",
+        "/var/lib/ucs-school-import/configs/global.json",
+    )
+)
+IMPORT_CONFIG_FILE_USER_DEFAULTS = Path(
+    os.getenv(
+        "KELVIN_IMPORT_CONFIG_FILE_USER_DEFAULTS",
+        "/usr/share/ucs-school-import/configs/user_import_defaults.json",
+    )
+)
+IMPORT_CONFIG_FILE_USER_IMPORT = Path(
+    os.getenv(
+        "KELVIN_IMPORT_CONFIG_FILE_USER_IMPORT",
+        "/var/lib/ucs-school-import/configs/user_import.json",
+    )
+)
+IMPORT_CONFIG_FILE_DEFAULT = Path(
+    os.getenv(
+        "KELVIN_IMPORT_CONFIG_FILE_DEFAULT",
+        "/usr/share/ucs-school-import/configs/kelvin_defaults.json",
+    )
+)
+IMPORT_CONFIG_FILE_USER = Path(
+    os.getenv("KELVIN_IMPORT_CONFIG_FILE_USER", "/var/lib/ucs-school-import/configs/kelvin.json")
+)
+KELVIN_IMPORTUSER_HOOKS_PATH = Path(
+    os.getenv("KELVIN_IMPORTUSER_HOOKS_PATH", "/var/lib/ucs-school-import/kelvin-hooks")
+)
+MACHINE_PASSWORD_FILE = os.getenv("KELVIN_MACHINE_PASSWORD_FILE", "/etc/machine.secret")  # nosec
+STATIC_FILES_PATH = Path(os.getenv("KELVIN_STATIC_FILES_PATH", "/kelvin/kelvin-api/static"))
 STATIC_FILE_CHANGELOG = STATIC_FILES_PATH / "changelog.html"
 STATIC_FILE_README = STATIC_FILES_PATH / "readme.html"
-TOKEN_SIGN_SECRET_FILE = APP_CONFIG_BASE_PATH / "tokens.secret"
+TOKEN_SIGN_SECRET_FILE = Path(
+    os.getenv("KELVIN_TOKEN_SIGN_SECRET_FILE", str(APP_CONFIG_BASE_PATH / "tokens.secret"))
+)
 TOKEN_HASH_ALGORITHM = "HS256"  # nosec
-UDM_MAPPED_PROPERTIES_CONFIG_FILE = KELVIN_CONFIG_BASE_PATH / "mapped_udm_properties.json"
+UDM_MAPPED_PROPERTIES_CONFIG_FILE = Path(
+    os.getenv(
+        "KELVIN_UDM_MAPPED_PROPERTIES_CONFIG_FILE",
+        str(KELVIN_CONFIG_BASE_PATH / "mapped_udm_properties.json"),
+    )
+)
+API_SCHEME = os.getenv("KELVIN_API_SCHEME", "https")
 UCRV_TOKEN_TTL = "ucsschool/kelvin/access_tokel_ttl"  # nosec
 URL_KELVIN_BASE = "/ucsschool/kelvin"
 URL_API_V1_PREFIX = f"{URL_KELVIN_BASE}/v1"

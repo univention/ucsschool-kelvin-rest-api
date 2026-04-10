@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+import os
 import random
 import tempfile
 import time
@@ -40,9 +41,11 @@ from ucsschool.lib.schoolldap import SchoolSearchBase
 from udm_rest_client import UDM, NoObject as UdmNoObject
 
 APP_ID = "ucsschool-kelvin-rest-api"
-APP_BASE_PATH = Path("/var/lib/univention-appcenter/apps", APP_ID)
-APP_CONFIG_BASE_PATH = APP_BASE_PATH / "conf"
-CN_ADMIN_PASSWORD_FILE = APP_CONFIG_BASE_PATH / "cn_admin.secret"
+APP_BASE_PATH = Path(os.getenv("KELVIN_APP_BASE_PATH", f"/var/lib/univention-appcenter/apps/{APP_ID}"))
+APP_CONFIG_BASE_PATH = Path(os.getenv("KELVIN_APP_CONFIG_BASE_PATH", str(APP_BASE_PATH / "conf")))
+CN_ADMIN_PASSWORD_FILE = Path(
+    os.getenv("KELVIN_CN_ADMIN_PASSWORD_FILE", str(APP_CONFIG_BASE_PATH / "cn_admin.secret"))
+)
 
 _cached_ous: Set[Tuple[str, str]] = set()
 fake = Faker()
@@ -65,6 +68,13 @@ def event_loop(request):
 @pytest.fixture(scope="session")
 def docker_host_name():
     return env_or_ucr("docker_host_name")
+
+
+@pytest.fixture(scope="session")
+def ucs_host():
+    """Hostname of the UCS server used for SSH commands (OU cleanup etc.).
+    Uses TARGET when set (local test runs), falls back to DOCKER_HOST_NAME."""
+    return os.environ.get("TARGET") or env_or_ucr("docker_host_name")
 
 
 @pytest.fixture(scope="session")
@@ -735,9 +745,9 @@ def installed_ssh():
 
 
 @pytest.fixture(scope="session")
-def exec_with_ssh(docker_host_name, installed_ssh):
+def exec_with_ssh(ucs_host, installed_ssh):
     def _func(cmd: List[str], host: str = None) -> Tuple[int, str, str]:
-        host = host or docker_host_name
+        host = host or ucs_host
         ssh_cmd = [
             "/usr/bin/sshpass",
             "-p",
@@ -876,7 +886,7 @@ def get_ou_from_cache(ou_name: str, cache: bool) -> str:
 
 @pytest.fixture
 def create_ou_using_ssh(
-    docker_host_name,
+    ucs_host,
     exec_with_ssh,
     ldap_base,
     delete_ou_using_ssh,
@@ -891,7 +901,7 @@ def create_ou_using_ssh(
             return cached_ou
         args = create_ou_kwargs(ou_name)
         ou_name = args["ou_name"]
-        host = host or docker_host_name
+        host = host or ucs_host
         logger.debug("Creating school %r on host %r using SSH...", ou_name, host)
         if cache:
             schedule_delete_ou_using_ssh_at_end_of_session(ou_name, host)
@@ -927,7 +937,7 @@ def create_ou_using_ssh(
 
 @pytest.fixture
 def create_ou_using_python(
-    docker_host_name,
+    ucs_host,
     ldap_base,
     delete_ou_using_ssh,
     schedule_delete_ou_using_ssh,
@@ -946,9 +956,9 @@ def create_ou_using_python(
             ou_name,
         )
         if cache:
-            schedule_delete_ou_using_ssh_at_end_of_session(ou_name, docker_host_name)
+            schedule_delete_ou_using_ssh_at_end_of_session(ou_name, ucs_host)
         else:
-            schedule_delete_ou_using_ssh(ou_name, docker_host_name)
+            schedule_delete_ou_using_ssh(ou_name, ucs_host)
         async with UDM(**udm_kwargs) as udm:
             if await School(ou_name).exists(udm):
                 logger.debug("School %r exists.", ou_name)
