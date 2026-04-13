@@ -8,17 +8,17 @@ from ucsschool_objects.core.adapters.sqlite_memory.readers import SqliteMemorySc
 from ucsschool_objects.core.domain import SortSpec
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
-    from tests.test_types import SchoolFactory
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from tests.test_types import AsyncSchoolFactory as SchoolFactory
 
 
 @pytest.mark.asyncio
 async def test_deterministic_sort_and_pagination(
-    db_session: Session, school_factory: SchoolFactory
+    db_session: AsyncSession, school_factory: SchoolFactory
 ) -> None:
-    school_factory(name="s2")
-    school_factory(name="s1")
-    school_factory(name="s3")
+    await school_factory(name="s2")
+    await school_factory(name="s1")
+    await school_factory(name="s3")
     reader = SqliteMemorySchoolReader(db_session)
 
     ordered = list(
@@ -34,19 +34,19 @@ async def test_deterministic_sort_and_pagination(
 
 @pytest.mark.asyncio
 async def test_deterministic_sort_and_pagination_with_duplicate_sort_keys(
-    db_session: Session, school_factory: SchoolFactory
+    db_session: AsyncSession, school_factory: SchoolFactory
 ) -> None:
-    first = school_factory(
+    first = await school_factory(
         name="s1",
         class_share_file_server="same-server",
         public_id=UUID("00000000-0000-0000-0000-00000000000a"),
     )
-    second = school_factory(
+    second = await school_factory(
         name="s2",
         class_share_file_server="same-server",
         public_id=UUID("00000000-0000-0000-0000-00000000000b"),
     )
-    school_factory(name="s3", class_share_file_server="zzz-server")
+    await school_factory(name="s3", class_share_file_server="zzz-server")
     reader = SqliteMemorySchoolReader(db_session)
     duplicate_public_ids = [str(first.public_id), str(second.public_id)]
 
