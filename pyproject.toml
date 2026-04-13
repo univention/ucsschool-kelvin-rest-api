@@ -92,6 +92,7 @@ dev = [
     "pyfakefs~=4.7.0",
     "tenacity>=9.1.2",
     "eralchemy[graphviz]>=1.6.0",
+    "mypy>=1.20.1",
 ]
 
 [tool.pytest.ini_options]
@@ -99,6 +100,10 @@ addopts = "--verbose --showlocals -p no:warnings --asyncio-mode=auto"
 
 [tool.mypy]
 mypy_path = ["ucsschool-objects/src"]
+
+[[tool.mypy.overrides]]
+module = ["pytest_asyncio"]
+ignore_missing_imports = true
 
 [tool.alembic]
 script_location = "%(here)s/alembic"

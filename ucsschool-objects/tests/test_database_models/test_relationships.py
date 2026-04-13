@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import Any
 
-    from sqlalchemy.orm import Session
+    from sqlalchemy.ext.asyncio import AsyncSession
     from tests.test_types import ModelFactory
 
 
@@ -33,14 +33,14 @@ if TYPE_CHECKING:
     ],
     indirect=["model_factory"],
 )
-def test_foreign_key_not_nullable(
-    db_session: Session, model_factory: ModelFactory, fk_name: str
+async def test_foreign_key_not_nullable(
+    db_session: AsyncSession, model_factory: ModelFactory, fk_name: str
 ) -> None:
-    instance = model_factory()
+    instance = await model_factory()
     setattr(instance, fk_name, None)
     db_session.add(instance)
     with pytest.raises(IntegrityError, match="NOT NULL constraint failed"):
-        db_session.flush()
+        await db_session.flush()
 
 
 @pytest.mark.parametrize(
@@ -50,12 +50,14 @@ def test_foreign_key_not_nullable(
     ],
     indirect=["model_factory"],
 )
-def test_foreign_key_nullable(db_session: Session, model_factory: ModelFactory, fk_name: str) -> None:
-    instance = model_factory()
+async def test_foreign_key_nullable(
+    db_session: AsyncSession, model_factory: ModelFactory, fk_name: str
+) -> None:
+    instance = await model_factory()
     setattr(instance, fk_name, None)
     db_session.add(instance)
-    db_session.flush()
-    db_session.refresh(instance)
+    await db_session.flush()
+    await db_session.refresh(instance)
     assert getattr(instance, fk_name) is None
 
 
@@ -67,13 +69,13 @@ def test_foreign_key_nullable(db_session: Session, model_factory: ModelFactory, 
     ],
     indirect=["model_factory"],
 )
-def test_foreign_key_prevents_deletion(
-    db_session: Session, model_factory: ModelFactory, relation_name: str
+async def test_foreign_key_prevents_deletion(
+    db_session: AsyncSession, model_factory: ModelFactory, relation_name: str
 ) -> None:
-    instance = model_factory()
-    db_session.delete(getattr(instance, relation_name))
+    instance = await model_factory()
+    await db_session.delete(getattr(instance, relation_name))
     with pytest.raises(IntegrityError, match="FOREIGN KEY constraint failed"):
-        db_session.flush()
+        await db_session.flush()
 
 
 @pytest.mark.parametrize(
@@ -91,17 +93,17 @@ def test_foreign_key_prevents_deletion(
     ],
     indirect=["model_factory", "model_factory2"],
 )
-def test_many_to_many_fk_delete_cascade(
-    db_session: Session,
+async def test_many_to_many_fk_delete_cascade(
+    db_session: AsyncSession,
     model_factory: ModelFactory,
     model_factory2: ModelFactory,
     relation_name: str,
 ) -> None:
-    instance1 = model_factory()
-    instance2 = model_factory2(**{relation_name: [instance1]})
-    db_session.delete(instance1)
-    db_session.flush()
-    db_session.refresh(instance2, [relation_name])
+    instance1 = await model_factory()
+    instance2 = await model_factory2(**{relation_name: [instance1]})
+    await db_session.delete(instance1)
+    await db_session.flush()
+    await db_session.refresh(instance2, [relation_name])
     assert getattr(instance2, relation_name) == []
 
 
@@ -130,20 +132,20 @@ def test_many_to_many_fk_delete_cascade(
     ],
     indirect=["model_factory", "model_factory2"],
 )
-def test_many_to_many_orm_delete_cascade(
-    db_session: Session,
+async def test_many_to_many_orm_delete_cascade(
+    db_session: AsyncSession,
     model_factory: ModelFactory,
     model_factory2: ModelFactory,
     relation_name: str,
     association_cls: type,
 ) -> None:
-    instance1 = model_factory()
-    model_factory2(**{relation_name: [instance1]})
-    associations: Sequence[Any] = db_session.execute(select(association_cls)).all()
+    instance1 = await model_factory()
+    await model_factory2(**{relation_name: [instance1]})
+    associations: Sequence[Any] = (await db_session.execute(select(association_cls))).all()
     assert len(associations) == 1
-    db_session.delete(instance1)
-    db_session.flush()
-    associations = db_session.execute(select(association_cls)).all()
+    await db_session.delete(instance1)
+    await db_session.flush()
+    associations = (await db_session.execute(select(association_cls))).all()
     assert len(associations) == 0
 
 
@@ -157,14 +159,14 @@ def test_many_to_many_orm_delete_cascade(
     ],
     indirect=["model_factory"],
 )
-def test_relation_is_eager_loaded(
-    db_session: Session, model_factory: ModelFactory, relation_name: str
+async def test_relation_is_eager_loaded(
+    db_session: AsyncSession, model_factory: ModelFactory, relation_name: str
 ) -> None:
-    instance = model_factory()
+    instance = await model_factory()
     model_cls = type(instance)
     instance_id = instance.id
     db_session.expunge(instance)
-    loaded_instance = db_session.query(model_cls).get(instance_id)
+    loaded_instance = await db_session.get(model_cls, instance_id)
     assert loaded_instance is not None
     getattr(loaded_instance, relation_name)
 
@@ -184,14 +186,14 @@ def test_relation_is_eager_loaded(
     ],
     indirect=["model_factory"],
 )
-def test_relation_no_indirect_loading(
-    db_session: Session, model_factory: ModelFactory, relation_name: str
+async def test_relation_no_indirect_loading(
+    db_session: AsyncSession, model_factory: ModelFactory, relation_name: str
 ) -> None:
-    instance = model_factory()
+    instance = await model_factory()
     model_cls = type(instance)
     instance_id = instance.id
     db_session.expunge(instance)
-    loaded_instance = db_session.query(model_cls).get(instance_id)
+    loaded_instance = await db_session.get(model_cls, instance_id)
     assert loaded_instance is not None
     with pytest.raises(InvalidRequestError, match="is not available due to lazy='raise'"):
         getattr(loaded_instance, relation_name)
@@ -207,14 +209,14 @@ def test_relation_no_indirect_loading(
     ],
     indirect=["model_factory", "model_factory2"],
 )
-def test_many_to_many_relation_back_population(
-    db_session: Session,
+async def test_many_to_many_relation_back_population(
+    db_session: AsyncSession,
     model_factory: ModelFactory,
     relation_name: str,
     model_factory2: ModelFactory,
     relation_name2: str,
 ) -> None:
-    instance = model_factory()
-    db_session.refresh(instance, attribute_names=[relation_name])
-    instance2 = model_factory2(**{relation_name2: [instance]})
+    instance = await model_factory()
+    await db_session.refresh(instance, attribute_names=[relation_name])
+    instance2 = await model_factory2(**{relation_name2: [instance]})
     assert getattr(instance, relation_name) == [instance2]
