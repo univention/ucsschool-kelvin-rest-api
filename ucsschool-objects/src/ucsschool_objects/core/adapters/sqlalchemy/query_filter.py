@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any, Callable, TypeAlias, cast
+from typing import Callable, TypeAlias, TypeVar, cast
 
 from sqlalchemy import Date, DateTime, Float, Integer, Numeric, Select, and_, asc, desc, not_, or_
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.type_api import TypeEngine
 from ucsschool_objects.core.domain import (
     And,
     EmptyAndClause,
@@ -28,14 +29,16 @@ from ucsschool_objects.core.domain import (
 
 RANGE_CAPABLE_TYPES = (Date, DateTime, Float, Integer, Numeric)
 RANGE_OPERATORS = frozenset({Operator.GT, Operator.GTE, Operator.LT, Operator.LTE})
-FieldColumn: TypeAlias = InstrumentedAttribute[Any] | ColumnElement[Any]
-FilterExpressionBuilder: TypeAlias = Callable[[FieldColumn, FilterValue], Any]
+SelectT = TypeVar("SelectT", bound=tuple[object, ...])
+FieldColumn: TypeAlias = InstrumentedAttribute[object] | ColumnElement[object]
+FilterExpression: TypeAlias = ColumnElement[bool]
+FilterExpressionBuilder: TypeAlias = Callable[[FieldColumn, FilterValue], FilterExpression]
 
 
-def _get_column_type(column: FieldColumn) -> Any | None:
+def _get_column_type(column: FieldColumn) -> TypeEngine[object] | None:
     if isinstance(column, InstrumentedAttribute):
-        return column.property.columns[0].type
-    return getattr(column, "type", None)
+        return cast(TypeEngine[object], column.property.columns[0].type)
+    return cast(TypeEngine[object] | None, getattr(column, "type", None))
 
 
 def _supports_range_filters(column: FieldColumn) -> bool:
@@ -78,7 +81,9 @@ FILTER_OPERATOR_BUILDERS: dict[Operator, FilterExpressionBuilder] = {
 }
 
 
-def _build_filter_expression(filter_expr: Filter, field_map: Mapping[str, FieldColumn]) -> Any:
+def _build_filter_expression(
+    filter_expr: Filter, field_map: Mapping[str, FieldColumn]
+) -> FilterExpression:
     column = _get_filter_column(filter_expr, field_map)
     _validate_filter_value(filter_expr, column)
 
@@ -88,7 +93,9 @@ def _build_filter_expression(filter_expr: Filter, field_map: Mapping[str, FieldC
     return builder(column, filter_expr.value)
 
 
-def build_expression(query_expr: Filter | And | Or | Not, field_map: Mapping[str, FieldColumn]) -> Any:
+def build_expression(
+    query_expr: Filter | And | Or | Not, field_map: Mapping[str, FieldColumn]
+) -> FilterExpression:
     if isinstance(query_expr, Filter):
         return _build_filter_expression(query_expr, field_map)
 
@@ -106,22 +113,22 @@ def build_expression(query_expr: Filter | And | Or | Not, field_map: Mapping[str
 
 
 def apply_search_query(
-    stmt: Select[Any],
+    stmt: Select[SelectT],
     query: SearchQuery | None,
     field_map: Mapping[str, FieldColumn],
-) -> Select[Any]:
+) -> Select[SelectT]:
     if query is None or query.where is None:
         return stmt
     return stmt.where(build_expression(query.where, field_map))
 
 
 def apply_sort(
-    stmt: Select[Any],
+    stmt: Select[SelectT],
     sort_by: Sequence[SortSpec],
     field_map: Mapping[str, FieldColumn],
     *,
     default_field: str = "public_id",
-) -> Select[Any]:
+) -> Select[SelectT]:
     specs = tuple(sort_by) or (SortSpec(default_field),)
     if default_field in field_map and all(spec.field != default_field for spec in specs):
         specs = (*specs, SortSpec(default_field))

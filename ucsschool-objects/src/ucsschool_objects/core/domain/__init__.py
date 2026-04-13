@@ -12,7 +12,17 @@ from .errors import (
     UnsupportedSortField,
 )
 from .load_spec import LoadSpec
-from .models import UNLOADED, Group, School, UnloadedType, User
+from .models import (
+    UNLOADED,
+    Group,
+    Role,
+    School,
+    SchoolClass,
+    SchoolMembership,
+    UnloadedType,
+    User,
+    WorkGroup,
+)
 from .query import (
     And,
     Filter,
@@ -46,7 +56,10 @@ __all__ = [
     "Operator",
     "Or",
     "QueryExpr",
+    "Role",
     "School",
+    "SchoolClass",
+    "SchoolMembership",
     "SearchQuery",
     "SortSpec",
     "UNLOADED",
@@ -56,4 +69,5 @@ __all__ = [
     "UnsupportedOperation",
     "UnsupportedSortField",
     "User",
+    "WorkGroup",
 ]

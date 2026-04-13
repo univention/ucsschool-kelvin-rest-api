@@ -4,9 +4,9 @@ from collections.abc import Iterable, Sequence
 from typing import Protocol, TypeVar
 from uuid import UUID
 
-from ucsschool_objects.core.domain import Group, LoadSpec, School, SearchQuery, SortSpec, User
+from ucsschool_objects.core.domain import LoadSpec, SearchQuery, SortSpec
 
-ReaderT = TypeVar("ReaderT", School, Group, User, covariant=True)
+ReaderT = TypeVar("ReaderT", covariant=True)
 
 
 class Reader(Protocol[ReaderT]):
