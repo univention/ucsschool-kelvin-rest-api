@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 Type: file
 File: etc/logrotate.d/ucsschool-kelvin-rest-api
 Variables: logrotate/.*

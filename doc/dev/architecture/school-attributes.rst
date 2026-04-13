@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2026 Univention GmbH
+.. SPDX-License-Identifier: AGPL-3.0-only
+
 .. list-table:: School — Columns (Part 1)
    :header-rows: 1
    :widths: 14 12 5 5 10 15

@@ -1,4 +1,8 @@
 #!/usr/share/ucs-test/runner python3
+
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 ## -*- coding: utf-8 -*-
 ## desc: test content of API root
 ## tags: [ucs_school_kelvin]

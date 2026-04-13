@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 var/lib/ucs-school-import/jobs
 var/lib/ucs-school-import-http-api/static
 var/log/univention/ucs-school-import

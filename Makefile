@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 SHELL := /usr/bin/env bash
 .PHONY: help fetch-vm-data build-docker-image dev-server
 .DEFAULT_GOAL := help

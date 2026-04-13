@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
+version = 1
+SPDX-PackageName = "UCS@school"
+SPDX-PackageSupplier = "Univention GmbH <info@univention.de>"
+SPDX-PackageDownloadLocation = "https://www.univention.com/products/ucsschool/"
+[[annotations]]
+path = [
+    "kelvin-api/static/swagger-ui-standalone-preset.js",
+    "kelvin-api/static/swagger-ui-bundle-5.17.14.js",
+    "kelvin-api/static/swagger-ui-5.17.14.css",
+]
+SPDX-FileCopyrightText = "SmartBear Software Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "kelvin-api/static/redoc.standalone-2.0.0-rc.75.js"
+SPDX-FileCopyrightText = "2015-present Redoc contributors"
+SPDX-License-Identifier = "MIT"

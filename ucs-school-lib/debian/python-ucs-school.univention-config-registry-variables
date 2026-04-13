@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [ucsschool/default/share/nfs]
 Description[de]=Diese Variable steuert, ob neue UCS@school-Freigaben automatisch auch über NFS bereitgestellt werden (Standard: no)
 Description[en]=This variable controls if new UCS@school shares are automatically exported via NFS, too (Default: no)

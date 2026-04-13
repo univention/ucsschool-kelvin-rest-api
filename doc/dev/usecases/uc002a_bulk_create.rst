@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2026 Univention GmbH
+.. SPDX-License-Identifier: AGPL-3.0-only
+
 .. _uc002a_bulk_create:
 
 .. preview-start

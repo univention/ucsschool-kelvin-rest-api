@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [flake8]
 exclude = doc/doc-common/,venv*,ucs-school-import/usr/share/ucs-school-import/scripts/ucs-school-import
 max-line-length = 105

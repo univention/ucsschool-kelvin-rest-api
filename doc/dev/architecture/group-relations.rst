@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2026 Univention GmbH
+.. SPDX-License-Identifier: AGPL-3.0-only
+
 .. list-table:: Group — Relationships
    :header-rows: 1
    :widths: 20 20 15 10 20

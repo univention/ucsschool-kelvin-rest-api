@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # ENV VARS:
 #
 #   TRUSTED_PROXY_IPS: Optional. Comma-separated IPs/CIDRs trusted for

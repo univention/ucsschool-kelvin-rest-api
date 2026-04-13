@@ -1,1 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 modules/ucsschool/http_api/client.py                  usr/share/pyshared/ucsschool/http_api/

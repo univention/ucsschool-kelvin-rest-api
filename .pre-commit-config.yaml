@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 exclude: ^venv/|^ucs-school-import/usr/share/ucs-school-import/scripts/ucs-school-import|^univention-lib-slim/|^univention-directory-manager-modules-slim/|^kelvin-api/static/
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
@@ -59,5 +62,27 @@ repos:
         language: pygrep
         entry: '.*\n\n(Issue \w+(/[a-zA-Z_-]+)*#\d+|Bug #\d+)\n+(\n.*)*\Z'
         args: ["--multiline", "--negate"]
+- repo: https://codeberg.org/fsfe/reuse-tool
+  rev: v6.2.0
+  hooks:
+    # automatic insertion of SPDX headers
+    - id: reuse
+      alias: reuse-annotate
+      name: "reuse annotate"
+      args: [
+        "annotate",
+        "-c", "Univention GmbH",
+        "-l", "AGPL-3.0-only",
+        "--skip-unrecognised",
+        "--skip-existing",
+        "--template", "univention"
+      ]
+      pass_filenames: true
+    # lint file manually
+    - id: reuse
+      alias: reuse-lint
+      stages: [ manual ]
+    # lints all files in git staging automatic (and fail on violation if REUSE compliance)
+    - id: reuse-lint-file
 default_language_version:
     python: python3.11

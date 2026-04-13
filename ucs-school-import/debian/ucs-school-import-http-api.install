@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 40ucs-school-import-http-api.inst               usr/lib/univention-install/
 60ucs-school-import-http-api.uinst              usr/lib/univention-uninstall/
 #    ../ucsschool/http_api/__init__.py                   -> ucs-school-import-http-api-common.install

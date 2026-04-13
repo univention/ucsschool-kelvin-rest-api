@@ -1,4 +1,8 @@
 #!/usr/share/ucs-test/runner pytest-3 -s -l -v
+
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 ## -*- coding: utf-8 -*-
 ## desc: test settings in kelvin app ini file
 ## roles: [domaincontroller_master]

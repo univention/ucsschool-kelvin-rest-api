@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 . /usr/share/univention-lib/ucr.sh
 
 if is_ucr_true ucsschool/kelvin/update-ca-restart; then

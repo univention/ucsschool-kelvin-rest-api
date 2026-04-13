@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 

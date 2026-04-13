@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 ### Bandit config file generated from:
 # '/home/jkoeniger/Git/univention/ucsschool-kelvin-rest-api/.venv/bin/bandit-config-generator -o .bandit'

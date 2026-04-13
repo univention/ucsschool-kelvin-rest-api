@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 0002-3: debian/ucs-test-ucsschool-kelvin.pyinstall
 0008-7: 94_ucsschool-kelvin/conftest.py
 0008-7: 94_ucsschool-kelvin-performance/src/ucs_test_ucsschool_kelvin_performance/settings_locust.py

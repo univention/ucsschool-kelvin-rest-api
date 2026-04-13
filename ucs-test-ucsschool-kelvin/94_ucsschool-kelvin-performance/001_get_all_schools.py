@@ -1,4 +1,8 @@
 #!/usr/share/ucs-test/runner /usr/bin/pytest-3 -l -v
+
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 ## -*- coding: utf-8 -*-
 ## desc: Test performance of GET /ucsschool/kelvin/v1/schools/
 ## tags: [kelvin, performance]

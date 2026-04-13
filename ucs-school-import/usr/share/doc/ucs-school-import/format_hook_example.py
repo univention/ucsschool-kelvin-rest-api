@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from ucsschool.importer.utils.format_pyhook import FormatPyHook
 
 SPLIT_FIRSTNAME_SPACE = 0

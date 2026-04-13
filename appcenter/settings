@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [ucsschool/kelvin/access_tokel_ttl]
 Type = Int
 Description = Number of minutes a token retrieved from the UCS@school Kelvin REST API is valid.

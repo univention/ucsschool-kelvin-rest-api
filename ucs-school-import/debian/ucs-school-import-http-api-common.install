@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 modules/ucsschool/http_api/__init__.py          usr/share/pyshared/ucsschool/http_api/
 modules/ucsschool/http_api/import_api/__init__.py      usr/share/pyshared/ucsschool/http_api/import_api/
 modules/ucsschool/http_api/import_api/constants.py     usr/share/pyshared/ucsschool/http_api/import_api/

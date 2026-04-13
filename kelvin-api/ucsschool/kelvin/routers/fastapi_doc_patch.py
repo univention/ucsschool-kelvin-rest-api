@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 """
 This module is a clone of fastapi.openapi.docs, with the get_swagger_ui_html
 function modified to support multiple OpenAPI URLs. This is a workaround for

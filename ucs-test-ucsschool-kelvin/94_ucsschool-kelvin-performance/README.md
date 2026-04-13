@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Univention GmbH
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 # Performance Tests for the Kelvin REST API
 
 The performance Debian package contains Univention pytest tests,

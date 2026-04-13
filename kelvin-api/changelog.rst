@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2026 Univention GmbH
+.. SPDX-License-Identifier: AGPL-3.0-only
+
 .. :changelog:
 
 .. The file can be read on the installed system at https://FQDN/ucsschool/kelvin/changelog

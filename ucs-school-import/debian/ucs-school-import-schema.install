@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 82univention-ucs-school-import-custom-attributes.inst       usr/lib/univention-install/
 schema/ucs-school-import.schema                             usr/share/ucs-school-import/schema
 syntax/syntax.ucs-school-import.py                          usr/share/ucs-school-import/schema

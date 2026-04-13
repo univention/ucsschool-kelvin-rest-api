@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [ucsschool/ldap/district/enable]
 Description[de]=Aktiviert Bezirke für die UCS@school-Umgebung
 Description[en]=Activates districts for the UCS@school environment

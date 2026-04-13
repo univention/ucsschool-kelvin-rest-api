@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 usr/share/ucs-school-import/scripts/create_ou               usr/share/ucs-school-import/scripts/create_ou
 usr/share/ucs-school-import/scripts/ucs-school-import       usr/share/ucs-school-import/scripts/create_dc
 usr/share/ucs-school-import/scripts/ucs-school-import       usr/share/ucs-school-import/scripts/import_computer

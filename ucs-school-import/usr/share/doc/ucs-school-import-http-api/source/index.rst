@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2026 Univention GmbH
+.. SPDX-License-Identifier: AGPL-3.0-only
+
 Welcome to the UCS\@school HTTP-API import documentation!
 =========================================================
 

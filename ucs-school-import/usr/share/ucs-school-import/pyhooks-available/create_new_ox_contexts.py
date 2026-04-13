@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from ucsschool.importer.utils.user_pyhook import UserPyHook
 from ucsschool.lib.models.utils import ucr
 from univention.udm import UDM, CreateError

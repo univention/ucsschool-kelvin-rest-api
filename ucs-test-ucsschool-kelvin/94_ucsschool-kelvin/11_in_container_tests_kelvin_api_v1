@@ -1,4 +1,8 @@
 #!/usr/share/ucs-test/runner bash
+
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 ## desc: run tests in container which are supplied by the kelvin api
 ## tags: [ucs_school_kelvin]
 ## exposure: dangerous
