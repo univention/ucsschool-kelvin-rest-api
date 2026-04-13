@@ -4,10 +4,11 @@ import uuid
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
-from ucsschool_objects.core.adapters.sqlite_memory.readers import (
-    SqliteMemoryGroupReader,
-    SqliteMemorySchoolReader,
-    SqliteMemoryUserReader,
+from ucsschool_objects.core.adapters.sqlalchemy import (
+    SQLAlchemySchoolClassReader,
+    SQLAlchemySchoolReader,
+    SQLAlchemyUserReader,
+    SQLAlchemyWorkGroupReader,
 )
 from ucsschool_objects.core.domain import (
     And,
@@ -28,7 +29,10 @@ from ucsschool_objects.core.domain import (
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import AsyncGroupFactory as GroupFactory
+    from tests.test_types import (
+        AsyncGroupFactory as GroupFactory,
+        AsyncGroupTypeFactory as GroupTypeFactory,
+    )
 
 
 FieldInvalidFilter = UnsupportedFilterField | UnsupportedSortField | InvalidInFilter | InvalidLikeFilter
@@ -92,9 +96,10 @@ def build_exception_case(
         ),
     ],
 )
-async def test_group_reader_raises_invalid_filter(
+async def test_school_class_reader_raises_invalid_filter(
     db_session: AsyncSession,
     group_factory: GroupFactory,
+    group_type_factory: GroupTypeFactory,
     search_args: dict[str, Any],
     expected_exc_type: type[FieldInvalidFilter],
     expected_exc_message: str,
@@ -105,8 +110,9 @@ async def test_group_reader_raises_invalid_filter(
     Tests whether GroupReader.search raises the concrete InvalidFilter subtype
     for each failure mode.
     """
-    await group_factory()
-    reader = SqliteMemoryGroupReader(db_session)
+    school_class_type = await group_type_factory(name="school_class")
+    await group_factory(group_type=school_class_type)
+    reader = SQLAlchemySchoolClassReader(db_session)
 
     with pytest.raises(expected_exc_type, match=expected_exc_message) as exc_info:
         await reader.search(**search_args)
@@ -132,7 +138,7 @@ async def test_empty_logical_clause_raises_invalid_filter(
     expected_reason: str,
 ) -> None:
     """Tests whether empty And/Or query clauses raise the corresponding dedicated error type."""
-    reader = SqliteMemorySchoolReader(db_session)
+    reader = SQLAlchemySchoolReader(db_session)
 
     with pytest.raises(expected_exc_type, match=expected_reason):
         await reader.search(SearchQuery(where=where_expr))
@@ -142,9 +148,10 @@ async def test_empty_logical_clause_raises_invalid_filter(
 @pytest.mark.parametrize(
     "reader_cls, object_type",
     [
-        (SqliteMemorySchoolReader, "School"),
-        (SqliteMemoryGroupReader, "Group"),
-        (SqliteMemoryUserReader, "User"),
+        (SQLAlchemySchoolReader, "School"),
+        (SQLAlchemySchoolClassReader, "SchoolClass"),
+        (SQLAlchemyWorkGroupReader, "WorkGroup"),
+        (SQLAlchemyUserReader, "User"),
     ],
 )
 async def test_not_found_raised_for_missing_object(
