@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.postgres.readers import (
     PostgresGroupReader,
     PostgresSchoolReader,
@@ -14,13 +14,13 @@ from ucsschool_objects.core.adapters.sqlite_memory.readers import (
 
 
 def postgres_readers(
-    session: Session,
+    session: AsyncSession,
 ) -> tuple[PostgresSchoolReader, PostgresUserReader, PostgresGroupReader]:
     return PostgresSchoolReader(session), PostgresUserReader(session), PostgresGroupReader(session)
 
 
 def sqlite_readers(
-    session: Session,
+    session: AsyncSession,
 ) -> tuple[SqliteMemorySchoolReader, SqliteMemoryUserReader, SqliteMemoryGroupReader]:
     return (
         SqliteMemorySchoolReader(session),

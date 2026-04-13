@@ -7,13 +7,15 @@ from ucsschool_objects.core.adapters.sqlite_memory.readers import SqliteMemorySc
 from ucsschool_objects.core.domain import Filter, Operator, SearchQuery
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
-    from tests.test_types import SchoolFactory
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from tests.test_types import AsyncSchoolFactory as SchoolFactory
 
 
 @pytest.mark.asyncio
-async def test_school_reader_get_and_search(db_session: Session, school_factory: SchoolFactory) -> None:
-    school = school_factory(name="school-1")
+async def test_school_reader_get_and_search(
+    db_session: AsyncSession, school_factory: SchoolFactory
+) -> None:
+    school = await school_factory(name="school-1")
     reader = SqliteMemorySchoolReader(db_session)
 
     fetched = await reader.get(school.public_id)

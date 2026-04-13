@@ -5,7 +5,8 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Select, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from ucsschool_objects.core.adapters.postgres.mapping import to_group, to_school, to_user
 from ucsschool_objects.core.domain import (
     Filter,
@@ -53,12 +54,12 @@ def _with_user_load_options(stmt: Select[tuple[UserModel]], load: LoadSpec) -> S
 
 
 class PostgresSchoolReader(Reader[School]):
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self._session = session
 
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> School:
         stmt = select(SchoolModel).where(SchoolModel.public_id == public_id)
-        result = self._session.execute(stmt).scalar_one_or_none()
+        result = (await self._session.execute(stmt)).scalar_one_or_none()
         if result is None:
             raise NotFound(object_type="School", public_id=str(public_id))
         return to_school(result)
@@ -84,11 +85,11 @@ class PostgresSchoolReader(Reader[School]):
         stmt = apply_search_query(stmt, query, field_map)
         stmt = apply_sort(stmt, sort_by, field_map, default_field="public_id")
         stmt = stmt.limit(limit).offset(offset)
-        return (to_school(model) for model in self._session.execute(stmt).scalars())
+        return (to_school(model) for model in (await self._session.execute(stmt)).scalars())
 
 
 class PostgresGroupReader(Reader[Group]):
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self._session = session
 
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> Group:
@@ -96,7 +97,7 @@ class PostgresGroupReader(Reader[Group]):
         stmt = select(GroupModel).where(GroupModel.public_id == public_id)
         if load.includes("school"):
             stmt = stmt.options(selectinload(GroupModel.school))
-        result = self._session.execute(stmt).scalar_one_or_none()
+        result = (await self._session.execute(stmt)).scalar_one_or_none()
         if result is None:
             raise NotFound(object_type="Group", public_id=str(public_id))
         return to_group(result, include_school=load.includes("school"))
@@ -139,19 +140,19 @@ class PostgresGroupReader(Reader[Group]):
         stmt = stmt.limit(limit).offset(offset)
         return (
             to_group(model, include_school=load.includes("school"))
-            for model in self._session.execute(stmt).scalars()
+            for model in (await self._session.execute(stmt)).scalars()
         )
 
 
 class PostgresUserReader(Reader[User]):
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self._session = session
 
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> User:
         load = load or LoadSpec()
         stmt = select(UserModel).where(UserModel.public_id == public_id)
         stmt = _with_user_load_options(stmt, load)
-        result = self._session.execute(stmt).scalar_one_or_none()
+        result = (await self._session.execute(stmt)).scalar_one_or_none()
         if result is None:
             raise NotFound(object_type="User", public_id=str(public_id))
         return to_user(
@@ -191,5 +192,5 @@ class PostgresUserReader(Reader[User]):
             to_user(
                 model, include_school=load.includes("school"), include_groups=load.includes("groups")
             )
-            for model in self._session.execute(stmt).scalars()
+            for model in (await self._session.execute(stmt)).scalars()
         )

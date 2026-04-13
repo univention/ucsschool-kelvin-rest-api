@@ -7,13 +7,15 @@ from ucsschool_objects.core.adapters.sqlite_memory.readers import SqliteMemoryGr
 from ucsschool_objects.core.domain import Filter, Operator, SearchQuery, SortSpec
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
-    from tests.test_types import GroupFactory, SchoolFactory
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from tests.test_types import AsyncGroupFactory as GroupFactory, AsyncSchoolFactory as SchoolFactory
 
 
 @pytest.mark.asyncio
-async def test_group_reader_get_and_search(db_session: Session, group_factory: GroupFactory) -> None:
-    group = group_factory(name="admins")
+async def test_group_reader_get_and_search(
+    db_session: AsyncSession, group_factory: GroupFactory
+) -> None:
+    group = await group_factory(name="admins")
     reader = SqliteMemoryGroupReader(db_session)
 
     fetched = await reader.get(group.public_id)
@@ -28,14 +30,14 @@ async def test_group_reader_get_and_search(db_session: Session, group_factory: G
 
 @pytest.mark.asyncio
 async def test_group_reader_supports_sorting_by_school_fields(
-    db_session: Session,
+    db_session: AsyncSession,
     school_factory: SchoolFactory,
     group_factory: GroupFactory,
 ) -> None:
-    school_a = school_factory(name="alpha")
-    school_b = school_factory(name="beta")
-    group_factory(name="group-b", school=school_b)
-    group_factory(name="group-a", school=school_a)
+    school_a = await school_factory(name="alpha")
+    school_b = await school_factory(name="beta")
+    await group_factory(name="group-b", school=school_b)
+    await group_factory(name="group-a", school=school_a)
     reader = SqliteMemoryGroupReader(db_session)
 
     results = list(await reader.search(sort_by=(SortSpec(field="school_name", ascending=True),)))
