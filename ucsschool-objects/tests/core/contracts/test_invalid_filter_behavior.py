@@ -21,15 +21,15 @@ from ucsschool_objects.core.domain import (
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
-    from tests.test_types import SchoolFactory, UserFactory
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from tests.test_types import AsyncSchoolFactory as SchoolFactory, AsyncUserFactory as UserFactory
 
 
 @pytest.mark.asyncio
 async def test_invalid_filter_field_raises_domain_error(
-    db_session: Session, school_factory: SchoolFactory
+    db_session: AsyncSession, school_factory: SchoolFactory
 ) -> None:
-    school_factory(name="school-a")
+    await school_factory(name="school-a")
     reader = SqliteMemorySchoolReader(db_session)
     invalid_filter = Filter(field="unknown", op=Operator.EQ, value="x")
 
@@ -40,9 +40,9 @@ async def test_invalid_filter_field_raises_domain_error(
 
 @pytest.mark.asyncio
 async def test_invalid_sort_field_raises_domain_error(
-    db_session: Session, school_factory: SchoolFactory
+    db_session: AsyncSession, school_factory: SchoolFactory
 ) -> None:
-    school_factory(name="school-a")
+    await school_factory(name="school-a")
     reader = SqliteMemorySchoolReader(db_session)
     invalid_sort = SortSpec(field="invalid", ascending=True)
 
@@ -53,9 +53,9 @@ async def test_invalid_sort_field_raises_domain_error(
 
 @pytest.mark.asyncio
 async def test_range_filter_with_none_raises_domain_error(
-    db_session: Session, user_factory: UserFactory
+    db_session: AsyncSession, user_factory: UserFactory
 ) -> None:
-    user_factory(name="user-a", birthday=date(2010, 1, 1))
+    await user_factory(name="user-a", birthday=date(2010, 1, 1))
     reader = SqliteMemoryUserReader(db_session)
     invalid_filter = Filter(field="birthday", op=Operator.GTE, value=None)
 
@@ -70,9 +70,9 @@ async def test_range_filter_with_none_raises_domain_error(
 
 @pytest.mark.asyncio
 async def test_range_filter_on_non_range_field_raises_domain_error(
-    db_session: Session, user_factory: UserFactory
+    db_session: AsyncSession, user_factory: UserFactory
 ) -> None:
-    user_factory(name="user-a")
+    await user_factory(name="user-a")
     reader = SqliteMemoryUserReader(db_session)
     invalid_filter = Filter(field="name", op=Operator.GTE, value="m")
 
@@ -87,9 +87,9 @@ async def test_range_filter_on_non_range_field_raises_domain_error(
 
 @pytest.mark.asyncio
 async def test_in_filter_with_non_iterable_raises_domain_error(
-    db_session: Session, school_factory: SchoolFactory
+    db_session: AsyncSession, school_factory: SchoolFactory
 ) -> None:
-    school_factory(name="school-a")
+    await school_factory(name="school-a")
     reader = SqliteMemorySchoolReader(db_session)
     invalid_filter = Filter(field="name", op=Operator.IN, value=123)
 
@@ -101,9 +101,9 @@ async def test_in_filter_with_non_iterable_raises_domain_error(
 
 @pytest.mark.asyncio
 async def test_like_filter_with_non_string_raises_domain_error(
-    db_session: Session, school_factory: SchoolFactory
+    db_session: AsyncSession, school_factory: SchoolFactory
 ) -> None:
-    school_factory(name="school-a")
+    await school_factory(name="school-a")
     reader = SqliteMemorySchoolReader(db_session)
     invalid_filter = Filter(field="name", op=Operator.LIKE, value=123)
 
