@@ -8,8 +8,8 @@ from sqlalchemy import null, update
 from sqlalchemy.exc import IntegrityError
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
-    from tests.test_types import ModelFactory, RecordSourceFactory, SchoolFactory
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from tests.test_types import AsyncSchoolFactory, ModelFactory, RecordSourceFactory
 
 
 @pytest.mark.parametrize(
@@ -44,14 +44,14 @@ if TYPE_CHECKING:
     ],
     indirect=["model_factory"],
 )
-def test_not_nullable_scalar_raises_error(
-    db_session: Session, model_factory: ModelFactory, attribute_name: str
+async def test_not_nullable_scalar_raises_error(
+    db_session: AsyncSession, model_factory: ModelFactory, attribute_name: str
 ) -> None:
-    instance = model_factory()
+    instance = await model_factory()
     model_cls = type(instance)
     stmt = update(model_cls).where(model_cls.id == instance.id).values(**{attribute_name: null()})
     with pytest.raises(IntegrityError, match="NOT NULL constraint failed"):
-        db_session.execute(stmt)
+        await db_session.execute(stmt)
 
 
 @pytest.mark.parametrize(
@@ -67,15 +67,15 @@ def test_not_nullable_scalar_raises_error(
     ],
     indirect=["model_factory"],
 )
-def test_nullable_scalar_set_to_null(
-    db_session: Session, model_factory: ModelFactory, attribute_name: str
+async def test_nullable_scalar_set_to_null(
+    db_session: AsyncSession, model_factory: ModelFactory, attribute_name: str
 ) -> None:
-    instance = model_factory()
+    instance = await model_factory()
     model_cls = type(instance)
     stmt = update(model_cls).where(model_cls.id == instance.id).values(**{attribute_name: null()})
-    db_session.execute(stmt)
-    db_session.flush()
-    db_session.refresh(instance)
+    await db_session.execute(stmt)
+    await db_session.flush()
+    await db_session.refresh(instance)
     assert getattr(instance, attribute_name) is None
 
 
@@ -102,12 +102,12 @@ def test_nullable_scalar_set_to_null(
     ],
     indirect=["model_factory"],
 )
-def test_unique_scalar_raise_error(
-    db_session: Session, model_factory: ModelFactory, attribute_name: str
+async def test_unique_scalar_raise_error(
+    db_session: AsyncSession, model_factory: ModelFactory, attribute_name: str
 ) -> None:
-    instance = model_factory()
+    instance = await model_factory()
     with pytest.raises(IntegrityError, match="UNIQUE constraint failed"):
-        model_factory(**{attribute_name: getattr(instance, attribute_name)})
+        await model_factory(**{attribute_name: getattr(instance, attribute_name)})
 
 
 @pytest.mark.parametrize(
@@ -136,11 +136,11 @@ def test_unique_scalar_raise_error(
     ],
     indirect=["model_factory"],
 )
-def test_non_unique_scalar_set_to_duplicate(
-    db_session: Session, model_factory: ModelFactory, attribute_name: str
+async def test_non_unique_scalar_set_to_duplicate(
+    db_session: AsyncSession, model_factory: ModelFactory, attribute_name: str
 ) -> None:
-    instance = model_factory()
-    instance2 = model_factory(**{attribute_name: getattr(instance, attribute_name)})
+    instance = await model_factory()
+    instance2 = await model_factory(**{attribute_name: getattr(instance, attribute_name)})
     assert getattr(instance, attribute_name) == getattr(instance2, attribute_name)
 
 
@@ -167,15 +167,15 @@ def test_non_unique_scalar_set_to_duplicate(
     ],
     indirect=["model_factory"],
 )
-def test_scalar_default_value(
-    db_session: Session,
+async def test_scalar_default_value(
+    db_session: AsyncSession,
     model_factory: ModelFactory,
     unset_sentinel: object,
     attribute_name: str,
     expected_value: object,
 ) -> None:
-    instance = model_factory(**{attribute_name: unset_sentinel})
-    db_session.refresh(instance)
+    instance = await model_factory(**{attribute_name: unset_sentinel})
+    await db_session.refresh(instance)
     if isinstance(expected_value, type):
         assert isinstance(getattr(instance, attribute_name), expected_value)
     else:
@@ -187,17 +187,17 @@ def test_scalar_default_value(
     ["school_factory", "group_factory", "user_factory"],
     indirect=["model_factory"],
 )
-def test_record_source_uid_unique_constraint(
-    db_session: Session, model_factory: RecordSourceFactory
+async def test_record_source_uid_unique_constraint(
+    db_session: AsyncSession, model_factory: RecordSourceFactory
 ) -> None:
-    instance = model_factory()
+    instance = await model_factory()
     with pytest.raises(IntegrityError, match="UNIQUE constraint failed"):
-        model_factory(**{"source_uid": instance.source_uid, "record_uid": instance.record_uid})
+        await model_factory(**{"source_uid": instance.source_uid, "record_uid": instance.record_uid})
 
 
 @pytest.mark.parametrize("value", [None, []])
-def test_school_educational_servers_not_empty(
-    school_factory: SchoolFactory, value: list[str] | None
+async def test_school_educational_servers_not_empty(
+    school_factory: AsyncSchoolFactory, value: list[str] | None
 ) -> None:
     with pytest.raises(ValueError, match="The attribute educational_servers must not be None or empty."):
-        school_factory(educational_servers=value)
+        await school_factory(educational_servers=value)

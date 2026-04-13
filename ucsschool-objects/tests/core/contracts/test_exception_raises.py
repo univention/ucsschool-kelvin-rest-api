@@ -27,8 +27,8 @@ from ucsschool_objects.core.domain import (
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
-    from tests.test_types import GroupFactory
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from tests.test_types import AsyncGroupFactory as GroupFactory
 
 
 FieldInvalidFilter = UnsupportedFilterField | UnsupportedSortField | InvalidInFilter | InvalidLikeFilter
@@ -93,7 +93,7 @@ def build_exception_case(
     ],
 )
 async def test_group_reader_raises_invalid_filter(
-    db_session: Session,
+    db_session: AsyncSession,
     group_factory: GroupFactory,
     search_args: dict[str, Any],
     expected_exc_type: type[FieldInvalidFilter],
@@ -105,7 +105,7 @@ async def test_group_reader_raises_invalid_filter(
     Tests whether GroupReader.search raises the concrete InvalidFilter subtype
     for each failure mode.
     """
-    group_factory()
+    await group_factory()
     reader = SqliteMemoryGroupReader(db_session)
 
     with pytest.raises(expected_exc_type, match=expected_exc_message) as exc_info:
@@ -126,7 +126,7 @@ async def test_group_reader_raises_invalid_filter(
     ],
 )
 async def test_empty_logical_clause_raises_invalid_filter(
-    db_session: Session,
+    db_session: AsyncSession,
     where_expr: And | Or,
     expected_exc_type: type[InvalidFilter],
     expected_reason: str,
@@ -148,7 +148,7 @@ async def test_empty_logical_clause_raises_invalid_filter(
     ],
 )
 async def test_not_found_raised_for_missing_object(
-    db_session: Session,
+    db_session: AsyncSession,
     reader_cls: type,
     object_type: str,
 ) -> None:
