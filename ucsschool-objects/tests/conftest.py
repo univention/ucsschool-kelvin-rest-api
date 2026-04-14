@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import random
 import uuid
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
 from typing import Any, cast
 
 import pytest
@@ -12,6 +12,7 @@ from pytest import FixtureRequest
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
+from testcontainers.postgres import PostgresContainer  # type: ignore[import-untyped]
 from tests.test_types import (
     AsyncGroupFactory,
     AsyncGroupTypeFactory,
@@ -66,15 +67,30 @@ async def db_engine() -> AsyncGenerator[AsyncEngine, None]:
     await engine.dispose()
 
 
-@pytest_asyncio.fixture(scope="session")
-async def postgres_db_engine() -> AsyncGenerator[AsyncEngine, None]:
+@pytest.fixture(scope="session")
+def postgres_db_url() -> Generator[str | None, None, None]:
     database_url = os.getenv(POSTGRES_TEST_URL_ENV)
+    is_ci = os.getenv("CI", "false") == "true"  # Avoid hitting the docker registry pull limit
     if not database_url:
-        pytest.skip(f"Set {POSTGRES_TEST_URL_ENV} to run PostgreSQL corelib tests.")
-    if database_url.startswith("postgresql://"):
-        database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+        if not is_ci:
+            with PostgresContainer("postgres:15", driver="psycopg") as pg:
+                yield pg.get_connection_url()
 
-    engine = create_async_engine(database_url)
+        else:
+            pytest.skip(f"Set {POSTGRES_TEST_URL_ENV} to run PostgreSQL corelib tests.")
+    else:
+        yield database_url
+
+
+@pytest_asyncio.fixture(scope="session")
+async def postgres_db_engine(postgres_db_url: str | None) -> AsyncGenerator[AsyncEngine | None, None]:
+    if not postgres_db_url:
+        yield None
+        return
+    if postgres_db_url.startswith("postgresql://"):
+        postgres_db_url = postgres_db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+    engine = create_async_engine(postgres_db_url)
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
     yield engine
