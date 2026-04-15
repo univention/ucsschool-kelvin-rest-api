@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from ucsschool_objects.core.adapters.sqlalchemy import (
@@ -17,6 +17,7 @@ from ucsschool_objects.core.domain import (
     SearchQuery,
     SortSpec,
     UnsupportedFilterField,
+    UnsupportedFilterOperator,
     UnsupportedSortField,
 )
 
@@ -111,3 +112,17 @@ async def test_like_filter_with_non_string_raises_domain_error(
         await reader.search(SearchQuery(where=invalid_filter))
     assert exc_info.value.field == "name"
     assert exc_info.value.value == 123
+
+
+@pytest.mark.asyncio
+async def test_unsupported_filter_operator_raises_domain_error(
+    db_session: AsyncSession, school_factory: SchoolFactory
+) -> None:
+    await school_factory(name="school-a")
+    reader = SQLAlchemySchoolReader(db_session)
+    invalid_filter = Filter(field="name", op=cast(Operator, "NOPE"), value="school-a")
+
+    with pytest.raises(UnsupportedFilterOperator, match="Unsupported operator") as exc_info:
+        await reader.search(SearchQuery(where=invalid_filter))
+    assert exc_info.value.field == "name"
+    assert exc_info.value.operator == "NOPE"
