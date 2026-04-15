@@ -38,6 +38,8 @@ FilterExpressionBuilder: TypeAlias = Callable[[FieldColumn, FilterValue], Filter
 def _get_column_type(column: FieldColumn) -> TypeEngine[object] | None:
     if isinstance(column, InstrumentedAttribute):
         return cast(TypeEngine[object], column.property.columns[0].type)
+    # Keep fallback for expression-backed field maps (ColumnElement), e.g. computed
+    # search/sort fields that may be introduced by future reader implementations.
     return cast(TypeEngine[object] | None, getattr(column, "type", None))
 
 

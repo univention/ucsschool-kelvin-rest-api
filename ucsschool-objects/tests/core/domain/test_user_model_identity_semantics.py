@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
 from tests.core.domain.helpers.model_builders import (
     role as build_role,
     school as build_school,
@@ -9,7 +10,7 @@ from tests.core.domain.helpers.model_builders import (
     user as build_user,
     workgroup as build_workgroup,
 )
-from ucsschool_objects.core.domain import User
+from ucsschool_objects.core.domain import Group, Role, User
 
 
 def test_user_is_hashable() -> None:
@@ -66,3 +67,49 @@ def test_user_equality_by_public_id() -> None:
         active=False,
     )
     assert u1 == u2
+
+
+def test_role_equality_by_public_id() -> None:
+    uid = uuid.uuid4()
+    r1 = Role(public_id=uid, name="teacher", display_name={"de": "Lehrer"})
+    r2 = Role(public_id=uid, name="other", display_name={"de": "Andere"})
+
+    assert r1 == r2
+
+
+def test_group_equality_by_public_id() -> None:
+    uid = uuid.uuid4()
+    g1 = Group(
+        public_id=uid,
+        record_uid="rg1",
+        source_uid="sg1",
+        name="class-a",
+        display_name={},
+        create_share=False,
+        group_type="school_class",
+    )
+    g2 = Group(
+        public_id=uid,
+        record_uid="rg2",
+        source_uid="sg2",
+        name="class-b",
+        display_name={},
+        create_share=True,
+        group_type="school_class",
+    )
+
+    assert g1 == g2
+
+
+@pytest.mark.parametrize(
+    "entity",
+    [
+        pytest.param(build_school(), id="school"),
+        pytest.param(build_role(), id="role"),
+        pytest.param(build_school_class(), id="group"),
+        pytest.param(build_user(), id="user"),
+    ],
+)
+def test_model_eq_returns_not_implemented_for_other_types(entity: object) -> None:
+    eq_result = entity.__eq__(object())
+    assert eq_result is NotImplemented

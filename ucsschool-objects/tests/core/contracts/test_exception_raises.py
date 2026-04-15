@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemySchoolClassReader,
+    SQLAlchemyGroupReader,
+    SQLAlchemyRoleReader,
     SQLAlchemySchoolReader,
     SQLAlchemyUserReader,
-    SQLAlchemyWorkGroupReader,
 )
 from ucsschool_objects.core.domain import (
     And,
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
         AsyncGroupFactory as GroupFactory,
         AsyncGroupTypeFactory as GroupTypeFactory,
     )
+    from ucsschool_objects.core.domain.ports.readers import Reader
 
 
 FieldInvalidFilter = UnsupportedFilterField | UnsupportedSortField | InvalidInFilter | InvalidLikeFilter
@@ -96,7 +98,7 @@ def build_exception_case(
         ),
     ],
 )
-async def test_school_class_reader_raises_invalid_filter(
+async def test_group_reader_raises_invalid_filter(
     db_session: AsyncSession,
     group_factory: GroupFactory,
     group_type_factory: GroupTypeFactory,
@@ -107,12 +109,12 @@ async def test_school_class_reader_raises_invalid_filter(
     expected_exc_value: object | None,
 ) -> None:
     """
-    Tests whether GroupReader.search raises the concrete InvalidFilter subtype
+    Tests whether SQLAlchemyGroupReader.search raises the concrete InvalidFilter subtype
     for each failure mode.
     """
     school_class_type = await group_type_factory(name="school_class")
     await group_factory(group_type=school_class_type)
-    reader = SQLAlchemySchoolClassReader(db_session)
+    reader = SQLAlchemyGroupReader(db_session)
 
     with pytest.raises(expected_exc_type, match=expected_exc_message) as exc_info:
         await reader.search(**search_args)
@@ -148,15 +150,15 @@ async def test_empty_logical_clause_raises_invalid_filter(
 @pytest.mark.parametrize(
     "reader_cls, object_type",
     [
+        (SQLAlchemyGroupReader, "Group"),
+        (SQLAlchemyRoleReader, "Role"),
         (SQLAlchemySchoolReader, "School"),
-        (SQLAlchemySchoolClassReader, "SchoolClass"),
-        (SQLAlchemyWorkGroupReader, "WorkGroup"),
         (SQLAlchemyUserReader, "User"),
     ],
 )
 async def test_not_found_raised_for_missing_object(
     db_session: AsyncSession,
-    reader_cls: type,
+    reader_cls: Callable[[AsyncSession], Reader[object]],
     object_type: str,
 ) -> None:
     """
