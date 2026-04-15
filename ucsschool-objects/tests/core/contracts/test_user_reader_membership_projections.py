@@ -131,10 +131,10 @@ async def test_roles_accessible_via_school_memberships(
     loaded_user = results[0]
     assert not isinstance(loaded_user.school_memberships, UnloadedType)
     assert len(loaded_user.school_memberships) == 1
-    sm = loaded_user.school_memberships[0]
+    sm = next(iter(loaded_user.school_memberships))
     assert not isinstance(sm.roles, UnloadedType)
     assert len(sm.roles) == 1
-    assert sm.roles[0].name == "teacher_role"
+    assert next(iter(sm.roles)).name == "teacher_role"
 
 
 @pytest.mark.asyncio
@@ -161,7 +161,7 @@ async def test_legal_wards_via_reader(
     assert not isinstance(loaded_user.legal_wards, UnloadedType)
     assert {u.name for u in loaded_user.legal_wards} == {"ward_user"}
     assert isinstance(loaded_user.legal_guardians, UnloadedType)
-    related_user = loaded_user.legal_wards[0]
+    related_user = next(iter(loaded_user.legal_wards))
     assert isinstance(related_user.school_memberships, UnloadedType)
     assert isinstance(related_user.legal_wards, UnloadedType)
     assert isinstance(related_user.legal_guardians, UnloadedType)
@@ -191,7 +191,7 @@ async def test_legal_guardians_via_reader(
     assert not isinstance(loaded_user.legal_guardians, UnloadedType)
     assert {u.name for u in loaded_user.legal_guardians} == {"guardian_two"}
     assert isinstance(loaded_user.legal_wards, UnloadedType)
-    related_user = loaded_user.legal_guardians[0]
+    related_user = next(iter(loaded_user.legal_guardians))
     assert isinstance(related_user.school_memberships, UnloadedType)
     assert isinstance(related_user.legal_wards, UnloadedType)
     assert isinstance(related_user.legal_guardians, UnloadedType)
