@@ -59,7 +59,7 @@ COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 ARG KELVIN_BUILD_VERSION="999.0.0"
-RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked
+RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked --all-packages --group dev
 RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
 
 
