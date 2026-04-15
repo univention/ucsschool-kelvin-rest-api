@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from functools import cached_property
 from uuid import UUID
 
 
@@ -14,15 +13,15 @@ class UnloadedType:
 UNLOADED = UnloadedType()
 
 
-@dataclass(eq=False)
+@dataclass(frozen=True, eq=False)
 class School:
     public_id: UUID
     record_uid: str
     source_uid: str
     name: str
     display_name: dict[str, str]
-    educational_servers: tuple[str, ...]
-    administrative_servers: tuple[str, ...]
+    educational_servers: frozenset[str]
+    administrative_servers: frozenset[str]
     class_share_file_server: str | None
     home_share_file_server: str | None
 
@@ -35,7 +34,7 @@ class School:
         return self.public_id == other.public_id
 
 
-@dataclass(eq=False)
+@dataclass(frozen=True, eq=False)
 class Role:
     public_id: UUID
     name: str
@@ -50,7 +49,7 @@ class Role:
         return self.public_id == other.public_id
 
 
-@dataclass(eq=False)
+@dataclass(frozen=True, eq=False)
 class Group:
     public_id: UUID
     record_uid: str
@@ -60,9 +59,9 @@ class Group:
     create_share: bool
     group_type: str
     email: str | None = None
-    allowed_email_senders_users: tuple[str, ...] | UnloadedType = UNLOADED
-    allowed_email_senders_groups: tuple[str, ...] | UnloadedType = UNLOADED
-    member_roles: tuple[Role, ...] | UnloadedType = UNLOADED
+    allowed_email_senders_users: frozenset[str] | UnloadedType = UNLOADED
+    allowed_email_senders_groups: frozenset[str] | UnloadedType = UNLOADED
+    member_roles: frozenset[Role] | UnloadedType = UNLOADED
     school: School | UnloadedType = UNLOADED
 
     def __hash__(self) -> int:
@@ -74,25 +73,15 @@ class Group:
         return self.public_id == other.public_id
 
 
-@dataclass(eq=False)
-class SchoolClass(Group):
-    pass
-
-
-@dataclass(eq=False)
-class WorkGroup(Group):
-    pass
-
-
-@dataclass
+@dataclass(frozen=True)
 class SchoolMembership:
     school: School | UnloadedType
     is_primary: bool
-    roles: tuple[Role, ...] | UnloadedType = UNLOADED
-    groups: tuple[Group, ...] | UnloadedType = UNLOADED
+    roles: frozenset[Role] | UnloadedType = UNLOADED
+    groups: frozenset[Group] | UnloadedType = UNLOADED
 
 
-@dataclass(eq=False)
+@dataclass(frozen=True, eq=False)
 class User:
     public_id: UUID
     record_uid: str
@@ -104,9 +93,9 @@ class User:
     birthday: date | None
     expiration_date: date | None
     active: bool
-    school_memberships: tuple[SchoolMembership, ...] | UnloadedType = UNLOADED
-    legal_wards: tuple["User", ...] | UnloadedType = UNLOADED
-    legal_guardians: tuple["User", ...] | UnloadedType = UNLOADED
+    school_memberships: frozenset[SchoolMembership] | UnloadedType = UNLOADED
+    legal_wards: frozenset["User"] | UnloadedType = UNLOADED
+    legal_guardians: frozenset["User"] | UnloadedType = UNLOADED
 
     def __hash__(self) -> int:
         return hash(self.public_id)
@@ -116,7 +105,7 @@ class User:
             return NotImplemented
         return self.public_id == other.public_id
 
-    @cached_property
+    @property
     def primary_school(self) -> School | UnloadedType:
         if isinstance(self.school_memberships, UnloadedType):
             return UNLOADED
@@ -125,14 +114,13 @@ class User:
                 return membership.school
         raise ValueError("User has no primary school membership.")
 
-    @cached_property
-    def groups(self) -> tuple[Group, ...] | UnloadedType:
+    @property
+    def groups(self) -> frozenset[Group] | UnloadedType:
         if isinstance(self.school_memberships, UnloadedType):
             return UNLOADED
-        by_public_id: dict[UUID, Group] = {}
+        result: set[Group] = set()
         for membership in self.school_memberships:
             if isinstance(membership.groups, UnloadedType):
                 return UNLOADED
-            for group in membership.groups:
-                by_public_id[group.public_id] = group
-        return tuple(by_public_id.values())
+            result.update(membership.groups)
+        return frozenset(result)

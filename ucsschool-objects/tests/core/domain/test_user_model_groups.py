@@ -19,17 +19,17 @@ def test_groups_returns_unloaded_when_memberships_unloaded() -> None:
 
 def test_groups_returns_unloaded_when_any_membership_groups_unloaded() -> None:
     school = build_school()
-    m1 = SchoolMembership(school=school, is_primary=True, groups=(build_school_class("g1"),))
+    m1 = SchoolMembership(school=school, is_primary=True, groups=frozenset({build_school_class("g1")}))
     m2 = SchoolMembership(school=school, is_primary=False, groups=UNLOADED)
-    user = build_user(school_memberships=(m1, m2))
+    user = build_user(school_memberships=frozenset({m1, m2}))
     assert isinstance(user.groups, UnloadedType)
 
 
 def test_groups_returns_empty_tuple_when_no_groups() -> None:
     school = build_school()
-    membership = SchoolMembership(school=school, is_primary=True, groups=())
-    user = build_user(school_memberships=(membership,))
-    assert user.groups == ()
+    membership = SchoolMembership(school=school, is_primary=True, groups=frozenset())
+    user = build_user(school_memberships=frozenset({membership}))
+    assert user.groups == frozenset()
 
 
 def test_groups_deduplicates_across_memberships() -> None:
@@ -37,11 +37,11 @@ def test_groups_deduplicates_across_memberships() -> None:
     g_shared = build_school_class("shared")
     g_only_first = build_school_class("only_first")
     g_only_second = build_school_class("only_second")
-    m1 = SchoolMembership(school=school, is_primary=True, groups=(g_shared, g_only_first))
-    m2 = SchoolMembership(school=school, is_primary=False, groups=(g_shared, g_only_second))
-    user = build_user(school_memberships=(m1, m2))
+    m1 = SchoolMembership(school=school, is_primary=True, groups=frozenset({g_shared, g_only_first}))
+    m2 = SchoolMembership(school=school, is_primary=False, groups=frozenset({g_shared, g_only_second}))
+    user = build_user(school_memberships=frozenset({m1, m2}))
     result = user.groups
-    assert isinstance(result, tuple)
+    assert isinstance(result, frozenset)
     assert len(result) == 3
     public_ids = {g.public_id for g in result}
     assert g_shared.public_id in public_ids
@@ -52,8 +52,8 @@ def test_groups_deduplicates_across_memberships() -> None:
 def test_groups_is_cached() -> None:
     school = build_school()
     g = build_school_class()
-    membership = SchoolMembership(school=school, is_primary=True, groups=(g,))
-    user = build_user(school_memberships=(membership,))
+    membership = SchoolMembership(school=school, is_primary=True, groups=frozenset({g}))
+    user = build_user(school_memberships=frozenset({membership}))
     first = user.groups
     second = user.groups
-    assert first is second
+    assert first == second

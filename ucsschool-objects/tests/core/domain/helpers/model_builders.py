@@ -4,13 +4,13 @@ import uuid
 
 from ucsschool_objects.core.domain import (
     UNLOADED,
+    Group,
     Role,
     School,
     SchoolMembership,
     UnloadedType,
     User,
 )
-from ucsschool_objects.core.domain.models import SchoolClass, WorkGroup
 
 
 def school(name: str = "testschool") -> School:
@@ -20,8 +20,8 @@ def school(name: str = "testschool") -> School:
         source_uid="s1",
         name=name,
         display_name={},
-        educational_servers=("srv",),
-        administrative_servers=(),
+        educational_servers=frozenset({"srv"}),
+        administrative_servers=frozenset(),
         class_share_file_server=None,
         home_share_file_server=None,
     )
@@ -31,8 +31,8 @@ def role(name: str = "teacher") -> Role:
     return Role(public_id=uuid.uuid4(), name=name, display_name={})
 
 
-def school_class(name: str = "class1") -> SchoolClass:
-    return SchoolClass(
+def school_class(name: str = "class1") -> Group:
+    return Group(
         public_id=uuid.uuid4(),
         record_uid="rg",
         source_uid="sg",
@@ -43,8 +43,8 @@ def school_class(name: str = "class1") -> SchoolClass:
     )
 
 
-def workgroup(name: str = "wg1") -> WorkGroup:
-    return WorkGroup(
+def workgroup(name: str = "wg1") -> Group:
+    return Group(
         public_id=uuid.uuid4(),
         record_uid="rwg",
         source_uid="swg",
@@ -53,15 +53,15 @@ def workgroup(name: str = "wg1") -> WorkGroup:
         create_share=False,
         group_type="workgroup",
         email=None,
-        allowed_email_senders_users=(),
-        allowed_email_senders_groups=(),
+        allowed_email_senders_users=frozenset(),
+        allowed_email_senders_groups=frozenset(),
     )
 
 
 def user(
-    school_memberships: tuple[SchoolMembership, ...] | UnloadedType = UNLOADED,
-    legal_wards: tuple[User, ...] | UnloadedType = UNLOADED,
-    legal_guardians: tuple[User, ...] | UnloadedType = UNLOADED,
+    school_memberships: frozenset[SchoolMembership] | UnloadedType = UNLOADED,
+    legal_wards: frozenset[User] | UnloadedType = UNLOADED,
+    legal_guardians: frozenset[User] | UnloadedType = UNLOADED,
 ) -> User:
     return User(
         public_id=uuid.uuid4(),

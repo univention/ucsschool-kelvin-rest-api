@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from typing import get_args, get_origin, get_type_hints
 
-from ucsschool_objects.core.ports import Reader
+from ucsschool_objects.core.domain.ports import Reader
 
 
 def test_reader_protocol_search_returns_iterable() -> None:

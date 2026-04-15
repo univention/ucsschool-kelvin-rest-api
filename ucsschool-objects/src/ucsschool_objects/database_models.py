@@ -1,3 +1,13 @@
+"""Internal SQLAlchemy ORM models.
+
+.. warning::
+    This module is **internal**.  It is consumed by the SQLAlchemy adapter
+    layer (``ucsschool_objects.core.adapters.sqlalchemy``) and is **not** part
+    of the public API.  Its contents may change between releases without
+    deprecation notice.  Use the domain dataclasses exposed via the top-level
+    ``ucsschool_objects`` package instead.
+"""
+
 from __future__ import annotations
 
 import uuid
@@ -18,7 +28,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from sqlalchemy.engine import Connection
     from sqlalchemy.orm import Mapper
 

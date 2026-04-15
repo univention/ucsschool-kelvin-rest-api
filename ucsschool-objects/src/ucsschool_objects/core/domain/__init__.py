@@ -1,4 +1,5 @@
 from .errors import (
+    CorelibError,
     EmptyAndClause,
     EmptyOrClause,
     InvalidFilter,
@@ -17,12 +18,11 @@ from .models import (
     Group,
     Role,
     School,
-    SchoolClass,
     SchoolMembership,
     UnloadedType,
     User,
-    WorkGroup,
 )
+from .ports import Reader
 from .query import (
     And,
     Filter,
@@ -44,6 +44,7 @@ __all__ = [
     "FilterScalarValue",
     "FilterValue",
     "Group",
+    "CorelibError",
     "EmptyAndClause",
     "EmptyOrClause",
     "InvalidFilter",
@@ -56,9 +57,9 @@ __all__ = [
     "Operator",
     "Or",
     "QueryExpr",
+    "Reader",
     "Role",
     "School",
-    "SchoolClass",
     "SchoolMembership",
     "SearchQuery",
     "SortSpec",
@@ -69,5 +70,4 @@ __all__ = [
     "UnsupportedOperation",
     "UnsupportedSortField",
     "User",
-    "WorkGroup",
 ]

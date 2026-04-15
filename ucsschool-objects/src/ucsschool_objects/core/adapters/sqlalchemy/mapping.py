@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TypeVar
-
 from ucsschool_objects.core.domain import (
     UNLOADED,
     Group,
@@ -11,7 +9,6 @@ from ucsschool_objects.core.domain import (
     UnloadedType,
     User,
 )
-from ucsschool_objects.core.domain.models import SchoolClass, WorkGroup
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     Role as RoleModel,
@@ -19,19 +16,6 @@ from ucsschool_objects.database_models import (
     SchoolMembership as SchoolMembershipModel,
     User as UserModel,
 )
-
-GroupModelT = TypeVar("GroupModelT", bound=Group)
-GROUP_PROJECTION_BY_TYPE: dict[str, type[Group]] = {
-    "school_class": SchoolClass,
-    "workgroup": WorkGroup,
-}
-
-
-def projection_group_type_name(group_cls: type[Group]) -> str:
-    for name, mapped_cls in GROUP_PROJECTION_BY_TYPE.items():
-        if mapped_cls is group_cls:
-            return name
-    raise ValueError(f"No group type mapping configured for {group_cls.__name__}.")
 
 
 def to_school(model: SchoolModel) -> School:
@@ -41,8 +25,8 @@ def to_school(model: SchoolModel) -> School:
         source_uid=model.source_uid,
         name=model.name,
         display_name=dict(model.display_name),
-        educational_servers=tuple(model.educational_servers),
-        administrative_servers=tuple(model.administrative_servers),
+        educational_servers=frozenset(model.educational_servers),
+        administrative_servers=frozenset(model.administrative_servers),
         class_share_file_server=model.class_share_file_server,
         home_share_file_server=model.home_share_file_server,
     )
@@ -56,14 +40,14 @@ def to_role(model: RoleModel) -> Role:
     )
 
 
-def to_group(model: GroupModel, group_cls: type[GroupModelT], *, include_school: bool) -> GroupModelT:
+def to_group(model: GroupModel, *, include_school: bool) -> Group:
     school: School | UnloadedType
     if include_school:
         school = to_school(model.school)
     else:
         school = UNLOADED
 
-    return group_cls(
+    return Group(
         public_id=model.public_id,
         record_uid=model.record_uid,
         source_uid=model.source_uid,
@@ -72,21 +56,13 @@ def to_group(model: GroupModel, group_cls: type[GroupModelT], *, include_school:
         create_share=model.has_share,
         group_type=model.group_type.name,
         email=model.email,
-        allowed_email_senders_users=tuple(
-            sorted(user.name for user in model.allowed_email_senders_users)
-        ),
-        allowed_email_senders_groups=tuple(
-            sorted(group.name for group in model.allowed_email_senders_groups)
+        allowed_email_senders_users=frozenset(user.name for user in model.allowed_email_senders_users),
+        allowed_email_senders_groups=frozenset(
+            group.name for group in model.allowed_email_senders_groups
         ),
         member_roles=UNLOADED,
         school=school,
     )
-
-
-def to_group_projection(model: GroupModel, *, include_school: bool) -> Group:
-    group_type_name = model.group_type.name.lower()
-    group_cls = GROUP_PROJECTION_BY_TYPE.get(group_type_name, Group)
-    return to_group(model, group_cls, include_school=include_school)
 
 
 def _to_school_membership(
@@ -95,11 +71,11 @@ def _to_school_membership(
     include_roles: bool,
     include_groups: bool,
 ) -> SchoolMembership:
-    roles: tuple[Role, ...] | UnloadedType = (
-        tuple(to_role(r) for r in model.roles) if include_roles else UNLOADED
+    roles: frozenset[Role] | UnloadedType = (
+        frozenset(to_role(r) for r in model.roles) if include_roles else UNLOADED
     )
-    groups: tuple[Group, ...] | UnloadedType = (
-        tuple(to_group_projection(g, include_school=False) for g in model.groups)
+    groups: frozenset[Group] | UnloadedType = (
+        frozenset(to_group(g, include_school=False) for g in model.groups)
         if include_groups
         else UNLOADED
     )
@@ -129,8 +105,8 @@ def _to_related_user(model: UserModel) -> User:
     )
 
 
-def _optional_user_relation(models: tuple[UserModel, ...] | list[UserModel]) -> tuple[User, ...]:
-    return tuple(_to_related_user(model) for model in models)
+def _optional_user_relation(models: tuple[UserModel, ...] | list[UserModel]) -> frozenset[User]:
+    return frozenset(_to_related_user(model) for model in models)
 
 
 def to_user(
@@ -142,19 +118,19 @@ def to_user(
     include_legal_wards: bool,
     include_legal_guardians: bool,
 ) -> User:
-    school_memberships: tuple[SchoolMembership, ...] | UnloadedType = UNLOADED
+    school_memberships: frozenset[SchoolMembership] | UnloadedType = UNLOADED
 
     if include_memberships:
-        school_memberships = tuple(
+        school_memberships = frozenset(
             _to_school_membership(m, include_roles=include_roles, include_groups=include_groups)
             for m in model.school_memberships
         )
 
-    legal_wards: tuple[User, ...] | UnloadedType = UNLOADED
+    legal_wards: frozenset[User] | UnloadedType = UNLOADED
     if include_legal_wards:
         legal_wards = _optional_user_relation(model.legal_wards)
 
-    legal_guardians: tuple[User, ...] | UnloadedType = UNLOADED
+    legal_guardians: frozenset[User] | UnloadedType = UNLOADED
     if include_legal_guardians:
         legal_guardians = _optional_user_relation(model.legal_guardians)
 
