@@ -11,7 +11,7 @@ def test_school_membership_holds_roles() -> None:
     school = build_school()
     role1 = build_role("teacher")
     role2 = build_role("student")
-    membership = SchoolMembership(school=school, is_primary=True, roles=(role1, role2))
+    membership = SchoolMembership(school=school, is_primary=True, roles=frozenset({role1, role2}))
     roles = membership.roles
     assert not isinstance(roles, UnloadedType)
     assert len(roles) == 2
