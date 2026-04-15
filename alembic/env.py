@@ -36,7 +36,9 @@ def advisory_lock(connection, timeout_seconds: int = 60):
             start_time = time.time()
             while time.time() - start_time < timeout_seconds:
                 # pg_try_advisory_lock returns True/False immediately
-                result = connection.execute(text(f"SELECT pg_try_advisory_lock({lock_id})")).scalar()
+                result = connection.execute(
+                    text("SELECT pg_try_advisory_lock(:lock_id)"), {"lock_id": lock_id}
+                ).scalar()
                 connection.commit()
                 if result:
                     lock_acquired = True
@@ -55,7 +57,9 @@ def advisory_lock(connection, timeout_seconds: int = 60):
         if dialect != "postgresql" or not lock_acquired:
             return
 
-        result = connection.execute(text(f"SELECT pg_advisory_unlock({lock_id})")).scalar()
+        result = connection.execute(
+            text("SELECT pg_advisory_unlock(:lock_id)"), {"lock_id": lock_id}
+        ).scalar()
         connection.commit()
         if result:
             logger.debug("Postgres advisory lock released.")
