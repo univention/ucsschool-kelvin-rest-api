@@ -40,7 +40,7 @@ async def test_primary_school_via_reader(
     results = list(
         await reader.search(
             SearchQuery(where=Filter(field="name", op=Operator.EQ, value="primaryuser")),
-            load=LoadSpec.from_relations("school_memberships"),
+            load=LoadSpec.from_attributes("primary_school"),
         )
     )
     assert len(results) == 1
@@ -65,7 +65,7 @@ async def test_primary_school_raises_when_no_primary(
     results = list(
         await reader.search(
             SearchQuery(where=Filter(field="name", op=Operator.EQ, value="noprimaryuser")),
-            load=LoadSpec.from_relations("school_memberships"),
+            load=LoadSpec.from_attributes("primary_school"),
         )
     )
     assert len(results) == 1
@@ -94,7 +94,7 @@ async def test_groups_flat_via_reader(
     results = list(
         await reader.search(
             SearchQuery(where=Filter(field="name", op=Operator.EQ, value="groupuser")),
-            load=LoadSpec.from_relations("school_memberships", "groups"),
+            load=LoadSpec.from_attributes("groups"),
         )
     )
     assert len(results) == 1
@@ -105,7 +105,7 @@ async def test_groups_flat_via_reader(
 
 
 @pytest.mark.asyncio
-async def test_roles_accessible_via_school_memberships(
+async def test_roles_via_reader(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
     user_factory: UserFactory,
@@ -124,17 +124,13 @@ async def test_roles_accessible_via_school_memberships(
     results = list(
         await reader.search(
             SearchQuery(where=Filter(field="name", op=Operator.EQ, value="roleuser")),
-            load=LoadSpec.from_relations("school_memberships", "roles"),
+            load=LoadSpec.from_attributes("roles"),
         )
     )
     assert len(results) == 1
     loaded_user = results[0]
-    assert not isinstance(loaded_user.school_memberships, UnloadedType)
-    assert len(loaded_user.school_memberships) == 1
-    sm = next(iter(loaded_user.school_memberships))
-    assert not isinstance(sm.roles, UnloadedType)
-    assert len(sm.roles) == 1
-    assert next(iter(sm.roles)).name == "teacher_role"
+    assert not isinstance(loaded_user.roles, UnloadedType)
+    assert {role.name for role in loaded_user.roles} == {"teacher_role"}
 
 
 @pytest.mark.asyncio
@@ -152,7 +148,7 @@ async def test_legal_wards_via_reader(
     results = list(
         await reader.search(
             SearchQuery(where=Filter(field="name", op=Operator.EQ, value="guardian_user")),
-            load=LoadSpec.from_relations("legal_wards"),
+            load=LoadSpec.from_attributes("legal_wards"),
         )
     )
 
@@ -182,7 +178,7 @@ async def test_legal_guardians_via_reader(
     results = list(
         await reader.search(
             SearchQuery(where=Filter(field="name", op=Operator.EQ, value="ward_two")),
-            load=LoadSpec.from_relations("legal_guardians"),
+            load=LoadSpec.from_attributes("legal_guardians"),
         )
     )
 
