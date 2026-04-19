@@ -124,3 +124,14 @@ class User:
                 return UNLOADED
             result.update(membership.groups)
         return frozenset(result)
+
+    @property
+    def roles(self) -> frozenset[Role] | UnloadedType:
+        if isinstance(self.school_memberships, UnloadedType):
+            return UNLOADED
+        result: set[Role] = set()
+        for membership in self.school_memberships:
+            if isinstance(membership.roles, UnloadedType):
+                return UNLOADED
+            result.update(membership.roles)
+        return frozenset(result)
