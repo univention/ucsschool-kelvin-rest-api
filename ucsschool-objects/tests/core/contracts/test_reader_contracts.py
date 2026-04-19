@@ -155,14 +155,14 @@ async def test_group_reader_loads_school_on_get_and_search(
     group = await group_factory(name="group-a", school=school, group_type=workgroup_type)
     reader = SQLAlchemyGroupReader(db_session)
 
-    fetched = await reader.get(group.public_id, load=LoadSpec.from_relations("school"))
+    fetched = await reader.get(group.public_id, load=LoadSpec.from_attributes("school"))
     assert not isinstance(fetched.school, UnloadedType)
     assert fetched.school.name == "alpha"
 
     searched = list(
         await reader.search(
             SearchQuery(where=Filter(field="name", op=Operator.EQ, value="group-a")),
-            load=LoadSpec.from_relations("school"),
+            load=LoadSpec.from_attributes("school"),
         )
     )
     assert len(searched) == 1
@@ -185,7 +185,7 @@ async def test_user_reader_supports_load_and_search(
     results = list(
         await reader.search(
             SearchQuery(where=Filter(field="name", op=Operator.EQ, value="anna")),
-            load=LoadSpec.from_relations("school_memberships"),
+            load=LoadSpec.from_attributes("primary_school"),
         )
     )
     assert len(results) == 1

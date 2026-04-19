@@ -66,6 +66,36 @@ class UnsupportedFilterOperator(InvalidFilter):
         super().__init__(f"Unsupported operator {operator!r} for field {field!r}")
 
 
+class UnsupportedNestedField(InvalidFilter):
+    """Raised when a nested field query references an unsupported relationship or field."""
+
+    def __init__(
+        self,
+        nested_field: str,
+        root_relation: str = "",
+        allowed_relations: list[str] | None = None,
+        reason: str = "",
+        supported_fields: list[str] | None = None,
+    ) -> None:
+        self.nested_field = nested_field
+        self.root_relation = root_relation
+        self.allowed_relations = allowed_relations or []
+        self.reason = reason
+        self.supported_fields = supported_fields or []
+
+        msg = f"Unsupported nested field: {nested_field!r}"
+        if reason:
+            msg += f" ({reason})"
+
+        if supported_fields:
+            msg += f". Supported fields: {', '.join(supported_fields)}"
+
+        if root_relation and allowed_relations:
+            msg += f". Unknown relation '{root_relation}'. Allowed: {', '.join(allowed_relations)}"
+
+        super().__init__(msg)
+
+
 class EmptyAndClause(InvalidFilter):
     """Raised when an And expression contains no clauses."""
 
