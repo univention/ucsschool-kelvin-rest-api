@@ -24,7 +24,7 @@ class Reader(Protocol[ReaderT]):
 
         Args:
             public_id: Public identifier of the object to fetch.
-            load: Optional relation/loading specification for eager loading.
+            load: Optional attribute/loading specification for eager loading.
         """
 
         ...
@@ -49,7 +49,7 @@ class Reader(Protocol[ReaderT]):
             sort_by: Sort fields and direction.
             limit: Maximum number of records to return.
             offset: Number of matching records to skip.
-            load: Optional relation/loading specification for eager loading.
+            load: Optional attribute/loading specification for eager loading.
         """
 
         ...
