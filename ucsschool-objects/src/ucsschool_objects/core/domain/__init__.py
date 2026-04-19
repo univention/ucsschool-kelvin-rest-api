@@ -9,6 +9,7 @@ from .errors import (
     NotFound,
     UnsupportedFilterField,
     UnsupportedFilterOperator,
+    UnsupportedNestedField,
     UnsupportedOperation,
     UnsupportedSortField,
 )
@@ -67,6 +68,7 @@ __all__ = [
     "UnloadedType",
     "UnsupportedFilterField",
     "UnsupportedFilterOperator",
+    "UnsupportedNestedField",
     "UnsupportedOperation",
     "UnsupportedSortField",
     "User",
