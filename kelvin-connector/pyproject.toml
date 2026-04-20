@@ -1,0 +1,43 @@
+[project]
+name = "kelvin-connector"
+version = "0.1.0"
+description = "Connector from Nubus to Kelvin"
+readme = "README.md"
+authors = [
+    { name = "Univention GmbH", email = "ucsschool-maintainers@univention.de" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "sqlalchemy>=2.0.48",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.10,<0.11.0"]
+build-backend = "uv_build"
+
+[project.scripts]
+connector = "kelvin_connector:connector"
+
+[tool.pytest.ini_options]
+addopts = "--verbose --showlocals -p no:warnings  --cov=kelvin_connector --cov-report=term-missing"
+testpaths = ["tests"]
+
+
+[tool.coverage.run]
+source = ["src/kelvin_connector"]
+branch = true
+omit = ["*/src/kelvin_connector/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=4.0.0",
+]
