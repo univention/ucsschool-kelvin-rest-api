@@ -37,6 +37,7 @@ from .query import (
     SearchQuery,
     SortSpec,
 )
+from .validators import GroupValidator, RoleValidator, SchoolValidator, UserValidator
 
 __all__ = [
     "And",
@@ -45,6 +46,7 @@ __all__ = [
     "FilterScalarValue",
     "FilterValue",
     "Group",
+    "GroupValidator",
     "CorelibError",
     "EmptyAndClause",
     "EmptyOrClause",
@@ -60,8 +62,10 @@ __all__ = [
     "QueryExpr",
     "Manager",
     "Role",
+    "RoleValidator",
     "School",
     "SchoolMembership",
+    "SchoolValidator",
     "SearchQuery",
     "SortSpec",
     "UNLOADED",
@@ -72,4 +76,5 @@ __all__ = [
     "UnsupportedOperation",
     "UnsupportedSortField",
     "User",
+    "UserValidator",
 ]
