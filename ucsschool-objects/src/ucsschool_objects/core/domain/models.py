@@ -16,14 +16,14 @@ UNLOADED = UnloadedType()
 @dataclass(frozen=True, eq=False)
 class School:
     public_id: UUID
-    record_uid: str
-    source_uid: str
-    name: str
-    display_name: dict[str, str]
-    educational_servers: frozenset[str]
-    administrative_servers: frozenset[str]
-    class_share_file_server: str | None
-    home_share_file_server: str | None
+    record_uid: str | UnloadedType = UNLOADED
+    source_uid: str | UnloadedType = UNLOADED
+    name: str | UnloadedType = UNLOADED
+    display_name: dict[str, str] | UnloadedType = UNLOADED
+    educational_servers: frozenset[str] | UnloadedType = UNLOADED
+    administrative_servers: frozenset[str] | UnloadedType = UNLOADED
+    class_share_file_server: str | None | UnloadedType = UNLOADED
+    home_share_file_server: str | None | UnloadedType = UNLOADED
 
     def __hash__(self) -> int:
         return hash(self.public_id)
@@ -37,8 +37,8 @@ class School:
 @dataclass(frozen=True, eq=False)
 class Role:
     public_id: UUID
-    name: str
-    display_name: dict[str, str]
+    name: str | UnloadedType = UNLOADED
+    display_name: dict[str, str] | UnloadedType = UNLOADED
 
     def __hash__(self) -> int:
         return hash(self.public_id)
@@ -52,13 +52,13 @@ class Role:
 @dataclass(frozen=True, eq=False)
 class Group:
     public_id: UUID
-    record_uid: str
-    source_uid: str
-    name: str
-    display_name: dict[str, str]
-    create_share: bool
-    group_type: str
-    email: str | None = None
+    record_uid: str | UnloadedType = UNLOADED
+    source_uid: str | UnloadedType = UNLOADED
+    name: str | UnloadedType = UNLOADED
+    display_name: dict[str, str] | UnloadedType = UNLOADED
+    create_share: bool | UnloadedType = UNLOADED
+    group_type: str | UnloadedType = UNLOADED
+    email: str | None | UnloadedType = UNLOADED
     allowed_email_senders_users: frozenset[str] | UnloadedType = UNLOADED
     allowed_email_senders_groups: frozenset[str] | UnloadedType = UNLOADED
     member_roles: frozenset[Role] | UnloadedType = UNLOADED
@@ -73,26 +73,44 @@ class Group:
         return self.public_id == other.public_id
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class SchoolMembership:
-    school: School | UnloadedType
+    school: School
     is_primary: bool
-    roles: frozenset[Role] | UnloadedType = UNLOADED
-    groups: frozenset[Group] | UnloadedType = UNLOADED
+    roles: frozenset[Role]
+    groups: frozenset[Group]
+
+    def __hash__(self) -> int:
+        return hash((self.school, self.is_primary, self.roles, self.groups))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SchoolMembership):
+            return NotImplemented
+        return (
+            self.school,
+            self.is_primary,
+            self.roles,
+            self.groups,
+        ) == (
+            other.school,
+            other.is_primary,
+            other.roles,
+            other.groups,
+        )
 
 
 @dataclass(frozen=True, eq=False)
 class User:
     public_id: UUID
-    record_uid: str
-    source_uid: str
-    name: str
-    firstname: str
-    lastname: str
-    email: str | None
-    birthday: date | None
-    expiration_date: date | None
-    active: bool
+    record_uid: str | UnloadedType = UNLOADED
+    source_uid: str | UnloadedType = UNLOADED
+    name: str | UnloadedType = UNLOADED
+    firstname: str | UnloadedType = UNLOADED
+    lastname: str | UnloadedType = UNLOADED
+    email: str | None | UnloadedType = UNLOADED
+    birthday: date | None | UnloadedType = UNLOADED
+    expiration_date: date | None | UnloadedType = UNLOADED
+    active: bool | UnloadedType = UNLOADED
     school_memberships: frozenset[SchoolMembership] | UnloadedType = UNLOADED
     legal_wards: frozenset["User"] | UnloadedType = UNLOADED
     legal_guardians: frozenset["User"] | UnloadedType = UNLOADED
@@ -120,8 +138,6 @@ class User:
             return UNLOADED
         result: set[Group] = set()
         for membership in self.school_memberships:
-            if isinstance(membership.groups, UnloadedType):
-                return UNLOADED
             result.update(membership.groups)
         return frozenset(result)
 
@@ -131,7 +147,5 @@ class User:
             return UNLOADED
         result: set[Role] = set()
         for membership in self.school_memberships:
-            if isinstance(membership.roles, UnloadedType):
-                return UNLOADED
             result.update(membership.roles)
         return frozenset(result)
