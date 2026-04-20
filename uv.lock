@@ -4,6 +4,7 @@ requires-python = ">=3.11"
 
 [manifest]
 members = [
+    "kelvin-connector",
     "ucs-school-import",
     "ucs-school-lib",
     "ucsschool-kelvin-rest-api",
@@ -605,6 +606,29 @@ name = "ipaddr"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/9d/a7/1b39a16cb90dfe491f57e1cab3103a15d4e8dd9a150872744f531b1106c1/ipaddr-2.2.0.tar.gz", hash = "sha256:4092dfe667588d16aa12b59acb7c8a4024e5dcb23a681cd0b0b602373eca88d6", size = 26266, upload-time = "2017-09-15T20:08:39.692Z" }
+
+[[package]]
+name = "kelvin-connector"
+version = "0.1.0"
+source = { editable = "kelvin-connector" }
+dependencies = [
+    { name = "sqlalchemy" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "sqlalchemy", specifier = ">=2.0.48" }]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-cov", specifier = ">=4.0.0" },
+]
 
 [[package]]
 name = "lazy-object-proxy"
@@ -1569,6 +1593,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "gunicorn" },
     { name = "httpx" },
+    { name = "kelvin-connector" },
     { name = "lazy-object-proxy" },
     { name = "openapi-client-udm" },
     { name = "orjson" },
@@ -1618,6 +1643,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.95.2,<0.98.0" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "httpx", specifier = "<0.28.0" },
+    { name = "kelvin-connector", editable = "kelvin-connector" },
     { name = "lazy-object-proxy", specifier = ">=1.11.0" },
     { name = "openapi-client-udm", path = "openapi-client-udm-1.0.2.tar.gz" },
     { name = "orjson", specifier = ">=3.11.0" },
