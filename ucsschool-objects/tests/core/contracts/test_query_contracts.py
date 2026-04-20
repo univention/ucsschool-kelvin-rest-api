@@ -111,7 +111,7 @@ async def _setup_group_like_school_case(factories: GroupQueryFactories) -> Query
     await factories.group_factory(name="group-a", school=alpha_school, group_type=workgroup_type)
     await factories.group_factory(name="group-b", school=beta_school, group_type=workgroup_type)
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="school_name", op=Operator.LIKE, value="alpha%")),
+        query=SearchQuery(where=Filter(field="school.name", op=Operator.LIKE, value="alpha%")),
         expected_names=("group-a",),
     )
 
@@ -127,7 +127,7 @@ async def _setup_group_and_case(factories: GroupQueryFactories) -> QueryExpectat
         query=SearchQuery(
             where=And(
                 clauses=(
-                    Filter(field="school_name", op=Operator.LIKE, value="alpha%"),
+                    Filter(field="school.name", op=Operator.LIKE, value="alpha%"),
                     Filter(field="name", op=Operator.EQ, value="group-a"),
                 )
             )

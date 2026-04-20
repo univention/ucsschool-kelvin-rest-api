@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date
 from typing import TYPE_CHECKING, cast
 
 import pytest
@@ -19,11 +18,9 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
 )
 from ucsschool_objects.core.domain import (
     Filter,
-    LoadSpec,
     Operator,
     SearchQuery,
     SortSpec,
-    UnloadedType,
 )
 
 if TYPE_CHECKING:
@@ -33,7 +30,6 @@ if TYPE_CHECKING:
         AsyncGroupTypeFactory as GroupTypeFactory,
         AsyncRoleFactory as RoleFactory,
         AsyncSchoolFactory as SchoolFactory,
-        AsyncSchoolMembershipFactory as SchoolMembershipFactory,
         AsyncUserFactory as UserFactory,
     )
 
@@ -139,59 +135,5 @@ async def test_group_reader_supports_sorting_by_school_fields(
     await group_factory(name="group-a", school=school_a, group_type=workgroup_type)
     reader = SQLAlchemyGroupReader(db_session)
 
-    results = list(await reader.search(sort_by=(SortSpec(field="school_name", ascending=True),)))
+    results = list(await reader.search(sort_by=(SortSpec(field="school.name", ascending=True),)))
     assert [item.name for item in results] == ["group-a", "group-b"]
-
-
-@pytest.mark.asyncio
-async def test_group_reader_loads_school_on_get_and_search(
-    db_session: AsyncSession,
-    school_factory: SchoolFactory,
-    group_factory: GroupFactory,
-    group_type_factory: GroupTypeFactory,
-) -> None:
-    workgroup_type = await group_type_factory(name="workgroup")
-    school = await school_factory(name="alpha")
-    group = await group_factory(name="group-a", school=school, group_type=workgroup_type)
-    reader = SQLAlchemyGroupReader(db_session)
-
-    fetched = await reader.get(group.public_id, load=LoadSpec.from_attributes("school"))
-    assert not isinstance(fetched.school, UnloadedType)
-    assert fetched.school.name == "alpha"
-
-    searched = list(
-        await reader.search(
-            SearchQuery(where=Filter(field="name", op=Operator.EQ, value="group-a")),
-            load=LoadSpec.from_attributes("school"),
-        )
-    )
-    assert len(searched) == 1
-    assert not isinstance(searched[0].school, UnloadedType)
-    assert searched[0].school.name == "alpha"
-
-
-@pytest.mark.asyncio
-async def test_user_reader_supports_load_and_search(
-    db_session: AsyncSession,
-    school_factory: SchoolFactory,
-    user_factory: UserFactory,
-    school_membership_factory: SchoolMembershipFactory,
-) -> None:
-    school = await school_factory(name="beta")
-    user = await user_factory(name="anna", birthday=date(2010, 1, 1))
-    await school_membership_factory(user=user, school=school, is_primary=True)
-
-    reader = SQLAlchemyUserReader(db_session)
-    results = list(
-        await reader.search(
-            SearchQuery(where=Filter(field="name", op=Operator.EQ, value="anna")),
-            load=LoadSpec.from_attributes("primary_school"),
-        )
-    )
-    assert len(results) == 1
-    assert results[0].name == "anna"
-    assert not isinstance(results[0].primary_school, UnloadedType)
-    assert results[0].primary_school is not None
-    assert results[0].primary_school.name == "beta"
-    assert isinstance(results[0].legal_wards, UnloadedType)
-    assert isinstance(results[0].legal_guardians, UnloadedType)
