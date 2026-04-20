@@ -55,6 +55,7 @@ COPY ucs-school-lib ./ucs-school-lib
 COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
 COPY univention-lib-slim ./univention-lib-slim
 COPY ucsschool-objects ./ucsschool-objects
+COPY kelvin-connector ./kelvin-connector
 COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
@@ -63,7 +64,7 @@ RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked
 RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
 
 
-FROM base AS prod
+FROM base AS kelvin-prod
 
 RUN apt-get install -y libldap-2.5-0 openjdk-17-jre-headless procps libmagic1
 RUN mkdir -pv /etc/univention/kelvin
@@ -83,6 +84,7 @@ COPY ucs-school-lib ./ucs-school-lib
 COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
 COPY univention-lib-slim ./univention-lib-slim
 COPY ucsschool-objects ./ucsschool-objects
+COPY kelvin-connector ./kelvin-connector
 COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-school-import/usr/share/ucs-school-import/configs/ /usr/share/ucs-school-import/configs/
 COPY ucs-school-import/modules/ucsschool/lib/create_ou.py ucs-school-lib/modules/ucsschool/lib/create_ou.py
@@ -108,3 +110,50 @@ LABEL "description"="Image of UCS app 'UCS@school Kelvin REST API' ('$app_id')."
     "release date"="$date" \
     "commit"="$commit" \
     "APP_NAME"="ucsschool-kelvin-rest-api"
+
+
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-524:latest AS connector-builder
+
+WORKDIR /app
+
+ENV UV_SYSTEM_PYTHON=1
+ENV UV_PROJECT_ENVIRONMENT="/venv"
+ENV UV_VERSION=0.10.10
+ENV PIPX_BIN_DIR="/usr/local/bin"
+RUN apt-get install -y pipx git
+RUN pipx install uv=="$UV_VERSION"
+
+COPY uv.lock .
+COPY pyproject.toml .
+COPY kelvin-api ./kelvin-api
+COPY ucs-school-import ./ucs-school-import
+COPY ucs-school-lib ./ucs-school-lib
+COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
+COPY univention-lib-slim ./univention-lib-slim
+COPY openapi-client-udm-1.0.2.tar.gz .
+COPY ucsschool-objects ./ucsschool-objects
+COPY kelvin-connector ./kelvin-connector
+COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
+
+RUN uv --directory ./kelvin-connector sync --locked
+
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-524:latest AS connector-prod
+ENV PYTHONUNBUFFERED=1
+ENV VIRTUAL_ENV="/venv"
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+WORKDIR /app
+
+COPY --from=connector-builder $VIRTUAL_ENV $VIRTUAL_ENV
+COPY docker/start-connector.sh .
+COPY alembic ./alembic
+COPY kelvin-connector ./kelvin-connector
+
+ENTRYPOINT ["/app/start-connector.sh"]
+VOLUME /var/log
+VOLUME /etc/univention
+
+ARG app_id
+ARG commit
+ARG date
+ARG version

@@ -18,12 +18,34 @@ services:
     environment:
       POSTGRES_USER: ucsschool-kelvin-rest-api
       POSTGRES_PASSWORD: univention
-  kelvin:
-    image: ucsschool-kelvin-rest-api:dev
+  connector:
+    image: ucsschool-kelvin-connector:dev
+    pull_policy: build
     build:
       context: ..
       dockerfile: docker/Dockerfile
       network: host
+      target: connector-prod
+    stdin_open: true
+    tty: true
+    environment:
+      LDAP_SERVER_TYPE: "master"
+    develop:
+      watch:
+        - action: sync+restart
+          path: ../ucsschool-objects
+          target: /app/ucsschool-objects
+          ignore:
+            - "**/__pycache__/"
+            - "**/*.pyc"
+  kelvin:
+    image: ucsschool-kelvin-rest-api:dev
+    pull_policy: build
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      network: host
+      target: kelvin-prod
     stdin_open: true
     tty: true
     ports:
@@ -70,6 +92,13 @@ services:
         - action: sync+restart
           path: ../ucs-school-import
           target: /kelvin/ucs-school-import
+          ignore:
+            - "**/__pycache__/"
+            - "**/*.pyc"
+
+        - action: sync+restart
+          path: ../ucsschool-objects
+          target: /kelvin/ucsschool-objects
           ignore:
             - "**/__pycache__/"
             - "**/*.pyc"
