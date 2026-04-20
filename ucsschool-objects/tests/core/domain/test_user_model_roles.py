@@ -17,28 +17,25 @@ def test_roles_returns_unloaded_when_memberships_unloaded() -> None:
     assert isinstance(user.roles, UnloadedType)
 
 
-def test_roles_returns_unloaded_when_any_membership_roles_unloaded() -> None:
-    school = build_school()
-    m1 = SchoolMembership(school=school, is_primary=True, roles=frozenset({build_role("staff")}))
-    m2 = SchoolMembership(school=school, is_primary=False, roles=UNLOADED)
-    user = build_user(school_memberships=frozenset({m1, m2}))
-    assert isinstance(user.roles, UnloadedType)
-
-
 def test_roles_returns_empty_tuple_when_no_roles() -> None:
     school = build_school()
-    membership = SchoolMembership(school=school, is_primary=True, roles=frozenset())
+    membership = SchoolMembership(school=school, is_primary=True, roles=frozenset(), groups=frozenset())
     user = build_user(school_memberships=frozenset({membership}))
     assert user.roles == frozenset()
 
 
 def test_roles_deduplicates_across_memberships() -> None:
-    school = build_school()
+    school1 = build_school("school1")
+    school2 = build_school("school2")
     shared = build_role("shared")
     only_first = build_role("only-first")
     only_second = build_role("only-second")
-    m1 = SchoolMembership(school=school, is_primary=True, roles=frozenset({shared, only_first}))
-    m2 = SchoolMembership(school=school, is_primary=False, roles=frozenset({shared, only_second}))
+    m1 = SchoolMembership(
+        school=school1, is_primary=True, roles=frozenset({shared, only_first}), groups=frozenset()
+    )
+    m2 = SchoolMembership(
+        school=school2, is_primary=False, roles=frozenset({shared, only_second}), groups=frozenset()
+    )
     user = build_user(school_memberships=frozenset({m1, m2}))
     result = user.roles
     assert isinstance(result, frozenset)

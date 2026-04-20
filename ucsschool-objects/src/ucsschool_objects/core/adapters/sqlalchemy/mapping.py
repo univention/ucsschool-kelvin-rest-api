@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Collection, Iterable
+from datetime import date
+from typing import TypeVar, cast, overload
+
+from sqlalchemy import inspect
 from ucsschool_objects.core.domain import (
     UNLOADED,
     Group,
@@ -17,88 +22,163 @@ from ucsschool_objects.database_models import (
     User as UserModel,
 )
 
+TTransformed = TypeVar("TTransformed")
+
+
+def _as_str(value: object) -> str:
+    return cast(str, value)
+
+
+def _as_optional_str(value: object) -> str | None:
+    return cast(str | None, value)
+
+
+def _as_bool(value: object) -> bool:
+    return cast(bool, value)
+
+
+def _as_optional_date(value: object) -> date | None:
+    return cast(date | None, value)
+
+
+def _as_display_name(value: object) -> dict[str, str]:
+    return dict(cast(dict[str, str], value))
+
+
+def _as_frozenset_str(value: object) -> frozenset[str]:
+    return frozenset(cast(Iterable[str], value))
+
+
+def _is_loaded(model: object, attribute: str) -> bool:
+    state = inspect(model, raiseerr=False)
+    if state is None:
+        return True
+    unloaded = getattr(state, "unloaded", None)
+    if unloaded is None:
+        return True
+    return attribute not in cast(Collection[str], unloaded)
+
+
+@overload
+def _loaded_value(
+    model: object,
+    attribute: str,
+    transform: None = None,
+) -> object | UnloadedType:
+    ...  # pragma: no cover
+
+
+@overload
+def _loaded_value(
+    model: object,
+    attribute: str,
+    transform: Callable[[object], TTransformed],
+) -> TTransformed | UnloadedType:
+    ...  # pragma: no cover
+
+
+def _loaded_value(
+    model: object,
+    attribute: str,
+    transform: Callable[[object], TTransformed] | None = None,
+) -> object | TTransformed | UnloadedType:
+    if not _is_loaded(model, attribute):
+        return UNLOADED
+
+    value = cast(object, getattr(model, attribute))
+    if transform is None:
+        return value
+    return transform(value)
+
 
 def to_school(model: SchoolModel) -> School:
     return School(
         public_id=model.public_id,
-        record_uid=model.record_uid,
-        source_uid=model.source_uid,
-        name=model.name,
-        display_name=dict(model.display_name),
-        educational_servers=frozenset(model.educational_servers),
-        administrative_servers=frozenset(model.administrative_servers),
-        class_share_file_server=model.class_share_file_server,
-        home_share_file_server=model.home_share_file_server,
+        record_uid=_loaded_value(model, "record_uid", _as_str),
+        source_uid=_loaded_value(model, "source_uid", _as_str),
+        name=_loaded_value(model, "name", _as_str),
+        display_name=_loaded_value(model, "display_name", _as_display_name),
+        educational_servers=_loaded_value(model, "educational_servers", _as_frozenset_str),
+        administrative_servers=_loaded_value(
+            model,
+            "administrative_servers",
+            _as_frozenset_str,
+        ),
+        class_share_file_server=_loaded_value(model, "class_share_file_server", _as_optional_str),
+        home_share_file_server=_loaded_value(model, "home_share_file_server", _as_optional_str),
     )
 
 
 def to_role(model: RoleModel) -> Role:
     return Role(
         public_id=model.public_id,
-        name=model.name,
-        display_name=dict(model.display_name),
+        name=_loaded_value(model, "name", _as_str),
+        display_name=_loaded_value(model, "display_name", _as_display_name),
     )
 
 
-def to_group(model: GroupModel, *, include_school: bool) -> Group:
-    school: School | UnloadedType
-    if include_school:
+def to_group(model: GroupModel) -> Group:
+    school: School | UnloadedType = UNLOADED
+    if _is_loaded(model, "school"):
         school = to_school(model.school)
-    else:
-        school = UNLOADED
+
+    group_type: str | UnloadedType = UNLOADED
+    if _is_loaded(model, "group_type"):
+        group_type = model.group_type.name
+
+    allowed_email_senders_users: frozenset[str] | UnloadedType = UNLOADED
+    if _is_loaded(model, "allowed_email_senders_users"):
+        allowed_email_senders_users = frozenset(user.name for user in model.allowed_email_senders_users)
+
+    allowed_email_senders_groups: frozenset[str] | UnloadedType = UNLOADED
+    if _is_loaded(model, "allowed_email_senders_groups"):
+        allowed_email_senders_groups = frozenset(
+            group.name for group in model.allowed_email_senders_groups
+        )
+
+    member_roles: frozenset[Role] | UnloadedType = UNLOADED
+    if _is_loaded(model, "member_roles"):
+        member_roles = frozenset(to_role(role) for role in model.member_roles)
 
     return Group(
         public_id=model.public_id,
-        record_uid=model.record_uid,
-        source_uid=model.source_uid,
-        name=model.name,
-        display_name=dict(model.display_name),
-        create_share=model.has_share,
-        group_type=model.group_type.name,
-        email=model.email,
-        allowed_email_senders_users=frozenset(user.name for user in model.allowed_email_senders_users),
-        allowed_email_senders_groups=frozenset(
-            group.name for group in model.allowed_email_senders_groups
-        ),
-        member_roles=UNLOADED,
+        record_uid=_loaded_value(model, "record_uid", _as_str),
+        source_uid=_loaded_value(model, "source_uid", _as_str),
+        name=_loaded_value(model, "name", _as_str),
+        display_name=_loaded_value(model, "display_name", _as_display_name),
+        create_share=_loaded_value(model, "has_share", _as_bool),
+        group_type=group_type,
+        email=_loaded_value(model, "email", _as_optional_str),
+        allowed_email_senders_users=allowed_email_senders_users,
+        allowed_email_senders_groups=allowed_email_senders_groups,
+        member_roles=member_roles,
         school=school,
     )
 
 
 def _to_school_membership(
     model: SchoolMembershipModel,
-    *,
-    include_roles: bool,
-    include_groups: bool,
 ) -> SchoolMembership:
-    roles: frozenset[Role] | UnloadedType = (
-        frozenset(to_role(r) for r in model.roles) if include_roles else UNLOADED
-    )
-    groups: frozenset[Group] | UnloadedType = (
-        frozenset(to_group(g, include_school=False) for g in model.groups)
-        if include_groups
-        else UNLOADED
-    )
     return SchoolMembership(
         school=to_school(model.school),
         is_primary=model.is_primary,
-        roles=roles,
-        groups=groups,
+        roles=frozenset(to_role(r) for r in model.roles),
+        groups=frozenset(to_group(group) for group in model.groups),
     )
 
 
 def _to_related_user(model: UserModel) -> User:
     return User(
         public_id=model.public_id,
-        record_uid=model.record_uid,
-        source_uid=model.source_uid,
-        name=model.name,
-        firstname=model.firstname,
-        lastname=model.lastname,
-        email=model.email,
-        birthday=model.birthday,
-        expiration_date=model.expiration_date,
-        active=model.active,
+        record_uid=_loaded_value(model, "record_uid", _as_str),
+        source_uid=_loaded_value(model, "source_uid", _as_str),
+        name=_loaded_value(model, "name", _as_str),
+        firstname=_loaded_value(model, "firstname", _as_str),
+        lastname=_loaded_value(model, "lastname", _as_str),
+        email=_loaded_value(model, "email", _as_optional_str),
+        birthday=_loaded_value(model, "birthday", _as_optional_date),
+        expiration_date=_loaded_value(model, "expiration_date", _as_optional_date),
+        active=_loaded_value(model, "active", _as_bool),
         school_memberships=UNLOADED,
         legal_wards=UNLOADED,
         legal_guardians=UNLOADED,
@@ -113,18 +193,13 @@ def to_user(
     model: UserModel,
     *,
     include_memberships: bool,
-    include_groups: bool,
-    include_roles: bool,
     include_legal_wards: bool,
     include_legal_guardians: bool,
 ) -> User:
     school_memberships: frozenset[SchoolMembership] | UnloadedType = UNLOADED
 
     if include_memberships:
-        school_memberships = frozenset(
-            _to_school_membership(m, include_roles=include_roles, include_groups=include_groups)
-            for m in model.school_memberships
-        )
+        school_memberships = frozenset(_to_school_membership(m) for m in model.school_memberships)
 
     legal_wards: frozenset[User] | UnloadedType = UNLOADED
     if include_legal_wards:
@@ -136,15 +211,15 @@ def to_user(
 
     return User(
         public_id=model.public_id,
-        record_uid=model.record_uid,
-        source_uid=model.source_uid,
-        name=model.name,
-        firstname=model.firstname,
-        lastname=model.lastname,
-        email=model.email,
-        birthday=model.birthday,
-        expiration_date=model.expiration_date,
-        active=model.active,
+        record_uid=_loaded_value(model, "record_uid", _as_str),
+        source_uid=_loaded_value(model, "source_uid", _as_str),
+        name=_loaded_value(model, "name", _as_str),
+        firstname=_loaded_value(model, "firstname", _as_str),
+        lastname=_loaded_value(model, "lastname", _as_str),
+        email=_loaded_value(model, "email", _as_optional_str),
+        birthday=_loaded_value(model, "birthday", _as_optional_date),
+        expiration_date=_loaded_value(model, "expiration_date", _as_optional_date),
+        active=_loaded_value(model, "active", _as_bool),
         school_memberships=school_memberships,
         legal_wards=legal_wards,
         legal_guardians=legal_guardians,
