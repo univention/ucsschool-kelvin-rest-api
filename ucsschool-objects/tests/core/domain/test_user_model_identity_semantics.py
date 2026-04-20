@@ -10,7 +10,7 @@ from tests.core.domain.helpers.model_builders import (
     user as build_user,
     workgroup as build_workgroup,
 )
-from ucsschool_objects.core.domain import Group, Role, User
+from ucsschool_objects.core.domain import Group, Role, SchoolMembership, User
 
 
 def test_user_is_hashable() -> None:
@@ -101,12 +101,66 @@ def test_group_equality_by_public_id() -> None:
     assert g1 == g2
 
 
+def test_school_membership_equality_uses_school_primary_roles_and_groups() -> None:
+    school = build_school()
+    role = build_role("teacher")
+    group = build_school_class("class-a")
+
+    membership1 = SchoolMembership(
+        school=school,
+        is_primary=True,
+        roles=frozenset({role}),
+        groups=frozenset({group}),
+    )
+    membership2 = SchoolMembership(
+        school=school,
+        is_primary=True,
+        roles=frozenset({role}),
+        groups=frozenset({group}),
+    )
+
+    assert membership1 == membership2
+    assert hash(membership1) == hash(membership2)
+
+
+def test_school_membership_equality_detects_different_loaded_fields() -> None:
+    school = build_school()
+    group = build_school_class("class-a")
+    role1 = build_role("teacher")
+    role2 = build_role("student")
+
+    membership1 = SchoolMembership(
+        school=school,
+        is_primary=True,
+        roles=frozenset({role1}),
+        groups=frozenset({group}),
+    )
+    membership2 = SchoolMembership(
+        school=school,
+        is_primary=True,
+        roles=frozenset({role2}),
+        groups=frozenset({group}),
+    )
+
+    assert membership1 != membership2
+    assert hash(membership1) != hash(membership2)
+
+
 @pytest.mark.parametrize(
     "entity",
     [
         pytest.param(build_school(), id="school"),
         pytest.param(build_role(), id="role"),
         pytest.param(build_school_class(), id="group"),
+        pytest.param(
+            SchoolMembership(
+                school=build_school(),
+                is_primary=True,
+                roles=frozenset(),
+                groups=frozenset(),
+            ),
+            id="school-membership",
+        ),
         pytest.param(build_user(), id="user"),
     ],
 )
