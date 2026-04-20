@@ -11,7 +11,10 @@ from ucsschool_objects.core.adapters.sqlalchemy.readers import (
     JoinType,
     SQLAlchemyGroupReader,
     SQLAlchemyRoleReader,
+    SQLAlchemySchoolReader,
     SQLAlchemyUserReader,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.readers._shared import (
     _compose_field_map,
     _get_exposed_fields,
     _iter_filters,
@@ -66,6 +69,18 @@ async def test_role_reader_nested_registry_initialized(db_session: AsyncSession)
     # Role has no relationships yet
     assert reader._NESTED_FIELD_REGISTRY == {}
     assert "public_id" in reader._FIELD_MAP
+    assert "name" in reader._FIELD_MAP
+
+
+@pytest.mark.asyncio
+async def test_school_reader_nested_registry_initialized(db_session: AsyncSession) -> None:
+    """School reader should expose scalar fields and no nested relations."""
+    reader = SQLAlchemySchoolReader(db_session)
+
+    assert reader._NESTED_FIELD_REGISTRY == {}
+    assert "public_id" in reader._FIELD_MAP
+    assert "record_uid" in reader._FIELD_MAP
+    assert "source_uid" in reader._FIELD_MAP
     assert "name" in reader._FIELD_MAP
 
 
