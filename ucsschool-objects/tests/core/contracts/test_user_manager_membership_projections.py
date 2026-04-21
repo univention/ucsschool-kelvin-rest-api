@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from ucsschool_objects.core.adapters.sqlalchemy import SQLAlchemyUserReader
+from ucsschool_objects.core.adapters.sqlalchemy import SQLAlchemyUserManager
 from ucsschool_objects.core.domain import Filter, LoadSpec, Operator, SearchQuery
 
 if TYPE_CHECKING:
@@ -26,9 +26,9 @@ async def test_primary_school_raises_when_no_primary(
     user = await user_factory(name="noprimaryuser")
     await school_membership_factory(user=user, school=school, is_primary=False)
 
-    reader = SQLAlchemyUserReader(db_session)
+    manager = SQLAlchemyUserManager(db_session)
     results = list(
-        await reader.search(
+        await manager.search(
             SearchQuery(where=Filter(field="name", op=Operator.EQ, value="noprimaryuser")),
             load=LoadSpec.from_attributes("primary_school"),
         )
