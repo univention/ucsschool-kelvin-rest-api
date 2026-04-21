@@ -8,9 +8,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
-from ucsschool_objects.core.adapters.sqlalchemy.mapping import to_user
-from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
-from ucsschool_objects.core.adapters.sqlalchemy.readers._shared import (
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
@@ -20,6 +18,8 @@ from ucsschool_objects.core.adapters.sqlalchemy.readers._shared import (
     _role_scalar_columns,
     _school_scalar_columns,
 )
+from ucsschool_objects.core.adapters.sqlalchemy.mapping import to_user
+from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain import (
     LoadSpec,
     NotFound,
@@ -27,7 +27,7 @@ from ucsschool_objects.core.domain import (
     SortSpec,
     User,
 )
-from ucsschool_objects.core.domain.ports.readers import Reader
+from ucsschool_objects.core.domain.ports.manager import Manager
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     Role as RoleModel,
@@ -36,7 +36,7 @@ from ucsschool_objects.database_models import (
     User as UserModel,
 )
 
-__all__ = ["SQLAlchemyUserReader"]
+__all__ = ["SQLAlchemyUserManager"]
 
 
 def _includes_user_memberships(load: LoadSpec) -> bool:
@@ -114,12 +114,12 @@ def _with_user_load_options(stmt: Select[tuple[UserModel]], load: LoadSpec) -> S
         stmt,
         UserModel.public_id,
         load,
-        SQLAlchemyUserReader._LOAD_ATTRIBUTE_MAP,
+        SQLAlchemyUserManager._LOAD_ATTRIBUTE_MAP,
     )
     return _with_user_related_load_options(stmt, load)
 
 
-class SQLAlchemyUserReader(Reader[User]):
+class SQLAlchemyUserManager(Manager[User]):
     _SCALAR_FIELD_MAP: dict[str, FieldColumn] = {
         "record_uid": UserModel.record_uid,
         "source_uid": UserModel.source_uid,

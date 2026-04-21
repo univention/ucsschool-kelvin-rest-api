@@ -13,13 +13,15 @@ from uuid import UUID
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
 
-ReaderT = TypeVar("ReaderT", covariant=True)
+ManagerT = TypeVar("ManagerT", covariant=True)
 
 
-class Reader(Protocol[ReaderT]):
+class Manager(Protocol[ManagerT]):
     """Abstract read contract for retrieving and listing domain objects."""
 
-    async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> ReaderT:  # pragma: no cover
+    async def get(
+        self, public_id: UUID, *, load: LoadSpec | None = None
+    ) -> ManagerT:  # pragma: no cover
         """Return a single object identified by its public UUID.
 
         Args:
@@ -37,7 +39,7 @@ class Reader(Protocol[ReaderT]):
         limit: int = 50,
         offset: int = 0,
         load: LoadSpec | None = None,
-    ) -> Iterable[ReaderT]:  # pragma: no cover
+    ) -> Iterable[ManagerT]:  # pragma: no cover
         """Search objects matching query and pagination/sorting criteria.
 
         The returned iterable may be lazy. Concrete implementations can defer

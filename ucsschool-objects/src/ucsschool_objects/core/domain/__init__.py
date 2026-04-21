@@ -23,7 +23,7 @@ from .models import (
     UnloadedType,
     User,
 )
-from .ports import Reader
+from .ports import Manager
 from .query import (
     And,
     Filter,
@@ -58,7 +58,7 @@ __all__ = [
     "Operator",
     "Or",
     "QueryExpr",
-    "Reader",
+    "Manager",
     "Role",
     "School",
     "SchoolMembership",
