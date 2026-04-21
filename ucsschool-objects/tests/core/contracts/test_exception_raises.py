@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemyGroupReader,
-    SQLAlchemyRoleReader,
-    SQLAlchemySchoolReader,
-    SQLAlchemyUserReader,
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
 )
 from ucsschool_objects.core.domain import (
     And,
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
         AsyncGroupFactory as GroupFactory,
         AsyncGroupTypeFactory as GroupTypeFactory,
     )
-    from ucsschool_objects.core.domain.ports.readers import Reader
+    from ucsschool_objects.core.domain.ports.manager import Manager
 
 
 FieldInvalidFilter = UnsupportedFilterField | UnsupportedSortField | InvalidInFilter | InvalidLikeFilter
@@ -98,7 +98,7 @@ def build_exception_case(
         ),
     ],
 )
-async def test_group_reader_raises_invalid_filter(
+async def test_group_manager_raises_invalid_filter(
     db_session: AsyncSession,
     group_factory: GroupFactory,
     group_type_factory: GroupTypeFactory,
@@ -109,15 +109,15 @@ async def test_group_reader_raises_invalid_filter(
     expected_exc_value: object | None,
 ) -> None:
     """
-    Tests whether SQLAlchemyGroupReader.search raises the concrete InvalidFilter subtype
+    Tests whether SQLAlchemyGroupManager.search raises the concrete InvalidFilter subtype
     for each failure mode.
     """
     school_class_type = await group_type_factory(name="school_class")
     await group_factory(group_type=school_class_type)
-    reader = SQLAlchemyGroupReader(db_session)
+    manager = SQLAlchemyGroupManager(db_session)
 
     with pytest.raises(expected_exc_type, match=expected_exc_message) as exc_info:
-        await reader.search(**search_args)
+        await manager.search(**search_args)
     error = cast(FieldInvalidFilter, exc_info.value)
     assert error.field == expected_exc_field
     if expected_exc_value is not None:
@@ -140,36 +140,36 @@ async def test_empty_logical_clause_raises_invalid_filter(
     expected_reason: str,
 ) -> None:
     """Tests whether empty And/Or query clauses raise the corresponding dedicated error type."""
-    reader = SQLAlchemySchoolReader(db_session)
+    manager = SQLAlchemySchoolManager(db_session)
 
     with pytest.raises(expected_exc_type, match=expected_reason):
-        await reader.search(SearchQuery(where=where_expr))
+        await manager.search(SearchQuery(where=where_expr))
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "reader_cls, object_type",
+    "manager_cls, object_type",
     [
-        (SQLAlchemyGroupReader, "Group"),
-        (SQLAlchemyRoleReader, "Role"),
-        (SQLAlchemySchoolReader, "School"),
-        (SQLAlchemyUserReader, "User"),
+        (SQLAlchemyGroupManager, "Group"),
+        (SQLAlchemyRoleManager, "Role"),
+        (SQLAlchemySchoolManager, "School"),
+        (SQLAlchemyUserManager, "User"),
     ],
 )
 async def test_not_found_raised_for_missing_object(
     db_session: AsyncSession,
-    reader_cls: Callable[[AsyncSession], Reader[object]],
+    manager_cls: Callable[[AsyncSession], Manager[object]],
     object_type: str,
 ) -> None:
     """
-    Tests whether Reader.get raises NotFound with correct object_type and
+    Tests whether Manager.get raises NotFound with correct object_type and
     public_id for unknown IDs.
     """
     missing_id = uuid.uuid4()
-    reader = reader_cls(db_session)
+    manager = manager_cls(db_session)
 
     with pytest.raises(NotFound) as exc_info:
-        await reader.get(missing_id)
+        await manager.get(missing_id)
     assert exc_info.value.object_type == object_type
     assert exc_info.value.public_id == str(missing_id)
     assert object_type in str(exc_info.value)
