@@ -6,9 +6,7 @@ from uuid import UUID
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from ucsschool_objects.core.adapters.sqlalchemy.mapping import to_group
-from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
-from ucsschool_objects.core.adapters.sqlalchemy.readers._shared import (
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
@@ -18,6 +16,8 @@ from ucsschool_objects.core.adapters.sqlalchemy.readers._shared import (
     _role_scalar_columns,
     _school_scalar_columns,
 )
+from ucsschool_objects.core.adapters.sqlalchemy.mapping import to_group
+from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain import (
     Group,
     LoadSpec,
@@ -25,7 +25,7 @@ from ucsschool_objects.core.domain import (
     SearchQuery,
     SortSpec,
 )
-from ucsschool_objects.core.domain.ports.readers import Reader
+from ucsschool_objects.core.domain.ports.manager import Manager
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     GroupType as GroupTypeModel,
@@ -34,10 +34,10 @@ from ucsschool_objects.database_models import (
     User as UserModel,
 )
 
-__all__ = ["SQLAlchemyGroupReader"]
+__all__ = ["SQLAlchemyGroupManager"]
 
 
-class SQLAlchemyGroupReader(Reader[Group]):
+class SQLAlchemyGroupManager(Manager[Group]):
     _SCALAR_FIELD_MAP: dict[str, FieldColumn] = {
         "record_uid": GroupModel.record_uid,
         "source_uid": GroupModel.source_uid,

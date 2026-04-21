@@ -13,15 +13,15 @@ from tests.core.contracts.contract_test_support import (
     RoleQuerySetup,
     SchoolQueryFactories,
     SchoolQuerySetup,
-    SearchReaderProtocol,
+    SearchManagerProtocol,
     UserQueryFactories,
     UserQuerySetup,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemyGroupReader,
-    SQLAlchemyRoleReader,
-    SQLAlchemySchoolReader,
-    SQLAlchemyUserReader,
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
 )
 from ucsschool_objects.core.domain import And, Filter, Not, Operator, Or, SearchQuery, SortSpec
 
@@ -301,9 +301,9 @@ async def test_school_query_operators(
 ) -> None:
     factories = SchoolQueryFactories(school_factory=school_factory)
     expectation = await setup_case(factories)
-    reader = cast(SearchReaderProtocol, SQLAlchemySchoolReader(db_session))
+    manager = cast(SearchManagerProtocol, SQLAlchemySchoolManager(db_session))
 
-    results = list(await reader.search(expectation.query, sort_by=expectation.sort_by))
+    results = list(await manager.search(expectation.query, sort_by=expectation.sort_by))
     assert [item.name for item in results] == list(expectation.expected_names)
 
 
@@ -333,9 +333,9 @@ async def test_group_query_operators(
         group_type_factory=group_type_factory,
     )
     expectation = await setup_case(factories)
-    reader = cast(SearchReaderProtocol, SQLAlchemyGroupReader(db_session))
+    manager = cast(SearchManagerProtocol, SQLAlchemyGroupManager(db_session))
 
-    results = list(await reader.search(expectation.query, sort_by=expectation.sort_by))
+    results = list(await manager.search(expectation.query, sort_by=expectation.sort_by))
     assert [item.name for item in results] == list(expectation.expected_names)
 
 
@@ -356,9 +356,9 @@ async def test_role_query_operators(
 ) -> None:
     factories = RoleQueryFactories(role_factory=role_factory)
     expectation = await setup_case(factories)
-    reader = cast(SearchReaderProtocol, SQLAlchemyRoleReader(db_session))
+    manager = cast(SearchManagerProtocol, SQLAlchemyRoleManager(db_session))
 
-    results = list(await reader.search(expectation.query, sort_by=expectation.sort_by))
+    results = list(await manager.search(expectation.query, sort_by=expectation.sort_by))
     assert [item.name for item in results] == list(expectation.expected_names)
 
 
@@ -383,9 +383,9 @@ async def test_user_query_operators(
 ) -> None:
     factories = UserQueryFactories(user_factory=user_factory)
     expectation = await setup_case(factories)
-    reader = cast(SearchReaderProtocol, SQLAlchemyUserReader(db_session))
+    manager = cast(SearchManagerProtocol, SQLAlchemyUserManager(db_session))
 
-    results = list(await reader.search(expectation.query, sort_by=expectation.sort_by))
+    results = list(await manager.search(expectation.query, sort_by=expectation.sort_by))
     assert [item.name for item in results] == list(expectation.expected_names)
 
 
@@ -393,10 +393,10 @@ async def test_user_query_operators(
 async def test_query_negation_filters(db_session: AsyncSession, user_factory: UserFactory) -> None:
     await user_factory(name="active", active=True)
     await user_factory(name="inactive", active=False)
-    reader = SQLAlchemyUserReader(db_session)
+    manager = SQLAlchemyUserManager(db_session)
 
     q = SearchQuery(where=Not(clause=Filter(field="active", op=Operator.EQ, value=True)))
-    results = await reader.search(q)
+    results = await manager.search(q)
     assert [item.name for item in results] == ["inactive"]
 
 
@@ -407,15 +407,15 @@ async def test_query_sort_and_pagination_deterministic(
     await school_factory(name="s2")
     await school_factory(name="s1")
     await school_factory(name="s3")
-    reader = SQLAlchemySchoolReader(db_session)
+    manager = SQLAlchemySchoolManager(db_session)
 
     ordered = list(
-        await reader.search(sort_by=(SortSpec(field="name", ascending=True),), limit=10, offset=0)
+        await manager.search(sort_by=(SortSpec(field="name", ascending=True),), limit=10, offset=0)
     )
     assert [item.name for item in ordered] == ["s1", "s2", "s3"]
 
     page = list(
-        await reader.search(sort_by=(SortSpec(field="name", ascending=True),), limit=2, offset=1)
+        await manager.search(sort_by=(SortSpec(field="name", ascending=True),), limit=2, offset=1)
     )
     assert [item.name for item in page] == ["s2", "s3"]
 
@@ -435,18 +435,18 @@ async def test_query_sort_and_pagination_with_duplicate_sort_keys(
         public_id=UUID("00000000-0000-0000-0000-00000000000b"),
     )
     await school_factory(name="s3", class_share_file_server="zzz-server")
-    reader = SQLAlchemySchoolReader(db_session)
+    manager = SQLAlchemySchoolManager(db_session)
     duplicate_public_ids = [str(first.public_id), str(second.public_id)]
 
     ordered = list(
-        await reader.search(
+        await manager.search(
             sort_by=(SortSpec(field="class_share_file_server", ascending=True),), limit=10, offset=0
         )
     )
     assert [str(item.public_id) for item in ordered[:2]] == duplicate_public_ids
 
     page = list(
-        await reader.search(
+        await manager.search(
             sort_by=(SortSpec(field="class_share_file_server", ascending=True),), limit=1, offset=1
         )
     )

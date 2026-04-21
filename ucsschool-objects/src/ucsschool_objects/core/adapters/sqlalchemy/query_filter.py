@@ -29,7 +29,7 @@ from ucsschool_objects.core.domain import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ucsschool_objects.core.adapters.sqlalchemy.readers import JoinSpec
+    from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec
 
 RANGE_CAPABLE_TYPES = (Date, DateTime, Float, Integer, Numeric)
 RANGE_OPERATORS = frozenset({Operator.GT, Operator.GTE, Operator.LT, Operator.LTE})
@@ -136,7 +136,7 @@ def _get_column_type(column: FieldColumn) -> TypeEngine[object] | None:
     if isinstance(column, InstrumentedAttribute):
         return cast(TypeEngine[object], column.property.columns[0].type)
     # Keep fallback for expression-backed field maps (ColumnElement), e.g. computed
-    # search/sort fields that may be introduced by future reader implementations.
+    # search/sort fields that may be introduced by future manager implementations.
     return cast(TypeEngine[object] | None, getattr(column, "type", None))
 
 

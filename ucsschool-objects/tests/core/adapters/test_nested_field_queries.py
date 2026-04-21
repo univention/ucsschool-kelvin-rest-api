@@ -1,4 +1,4 @@
-"""Tests for nested field query support in SQLAlchemy readers."""
+"""Tests for nested field query support in SQLAlchemy managers."""
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -6,19 +6,19 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from ucsschool_objects.core.adapters.sqlalchemy.mapping import _is_loaded, _loaded_value
-from ucsschool_objects.core.adapters.sqlalchemy.readers import (
+from ucsschool_objects.core.adapters.sqlalchemy.managers import (
     JoinType,
-    SQLAlchemyGroupReader,
-    SQLAlchemyRoleReader,
-    SQLAlchemySchoolReader,
-    SQLAlchemyUserReader,
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.readers._shared import (
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _compose_field_map,
     _get_exposed_fields,
     _iter_filters,
 )
+from ucsschool_objects.core.adapters.sqlalchemy.mapping import _is_loaded, _loaded_value
 from ucsschool_objects.core.domain import (
     UNLOADED,
     And,
@@ -33,65 +33,65 @@ from ucsschool_objects.core.domain import (
 
 
 @pytest.mark.asyncio
-async def test_user_reader_nested_registry_initialized(db_session: AsyncSession) -> None:
-    """User reader should initialize nested field registry on first access."""
-    reader = SQLAlchemyUserReader(db_session)
+async def test_user_manager_nested_registry_initialized(db_session: AsyncSession) -> None:
+    """User manager should initialize nested field registry on first access."""
+    manager = SQLAlchemyUserManager(db_session)
 
-    assert reader._NESTED_FIELD_REGISTRY
-    assert "groups" in reader._NESTED_FIELD_REGISTRY
-    assert "roles" in reader._NESTED_FIELD_REGISTRY
-    assert "schools" in reader._NESTED_FIELD_REGISTRY
+    assert manager._NESTED_FIELD_REGISTRY
+    assert "groups" in manager._NESTED_FIELD_REGISTRY
+    assert "roles" in manager._NESTED_FIELD_REGISTRY
+    assert "schools" in manager._NESTED_FIELD_REGISTRY
 
     # Verify field map includes nested fields
-    assert "groups.public_id" in reader._FIELD_MAP
-    assert "roles.name" in reader._FIELD_MAP
-    assert "schools.record_uid" in reader._FIELD_MAP
+    assert "groups.public_id" in manager._FIELD_MAP
+    assert "roles.name" in manager._FIELD_MAP
+    assert "schools.record_uid" in manager._FIELD_MAP
 
 
 @pytest.mark.asyncio
-async def test_group_reader_nested_registry_initialized(db_session: AsyncSession) -> None:
-    """Group reader should initialize nested field registry on first access."""
-    reader = SQLAlchemyGroupReader(db_session)
+async def test_group_manager_nested_registry_initialized(db_session: AsyncSession) -> None:
+    """Group manager should initialize nested field registry on first access."""
+    manager = SQLAlchemyGroupManager(db_session)
 
-    assert reader._NESTED_FIELD_REGISTRY
-    assert "school" in reader._NESTED_FIELD_REGISTRY
+    assert manager._NESTED_FIELD_REGISTRY
+    assert "school" in manager._NESTED_FIELD_REGISTRY
 
     # Verify field map includes nested fields
-    assert "school.public_id" in reader._FIELD_MAP
-    assert "school.name" in reader._FIELD_MAP
+    assert "school.public_id" in manager._FIELD_MAP
+    assert "school.name" in manager._FIELD_MAP
 
 
 @pytest.mark.asyncio
-async def test_role_reader_nested_registry_initialized(db_session: AsyncSession) -> None:
-    """Role reader should initialize nested field registry (empty for now)."""
-    reader = SQLAlchemyRoleReader(db_session)
+async def test_role_manager_nested_registry_initialized(db_session: AsyncSession) -> None:
+    """Role manager should initialize nested field registry (empty for now)."""
+    manager = SQLAlchemyRoleManager(db_session)
 
     # Role has no relationships yet
-    assert reader._NESTED_FIELD_REGISTRY == {}
-    assert "public_id" in reader._FIELD_MAP
-    assert "name" in reader._FIELD_MAP
+    assert manager._NESTED_FIELD_REGISTRY == {}
+    assert "public_id" in manager._FIELD_MAP
+    assert "name" in manager._FIELD_MAP
 
 
 @pytest.mark.asyncio
-async def test_school_reader_nested_registry_initialized(db_session: AsyncSession) -> None:
-    """School reader should expose scalar fields and no nested relations."""
-    reader = SQLAlchemySchoolReader(db_session)
+async def test_school_manager_nested_registry_initialized(db_session: AsyncSession) -> None:
+    """School manager should expose scalar fields and no nested relations."""
+    manager = SQLAlchemySchoolManager(db_session)
 
-    assert reader._NESTED_FIELD_REGISTRY == {}
-    assert "public_id" in reader._FIELD_MAP
-    assert "record_uid" in reader._FIELD_MAP
-    assert "source_uid" in reader._FIELD_MAP
-    assert "name" in reader._FIELD_MAP
+    assert manager._NESTED_FIELD_REGISTRY == {}
+    assert "public_id" in manager._FIELD_MAP
+    assert "record_uid" in manager._FIELD_MAP
+    assert "source_uid" in manager._FIELD_MAP
+    assert "name" in manager._FIELD_MAP
 
 
 @pytest.mark.asyncio
 async def test_unsupported_nested_field_raises_error(db_session: AsyncSession) -> None:
     """Test that querying unsupported nested field raises UnsupportedNestedField."""
-    reader = SQLAlchemyUserReader(db_session)
+    manager = SQLAlchemyUserManager(db_session)
 
     with pytest.raises(UnsupportedNestedField) as exc_info:
         list(
-            await reader.search(
+            await manager.search(
                 query=SearchQuery(where=Filter("unknown_relation.public_id", Operator.EQ, "test"))
             )
         )
@@ -104,11 +104,11 @@ async def test_unsupported_nested_field_on_relation_raises_error(
     db_session: AsyncSession,
 ) -> None:
     """Test that querying unsupported field on a relation raises UnsupportedNestedField."""
-    reader = SQLAlchemyUserReader(db_session)
+    manager = SQLAlchemyUserManager(db_session)
 
     with pytest.raises(UnsupportedNestedField) as exc_info:
         list(
-            await reader.search(
+            await manager.search(
                 query=SearchQuery(where=Filter("groups.nonexistent_field", Operator.EQ, "test"))
             )
         )
@@ -120,12 +120,12 @@ async def test_unsupported_nested_field_on_relation_raises_error(
 @pytest.mark.asyncio
 async def test_nested_field_filter_with_and_composition(db_session: AsyncSession) -> None:
     """Test combining multiple nested field filters with And()."""
-    reader = SQLAlchemyUserReader(db_session)
+    manager = SQLAlchemyUserManager(db_session)
 
     # This should not raise, just verify the query is built
     try:
         list(
-            await reader.search(
+            await manager.search(
                 query=SearchQuery(
                     where=And(
                         (
@@ -145,12 +145,12 @@ async def test_nested_field_filter_with_and_composition(db_session: AsyncSession
 @pytest.mark.asyncio
 async def test_nested_field_in_sort_spec(db_session: AsyncSession) -> None:
     """Test sorting by nested field."""
-    reader = SQLAlchemyUserReader(db_session)
+    manager = SQLAlchemyUserManager(db_session)
 
     # Should build query without error
     try:
         list(
-            await reader.search(
+            await manager.search(
                 sort_by=[SortSpec("groups.name", ascending=True)],
             )
         )
@@ -163,23 +163,27 @@ async def test_nested_field_in_sort_spec(db_session: AsyncSession) -> None:
 @pytest.mark.asyncio
 async def test_nested_field_with_like_operator(db_session: AsyncSession) -> None:
     """Test nested field filter with LIKE operator."""
-    reader = SQLAlchemyUserReader(db_session)
+    manager = SQLAlchemyUserManager(db_session)
 
     try:
-        list(await reader.search(query=SearchQuery(where=Filter("groups.name", Operator.LIKE, "test%"))))
+        list(
+            await manager.search(query=SearchQuery(where=Filter("groups.name", Operator.LIKE, "test%")))
+        )
     except Exception as e:
         if "Unsupported" in str(type(e).__name__):
             raise
 
 
 @pytest.mark.asyncio
-async def test_group_reader_by_school_name(db_session: AsyncSession) -> None:
+async def test_group_manager_by_school_name(db_session: AsyncSession) -> None:
     """Test querying groups by school.name."""
-    reader = SQLAlchemyGroupReader(db_session)
+    manager = SQLAlchemyGroupManager(db_session)
 
     # Should not raise on field resolution
     try:
-        list(await reader.search(query=SearchQuery(where=Filter("school.name", Operator.LIKE, "test%"))))
+        list(
+            await manager.search(query=SearchQuery(where=Filter("school.name", Operator.LIKE, "test%")))
+        )
     except Exception as e:
         if "Unsupported" in str(type(e).__name__):
             raise
@@ -188,23 +192,23 @@ async def test_group_reader_by_school_name(db_session: AsyncSession) -> None:
 @pytest.mark.asyncio
 async def test_all_exposed_fields_are_queryable(db_session: AsyncSession) -> None:
     """Test that all exposed fields in nested registries are queryable."""
-    user_reader = SQLAlchemyUserReader(db_session)
+    user_manager = SQLAlchemyUserManager(db_session)
 
-    for relation_name, spec in user_reader._NESTED_FIELD_REGISTRY.items():
+    for relation_name, spec in user_manager._NESTED_FIELD_REGISTRY.items():
         for field_name in spec.exposed_fields:
             nested_field = f"{relation_name}.{field_name}"
             # Should not raise
-            assert nested_field in user_reader._FIELD_MAP, f"Field {nested_field} not in field_map"
+            assert nested_field in user_manager._FIELD_MAP, f"Field {nested_field} not in field_map"
 
 
 @pytest.mark.asyncio
 async def test_nested_field_in_not_expression(db_session: AsyncSession) -> None:
     """Test nested field in NOT expression."""
-    reader = SQLAlchemyUserReader(db_session)
+    manager = SQLAlchemyUserManager(db_session)
 
     try:
         list(
-            await reader.search(
+            await manager.search(
                 query=SearchQuery(where=Not(Filter("groups.public_id", Operator.EQ, "test-id")))
             )
         )
@@ -214,11 +218,11 @@ async def test_nested_field_in_not_expression(db_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_group_reader_all_school_fields_exposed(db_session: AsyncSession) -> None:
-    """Test that all School model fields are exposed in Group reader."""
-    reader = SQLAlchemyGroupReader(db_session)
+async def test_group_manager_all_school_fields_exposed(db_session: AsyncSession) -> None:
+    """Test that all School model fields are exposed in Group manager."""
+    manager = SQLAlchemyGroupManager(db_session)
 
-    school_spec = reader._NESTED_FIELD_REGISTRY["school"]
+    school_spec = manager._NESTED_FIELD_REGISTRY["school"]
     # School should have several fields exposed
     assert len(school_spec.exposed_fields) > 0
     # At minimum, should have core fields
@@ -240,11 +244,11 @@ def test_get_exposed_fields_skips_attributes_that_raise() -> None:
     assert "raises_on_access" not in fields
 
 
-def test_role_reader_field_map_includes_nested_fields_when_registry_populated(
+def test_role_manager_field_map_includes_nested_fields_when_registry_populated(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """RoleReader _FIELD_MAP includes dot-notation keys for populated registry."""
-    from ucsschool_objects.core.adapters.sqlalchemy.readers import JoinSpec
+    """RoleManager _FIELD_MAP includes dot-notation keys for populated registry."""
+    from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec
     from ucsschool_objects.database_models import School as SchoolModel
 
     fake_spec = JoinSpec(
@@ -254,16 +258,16 @@ def test_role_reader_field_map_includes_nested_fields_when_registry_populated(
         join_type=JoinType.LEFT_OUTER,
         exposed_fields=frozenset(["name"]),
     )
-    monkeypatch.setattr(SQLAlchemyRoleReader, "_NESTED_FIELD_REGISTRY", {"schools": fake_spec})
+    monkeypatch.setattr(SQLAlchemyRoleManager, "_NESTED_FIELD_REGISTRY", {"schools": fake_spec})
     monkeypatch.setattr(
-        SQLAlchemyRoleReader,
+        SQLAlchemyRoleManager,
         "_FIELD_MAP",
         _compose_field_map(
-            SQLAlchemyRoleReader._BASE_FIELD_MAP, SQLAlchemyRoleReader._NESTED_FIELD_REGISTRY
+            SQLAlchemyRoleManager._BASE_FIELD_MAP, SQLAlchemyRoleManager._NESTED_FIELD_REGISTRY
         ),
     )
-    reader = SQLAlchemyRoleReader(None)  # type: ignore[arg-type]  # session unused in this assertion
-    assert "schools.name" in reader._FIELD_MAP
+    manager = SQLAlchemyRoleManager(None)  # type: ignore[arg-type]  # session unused in this assertion
+    assert "schools.name" in manager._FIELD_MAP
 
 
 def test_iter_filters_handles_filter_and_and_or_and_not() -> None:

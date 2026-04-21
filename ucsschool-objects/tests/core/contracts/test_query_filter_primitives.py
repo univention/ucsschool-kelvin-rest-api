@@ -11,7 +11,7 @@ from ucsschool_objects.database_models import User as UserModel
 def test_build_expression_supports_column_element_range_types() -> None:
     """Ensure ColumnElement-based field maps remain supported for future computed fields.
 
-    Current readers mostly map filters to InstrumentedAttribute instances. This test
+    Current managers mostly map filters to InstrumentedAttribute instances. This test
     intentionally uses a typed SQL expression derived from a real model column to
     cover the fallback branch in query_filter._get_column_type() so expression-backed
     field maps can be added later without breaking range operator validation.

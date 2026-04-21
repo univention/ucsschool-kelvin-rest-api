@@ -1,7 +1,7 @@
 """ucsschool-objects — public API.
 
-Import domain objects, the query DSL, exceptions, and the Reader port from
-this top-level package.  The concrete SQLAlchemy adapter readers live one
+Import domain objects, the query DSL, exceptions, and the Manager port from
+this top-level package.  The concrete SQLAlchemy adapter managers live one
 level deeper at ``ucsschool_objects.core.adapters.sqlalchemy`` and are
 intentionally not promoted here — they are a wiring-time concern.
 
@@ -26,12 +26,12 @@ from ucsschool_objects.core.domain import (  # Domain entities; Query DSL; Excep
     InvalidLikeFilter,
     InvalidRangeFilter,
     LoadSpec,
+    Manager,
     Not,
     NotFound,
     Operator,
     Or,
     QueryExpr,
-    Reader,
     Role,
     School,
     SchoolMembership,
@@ -81,5 +81,5 @@ __all__ = [
     "UnsupportedOperation",
     "UnsupportedSortField",
     # Ports
-    "Reader",
+    "Manager",
 ]

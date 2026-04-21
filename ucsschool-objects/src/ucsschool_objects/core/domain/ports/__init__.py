@@ -1,3 +1,3 @@
-from .readers import Reader
+from .manager import Manager
 
-__all__ = ["Reader"]
+__all__ = ["Manager"]

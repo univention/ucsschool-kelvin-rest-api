@@ -10,7 +10,7 @@ class InvalidFilter(CorelibError):
 
 
 class UnsupportedFilterField(InvalidFilter):
-    """Raised when a filter references a field that the reader does not support."""
+    """Raised when a filter references a field that the manager does not support."""
 
     def __init__(self, field: str) -> None:
         self.field = field

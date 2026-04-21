@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class ReaderSearchExpectation:
+class ManagerSearchExpectation:
     public_id: UUID
     expected_name: str
     query: SearchQuery
@@ -32,7 +32,7 @@ class QueryExpectation:
 
 
 @dataclass(frozen=True)
-class ReaderContractFactories:
+class ManagerContractFactories:
     school_factory: AsyncSchoolFactory
     group_factory: AsyncGroupFactory
     group_type_factory: AsyncGroupTypeFactory
@@ -71,7 +71,7 @@ class SearchNamedRecord(Protocol):
     name: str
 
 
-class ReaderProtocol(Protocol):
+class ManagerProtocol(Protocol):
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> NamedRecord:
         ...
 
@@ -87,7 +87,7 @@ class ReaderProtocol(Protocol):
         ...
 
 
-class SearchReaderProtocol(Protocol):
+class SearchManagerProtocol(Protocol):
     async def search(
         self,
         query: SearchQuery | None = None,
@@ -100,7 +100,7 @@ class SearchReaderProtocol(Protocol):
         ...
 
 
-ReaderSetup: TypeAlias = Callable[[ReaderContractFactories], Awaitable[ReaderSearchExpectation]]
+ManagerSetup: TypeAlias = Callable[[ManagerContractFactories], Awaitable[ManagerSearchExpectation]]
 SchoolQuerySetup: TypeAlias = Callable[[SchoolQueryFactories], Awaitable[QueryExpectation]]
 GroupQuerySetup: TypeAlias = Callable[[GroupQueryFactories], Awaitable[QueryExpectation]]
 RoleQuerySetup: TypeAlias = Callable[[RoleQueryFactories], Awaitable[QueryExpectation]]

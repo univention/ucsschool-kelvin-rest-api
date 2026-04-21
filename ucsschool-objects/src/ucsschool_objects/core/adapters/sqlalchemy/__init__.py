@@ -1,13 +1,13 @@
-from .readers import (
-    SQLAlchemyGroupReader,
-    SQLAlchemyRoleReader,
-    SQLAlchemySchoolReader,
-    SQLAlchemyUserReader,
+from .managers import (
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
 )
 
 __all__ = [
-    "SQLAlchemyGroupReader",
-    "SQLAlchemyRoleReader",
-    "SQLAlchemySchoolReader",
-    "SQLAlchemyUserReader",
+    "SQLAlchemyGroupManager",
+    "SQLAlchemyRoleManager",
+    "SQLAlchemySchoolManager",
+    "SQLAlchemyUserManager",
 ]

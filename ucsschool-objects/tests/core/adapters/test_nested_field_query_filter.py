@@ -4,12 +4,12 @@ from __future__ import annotations
 from typing import cast
 
 import pytest
+from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec, JoinType
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
     _get_filter_column,
     _get_required_joins,
     apply_nested_joins,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.readers import JoinSpec, JoinType
 from ucsschool_objects.core.domain import (
     And,
     Filter,
@@ -117,7 +117,7 @@ def test_get_required_joins_deduplicates() -> None:
 async def test_apply_nested_joins_applies_left_outer_by_default() -> None:
     """Test that apply_nested_joins applies left outer joins by default."""
     from sqlalchemy import select
-    from ucsschool_objects.core.adapters.sqlalchemy.readers import JoinSpec
+    from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec
     from ucsschool_objects.database_models import (
         Group as GroupModel,
         SchoolMembership,
@@ -145,7 +145,7 @@ async def test_apply_nested_joins_applies_left_outer_by_default() -> None:
 async def test_apply_nested_joins_applies_distinct_for_multiple_joins() -> None:
     """Test that DISTINCT is applied when multiple joins are present."""
     from sqlalchemy import select
-    from ucsschool_objects.core.adapters.sqlalchemy.readers import JoinSpec
+    from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec
     from ucsschool_objects.database_models import (
         Group as GroupModel,
         Role as RoleModel,

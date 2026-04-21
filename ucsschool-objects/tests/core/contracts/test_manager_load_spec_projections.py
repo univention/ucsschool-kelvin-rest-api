@@ -7,10 +7,10 @@ from uuid import UUID
 
 import pytest
 from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemyGroupReader,
-    SQLAlchemyRoleReader,
-    SQLAlchemySchoolReader,
-    SQLAlchemyUserReader,
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
 )
 from ucsschool_objects.core.domain import (
     Filter,
@@ -23,7 +23,7 @@ from ucsschool_objects.core.domain import (
     UnloadedType,
     User,
 )
-from ucsschool_objects.core.domain.ports.readers import Reader
+from ucsschool_objects.core.domain.ports.manager import Manager
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -101,16 +101,16 @@ def _expected_user_loaded_fields(load_attr: str) -> set[str]:
 
 
 async def _fetch_loaded_record(
-    reader: Reader[DomainRecord],
+    manager: Manager[DomainRecord],
     public_id: UUID,
     query: SearchQuery,
     spec: LoadSpec,
     method_name: Literal["get", "search"],
 ) -> DomainRecord:
     if method_name == "get":
-        return await reader.get(public_id, load=spec)
+        return await manager.get(public_id, load=spec)
 
-    result = list(await reader.search(query, load=spec))
+    result = list(await manager.search(query, load=spec))
     assert len(result) == 1
     return result[0]
 
@@ -118,7 +118,7 @@ async def _fetch_loaded_record(
 async def _setup_school_case(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
-) -> tuple[SQLAlchemySchoolReader, UUID, SearchQuery, dict[str, object]]:
+) -> tuple[SQLAlchemySchoolManager, UUID, SearchQuery, dict[str, object]]:
     school = await school_factory(
         name="projection-school",
         record_uid="school-record-uid",
@@ -128,7 +128,7 @@ async def _setup_school_case(
     )
     db_session.expunge_all()
     return (
-        SQLAlchemySchoolReader(db_session),
+        SQLAlchemySchoolManager(db_session),
         school.public_id,
         SearchQuery(where=Filter(field="name", op=Operator.EQ, value="projection-school")),
         {
@@ -144,11 +144,11 @@ async def _setup_school_case(
 async def _setup_role_case(
     db_session: AsyncSession,
     role_factory: RoleFactory,
-) -> tuple[SQLAlchemyRoleReader, UUID, SearchQuery, dict[str, object]]:
+) -> tuple[SQLAlchemyRoleManager, UUID, SearchQuery, dict[str, object]]:
     role = await role_factory(name="projection:role", display_name={"en": "Role EN"})
     db_session.expunge_all()
     return (
-        SQLAlchemyRoleReader(db_session),
+        SQLAlchemyRoleManager(db_session),
         role.public_id,
         SearchQuery(where=Filter(field="name", op=Operator.EQ, value="projection:role")),
         {
@@ -165,7 +165,7 @@ async def _setup_group_case(
     group_type_factory: GroupTypeFactory,
     user_factory: UserFactory,
     role_factory: RoleFactory,
-) -> tuple[SQLAlchemyGroupReader, UUID, SearchQuery, dict[str, object]]:
+) -> tuple[SQLAlchemyGroupManager, UUID, SearchQuery, dict[str, object]]:
     school = await school_factory(name="projection-group-school")
     group_type = await group_type_factory(name="projection-group-type")
     sender_user = await user_factory(name="sender-user")
@@ -193,7 +193,7 @@ async def _setup_group_case(
     db_session.expunge_all()
 
     return (
-        SQLAlchemyGroupReader(db_session),
+        SQLAlchemyGroupManager(db_session),
         group.public_id,
         SearchQuery(where=Filter(field="name", op=Operator.EQ, value="projection-group")),
         {
@@ -220,7 +220,7 @@ async def _setup_user_case(
     role_factory: RoleFactory,
     user_factory: UserFactory,
     school_membership_factory: SchoolMembershipFactory,
-) -> tuple[SQLAlchemyUserReader, UUID, SearchQuery, dict[str, object]]:
+) -> tuple[SQLAlchemyUserManager, UUID, SearchQuery, dict[str, object]]:
     school = await school_factory(name="projection-user-school")
     group_type = await group_type_factory(name="projection-user-group-type")
     group = await group_factory(name="projection-user-group", school=school, group_type=group_type)
@@ -249,7 +249,7 @@ async def _setup_user_case(
     db_session.expunge_all()
 
     return (
-        SQLAlchemyUserReader(db_session),
+        SQLAlchemyUserManager(db_session),
         user.public_id,
         SearchQuery(where=Filter(field="name", op=Operator.EQ, value="projection-user")),
         {
@@ -274,15 +274,15 @@ async def _setup_user_case(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("method_name", METHODS)
 @pytest.mark.parametrize("load_attr", SCHOOL_LOAD_ATTRS)
-async def test_school_reader_load_spec_projection_matrix(
+async def test_school_manager_load_spec_projection_matrix(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
     load_attr: str,
     method_name: Literal["get", "search"],
 ) -> None:
-    reader, public_id, query, context = await _setup_school_case(db_session, school_factory)
+    manager, public_id, query, context = await _setup_school_case(db_session, school_factory)
     spec = LoadSpec.from_attributes(load_attr)
-    result = await _fetch_loaded_record(reader, public_id, query, spec, method_name)
+    result = await _fetch_loaded_record(manager, public_id, query, spec, method_name)
 
     _assert_only_expected_fields_loaded(result, {load_attr})
     assert getattr(result, load_attr) == context[load_attr]
@@ -291,15 +291,15 @@ async def test_school_reader_load_spec_projection_matrix(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("method_name", METHODS)
 @pytest.mark.parametrize("load_attr", ROLE_LOAD_ATTRS)
-async def test_role_reader_load_spec_projection_matrix(
+async def test_role_manager_load_spec_projection_matrix(
     db_session: AsyncSession,
     role_factory: RoleFactory,
     load_attr: str,
     method_name: Literal["get", "search"],
 ) -> None:
-    reader, public_id, query, context = await _setup_role_case(db_session, role_factory)
+    manager, public_id, query, context = await _setup_role_case(db_session, role_factory)
     spec = LoadSpec.from_attributes(load_attr)
-    result = await _fetch_loaded_record(reader, public_id, query, spec, method_name)
+    result = await _fetch_loaded_record(manager, public_id, query, spec, method_name)
 
     _assert_only_expected_fields_loaded(result, {load_attr})
     assert getattr(result, load_attr) == context[load_attr]
@@ -308,7 +308,7 @@ async def test_role_reader_load_spec_projection_matrix(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("method_name", METHODS)
 @pytest.mark.parametrize("load_attr", GROUP_LOAD_ATTRS)
-async def test_group_reader_load_spec_projection_matrix(
+async def test_group_manager_load_spec_projection_matrix(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
     group_factory: GroupFactory,
@@ -318,7 +318,7 @@ async def test_group_reader_load_spec_projection_matrix(
     load_attr: str,
     method_name: Literal["get", "search"],
 ) -> None:
-    reader, public_id, query, context = await _setup_group_case(
+    manager, public_id, query, context = await _setup_group_case(
         db_session,
         school_factory,
         group_factory,
@@ -327,7 +327,7 @@ async def test_group_reader_load_spec_projection_matrix(
         role_factory,
     )
     spec = LoadSpec.from_attributes(load_attr)
-    result = await _fetch_loaded_record(reader, public_id, query, spec, method_name)
+    result = await _fetch_loaded_record(manager, public_id, query, spec, method_name)
 
     _assert_only_expected_fields_loaded(result, {load_attr, "group_type", "school"})
     if load_attr in {"record_uid", "source_uid", "name", "display_name", "create_share", "email"}:
@@ -349,7 +349,7 @@ async def test_group_reader_load_spec_projection_matrix(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("method_name", METHODS)
 @pytest.mark.parametrize("load_attr", USER_LOAD_ATTRS)
-async def test_user_reader_load_spec_projection_matrix(
+async def test_user_manager_load_spec_projection_matrix(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
     group_factory: GroupFactory,
@@ -360,7 +360,7 @@ async def test_user_reader_load_spec_projection_matrix(
     load_attr: str,
     method_name: Literal["get", "search"],
 ) -> None:
-    reader, public_id, query, context = await _setup_user_case(
+    manager, public_id, query, context = await _setup_user_case(
         db_session,
         school_factory,
         group_factory,
@@ -370,7 +370,7 @@ async def test_user_reader_load_spec_projection_matrix(
         school_membership_factory,
     )
     spec = LoadSpec.from_attributes(load_attr)
-    result = await _fetch_loaded_record(reader, public_id, query, spec, method_name)
+    result = await _fetch_loaded_record(manager, public_id, query, spec, method_name)
 
     _assert_only_expected_fields_loaded(result, _expected_user_loaded_fields(load_attr))
     if load_attr in {
