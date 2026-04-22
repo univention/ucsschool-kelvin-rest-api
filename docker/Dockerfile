@@ -120,7 +120,8 @@ ENV UV_SYSTEM_PYTHON=1
 ENV UV_PROJECT_ENVIRONMENT="/venv"
 ENV UV_VERSION=0.10.10
 ENV PIPX_BIN_DIR="/usr/local/bin"
-RUN apt-get install -y pipx git
+
+RUN apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev vim
 RUN pipx install uv=="$UV_VERSION"
 
 COPY uv.lock .
@@ -144,6 +145,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 WORKDIR /app
 
+RUN apt-get install -y libldap2-dev
 COPY --from=connector-builder $VIRTUAL_ENV $VIRTUAL_ENV
 COPY docker/start-connector.sh .
 COPY alembic ./alembic
