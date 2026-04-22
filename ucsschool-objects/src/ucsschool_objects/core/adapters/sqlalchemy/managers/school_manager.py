@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
+    _check_nullable_value_presence,
+    _check_value_presence,
     _compose_field_map,
     _load_requested_scalar_attributes,
 )
@@ -94,7 +96,48 @@ class SQLAlchemySchoolManager(Manager[School]):
         self,
         data: School,
     ) -> None:
-        raise NotImplementedError("School create is not implemented yet.")  # pragma: no cover
+        school_model = SchoolModel(
+            record_uid=_check_value_presence(
+                data.record_uid, object_type="School", field_name="record_uid"
+            ),
+            source_uid=_check_value_presence(
+                data.source_uid, object_type="School", field_name="source_uid"
+            ),
+            name=_check_value_presence(data.name, object_type="School", field_name="name"),
+            display_name=dict(
+                _check_value_presence(
+                    data.display_name, object_type="School", field_name="display_name"
+                ),
+            ),
+            educational_servers=list(
+                _check_value_presence(
+                    data.educational_servers,
+                    object_type="School",
+                    field_name="educational_servers",
+                ),
+            ),
+            administrative_servers=list(
+                _check_value_presence(
+                    data.administrative_servers,
+                    object_type="School",
+                    field_name="administrative_servers",
+                )
+            ),
+            class_share_file_server=_check_nullable_value_presence(
+                data.class_share_file_server,
+                object_type="School",
+                field_name="class_share_file_server",
+            ),
+            home_share_file_server=_check_nullable_value_presence(
+                data.home_share_file_server,
+                object_type="School",
+                field_name="home_share_file_server",
+            ),
+        )
+        if isinstance(data.public_id, UUID):
+            school_model.public_id = data.public_id
+        self._session.add(school_model)
+        await self._session.flush()
 
     async def modify(
         self,
