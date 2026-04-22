@@ -199,6 +199,7 @@ build_docker_image_kelvin:
     IMAGE_TAG_ENV_NAME: "IMAGE_TAG_KELVIN"
     KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/"
     DOCKERFILE_PATH: docker/Dockerfile
+    CI_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE/ucsschool-kelvin-rest-api
     KANIKO_ARGS: --target kelvin-prod --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg KELVIN_BUILD_VERSION="${CI_COMMIT_TAG:-'999.0.0'}" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
 
 build_docker_image_connector:
@@ -215,6 +216,7 @@ build_docker_image_connector:
     IMAGE_TAG_ENV_NAME: "IMAGE_TAG_CONNECTOR"
     KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/"
     DOCKERFILE_PATH: docker/Dockerfile
+    CI_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE/ucsschool-kelvin-connector
     KANIKO_ARGS: --target connector-prod --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg KELVIN_BUILD_VERSION="${CI_COMMIT_TAG:-'999.0.0'}" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
 
 build_changelog_html:
