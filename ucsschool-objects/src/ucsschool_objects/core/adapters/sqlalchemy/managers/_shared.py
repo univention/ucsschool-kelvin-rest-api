@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypeAlias, TypeVar, cast
+from uuid import UUID, uuid4
 
-from sqlalchemy import Select
+from sqlalchemy import Select, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import load_only
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import FieldColumn
@@ -14,7 +16,9 @@ from ucsschool_objects.core.domain import (
     Filter,
     LoadSpec,
     Not,
+    NotFound,
     Or,
+    UnloadedType,
 )
 from ucsschool_objects.database_models import (
     Base,
@@ -29,11 +33,15 @@ __all__ = [
     "ModelClass",
     "TSelect",
     "FieldColumn",
+    "_check_value_presence",
+    "generate_public_id",
 ]
 
 QueryExpr: TypeAlias = Filter | And | Or | Not
 ModelClass: TypeAlias = type[Base]
 TSelect = TypeVar("TSelect", bound=Select[Any])
+TRequired = TypeVar("TRequired")
+TModel = TypeVar("TModel", bound=Base)
 
 
 class JoinType(str, Enum):
@@ -58,6 +66,93 @@ class JoinSpec:
     join_path: tuple[ModelClass, ...]
     join_type: JoinType = JoinType.LEFT_OUTER
     exposed_fields: frozenset[str] = frozenset()
+
+
+def generate_public_id() -> UUID:
+    """Generate a new UUID (version 4) for public_id."""
+    return uuid4()
+
+
+async def _fetch_one_by_public_id(
+    session: AsyncSession,
+    model_class: type[TModel],
+    public_id: UUID,
+    object_type: str,
+) -> TModel:
+    """Fetch a single ORM object by public_id. Raises NotFound if absent."""
+    result = (
+        await session.execute(select(model_class).where(getattr(model_class, "public_id") == public_id))
+    ).scalar_one_or_none()
+    if result is None:
+        raise NotFound(object_type=object_type, public_id=str(public_id))
+    return result
+
+
+async def _fetch_one_by_name(
+    session: AsyncSession,
+    model_class: type[TModel],
+    name_col: InstrumentedAttribute[str],
+    name: str,
+    object_type: str,
+) -> TModel:
+    """Fetch a single ORM object by name column. Raises NotFound if absent."""
+    result = (await session.execute(select(model_class).where(name_col == name))).scalar_one_or_none()
+    if result is None:
+        raise NotFound(object_type=object_type, public_id=name)
+    return result
+
+
+async def _bulk_fetch_by_public_id(
+    session: AsyncSession,
+    model_class: type[TModel],
+    public_ids: Sequence[UUID],
+    object_type: str,
+) -> dict[UUID, TModel]:
+    """Fetch multiple ORM objects via a single IN query keyed by public_id.
+
+    Raises NotFound if any requested public_id has no matching row.
+    """
+    if not public_ids:
+        return {}
+    unique_ids = list(dict.fromkeys(public_ids))
+    results = (
+        (
+            await session.execute(
+                select(model_class).where(getattr(model_class, "public_id").in_(unique_ids))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    by_id: dict[UUID, TModel] = {cast(UUID, getattr(r, "public_id")): r for r in results}
+    missing = set(unique_ids) - by_id.keys()
+    if missing:
+        raise NotFound(object_type=object_type, public_id=str(next(iter(missing))))
+    return by_id
+
+
+async def _bulk_fetch_by_name(
+    session: AsyncSession,
+    model_class: type[TModel],
+    name_col: InstrumentedAttribute[str],
+    names: Sequence[str],
+    object_type: str,
+) -> dict[str, TModel]:
+    """Fetch multiple ORM objects via a single IN query keyed by name.
+
+    Raises NotFound if any requested name has no matching row.
+    """
+    if not names:
+        return {}
+    unique_names = list(dict.fromkeys(names))
+    results = (
+        (await session.execute(select(model_class).where(name_col.in_(unique_names)))).scalars().all()
+    )
+    by_name: dict[str, TModel] = {cast(str, getattr(r, "name")): r for r in results}
+    missing = set(unique_names) - by_name.keys()
+    if missing:
+        raise NotFound(object_type=object_type, public_id=next(iter(missing)))
+    return by_name
 
 
 def _get_exposed_fields(model: type) -> frozenset[str]:
@@ -137,3 +232,19 @@ def _school_scalar_columns() -> tuple[InstrumentedAttribute[Any], ...]:
 
 def _role_scalar_columns() -> tuple[InstrumentedAttribute[Any], ...]:
     return (RoleModel.name, RoleModel.display_name)
+
+
+def _check_value_presence(
+    value: TRequired | UnloadedType, *, object_type: str, field_name: str
+) -> TRequired:
+    if isinstance(value, UnloadedType):
+        raise ValueError(f"{object_type}.{field_name} is required.")
+    return value
+
+
+def _check_nullable_value_presence(
+    value: TRequired | UnloadedType | None, *, object_type: str, field_name: str
+) -> TRequired | None:
+    if value is None:
+        return None
+    return _check_value_presence(value, object_type=object_type, field_name=field_name)

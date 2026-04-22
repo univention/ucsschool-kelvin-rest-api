@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import Select, select
@@ -10,15 +11,23 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
+    _bulk_fetch_by_name,
+    _bulk_fetch_by_public_id,
+    _check_nullable_value_presence,
+    _check_value_presence,
     _compose_field_map,
+    _fetch_one_by_name,
+    _fetch_one_by_public_id,
     _get_exposed_fields,
     _load_requested_scalar_attributes,
     _role_scalar_columns,
     _school_scalar_columns,
+    generate_public_id,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mapping import to_group
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain import (
+    UNSET,
     Group,
     LoadSpec,
     NotFound,
@@ -147,7 +156,105 @@ class SQLAlchemyGroupManager(Manager[Group]):
         self,
         data: Group,
     ) -> None:
-        raise NotImplementedError("Group create is not implemented yet.")  # pragma: no cover
+        """
+        NOTE Refactor me!!!
+
+        1. Current design fetches nested objects by public_id or name, which requires
+           additional queries and may not be ideal for performance.
+
+           SqlAlchemy offers::
+
+                role_public_id = "a497387d-e432-4120-b43e-964abb23eef1"
+                group_name = "Class 10A"
+
+                stmt = insert(Group).from_select(
+                    [Group.name, Group.role_id],
+                    select(
+                        literal(group_name),
+                        Role.id,
+                    ).where(Role.public_id == role_public_id)
+                )
+
+                result = session.execute(stmt)
+
+        2. Separation on concerns is not great.
+           The manager should be responsible for orchestrating the operation,
+           but the details of how to fetch related objects and handle the various
+           field types could be abstracted away into separate helper functions or
+           even a dedicated Mapper module.
+        """
+        group_model = GroupModel(
+            record_uid=_check_value_presence(
+                data.record_uid, object_type="Group", field_name="record_uid"
+            ),
+            source_uid=_check_value_presence(
+                data.source_uid, object_type="Group", field_name="source_uid"
+            ),
+            name=_check_value_presence(data.name, object_type="Group", field_name="name"),
+            display_name=dict(
+                _check_value_presence(data.display_name, object_type="Group", field_name="display_name"),
+            ),
+            has_share=_check_value_presence(
+                data.create_share, object_type="Group", field_name="create_share"
+            ),
+            email=_check_nullable_value_presence(data.email, object_type="Group", field_name="email"),
+        )
+        if data.public_id == UNSET:
+            group_model.public_id = generate_public_id()
+        else:
+            group_model.public_id = cast(UUID, data.public_id)
+
+        group_type_name = _check_value_presence(
+            data.group_type, object_type="Group", field_name="group_type"
+        )
+        group_model.group_type = await _fetch_one_by_name(
+            self._session, GroupTypeModel, GroupTypeModel.name, group_type_name, "GroupType"
+        )
+
+        school = _check_value_presence(data.school, object_type="Group", field_name="school")
+        if not isinstance(school.public_id, UUID):
+            raise ValueError("Group.school must have a public_id for create().")
+        group_model.school = await _fetch_one_by_public_id(
+            self._session, SchoolModel, school.public_id, "School"
+        )
+
+        member_roles = _check_value_presence(
+            data.member_roles, object_type="Group", field_name="member_roles"
+        )
+        role_ids = [r.public_id for r in member_roles if isinstance(r.public_id, UUID)]
+        roles_by_id = await _bulk_fetch_by_public_id(self._session, RoleModel, role_ids, "Role")
+        group_model.member_roles = list(roles_by_id.values())
+
+        allowed_email_senders_users = _check_value_presence(
+            data.allowed_email_senders_users,
+            object_type="Group",
+            field_name="allowed_email_senders_users",
+        )
+        users_by_name = await _bulk_fetch_by_name(
+            self._session,
+            UserModel,
+            UserModel.name,
+            list(allowed_email_senders_users),
+            "User",
+        )
+        group_model.allowed_email_senders_users = list(users_by_name.values())
+
+        allowed_email_senders_groups = _check_value_presence(
+            data.allowed_email_senders_groups,
+            object_type="Group",
+            field_name="allowed_email_senders_groups",
+        )
+        groups_by_name = await _bulk_fetch_by_name(
+            self._session,
+            GroupModel,
+            GroupModel.name,
+            list(allowed_email_senders_groups),
+            "Group",
+        )
+        group_model.allowed_email_senders_groups = list(groups_by_name.values())
+
+        self._session.add(group_model)
+        await self._session.flush()
 
     async def modify(
         self,
