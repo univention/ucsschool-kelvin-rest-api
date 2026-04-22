@@ -32,6 +32,7 @@ print(hostname)
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
       - /usr/share/ca-certificates:/usr/share/ca-certificates:ro
+      - /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json:ro
       - /usr/local/share/ca-certificates:/usr/local/share/ca-certificates:ro
       - /etc/ucsschool/kelvin:/etc/ucsschool/kelvin
     environment:
@@ -41,3 +42,4 @@ print(hostname)
       UCSSCHOOL_KELVIN_DB_USERNAME_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.username
       UCSSCHOOL_KELVIN_DB_PASSWORD_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.secret
       LDAP_SERVER_TYPE: @%@ldap/server/type@%@
+      PROVISIONING_API_FQDN: @%@ldap/server/name@%@

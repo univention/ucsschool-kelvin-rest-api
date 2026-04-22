@@ -8,6 +8,9 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "loguru>=0.7.3",
+    "python-ldap>=3.4.4",
+    "requests>=2.32.4",
     "sqlalchemy>=2.0.48",
 ]
 
@@ -16,7 +19,7 @@ requires = ["uv_build>=0.10.10,<0.11.0"]
 build-backend = "uv_build"
 
 [project.scripts]
-connector = "kelvin_connector:connector"
+connector = "kelvin_connector.consumer:main"
 
 [tool.pytest.ini_options]
 addopts = "--verbose --showlocals -p no:warnings  --cov=kelvin_connector --cov-report=term-missing"
