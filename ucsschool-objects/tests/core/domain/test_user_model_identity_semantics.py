@@ -10,7 +10,7 @@ from tests.core.domain.helpers.model_builders import (
     user as build_user,
     workgroup as build_workgroup,
 )
-from ucsschool_objects.core.domain import Group, Role, SchoolMembership, User
+from ucsschool_objects.core.domain import UNLOADED, Group, Role, SchoolMembership, User
 
 
 def test_user_is_hashable() -> None:
@@ -53,6 +53,9 @@ def test_user_equality_by_public_id() -> None:
         birthday=None,
         expiration_date=None,
         active=True,
+        school_memberships=UNLOADED,
+        legal_wards=UNLOADED,
+        legal_guardians=UNLOADED,
     )
     u2 = User(
         public_id=uid,
@@ -65,6 +68,9 @@ def test_user_equality_by_public_id() -> None:
         birthday=None,
         expiration_date=None,
         active=False,
+        school_memberships=UNLOADED,
+        legal_wards=UNLOADED,
+        legal_guardians=UNLOADED,
     )
     assert u1 == u2
 
@@ -87,6 +93,11 @@ def test_group_equality_by_public_id() -> None:
         display_name={},
         create_share=False,
         group_type="school_class",
+        email=None,
+        allowed_email_senders_users=UNLOADED,
+        allowed_email_senders_groups=UNLOADED,
+        member_roles=UNLOADED,
+        school=UNLOADED,
     )
     g2 = Group(
         public_id=uid,
@@ -96,6 +107,11 @@ def test_group_equality_by_public_id() -> None:
         display_name={},
         create_share=True,
         group_type="school_class",
+        email=None,
+        allowed_email_senders_users=UNLOADED,
+        allowed_email_senders_groups=UNLOADED,
+        member_roles=UNLOADED,
+        school=UNLOADED,
     )
 
     assert g1 == g2

@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 from ucsschool_objects.core.domain import (
+    UNLOADED,
     Group,
     GroupValidator,
     Role,
@@ -49,6 +50,11 @@ def _group(**overrides: Any) -> Group:
         display_name={},
         create_share=False,
         group_type="school_class",
+        email=None,
+        allowed_email_senders_users=UNLOADED,
+        allowed_email_senders_groups=UNLOADED,
+        member_roles=UNLOADED,
+        school=UNLOADED,
     )
     return Group(**{**defaults, **overrides})
 
@@ -65,6 +71,9 @@ def _user(**overrides: Any) -> User:
         birthday=None,
         expiration_date=None,
         active=True,
+        school_memberships=UNLOADED,
+        legal_wards=UNLOADED,
+        legal_guardians=UNLOADED,
     )
     return User(**{**defaults, **overrides})
 
