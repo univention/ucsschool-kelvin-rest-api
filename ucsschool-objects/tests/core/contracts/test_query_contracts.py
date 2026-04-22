@@ -13,7 +13,7 @@ from tests.core.contracts.contract_test_support import (
     RoleQuerySetup,
     SchoolQueryFactories,
     SchoolQuerySetup,
-    SearchManagerProtocol,
+    SearchNamedRecord,
     UserQueryFactories,
     UserQuerySetup,
 )
@@ -24,6 +24,7 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyUserManager,
 )
 from ucsschool_objects.core.domain import And, Filter, Not, Operator, Or, SearchQuery, SortSpec
+from ucsschool_objects.core.domain.ports.manager import Manager
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -301,7 +302,7 @@ async def test_school_query_operators(
 ) -> None:
     factories = SchoolQueryFactories(school_factory=school_factory)
     expectation = await setup_case(factories)
-    manager = cast(SearchManagerProtocol, SQLAlchemySchoolManager(db_session))
+    manager = cast(Manager[SearchNamedRecord], SQLAlchemySchoolManager(db_session))
 
     results = list(await manager.search(expectation.query, sort_by=expectation.sort_by))
     assert [item.name for item in results] == list(expectation.expected_names)
@@ -333,7 +334,7 @@ async def test_group_query_operators(
         group_type_factory=group_type_factory,
     )
     expectation = await setup_case(factories)
-    manager = cast(SearchManagerProtocol, SQLAlchemyGroupManager(db_session))
+    manager = cast(Manager[SearchNamedRecord], SQLAlchemyGroupManager(db_session))
 
     results = list(await manager.search(expectation.query, sort_by=expectation.sort_by))
     assert [item.name for item in results] == list(expectation.expected_names)
@@ -356,7 +357,7 @@ async def test_role_query_operators(
 ) -> None:
     factories = RoleQueryFactories(role_factory=role_factory)
     expectation = await setup_case(factories)
-    manager = cast(SearchManagerProtocol, SQLAlchemyRoleManager(db_session))
+    manager = cast(Manager[SearchNamedRecord], SQLAlchemyRoleManager(db_session))
 
     results = list(await manager.search(expectation.query, sort_by=expectation.sort_by))
     assert [item.name for item in results] == list(expectation.expected_names)
@@ -383,7 +384,7 @@ async def test_user_query_operators(
 ) -> None:
     factories = UserQueryFactories(user_factory=user_factory)
     expectation = await setup_case(factories)
-    manager = cast(SearchManagerProtocol, SQLAlchemyUserManager(db_session))
+    manager = cast(Manager[SearchNamedRecord], SQLAlchemyUserManager(db_session))
 
     results = list(await manager.search(expectation.query, sort_by=expectation.sort_by))
     assert [item.name for item in results] == list(expectation.expected_names)

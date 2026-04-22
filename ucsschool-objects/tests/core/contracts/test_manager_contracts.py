@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING, cast
 import pytest
 from tests.core.contracts.contract_test_support import (
     ManagerContractFactories,
-    ManagerProtocol,
     ManagerSearchExpectation,
     ManagerSetup,
+    NamedRecord,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyGroupManager,
@@ -22,6 +22,7 @@ from ucsschool_objects.core.domain import (
     SearchQuery,
     SortSpec,
 )
+from ucsschool_objects.core.domain.ports.manager import Manager
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -111,7 +112,7 @@ async def test_manager_get_and_search_contract(
         user_factory=user_factory,
     )
     expectation = await setup_case(factories)
-    manager = cast(ManagerProtocol, manager_cls(db_session))
+    manager = cast(Manager[NamedRecord], manager_cls(db_session))
 
     fetched = await manager.get(expectation.public_id)
     assert fetched.name == expectation.expected_name

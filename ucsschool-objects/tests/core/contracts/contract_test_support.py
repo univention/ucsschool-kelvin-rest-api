@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol, TypeAlias
 from uuid import UUID
 
-from ucsschool_objects.core.domain import LoadSpec, SearchQuery, SortSpec
+from ucsschool_objects.core.domain import SearchQuery, SortSpec
 
 if TYPE_CHECKING:
     from tests.test_types import (
@@ -69,35 +69,6 @@ class NamedRecord(Protocol):
 
 class SearchNamedRecord(Protocol):
     name: str
-
-
-class ManagerProtocol(Protocol):
-    async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> NamedRecord:
-        ...
-
-    async def search(
-        self,
-        query: SearchQuery | None = None,
-        *,
-        sort_by: tuple[SortSpec, ...] = (),
-        limit: int = 50,
-        offset: int = 0,
-        load: LoadSpec | None = None,
-    ) -> Iterable[NamedRecord]:
-        ...
-
-
-class SearchManagerProtocol(Protocol):
-    async def search(
-        self,
-        query: SearchQuery | None = None,
-        *,
-        sort_by: tuple[SortSpec, ...] = (),
-        limit: int = 50,
-        offset: int = 0,
-        load: object | None = None,
-    ) -> Iterable[SearchNamedRecord]:
-        ...
 
 
 ManagerSetup: TypeAlias = Callable[[ManagerContractFactories], Awaitable[ManagerSearchExpectation]]
