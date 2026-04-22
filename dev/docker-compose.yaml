@@ -26,15 +26,29 @@ services:
       dockerfile: docker/Dockerfile
       network: host
       target: connector-prod
+    volumes:
+      # Secrets and certificates
+      - ./_vm_config/provisioning_config.json:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json:ro
     stdin_open: true
     tty: true
     environment:
-      LDAP_SERVER_TYPE: "master"
+      LDAP_SERVER_TYPE: "${LDAP_SERVER_TYPE}"
+      PROVISIONING_FQDN: "${LDAP_SERVER_NAME}"
+    env_file:
+      - _vm_config/env
+    extra_hosts:
+      - "${LDAP_MASTER}:${TARGET}"
     develop:
       watch:
         - action: sync+restart
           path: ../ucsschool-objects
           target: /app/ucsschool-objects
+          ignore:
+            - "**/__pycache__/"
+            - "**/*.pyc"
+        - action: sync+restart
+          path: ../kelvin-connector
+          target: /app/kelvin-connector
           ignore:
             - "**/__pycache__/"
             - "**/*.pyc"
@@ -59,6 +73,7 @@ services:
       # Secrets and certificates
       - ./_vm_config/machine.secret:/etc/machine.secret:ro
       - ./_vm_config/ldap.secret:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/cn_admin.secret:ro
+      - ./_vm_config/provisioning_config.json:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json:ro
       - ./_vm_config/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
       - ./_vm_config/tokens.secret:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/tokens.secret:ro
       - ./_vm_config/postgresql-kelvin.secret:/etc/ucsschool/kelvin/postgresql-kelvin.secret:ro
