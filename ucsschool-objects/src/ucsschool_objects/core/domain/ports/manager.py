@@ -20,15 +20,15 @@ JSONValue: TypeAlias = JSONScalar | list["JSONValue"] | dict[str, "JSONValue"]
 
 
 class JSONPathValueOperation(TypedDict):
-    """JSONPath operation variant that requires a value payload."""
+    """RFC 6902 operation variant that carries a value payload."""
 
-    op: Required[Literal["set", "append", "merge"]]
+    op: Required[Literal["add", "replace", "set", "append", "merge"]]
     path: Required[str]
     value: Required[JSONValue]
 
 
 class JSONPathRemoveOperation(TypedDict):
-    """JSONPath operation variant that removes matched nodes."""
+    """RFC 6902 operation variant that removes a node."""
 
     op: Required[Literal["remove"]]
     path: Required[str]

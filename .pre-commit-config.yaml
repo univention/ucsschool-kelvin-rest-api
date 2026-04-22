@@ -30,7 +30,7 @@ repos:
     -   id: mypy
         files: ^ucsschool-objects
         args: [--strict]
-        additional_dependencies: ["sqlalchemy", "pytest", "pytest-asyncio", "testcontainers"]
+        additional_dependencies: ["sqlalchemy", "pytest", "pytest-asyncio", "testcontainers", "jsonpatch"]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
