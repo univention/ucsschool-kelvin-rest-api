@@ -1,23 +1,44 @@
-"""Read-side port definitions for domain object retrieval.
+"""Port definitions for domain object retrieval and mutation.
 
 This module exposes protocol contracts that concrete adapters implement
-to provide read access to domain objects.
+to provide read/write access to domain objects.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Protocol, TypeVar
+from typing import Literal, Protocol, Required, TypeAlias, TypedDict, TypeVar
 from uuid import UUID
 
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
 
-ManagerT = TypeVar("ManagerT", covariant=True)
+ManagerT = TypeVar("ManagerT")
+
+JSONScalar: TypeAlias = str | int | float | bool | None
+JSONValue: TypeAlias = JSONScalar | list["JSONValue"] | dict[str, "JSONValue"]
+
+
+class JSONPathValueOperation(TypedDict):
+    """JSONPath operation variant that requires a value payload."""
+
+    op: Required[Literal["set", "append", "merge"]]
+    path: Required[str]
+    value: Required[JSONValue]
+
+
+class JSONPathRemoveOperation(TypedDict):
+    """JSONPath operation variant that removes matched nodes."""
+
+    op: Required[Literal["remove"]]
+    path: Required[str]
+
+
+JSONPathOperation: TypeAlias = JSONPathValueOperation | JSONPathRemoveOperation
 
 
 class Manager(Protocol[ManagerT]):
-    """Abstract read contract for retrieving and listing domain objects."""
+    """Abstract contract for retrieving and mutating domain objects."""
 
     async def get(
         self, public_id: UUID, *, load: LoadSpec | None = None
@@ -52,6 +73,41 @@ class Manager(Protocol[ManagerT]):
             limit: Maximum number of records to return.
             offset: Number of matching records to skip.
             load: Optional attribute/loading specification for eager loading.
+        """
+
+        ...
+
+    async def create(
+        self,
+        data: ManagerT,
+    ) -> None:  # pragma: no cover
+        """Create a new object from JSON-compatible input data.
+
+        Args:
+            data: A domain object that shall be created
+        """
+
+        ...
+
+    async def modify(
+        self,
+        public_id: UUID,
+        operations: Sequence[JSONPathOperation],
+    ) -> None:  # pragma: no cover
+        """Modify an existing object addressed by public UUID via JSONPath ops.
+
+        Args:
+            public_id: Public identifier of the object to modify.
+            operations: Ordered JSONPath-based mutation operations.
+        """
+
+        ...
+
+    async def delete(self, public_id: UUID) -> None:  # pragma: no cover
+        """Delete an existing object identified by its public UUID.
+
+        Args:
+            public_id: Public identifier of the object to delete.
         """
 
         ...

@@ -40,6 +40,11 @@ def school_class(name: str = "class1") -> Group:
         display_name={},
         create_share=False,
         group_type="school_class",
+        email=None,
+        allowed_email_senders_users=UNLOADED,
+        allowed_email_senders_groups=UNLOADED,
+        member_roles=UNLOADED,
+        school=UNLOADED,
     )
 
 
@@ -55,6 +60,8 @@ def workgroup(name: str = "wg1") -> Group:
         email=None,
         allowed_email_senders_users=frozenset(),
         allowed_email_senders_groups=frozenset(),
+        member_roles=UNLOADED,
+        school=UNLOADED,
     )
 
 
