@@ -53,6 +53,7 @@ fetch-vm-data: .get-target ## Fetches necessary information from a UCS host, to 
 	scp $(TARGET):/etc/ldap.secret $(VM_CONF_DIR)/
 	scp $(TARGET):/etc/ssl/certs/ca-certificates.crt $(VM_CONF_DIR)/
 	scp $(TARGET):/etc/univention/base.conf $(VM_CONF_DIR)/
+	scp $(TARGET):/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json $(VM_CONF_DIR)/provisioning_config.json
 	scp $(TARGET):/usr/share/ucs-school-import/configs/ucs-school-testuser-import.json $(VM_CONF_DIR)/user_import.json
 	echo "{}" > $(VM_CONF_DIR)/mapped_udm_properties.json
 	echo "LDAP_MASTER=$$(ssh $(TARGET) ucr get ldap/master)" > $(VM_CONF_DIR)/env
@@ -60,7 +61,7 @@ fetch-vm-data: .get-target ## Fetches necessary information from a UCS host, to 
 	echo "LDAP_MASTER_PORT=$$(ssh $(TARGET) ucr get ldap/master/port)" >> $(VM_CONF_DIR)/env
 	echo "LDAP_HOSTDN=$$(ssh $(TARGET) ucr get ldap/hostdn)" >> $(VM_CONF_DIR)/env
 	echo "LDAP_SERVER_NAME=$$(ssh $(TARGET) ucr get ldap/server/name)" >> $(VM_CONF_DIR)/env
-	echo "LDAP_SERVER_PORT=$$(ssh $(TARGET) ucr get ldap/server/port)" >> $(VM_CONF_DIR)/env
+	echo "LDAP_SERVER_TYPE=$$(ssh $(TARGET) ucr get ldap/server/type)" >> $(VM_CONF_DIR)/env
 	echo "HOSTNAME=$$(ssh $(TARGET) ucr get hostname)" >> $(VM_CONF_DIR)/env
 	echo "DOCKER_HOST_NAME=$(TARGET)" >> $(VM_CONF_DIR)/env
 	echo "TARGET=$(TARGET)" >> $(VM_CONF_DIR)/env
