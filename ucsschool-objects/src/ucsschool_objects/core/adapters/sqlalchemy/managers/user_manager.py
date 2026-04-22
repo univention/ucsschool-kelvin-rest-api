@@ -27,7 +27,7 @@ from ucsschool_objects.core.domain import (
     SortSpec,
     User,
 )
-from ucsschool_objects.core.domain.ports.manager import Manager
+from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     Role as RoleModel,
@@ -216,3 +216,19 @@ class SQLAlchemyUserManager(Manager[User]):
             )
             for model in (await self._session.execute(stmt)).scalars()
         )
+
+    async def create(
+        self,
+        data: User,
+    ) -> None:
+        raise NotImplementedError("User create is not implemented yet.")  # pragma: no cover
+
+    async def modify(
+        self,
+        public_id: UUID,
+        operations: Sequence[JSONPathOperation],
+    ) -> None:
+        raise NotImplementedError("User modify is not implemented yet.")  # pragma: no cover
+
+    async def delete(self, public_id: UUID) -> None:
+        raise NotImplementedError("User delete is not implemented yet.")  # pragma: no cover

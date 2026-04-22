@@ -20,7 +20,7 @@ from ucsschool_objects.core.domain import (
     SearchQuery,
     SortSpec,
 )
-from ucsschool_objects.core.domain.ports.manager import Manager
+from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import Role as RoleModel
 
 __all__ = ["SQLAlchemyRoleManager"]
@@ -86,3 +86,19 @@ class SQLAlchemyRoleManager(Manager[Role]):
         )
         stmt = stmt.limit(limit).offset(offset)
         return (to_role(model) for model in (await self._session.execute(stmt)).scalars())
+
+    async def create(
+        self,
+        data: Role,
+    ) -> None:
+        raise NotImplementedError("Role create is not implemented yet.")  # pragma: no cover
+
+    async def modify(
+        self,
+        public_id: UUID,
+        operations: Sequence[JSONPathOperation],
+    ) -> None:
+        raise NotImplementedError("Role modify is not implemented yet.")  # pragma: no cover
+
+    async def delete(self, public_id: UUID) -> None:
+        raise NotImplementedError("Role delete is not implemented yet.")  # pragma: no cover
