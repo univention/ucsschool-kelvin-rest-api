@@ -12,6 +12,9 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
+    _bulk_fetch_by_public_id,
+    _check_nullable_value_presence,
+    _check_value_presence,
     _compose_field_map,
     _get_exposed_fields,
     _load_requested_scalar_attributes,
@@ -23,8 +26,10 @@ from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search
 from ucsschool_objects.core.domain import (
     LoadSpec,
     NotFound,
+    SchoolMembership as DomainSchoolMembership,
     SearchQuery,
     SortSpec,
+    UnloadedType,
     User,
 )
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
@@ -169,6 +174,54 @@ class SQLAlchemyUserManager(Manager[User]):
     def __init__(self, session: AsyncSession):
         self._session = session
 
+    async def _build_memberships(
+        self,
+        memberships: frozenset[DomainSchoolMembership] | UnloadedType,
+    ) -> list[SchoolMembership]:
+        if isinstance(memberships, UnloadedType):
+            return []
+
+        # Validate and extract typed UUIDs in one pass to preserve mypy narrowing
+        ValidatedMembership = tuple[DomainSchoolMembership, UUID, list[UUID], list[UUID]]
+        validated: list[ValidatedMembership] = []
+        school_ids: list[UUID] = []
+        all_role_ids: list[UUID] = []
+        all_group_ids: list[UUID] = []
+        for m in memberships:
+            school = m.school
+            if isinstance(school, UnloadedType) or not isinstance(school.public_id, UUID):
+                raise ValueError("All membership schools must be loaded with public_id for create().")
+            school_id: UUID = school.public_id
+            role_ids: list[UUID] = []
+            for r in m.roles:
+                if not isinstance(r.public_id, UUID):
+                    raise ValueError("All membership roles must provide public_id for create().")
+                role_ids.append(r.public_id)
+            group_ids: list[UUID] = []
+            for g in m.groups:
+                if not isinstance(g.public_id, UUID):
+                    raise ValueError("All membership groups must provide public_id for create().")
+                group_ids.append(g.public_id)
+            validated.append((m, school_id, role_ids, group_ids))
+            school_ids.append(school_id)
+            all_role_ids.extend(role_ids)
+            all_group_ids.extend(group_ids)
+
+        schools_by_id = await _bulk_fetch_by_public_id(self._session, SchoolModel, school_ids, "School")
+        roles_by_id = await _bulk_fetch_by_public_id(self._session, RoleModel, all_role_ids, "Role")
+        groups_by_id = await _bulk_fetch_by_public_id(self._session, GroupModel, all_group_ids, "Group")
+
+        membership_models: list[SchoolMembership] = []
+        for m, school_id, role_ids, group_ids in validated:
+            membership_model = SchoolMembership(
+                is_primary=m.is_primary,
+                school=schools_by_id[school_id],
+            )
+            membership_model.roles = [roles_by_id[rid] for rid in role_ids]
+            membership_model.groups = [groups_by_id[gid] for gid in group_ids]
+            membership_models.append(membership_model)
+        return membership_models
+
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> User:
         stmt = select(UserModel).where(UserModel.public_id == public_id)
         if load is not None:
@@ -221,7 +274,43 @@ class SQLAlchemyUserManager(Manager[User]):
         self,
         data: User,
     ) -> None:
-        raise NotImplementedError("User create is not implemented yet.")  # pragma: no cover
+        user_model = UserModel(
+            record_uid=_check_value_presence(
+                data.record_uid, object_type="User", field_name="record_uid"
+            ),
+            source_uid=_check_value_presence(
+                data.source_uid, object_type="User", field_name="source_uid"
+            ),
+            name=_check_value_presence(data.name, object_type="User", field_name="name"),
+            firstname=_check_value_presence(data.firstname, object_type="User", field_name="firstname"),
+            lastname=_check_value_presence(data.lastname, object_type="User", field_name="lastname"),
+            active=_check_value_presence(data.active, object_type="User", field_name="active"),
+            email=_check_nullable_value_presence(data.email, object_type="User", field_name="email"),
+            birthday=_check_nullable_value_presence(
+                data.birthday, object_type="User", field_name="birthday"
+            ),
+            expiration_date=_check_nullable_value_presence(
+                data.expiration_date, object_type="User", field_name="expiration_date"
+            ),
+        )
+        if isinstance(data.public_id, UUID):
+            user_model.public_id = data.public_id
+
+        user_model.school_memberships = await self._build_memberships(data.school_memberships)
+
+        if not isinstance(data.legal_wards, UnloadedType):
+            ward_ids = [u.public_id for u in data.legal_wards if isinstance(u.public_id, UUID)]
+            wards_by_id = await _bulk_fetch_by_public_id(self._session, UserModel, ward_ids, "User")
+            user_model.legal_wards = list(wards_by_id.values())
+        if not isinstance(data.legal_guardians, UnloadedType):
+            guardian_ids = [u.public_id for u in data.legal_guardians if isinstance(u.public_id, UUID)]
+            guardians_by_id = await _bulk_fetch_by_public_id(
+                self._session, UserModel, guardian_ids, "User"
+            )
+            user_model.legal_guardians = list(guardians_by_id.values())
+
+        self._session.add(user_model)
+        await self._session.flush()
 
     async def modify(
         self,
