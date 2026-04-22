@@ -10,20 +10,29 @@ class UnloadedType:
     """Sentinel value for intentionally unloaded relationships."""
 
 
+@dataclass(frozen=True)
+class UnsetType:
+    """
+    Sentinel value for intentionally unset attributes (like public_id
+    for new/unstored objects).
+    """
+
+
 UNLOADED = UnloadedType()
+UNSET = UnsetType()
 
 
 @dataclass(frozen=True, eq=False)
 class School:
-    public_id: UUID
-    record_uid: str | UnloadedType = UNLOADED
-    source_uid: str | UnloadedType = UNLOADED
-    name: str | UnloadedType = UNLOADED
-    display_name: dict[str, str] | UnloadedType = UNLOADED
-    educational_servers: frozenset[str] | UnloadedType = UNLOADED
-    administrative_servers: frozenset[str] | UnloadedType = UNLOADED
-    class_share_file_server: str | None | UnloadedType = UNLOADED
-    home_share_file_server: str | None | UnloadedType = UNLOADED
+    record_uid: str | UnloadedType
+    source_uid: str | UnloadedType
+    name: str | UnloadedType
+    display_name: dict[str, str] | UnloadedType
+    educational_servers: frozenset[str] | UnloadedType
+    administrative_servers: frozenset[str] | UnloadedType
+    public_id: UUID | UnsetType = UNSET
+    class_share_file_server: str | None | UnloadedType = None
+    home_share_file_server: str | None | UnloadedType = None
 
     def __hash__(self) -> int:
         return hash(self.public_id)
@@ -36,9 +45,9 @@ class School:
 
 @dataclass(frozen=True, eq=False)
 class Role:
-    public_id: UUID
-    name: str | UnloadedType = UNLOADED
-    display_name: dict[str, str] | UnloadedType = UNLOADED
+    name: str | UnloadedType
+    display_name: dict[str, str] | UnloadedType
+    public_id: UUID | UnsetType = UNSET
 
     def __hash__(self) -> int:
         return hash(self.public_id)
@@ -51,18 +60,18 @@ class Role:
 
 @dataclass(frozen=True, eq=False)
 class Group:
-    public_id: UUID
-    record_uid: str | UnloadedType = UNLOADED
-    source_uid: str | UnloadedType = UNLOADED
-    name: str | UnloadedType = UNLOADED
-    display_name: dict[str, str] | UnloadedType = UNLOADED
-    create_share: bool | UnloadedType = UNLOADED
-    group_type: str | UnloadedType = UNLOADED
-    email: str | None | UnloadedType = UNLOADED
-    allowed_email_senders_users: frozenset[str] | UnloadedType = UNLOADED
-    allowed_email_senders_groups: frozenset[str] | UnloadedType = UNLOADED
-    member_roles: frozenset[Role] | UnloadedType = UNLOADED
-    school: School | UnloadedType = UNLOADED
+    record_uid: str | UnloadedType
+    source_uid: str | UnloadedType
+    name: str | UnloadedType
+    display_name: dict[str, str] | UnloadedType
+    create_share: bool | UnloadedType
+    group_type: str | UnloadedType
+    allowed_email_senders_users: frozenset[str] | UnloadedType
+    allowed_email_senders_groups: frozenset[str] | UnloadedType
+    member_roles: frozenset[Role] | UnloadedType
+    school: School | UnloadedType
+    public_id: UUID | UnsetType = UNSET
+    email: str | None | UnloadedType = None
 
     def __hash__(self) -> int:
         return hash(self.public_id)
@@ -101,19 +110,19 @@ class SchoolMembership:
 
 @dataclass(frozen=True, eq=False)
 class User:
-    public_id: UUID
-    record_uid: str | UnloadedType = UNLOADED
-    source_uid: str | UnloadedType = UNLOADED
-    name: str | UnloadedType = UNLOADED
-    firstname: str | UnloadedType = UNLOADED
-    lastname: str | UnloadedType = UNLOADED
-    email: str | None | UnloadedType = UNLOADED
-    birthday: date | None | UnloadedType = UNLOADED
-    expiration_date: date | None | UnloadedType = UNLOADED
-    active: bool | UnloadedType = UNLOADED
-    school_memberships: frozenset[SchoolMembership] | UnloadedType = UNLOADED
-    legal_wards: frozenset["User"] | UnloadedType = UNLOADED
-    legal_guardians: frozenset["User"] | UnloadedType = UNLOADED
+    record_uid: str | UnloadedType
+    source_uid: str | UnloadedType
+    name: str | UnloadedType
+    firstname: str | UnloadedType
+    lastname: str | UnloadedType
+    active: bool | UnloadedType
+    school_memberships: frozenset[SchoolMembership] | UnloadedType
+    legal_wards: frozenset["User"] | UnloadedType
+    legal_guardians: frozenset["User"] | UnloadedType
+    public_id: UUID | UnsetType = UNSET
+    email: str | None | UnloadedType = None
+    birthday: date | None | UnloadedType = None
+    expiration_date: date | None | UnloadedType = None
 
     def __hash__(self) -> int:
         return hash(self.public_id)
