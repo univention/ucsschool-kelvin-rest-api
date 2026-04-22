@@ -16,6 +16,7 @@ from .errors import (
 from .load_spec import LoadSpec
 from .models import (
     UNLOADED,
+    UNSET,
     Group,
     Role,
     School,
@@ -69,6 +70,7 @@ __all__ = [
     "SearchQuery",
     "SortSpec",
     "UNLOADED",
+    "UNSET",
     "UnloadedType",
     "UnsupportedFilterField",
     "UnsupportedFilterOperator",
