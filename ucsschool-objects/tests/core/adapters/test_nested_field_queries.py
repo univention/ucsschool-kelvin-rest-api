@@ -346,6 +346,7 @@ def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPa
         email=None,
         allowed_email_senders_users=(),
         allowed_email_senders_groups=(),
+        members=(),
         member_roles=(),
     )
 

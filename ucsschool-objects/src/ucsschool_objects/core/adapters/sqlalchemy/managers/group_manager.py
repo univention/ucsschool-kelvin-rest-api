@@ -43,6 +43,7 @@ from ucsschool_objects.database_models import (
     GroupType as GroupTypeModel,
     Role as RoleModel,
     School as SchoolModel,
+    SchoolMembership as SchoolMembershipModel,
     User as UserModel,
 )
 
@@ -130,6 +131,12 @@ class SQLAlchemyGroupManager(Manager[Group]):
                     GroupModel.name,
                 )
             )
+        if load is not None and load.includes("members"):
+            stmt = stmt.options(
+                selectinload(GroupModel.members)
+                .selectinload(SchoolMembershipModel.user)
+                .load_only(UserModel.public_id, UserModel.name)
+            )
         if load is not None and load.includes("member_roles"):
             stmt = stmt.options(
                 selectinload(GroupModel.member_roles).load_only(
@@ -210,6 +217,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         group_model.group_type = relations.group_type
         group_model.school = relations.school
         group_model.member_roles = relations.member_roles
+        group_model.members = cast(list[SchoolMembershipModel], getattr(relations, "members"))
         group_model.allowed_email_senders_users = relations.allowed_email_senders_users
         group_model.allowed_email_senders_groups = relations.allowed_email_senders_groups
 

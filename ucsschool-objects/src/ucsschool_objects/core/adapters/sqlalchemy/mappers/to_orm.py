@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import cast
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _bulk_fetch_by_public_id,
@@ -14,7 +15,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _fetch_one_by_public_id,
     generate_public_id,
 )
-from ucsschool_objects.core.domain import UNSET, Group, Role, School, UnloadedType, User
+from ucsschool_objects.core.domain import UNSET, Group, NotFound, Role, School, UnloadedType, User
 from ucsschool_objects.core.domain.models import SchoolMembership as DomainSchoolMembership
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -31,6 +32,7 @@ class GroupCreateRelations:
     group_type: GroupTypeModel
     school: SchoolModel
     member_roles: list[RoleModel]
+    members: list[SchoolMembershipModel]
     allowed_email_senders_users: list[UserModel]
     allowed_email_senders_groups: list[GroupModel]
 
@@ -170,6 +172,21 @@ async def resolve_group_create_relations(
         raise ValueError("Group.school must have a public_id for create().")
     school_model = await _fetch_one_by_public_id(session, SchoolModel, school.public_id, "School")
 
+    members = _check_value_presence(data.members, object_type="Group", field_name="members")
+    member_user_public_ids = _extract_related_public_ids(
+        members,
+        owner_name="Group.members",
+        related_type="User",
+    )
+    member_users_by_id = await _bulk_fetch_by_public_id(
+        session, UserModel, member_user_public_ids, "User"
+    )
+    membership_models = await _resolve_group_member_memberships(
+        session,
+        member_users_by_id,
+        school_model,
+    )
+
     member_roles = _check_value_presence(
         data.member_roles, object_type="Group", field_name="member_roles"
     )
@@ -204,9 +221,40 @@ async def resolve_group_create_relations(
         group_type=group_type,
         school=school_model,
         member_roles=list(roles_by_id.values()),
+        members=membership_models,
         allowed_email_senders_users=list(users_by_id.values()),
         allowed_email_senders_groups=list(groups_by_id.values()),
     )
+
+
+async def _resolve_group_member_memberships(
+    session: AsyncSession,
+    users_by_public_id: dict[UUID, UserModel],
+    school_model: SchoolModel,
+) -> list[SchoolMembershipModel]:
+    if not users_by_public_id:
+        return []
+
+    member_user_ids = [user.id for user in users_by_public_id.values()]
+    memberships = (
+        (
+            await session.execute(
+                select(SchoolMembershipModel).where(
+                    SchoolMembershipModel.user_id.in_(member_user_ids),
+                    SchoolMembershipModel.school_id == school_model.id,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    by_user_id: dict[int, SchoolMembershipModel] = {
+        membership.user_id: membership for membership in memberships
+    }
+    for user in users_by_public_id.values():
+        if user.id not in by_user_id:
+            raise NotFound(object_type="SchoolMembership", public_id=str(user.public_id))
+    return [by_user_id[user.id] for user in users_by_public_id.values()]
 
 
 async def resolve_user_create_relations(

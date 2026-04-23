@@ -140,6 +140,10 @@ def to_group(model: GroupModel) -> Group:
             to_group(group) for group in model.allowed_email_senders_groups
         )
 
+    members: set[User] | UnloadedType = UNLOADED
+    if _is_loaded(model, "members"):
+        members = set(_to_related_user(membership.user) for membership in model.members)
+
     member_roles: set[Role] | UnloadedType = UNLOADED
     if _is_loaded(model, "member_roles"):
         member_roles = set(to_role(role) for role in model.member_roles)
@@ -155,6 +159,7 @@ def to_group(model: GroupModel) -> Group:
         email=_loaded_value(model, "email", _as_optional_str),
         allowed_email_senders_users=allowed_email_senders_users,
         allowed_email_senders_groups=allowed_email_senders_groups,
+        members=members,
         member_roles=member_roles,
         school=school,
     )
@@ -258,6 +263,7 @@ def group_from_patch(patched: dict[str, object], public_id: UUID) -> Group:
         group_type=cast(str, patched["group_type"]),
         email=cast("str | None", patched["email"]),
         school=UNLOADED,
+        members=UNLOADED,
         member_roles=UNLOADED,
         allowed_email_senders_users=UNLOADED,
         allowed_email_senders_groups=UNLOADED,
