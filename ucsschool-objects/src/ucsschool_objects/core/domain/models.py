@@ -94,7 +94,8 @@ class SchoolMembership:
     groups: set[Group]  # TODO: check that object is not edited directly
 
     def __hash__(self) -> int:
-        return hash((self.school, self.is_primary, self.roles, self.groups))
+        # Roles/groups are mutable sets on the model, so normalize for hashing.
+        return hash((self.school, self.is_primary, frozenset(self.roles), frozenset(self.groups)))
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SchoolMembership):
