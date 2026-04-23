@@ -48,6 +48,15 @@ class QueryEventObject(TypedDict):
     num_delivered: int
 
 
+class Metadata(TypedDict):
+    publisher_name: str
+    ts: str
+    realm: str
+    topic: str
+    sequence_number: int
+    num_delivered: int
+
+
 class SubscriptionError(Exception):
     """
     Raised when a subscription fails.

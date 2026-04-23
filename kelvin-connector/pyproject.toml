@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "loguru>=0.7.3",
+    "provisioning-consumer-lib>=0.9.3",
     "python-ldap>=3.4.4",
     "requests>=2.32.4",
     "sqlalchemy>=2.0.48",
@@ -24,6 +25,7 @@ connector = "kelvin_connector.consumer:main"
 [tool.pytest.ini_options]
 addopts = "--verbose --showlocals -p no:warnings  --cov=kelvin_connector --cov-report=term-missing"
 testpaths = ["tests"]
+
 
 
 [tool.coverage.run]
