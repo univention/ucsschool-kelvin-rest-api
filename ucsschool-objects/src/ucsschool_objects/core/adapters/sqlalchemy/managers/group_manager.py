@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import cast
 from uuid import UUID
 
 from sqlalchemy import Select, select
@@ -11,22 +10,19 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
-    _bulk_fetch_by_public_id,
-    _check_nullable_value_presence,
-    _check_value_presence,
     _compose_field_map,
-    _fetch_one_by_name,
-    _fetch_one_by_public_id,
     _get_exposed_fields,
     _load_requested_scalar_attributes,
     _role_scalar_columns,
     _school_scalar_columns,
-    generate_public_id,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
+    resolve_group_create_relations,
+    to_group_model,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mapping import to_group
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain import (
-    UNSET,
     Group,
     LoadSpec,
     NotFound,
@@ -175,90 +171,14 @@ class SQLAlchemyGroupManager(Manager[Group]):
                 )
 
                 result = session.execute(stmt)
-
-        2. Separation on concerns is not great.
-           The manager should be responsible for orchestrating the operation,
-           but the details of how to fetch related objects and handle the various
-           field types could be abstracted away into separate helper functions or
-           even a dedicated Mapper module.
         """
-        group_model = GroupModel(
-            record_uid=_check_value_presence(
-                data.record_uid, object_type="Group", field_name="record_uid"
-            ),
-            source_uid=_check_value_presence(
-                data.source_uid, object_type="Group", field_name="source_uid"
-            ),
-            name=_check_value_presence(data.name, object_type="Group", field_name="name"),
-            display_name=dict(
-                _check_value_presence(data.display_name, object_type="Group", field_name="display_name"),
-            ),
-            has_share=_check_value_presence(
-                data.create_share, object_type="Group", field_name="create_share"
-            ),
-            email=_check_nullable_value_presence(data.email, object_type="Group", field_name="email"),
-        )
-        if data.public_id == UNSET:
-            group_model.public_id = generate_public_id()
-        else:
-            group_model.public_id = cast(UUID, data.public_id)
-
-        group_type_name = _check_value_presence(
-            data.group_type, object_type="Group", field_name="group_type"
-        )
-        group_model.group_type = await _fetch_one_by_name(
-            self._session, GroupTypeModel, GroupTypeModel.name, group_type_name, "GroupType"
-        )
-
-        school = _check_value_presence(data.school, object_type="Group", field_name="school")
-        if not isinstance(school.public_id, UUID):
-            raise ValueError("Group.school must have a public_id for create().")
-        group_model.school = await _fetch_one_by_public_id(
-            self._session, SchoolModel, school.public_id, "School"
-        )
-
-        member_roles = _check_value_presence(
-            data.member_roles, object_type="Group", field_name="member_roles"
-        )
-        role_ids = [r.public_id for r in member_roles if isinstance(r.public_id, UUID)]
-        roles_by_id = await _bulk_fetch_by_public_id(self._session, RoleModel, role_ids, "Role")
-        group_model.member_roles = list(roles_by_id.values())
-
-        allowed_email_senders_users = _check_value_presence(
-            data.allowed_email_senders_users,
-            object_type="Group",
-            field_name="allowed_email_senders_users",
-        )
-        sender_user_public_ids: list[UUID] = []
-        for sender_user in allowed_email_senders_users:
-            sender_public_id = _check_value_presence(
-                sender_user.public_id, object_type="User", field_name="public_id"
-            )
-            if not isinstance(sender_public_id, UUID):
-                raise ValueError("Group.allowed_email_senders_users entries must have a public_id.")
-            sender_user_public_ids.append(sender_public_id)
-        users_by_id = await _bulk_fetch_by_public_id(
-            self._session, UserModel, sender_user_public_ids, "User"
-        )
-        group_model.allowed_email_senders_users = list(users_by_id.values())
-
-        allowed_email_senders_groups = _check_value_presence(
-            data.allowed_email_senders_groups,
-            object_type="Group",
-            field_name="allowed_email_senders_groups",
-        )
-        sender_group_public_ids: list[UUID] = []
-        for sender_group in allowed_email_senders_groups:
-            sender_public_id = _check_value_presence(
-                sender_group.public_id, object_type="Group", field_name="public_id"
-            )
-            if not isinstance(sender_public_id, UUID):
-                raise ValueError("Group.allowed_email_senders_groups entries must have a public_id.")
-            sender_group_public_ids.append(sender_public_id)
-        groups_by_id = await _bulk_fetch_by_public_id(
-            self._session, GroupModel, sender_group_public_ids, "Group"
-        )
-        group_model.allowed_email_senders_groups = list(groups_by_id.values())
+        group_model = to_group_model(data)
+        relations = await resolve_group_create_relations(self._session, data)
+        group_model.group_type = relations.group_type
+        group_model.school = relations.school
+        group_model.member_roles = relations.member_roles
+        group_model.allowed_email_senders_users = relations.allowed_email_senders_users
+        group_model.allowed_email_senders_groups = relations.allowed_email_senders_groups
 
         self._session.add(group_model)
         await self._session.flush()

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -9,15 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
-    _check_value_presence,
     _compose_field_map,
     _load_requested_scalar_attributes,
-    generate_public_id,
 )
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import to_role_model
 from ucsschool_objects.core.adapters.sqlalchemy.mapping import to_role
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain import (
-    UNSET,
     LoadSpec,
     NotFound,
     Role,
@@ -95,16 +92,7 @@ class SQLAlchemyRoleManager(Manager[Role]):
         self,
         data: Role,
     ) -> None:
-        role_model = RoleModel(
-            name=_check_value_presence(data.name, object_type="Role", field_name="name"),
-            display_name=_check_value_presence(
-                data.display_name, object_type="Role", field_name="display_name"
-            ),
-        )
-        if data.public_id == UNSET:
-            role_model.public_id = generate_public_id()
-        else:
-            role_model.public_id = cast(UUID, data.public_id)
+        role_model = to_role_model(data)
 
         self._session.add(role_model)
         await self._session.flush()
