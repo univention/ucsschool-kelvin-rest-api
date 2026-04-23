@@ -12,15 +12,15 @@ from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 _T = TypeVar("_T", School, Group, User)
 
 
-def _normalise(obj: object) -> object:
+def normalise(obj: object) -> object:
     # asdict leaves set/frozenset, UUID, and date as Python objects; convert them to
     # JSON-serialisable types and sort collections so diffing is deterministic.
     # Dict keys are also normalised so UUID-keyed dicts (e.g. school_memberships)
     # serialise correctly.
     if isinstance(obj, dict):
-        return {_normalise(k): _normalise(v) for k, v in obj.items()}
+        return {normalise(k): normalise(v) for k, v in obj.items()}
     if isinstance(obj, (list, set, frozenset)):
-        return sorted((_normalise(item) for item in obj), key=str)
+        return sorted((normalise(item) for item in obj), key=str)
     if isinstance(obj, UUID):
         return str(obj)
     if isinstance(obj, date):
@@ -46,8 +46,8 @@ def _patch_ops(
 def _create_patch(
     src: _T, dst: _T, replace_fields: frozenset[str] = frozenset()
 ) -> Sequence[JSONPathOperation]:
-    src_dict = cast(dict[str, object], _normalise(asdict(src)))
-    dst_dict = cast(dict[str, object], _normalise(asdict(dst)))
+    src_dict = cast(dict[str, object], normalise(asdict(src)))
+    dst_dict = cast(dict[str, object], normalise(asdict(dst)))
     return _patch_ops(src_dict, dst_dict, replace_fields)
 
 
