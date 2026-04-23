@@ -1,17 +1,21 @@
-import enum
-from dataclasses import dataclass
-from enum import auto
 from typing import Any, Callable, final
+from uuid import UUID
 
-from ucsschool_objects.core.domain.models import Group, Role, School, User
+from kelvin_connector.models import (
+    EventType,
+    GroupEvent,
+    SchoolEvent,
+    UserEvent,
+)
+from kelvin_connector.ports import SynchronizationManagerProtocol
+from ucsschool_objects.core.domain import SearchQuery
+from ucsschool_objects.core.domain.models import Group, Role, School, SchoolMembership, User
 from ucsschool_objects.core.domain.ports import Manager
-
-
-class EventType(enum.Enum):
-    CREATE = auto()
-    MODIFY = auto()
-    DELETE = auto()
-
+from ucsschool_objects.core.domain.query import (
+    Filter,
+    Operator,
+    Or,
+)
 
 UDM_USER_PROPERTY_MAPPING = {
     "ucsschoolRecordUID": "record_uid",
@@ -95,42 +99,29 @@ class UDMPropertyMapper:
         return result
 
 
-@dataclass
-class Event:
-    timestamp: str
-    sequence_number: int
-    event_type: EventType
-
-
-@dataclass
-class UserEvent(Event):
-    old: None | dict[str, Any]
-    new: None | dict[str, Any]
-
-
-@dataclass
-class GroupEvent(Event):
-    pass
-
-
-@dataclass
-class SchoolEvent(Event):
+class UDMPropertyRelationMapper:
     pass
 
 
 @final
-class Synchronization:
+class SynchronizationManager(SynchronizationManagerProtocol):
     def __init__(
         self,
-        user_manager: Manager[User],
-        group_manager: Manager[Group],
-        school_manager: Manager[School],
-        role_manager: Manager[Role],
+        reader_session_builder: Callable[[Any], Any],
+        writer_session_builder: Callable[[Any], Any],
+        session_factory: Any,
+        user_manager_class: type[Manager[User]],
+        group_manager_class: type[Manager[Group]],
+        school_manager_class: type[Manager[School]],
+        role_manager_class: type[Manager[Role]],
     ) -> None:
-        self.user_manager = user_manager
-        self.group_manager = group_manager
-        self.school_manager = school_manager
-        self.role_manager = role_manager
+        self.user_manager_class = user_manager_class
+        self.group_manager_class = group_manager_class
+        self.school_manager_class = school_manager_class
+        self.role_manager_class = role_manager_class
+        self.reader_session_builder = reader_session_builder
+        self.writer_session_builder = writer_session_builder
+        self.session_factory = session_factory
         self._build_property_mapper()
 
     def _build_property_mapper(self):
@@ -139,21 +130,65 @@ class Synchronization:
         self.udm_property_mapper.register_hook("disabled", lambda x: not x)
 
     async def handle_user_event(self, user_event: UserEvent):
-        match user_event.event_type:
-            case EventType.CREATE:
-                if user_event.new is None:
-                    return
-                user_event.new["school"]
-                self.school_manager.get()
-                user_keyword_arguments = self.udm_property_mapper.map(user_event.new["properties"])
-                user = User(public_id=user_event.new["id"], **user_keyword_arguments)
-                await self.user_manager.create(user)
-            case EventType.DELETE:
-                if user_event.new is None:
-                    return
-                await self.user_manager.delete(user_event.new["id"])
-            case EventType.MODIFY:
-                pass
+        async with self.writer_session_builder(None, self.session_factory) as session:
+            user_manager = self.user_manager_class(session)
+            school_manager = self.school_manager_class(session)
+            role_manager = self.role_manager_class(session)
+            group_manager = self.group_manager_class(session)
+            match user_event.event_type:
+                case EventType.CREATE:
+                    if user_event.new is None:
+                        return
+                    school_memberships: dict[UUID, SchoolMembership] = dict()
+
+                    school_search_query = SearchQuery(
+                        Or(
+                            clauses=tuple(
+                                Filter(field="name", op=Operator.EQ, value=school_name)
+                                for school_name in user_event.new["properties"]["school"]
+                            )
+                        )
+                    )
+                    schools = await school_manager.search(school_search_query)
+
+                    for school in schools:
+                        role_search_query = SearchQuery(
+                            Or(
+                                clauses=tuple(
+                                    Filter(field="name", op=Operator.EQ, value=role.split(":")[0])
+                                    for role in user_event.new["properties"]["ucsschoolRole"]
+                                    if role.endswith(f":{school.name}")
+                                )
+                            )
+                        )
+                        roles = await role_manager.search(role_search_query)
+
+                        # TODO school specific groups
+                        group_search_query = SearchQuery(
+                            Or(
+                                clauses=tuple(
+                                    Filter(field="name", op=Operator.EQ, value=group)
+                                    for group in user_event.new["properties"]["groups"]
+                                )
+                            )
+                        )
+                        groups = await group_manager.search(group_search_query)
+                        school_memberships[school.public_id] = SchoolMembership(
+                            school, groups=set(groups), is_primary=True, roles=set(roles)
+                        )
+                    user_keyword_arguments = self.udm_property_mapper.map(user_event.new["properties"])
+                    user = User(
+                        public_id=user_event.new["id"],
+                        school_memberships=school_memberships,
+                        **user_keyword_arguments,
+                    )
+                    await user_manager.create(user)
+                case EventType.DELETE:
+                    if user_event.new is None:
+                        return
+                    await user_manager.delete(user_event.new["id"])
+                case EventType.MODIFY:
+                    pass
 
     async def handle_group_event(self, group_event: GroupEvent):
         match group_event.event_type:

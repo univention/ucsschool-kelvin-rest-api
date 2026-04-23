@@ -9,10 +9,11 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "loguru>=0.7.3",
-    "provisioning-consumer-lib>=0.9.3",
+    "provisioning-consumer",
     "python-ldap>=3.4.4",
     "requests>=2.32.4",
     "sqlalchemy>=2.0.48",
+    "ucsschool-objects",
 ]
 
 [build-system]
@@ -40,6 +41,10 @@ exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
 ]
+
+[tool.uv.sources]
+provisioning-consumer = { git = "https://git.knut.univention.de/univention/dev/libraries/provisioning-consumer-template", branch = "pypi" }
+ucsschool-objects = { workspace = true }
 
 [dependency-groups]
 dev = [

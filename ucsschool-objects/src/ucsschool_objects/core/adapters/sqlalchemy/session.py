@@ -47,7 +47,7 @@ def _get_url() -> URL:  # pragma: no cover
         username=os.getenv("UCSSCHOOL_KELVIN_DB_USERNAME"),
         password=Path(
             os.getenv(
-                "UCSSCHOOL_KELVIN_DB_PASSWORDFILE", "/etc/ucsschool/kelvin/postgresql-kelvin.secret"
+                "UCSSCHOOL_KELVIN_DB_PASSWORD_FILE", "/etc/ucsschool/kelvin/postgresql-kelvin.secret"
             )
         )
         .read_text()

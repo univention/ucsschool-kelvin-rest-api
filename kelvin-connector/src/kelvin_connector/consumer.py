@@ -2,62 +2,40 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 from __future__ import annotations
 
-import enum
+import asyncio
 import os
 import sys
-from dataclasses import dataclass
-from enum import auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING
 
+from kelvin_connector.models import (
+    EventType,
+    GroupEvent,
+    SchoolEvent,
+    UserEvent,
+)
+from kelvin_connector.sync import SynchronizationManager
 from loguru import logger
 from provisioning_consumer_lib import AttributeMapping, ConsumerModule, UDMEventHandler
 from provisioning_consumer_lib.consumer import Metadata, QueryEventObject
+from sqlalchemy.ext.asyncio import create_async_engine
 from typing_extensions import override
+from ucsschool_objects.core.adapters.sqlalchemy import (
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.session import (
+    build_session_factory,
+    session_scope,
+    transaction_scope,
+)
+
+from .ports import SynchronizationManagerProtocol
 
 if TYPE_CHECKING:
     from loguru import Logger
-
-
-class SynchronizationHandler(Protocol):
-    async def handle_user_event(self, user_event: UserEvent):
-        ...
-
-    async def handle_group_event(self, group_event: GroupEvent):
-        ...
-
-    async def handle_school_event(self, school_event: SchoolEvent):
-        ...
-
-
-class EventType(enum.Enum):
-    CREATE = auto()
-    MODIFY = auto()
-    DELETE = auto()
-
-
-@dataclass
-class Event:
-    timestamp: str
-    sequence_number: int
-    event_type: EventType
-    old: None | dict[str, Any]
-    new: None | dict[str, Any]
-
-
-@dataclass
-class UserEvent(Event):
-    pass
-
-
-@dataclass
-class GroupEvent(Event):
-    pass
-
-
-@dataclass
-class SchoolEvent(Event):
-    pass
 
 
 class UnknownTopicException(Exception):
@@ -66,21 +44,26 @@ class UnknownTopicException(Exception):
 
 class KelvinConnectorEventHandler(UDMEventHandler):
     def __init__(
-        self, synchronization_handler: SynchronizationHandler, logger: Logger, *args, **kwargs
+        self, synchronization_manager: SynchronizationManagerProtocol, logger: Logger, *args, **kwargs
     ) -> None:
-        self.synchronization_handler = synchronization_handler
+        self.synchronization_manager = synchronization_manager
         super().__init__(logger, *args, **kwargs)
 
     def _is_school_object_event(self, event: QueryEventObject) -> bool:
         if event["topic"] not in ["users/user", "groups/group", "container/ou"]:
             raise UnknownTopicException()
-        return "ucsschoolRole" in event["body"]["old"] or "ucsschoolRole" in event["body"]["new"]
+        if "old" in event["body"] and "properties" in event["body"]["old"]:
+            return "ucsschoolRole" in event["body"]["old"]["properties"]
+        elif "new" in event["body"] and "properties" in event["body"]["new"]:
+            return "ucsschoolRole" in event["body"]["new"]["properties"]
+        return False
 
     @override
     def handle_event(self, event: QueryEventObject) -> bool:
         try:
             if not self._is_school_object_event(event):
-                return False
+                self.logger.debug(f"Event {event} is no school object event.")
+                return True
         except UnknownTopicException:
             self.logger.error("Unknown topic encountered")
             return False
@@ -103,7 +86,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.CREATE,
                 )
-                self.synchronization_handler.handle_user_event(user_event)
+                asyncio.run(self.synchronization_manager.handle_user_event(user_event))
             case "groups/group":
                 group_event = GroupEvent(
                     timestamp=metadata["ts"],
@@ -112,7 +95,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.CREATE,
                 )
-                self.synchronization_handler.handle_group_event(group_event)
+                asyncio.run(self.synchronization_manager.handle_group_event(group_event))
             case "container/ou":
                 school_event = SchoolEvent(
                     timestamp=metadata["ts"],
@@ -121,7 +104,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.CREATE,
                 )
-                self.synchronization_handler.handle_school_event(school_event)
+                asyncio.run(self.synchronization_manager.handle_school_event(school_event))
 
     @override
     def _handle_modify(
@@ -146,7 +129,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.MODIFY,
                 )
-                self.synchronization_handler.handle_user_event(user_event)
+                self.synchronization_manager.handle_user_event(user_event)
             case "groups/group":
                 group_event = GroupEvent(
                     timestamp=metadata["ts"],
@@ -155,7 +138,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.MODIFY,
                 )
-                self.synchronization_handler.handle_group_event(group_event)
+                self.synchronization_manager.handle_group_event(group_event)
             case "container/ou":
                 school_event = SchoolEvent(
                     timestamp=metadata["ts"],
@@ -164,7 +147,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.MODIFY,
                 )
-                self.synchronization_handler.handle_school_event(school_event)
+                self.synchronization_manager.handle_school_event(school_event)
             case _:
                 object_type = new["objectType"]
                 logger.error(f"Unknown object type {object_type}")
@@ -186,7 +169,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=None,
                     event_type=EventType.DELETE,
                 )
-                self.synchronization_handler.handle_user_event(user_event)
+                self.synchronization_manager.handle_user_event(user_event)
             case "groups/group":
                 group_event = GroupEvent(
                     timestamp=metadata["ts"],
@@ -195,7 +178,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=None,
                     event_type=EventType.DELETE,
                 )
-                self.synchronization_handler.handle_group_event(group_event)
+                self.synchronization_manager.handle_group_event(group_event)
             case "container/ou":
                 school_event = SchoolEvent(
                     timestamp=metadata["ts"],
@@ -204,7 +187,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=None,
                     event_type=EventType.DELETE,
                 )
-                self.synchronization_handler.handle_school_event(school_event)
+                self.synchronization_manager.handle_school_event(school_event)
             case _:
                 object_type = old["objectType"]
                 logger.error(f"Unknown object type {object_type}")
@@ -221,14 +204,31 @@ def main():
         logger.critical("Provisioning API FQDN is missing.")
         sys.exit(1)
 
-    CONFIG_PATH = Path("/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/")
+    DB_URL = os.environ.get("UCSSCHOOL_KELVIN_DB_URI", None)
+    if not DB_URL:
+        logger.critical("No database URL given.")
+        sys.exit(1)
 
-    event_handler = KelvinConnectorEventHandler(logger=logger)
+    engine = create_async_engine(DB_URL)
+
+    synchronization_manager = SynchronizationManager(
+        reader_session_builder=session_scope,
+        writer_session_builder=transaction_scope,
+        session_factory=build_session_factory(engine),
+        user_manager_class=SQLAlchemyUserManager,
+        group_manager_class=SQLAlchemyGroupManager,
+        role_manager_class=SQLAlchemyRoleManager,
+        school_manager_class=SQLAlchemySchoolManager,
+    )
+
+    CONFIG_DIR = Path("/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/")
+
+    event_handler = KelvinConnectorEventHandler(synchronization_manager, logger=logger)
     consumer = ConsumerModule(
         event_handler,
         name="kelvin-connector",
         provisioning_url=f"https://{PROVISIONING_API_FQDN}/univention/provisioning",
-        config_path=CONFIG_PATH,
+        config_dir=CONFIG_DIR,
     )
 
     consumer.consume_loop()
