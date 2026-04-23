@@ -127,13 +127,17 @@ def to_group(model: GroupModel) -> Group:
     if _is_loaded(model, "group_type"):
         group_type = model.group_type.name
 
-    allowed_email_senders_users: set[str] | UnloadedType = UNLOADED
+    allowed_email_senders_users: set[User] | UnloadedType = UNLOADED
     if _is_loaded(model, "allowed_email_senders_users"):
-        allowed_email_senders_users = set(user.name for user in model.allowed_email_senders_users)
+        allowed_email_senders_users = set(
+            _to_related_user(user) for user in model.allowed_email_senders_users
+        )
 
-    allowed_email_senders_groups: set[str] | UnloadedType = UNLOADED
+    allowed_email_senders_groups: set[Group] | UnloadedType = UNLOADED
     if _is_loaded(model, "allowed_email_senders_groups"):
-        allowed_email_senders_groups = set(group.name for group in model.allowed_email_senders_groups)
+        allowed_email_senders_groups = set(
+            to_group(group) for group in model.allowed_email_senders_groups
+        )
 
     member_roles: set[Role] | UnloadedType = UNLOADED
     if _is_loaded(model, "member_roles"):
