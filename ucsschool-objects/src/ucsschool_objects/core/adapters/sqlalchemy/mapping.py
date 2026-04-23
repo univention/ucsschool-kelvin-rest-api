@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Collection, Iterable
 from datetime import date
 from typing import TypeVar, cast, overload
+from uuid import UUID
 
 from sqlalchemy import inspect
 from ucsschool_objects.core.domain import (
@@ -194,10 +195,15 @@ def to_user(
     include_legal_wards: bool,
     include_legal_guardians: bool,
 ) -> User:
-    school_memberships: set[SchoolMembership] | UnloadedType = UNLOADED
+    school_memberships: dict[UUID, SchoolMembership] | UnloadedType = UNLOADED
 
     if include_memberships:
-        school_memberships = set(_to_school_membership(m) for m in model.school_memberships)
+        school_memberships = {}
+        for membership in (_to_school_membership(m) for m in model.school_memberships):
+            school_public_id = membership.school.public_id
+            if not isinstance(school_public_id, UUID):
+                raise ValueError("Mapped school membership has no UUID school public_id.")
+            school_memberships[school_public_id] = membership
 
     legal_wards: set[User] | UnloadedType = UNLOADED
     if include_legal_wards:
