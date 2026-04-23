@@ -22,14 +22,14 @@ UNLOADED = UnloadedType()
 UNSET = UnsetType()
 
 
-@dataclass(frozen=True, eq=False)
+@dataclass(eq=False)
 class School:
     record_uid: str | UnloadedType
     source_uid: str | UnloadedType
     name: str | UnloadedType
     display_name: dict[str, str] | UnloadedType
-    educational_servers: frozenset[str] | UnloadedType
-    administrative_servers: frozenset[str] | UnloadedType
+    educational_servers: set[str] | UnloadedType
+    administrative_servers: set[str] | UnloadedType
     public_id: UUID | UnsetType = UNSET
     class_share_file_server: str | None | UnloadedType = None
     home_share_file_server: str | None | UnloadedType = None
@@ -58,7 +58,7 @@ class Role:
         return self.public_id == other.public_id
 
 
-@dataclass(frozen=True, eq=False)
+@dataclass(eq=False)
 class Group:
     record_uid: str | UnloadedType
     source_uid: str | UnloadedType
@@ -66,9 +66,9 @@ class Group:
     display_name: dict[str, str] | UnloadedType
     create_share: bool | UnloadedType
     group_type: str | UnloadedType
-    allowed_email_senders_users: frozenset[str] | UnloadedType
-    allowed_email_senders_groups: frozenset[str] | UnloadedType
-    member_roles: frozenset[Role] | UnloadedType
+    allowed_email_senders_users: set[str] | UnloadedType  #TODO: check that object is not edited directly
+    allowed_email_senders_groups: set[str] | UnloadedType  #TODO: check that object is not edited directly
+    member_roles: set[Role] | UnloadedType  #TODO: check that object is not edited directly
     school: School | UnloadedType
     public_id: UUID | UnsetType = UNSET
     email: str | None | UnloadedType = None
@@ -82,12 +82,12 @@ class Group:
         return self.public_id == other.public_id
 
 
-@dataclass(frozen=True, eq=False)
+@dataclass(eq=False)
 class SchoolMembership:
     school: School
     is_primary: bool
-    roles: frozenset[Role]
-    groups: frozenset[Group]
+    roles: set[Role]  #TODO: check that object is not edited directly
+    groups: set[Group]  #TODO: check that object is not edited directly
 
     def __hash__(self) -> int:
         return hash((self.school, self.is_primary, self.roles, self.groups))
@@ -108,7 +108,7 @@ class SchoolMembership:
         )
 
 
-@dataclass(frozen=True, eq=False)
+@dataclass(eq=False)
 class User:
     record_uid: str | UnloadedType
     source_uid: str | UnloadedType
@@ -116,9 +116,9 @@ class User:
     firstname: str | UnloadedType
     lastname: str | UnloadedType
     active: bool | UnloadedType
-    school_memberships: frozenset[SchoolMembership] | UnloadedType
-    legal_wards: frozenset["User"] | UnloadedType
-    legal_guardians: frozenset["User"] | UnloadedType
+    school_memberships: set[SchoolMembership] | UnloadedType
+    legal_wards: set["User"] | UnloadedType  #TODO: check that object is not edited directly
+    legal_guardians: set["User"] | UnloadedType  #TODO: check that object is not edited directly
     public_id: UUID | UnsetType = UNSET
     email: str | None | UnloadedType = None
     birthday: date | None | UnloadedType = None
@@ -142,19 +142,19 @@ class User:
         raise ValueError("User has no primary school membership.")
 
     @property
-    def groups(self) -> frozenset[Group] | UnloadedType:
+    def groups(self) -> set[Group] | UnloadedType:
         if isinstance(self.school_memberships, UnloadedType):
             return UNLOADED
         result: set[Group] = set()
         for membership in self.school_memberships:
             result.update(membership.groups)
-        return frozenset(result)
+        return result  # TODO: yield?
 
     @property
-    def roles(self) -> frozenset[Role] | UnloadedType:
+    def roles(self) -> set[Role] | UnloadedType:
         if isinstance(self.school_memberships, UnloadedType):
             return UNLOADED
         result: set[Role] = set()
         for membership in self.school_memberships:
             result.update(membership.roles)
-        return frozenset(result)
+        return result  #TODO: yield?
