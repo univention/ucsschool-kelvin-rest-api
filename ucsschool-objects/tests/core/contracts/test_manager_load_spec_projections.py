@@ -335,9 +335,9 @@ async def test_group_manager_load_spec_projection_matrix(
     elif load_attr == "group_type":
         assert result.group_type == context["group_type"]
     elif load_attr == "allowed_email_senders_users":
-        assert result.allowed_email_senders_users == frozenset({context["sender_user"]})
+        assert result.allowed_email_senders_users == {context["sender_user"]}
     elif load_attr == "allowed_email_senders_groups":
-        assert result.allowed_email_senders_groups == frozenset({context["sender_group"]})
+        assert result.allowed_email_senders_groups == {context["sender_group"]}
     elif load_attr == "member_roles":
         assert not isinstance(result.member_roles, UnloadedType)
         assert {member_role.name for member_role in result.member_roles} == {context["member_role"]}
@@ -389,7 +389,7 @@ async def test_user_manager_load_spec_projection_matrix(
 
     if load_attr in USER_MEMBERSHIP_TRIGGERS:
         assert not isinstance(result.school_memberships, UnloadedType)
-        membership = next(iter(result.school_memberships))
+        membership = next(iter(result.school_memberships.values()))
         assert membership.school.name == context["school_name"]
     if load_attr == "primary_school":
         assert not isinstance(result.primary_school, UnloadedType)

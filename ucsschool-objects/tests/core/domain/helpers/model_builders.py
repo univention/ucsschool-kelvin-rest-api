@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from uuid import UUID
 
 from ucsschool_objects.core.domain import (
     UNLOADED,
@@ -66,7 +67,7 @@ def workgroup(name: str = "wg1") -> Group:
 
 
 def user(
-    school_memberships: set[SchoolMembership] | UnloadedType = UNLOADED,
+    school_memberships: dict[UUID, SchoolMembership] | UnloadedType = UNLOADED,
     legal_wards: set[User] | UnloadedType = UNLOADED,
     legal_guardians: set[User] | UnloadedType = UNLOADED,
 ) -> User:

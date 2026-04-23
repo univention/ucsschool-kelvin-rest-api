@@ -81,7 +81,7 @@ def _build_user_reference(public_id: UUID, *, name: str = "user-ref") -> User:
         firstname="Ref",
         lastname="User",
         active=True,
-        school_memberships=set(),
+        school_memberships={},
         legal_wards=set(),
         legal_guardians=set(),
     )
@@ -561,7 +561,7 @@ async def _setup_user_create_full(
         firstname="Create",
         lastname="Full",
         active=True,
-        school_memberships=set({membership}),
+        school_memberships={school_model.public_id: membership},
         legal_wards=set({_build_user_reference(ward_model.public_id, name=ward_model.name)}),
         legal_guardians=set({_build_user_reference(guardian_model.public_id, name=guardian_model.name)}),
         email="user-full@example.com",
@@ -588,7 +588,7 @@ async def _setup_user_create_minimal(
         firstname="Create",
         lastname="Min",
         active=True,
-        school_memberships=set(),
+        school_memberships={},
         legal_wards=set(),
         legal_guardians=set(),
     )
@@ -619,6 +619,9 @@ async def _setup_user_create_multi_membership(
             groups=set({_build_group_reference(group_model.public_id, name=group_model.name)}),
         )
 
+    membership_a = membership(school_a.public_id, school_a.name, True)
+    membership_b = membership(school_b.public_id, school_b.name, False)
+
     user = User(
         public_id=uuid.uuid4(),
         record_uid="rec-user-multi",
@@ -627,12 +630,10 @@ async def _setup_user_create_multi_membership(
         firstname="Create",
         lastname="Multi",
         active=True,
-        school_memberships=set(
-            {
-                membership(school_a.public_id, school_a.name, True),
-                membership(school_b.public_id, school_b.name, False),
-            }
-        ),
+        school_memberships={
+            school_a.public_id: membership_a,
+            school_b.public_id: membership_b,
+        },
         legal_wards=set(),
         legal_guardians=set(),
     )
@@ -651,8 +652,9 @@ async def _setup_user_create_missing_school(
 ) -> User:
     role_model = await role_factory(name="user-role-fail-school")
     group_model = await group_factory(name="user-group-fail-school")
+    ghost_school_id = uuid.uuid4()
     membership = SchoolMembership(
-        school=_build_school_reference(uuid.uuid4(), name="ghost-school"),
+        school=_build_school_reference(ghost_school_id, name="ghost-school"),
         is_primary=True,
         roles=set({_build_role_reference(role_model.public_id, name=role_model.name)}),
         groups=set({_build_group_reference(group_model.public_id, name=group_model.name)}),
@@ -665,7 +667,7 @@ async def _setup_user_create_missing_school(
         firstname="Fail",
         lastname="School",
         active=True,
-        school_memberships=set({membership}),
+        school_memberships={ghost_school_id: membership},
         legal_wards=set(),
         legal_guardians=set(),
     )
@@ -692,7 +694,7 @@ async def _setup_user_create_missing_role(
         firstname="Fail",
         lastname="Role",
         active=True,
-        school_memberships=set({membership}),
+        school_memberships={school_model.public_id: membership},
         legal_wards=set(),
         legal_guardians=set(),
     )
@@ -718,7 +720,7 @@ async def _setup_user_create_missing_ward(
         firstname="Fail",
         lastname="Ward",
         active=True,
-        school_memberships=set({membership}),
+        school_memberships={school_model.public_id: membership},
         legal_wards=set({_build_user_reference(uuid.uuid4(), name="ghost-ward")}),
         legal_guardians=set(),
     )
