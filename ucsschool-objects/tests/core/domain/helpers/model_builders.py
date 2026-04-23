@@ -20,8 +20,8 @@ def school(name: str = "testschool") -> School:
         source_uid="s1",
         name=name,
         display_name={},
-        educational_servers=frozenset({"srv"}),
-        administrative_servers=frozenset(),
+        educational_servers=set({"srv"}),
+        administrative_servers=set(),
         class_share_file_server=None,
         home_share_file_server=None,
     )
@@ -58,17 +58,17 @@ def workgroup(name: str = "wg1") -> Group:
         create_share=False,
         group_type="workgroup",
         email=None,
-        allowed_email_senders_users=frozenset(),
-        allowed_email_senders_groups=frozenset(),
+        allowed_email_senders_users=set(),
+        allowed_email_senders_groups=set(),
         member_roles=UNLOADED,
         school=UNLOADED,
     )
 
 
 def user(
-    school_memberships: frozenset[SchoolMembership] | UnloadedType = UNLOADED,
-    legal_wards: frozenset[User] | UnloadedType = UNLOADED,
-    legal_guardians: frozenset[User] | UnloadedType = UNLOADED,
+    school_memberships: set[SchoolMembership] | UnloadedType = UNLOADED,
+    legal_wards: set[User] | UnloadedType = UNLOADED,
+    legal_guardians: set[User] | UnloadedType = UNLOADED,
 ) -> User:
     return User(
         public_id=uuid.uuid4(),

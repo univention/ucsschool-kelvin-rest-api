@@ -45,8 +45,8 @@ def _as_display_name(value: object) -> dict[str, str]:
     return dict(cast(dict[str, str], value))
 
 
-def _as_frozenset_str(value: object) -> frozenset[str]:
-    return frozenset(cast(Iterable[str], value))
+def _as_set_str(value: object) -> set[str]:
+    return set(cast(Iterable[str], value))
 
 
 def _is_loaded(model: object, attribute: str) -> bool:
@@ -98,11 +98,11 @@ def to_school(model: SchoolModel) -> School:
         source_uid=_loaded_value(model, "source_uid", _as_str),
         name=_loaded_value(model, "name", _as_str),
         display_name=_loaded_value(model, "display_name", _as_display_name),
-        educational_servers=_loaded_value(model, "educational_servers", _as_frozenset_str),
+        educational_servers=_loaded_value(model, "educational_servers", _as_set_str),
         administrative_servers=_loaded_value(
             model,
             "administrative_servers",
-            _as_frozenset_str,
+            _as_set_str,
         ),
         class_share_file_server=_loaded_value(model, "class_share_file_server", _as_optional_str),
         home_share_file_server=_loaded_value(model, "home_share_file_server", _as_optional_str),
@@ -126,19 +126,17 @@ def to_group(model: GroupModel) -> Group:
     if _is_loaded(model, "group_type"):
         group_type = model.group_type.name
 
-    allowed_email_senders_users: frozenset[str] | UnloadedType = UNLOADED
+    allowed_email_senders_users: set[str] | UnloadedType = UNLOADED
     if _is_loaded(model, "allowed_email_senders_users"):
-        allowed_email_senders_users = frozenset(user.name for user in model.allowed_email_senders_users)
+        allowed_email_senders_users = set(user.name for user in model.allowed_email_senders_users)
 
-    allowed_email_senders_groups: frozenset[str] | UnloadedType = UNLOADED
+    allowed_email_senders_groups: set[str] | UnloadedType = UNLOADED
     if _is_loaded(model, "allowed_email_senders_groups"):
-        allowed_email_senders_groups = frozenset(
-            group.name for group in model.allowed_email_senders_groups
-        )
+        allowed_email_senders_groups = set(group.name for group in model.allowed_email_senders_groups)
 
-    member_roles: frozenset[Role] | UnloadedType = UNLOADED
+    member_roles: set[Role] | UnloadedType = UNLOADED
     if _is_loaded(model, "member_roles"):
-        member_roles = frozenset(to_role(role) for role in model.member_roles)
+        member_roles = set(to_role(role) for role in model.member_roles)
 
     return Group(
         public_id=model.public_id,
@@ -162,8 +160,8 @@ def _to_school_membership(
     return SchoolMembership(
         school=to_school(model.school),
         is_primary=model.is_primary,
-        roles=frozenset(to_role(r) for r in model.roles),
-        groups=frozenset(to_group(group) for group in model.groups),
+        roles=set(to_role(r) for r in model.roles),
+        groups=set(to_group(group) for group in model.groups),
     )
 
 
@@ -185,8 +183,8 @@ def _to_related_user(model: UserModel) -> User:
     )
 
 
-def _optional_user_relation(models: tuple[UserModel, ...] | list[UserModel]) -> frozenset[User]:
-    return frozenset(_to_related_user(model) for model in models)
+def _optional_user_relation(models: tuple[UserModel, ...] | list[UserModel]) -> set[User]:
+    return set(_to_related_user(model) for model in models)
 
 
 def to_user(
@@ -196,16 +194,16 @@ def to_user(
     include_legal_wards: bool,
     include_legal_guardians: bool,
 ) -> User:
-    school_memberships: frozenset[SchoolMembership] | UnloadedType = UNLOADED
+    school_memberships: set[SchoolMembership] | UnloadedType = UNLOADED
 
     if include_memberships:
-        school_memberships = frozenset(_to_school_membership(m) for m in model.school_memberships)
+        school_memberships = set(_to_school_membership(m) for m in model.school_memberships)
 
-    legal_wards: frozenset[User] | UnloadedType = UNLOADED
+    legal_wards: set[User] | UnloadedType = UNLOADED
     if include_legal_wards:
         legal_wards = _optional_user_relation(model.legal_wards)
 
-    legal_guardians: frozenset[User] | UnloadedType = UNLOADED
+    legal_guardians: set[User] | UnloadedType = UNLOADED
     if include_legal_guardians:
         legal_guardians = _optional_user_relation(model.legal_guardians)
 

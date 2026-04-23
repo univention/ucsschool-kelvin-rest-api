@@ -11,7 +11,7 @@ def test_school_membership_holds_roles() -> None:
     role1 = build_role("teacher")
     role2 = build_role("student")
     membership = SchoolMembership(
-        school=school, is_primary=True, roles=frozenset({role1, role2}), groups=frozenset()
+        school=school, is_primary=True, roles=set({role1, role2}), groups=set()
     )
     roles = membership.roles
     assert len(roles) == 2
