@@ -18,7 +18,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _get_exposed_fields,
     _iter_filters,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.mapping import _is_loaded, _loaded_value
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import _is_loaded, _loaded_value
 from ucsschool_objects.core.domain import (
     UNLOADED,
     And,
@@ -295,9 +295,9 @@ def test_is_loaded_returns_true_when_sqlalchemy_state_missing(monkeypatch: pytes
     class _Model:
         value = "x"
 
-    from ucsschool_objects.core.adapters.sqlalchemy import mapping
+    from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
 
-    monkeypatch.setattr(mapping, "inspect", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: None)
 
     assert _is_loaded(_Model(), "value") is True
 
@@ -309,9 +309,9 @@ def test_is_loaded_returns_true_when_state_has_no_unloaded(monkeypatch: pytest.M
     class _Model:
         value = "x"
 
-    from ucsschool_objects.core.adapters.sqlalchemy import mapping
+    from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
 
-    monkeypatch.setattr(mapping, "inspect", lambda *_args, **_kwargs: _State())
+    monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: _State())
 
     assert _is_loaded(_Model(), "value") is True
 
@@ -320,15 +320,15 @@ def test_loaded_value_without_transform_returns_raw_value(monkeypatch: pytest.Mo
     class _Model:
         value = "raw-value"
 
-    from ucsschool_objects.core.adapters.sqlalchemy import mapping
+    from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
 
-    monkeypatch.setattr(mapping, "inspect", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: None)
 
     assert _loaded_value(_Model(), "value") == "raw-value"
 
 
 def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPatch) -> None:
-    from ucsschool_objects.core.adapters.sqlalchemy import mapping
+    from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
 
     class _State:
         unloaded = {"school", "group_type"}
@@ -346,9 +346,9 @@ def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPa
         member_roles=(),
     )
 
-    monkeypatch.setattr(mapping, "inspect", lambda *_args, **_kwargs: _State())
+    monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: _State())
 
-    group = mapping.to_group(model)  # type: ignore[arg-type]
+    group = to_domain.to_group(model)  # type: ignore[arg-type]
 
     assert group.school is UNLOADED
     assert group.group_type is UNLOADED
