@@ -176,7 +176,7 @@ class SQLAlchemyUserManager(Manager[User]):
 
     async def _build_memberships(
         self,
-        memberships: frozenset[DomainSchoolMembership] | UnloadedType,
+        memberships: set[DomainSchoolMembership] | UnloadedType,
     ) -> list[SchoolMembership]:
         if isinstance(memberships, UnloadedType):
             return []

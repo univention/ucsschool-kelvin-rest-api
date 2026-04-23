@@ -46,8 +46,8 @@ def _build_school_reference(public_id: UUID, *, name: str = "school-ref") -> Sch
         source_uid=f"src-{name}",
         name=name,
         display_name={"en": name},
-        educational_servers=frozenset({"edu.example.com"}),
-        administrative_servers=frozenset({"adm.example.com"}),
+        educational_servers=set({"edu.example.com"}),
+        administrative_servers=set({"adm.example.com"}),
     )
 
 
@@ -64,9 +64,9 @@ def _build_group_reference(public_id: UUID, *, name: str = "group-ref") -> Group
         display_name={"en": name},
         create_share=False,
         group_type="workgroup",
-        allowed_email_senders_users=frozenset(),
-        allowed_email_senders_groups=frozenset(),
-        member_roles=frozenset(),
+        allowed_email_senders_users=set(),
+        allowed_email_senders_groups=set(),
+        member_roles=set(),
         school=_build_school_reference(uuid.uuid4(), name=f"{name}-school"),
         email=None,
     )
@@ -81,9 +81,9 @@ def _build_user_reference(public_id: UUID, *, name: str = "user-ref") -> User:
         firstname="Ref",
         lastname="User",
         active=True,
-        school_memberships=frozenset(),
-        legal_wards=frozenset(),
-        legal_guardians=frozenset(),
+        school_memberships=set(),
+        legal_wards=set(),
+        legal_guardians=set(),
     )
 
 
@@ -103,8 +103,8 @@ def _build_user_reference(public_id: UUID, *, name: str = "user-ref") -> User:
                 "source_uid": "src-s1",
                 "name": "school-explicit-id",
                 "display_name": {"en": "School Explicit"},
-                "educational_servers": frozenset({"edu-1.example.com"}),
-                "administrative_servers": frozenset({"adm-1.example.com"}),
+                "educational_servers": set({"edu-1.example.com"}),
+                "administrative_servers": set({"adm-1.example.com"}),
                 "class_share_file_server": "classfs.example.com",
                 "home_share_file_server": "homefs.example.com",
             },
@@ -117,8 +117,8 @@ def _build_user_reference(public_id: UUID, *, name: str = "user-ref") -> User:
                 "source_uid": "src-s2",
                 "name": "school-auto-id",
                 "display_name": {"en": "School Auto"},
-                "educational_servers": frozenset({"edu-2.example.com"}),
-                "administrative_servers": frozenset({"adm-2.example.com"}),
+                "educational_servers": set({"edu-2.example.com"}),
+                "administrative_servers": set({"adm-2.example.com"}),
             },
             {"name": "school-auto-id", "class_share_file_server": None},
             id="auto-public-id-default-optionals",
@@ -130,8 +130,8 @@ def _build_user_reference(public_id: UUID, *, name: str = "user-ref") -> User:
                 "source_uid": "src-s3",
                 "name": "school-multi-servers",
                 "display_name": {"en": "School Multi"},
-                "educational_servers": frozenset({"edu-a.example.com", "edu-b.example.com"}),
-                "administrative_servers": frozenset({"adm-a.example.com"}),
+                "educational_servers": set({"edu-a.example.com", "edu-b.example.com"}),
+                "administrative_servers": set({"adm-a.example.com"}),
                 "class_share_file_server": None,
                 "home_share_file_server": None,
             },
@@ -165,8 +165,8 @@ async def test_school_manager_create_success(
                 "source_uid": "src-s-fail-empty-edu",
                 "name": "school-fail-empty-edu",
                 "display_name": {"en": "Fail"},
-                "educational_servers": frozenset(),
-                "administrative_servers": frozenset({"adm.example.com"}),
+                "educational_servers": set(),
+                "administrative_servers": set({"adm.example.com"}),
             },
             ValueError,
             id="empty-educational-servers",
@@ -177,8 +177,8 @@ async def test_school_manager_create_success(
                 "source_uid": "src-s-fail-null-record",
                 "name": "school-fail-null-record",
                 "display_name": {"en": "Fail"},
-                "educational_servers": frozenset({"edu.example.com"}),
-                "administrative_servers": frozenset({"adm.example.com"}),
+                "educational_servers": set({"edu.example.com"}),
+                "administrative_servers": set({"adm.example.com"}),
             },
             ValueError,
             id="UNLOADED-record-uid",
@@ -189,8 +189,8 @@ async def test_school_manager_create_success(
                 "source_uid": "src-s-fail-null-record",
                 "name": "school-fail-null-record",
                 "display_name": {"en": "Fail"},
-                "educational_servers": frozenset({"edu.example.com"}),
-                "administrative_servers": frozenset({"adm.example.com"}),
+                "educational_servers": set({"edu.example.com"}),
+                "administrative_servers": set({"adm.example.com"}),
             },
             IntegrityError,
             id="null-record-uid",
@@ -330,9 +330,9 @@ async def _setup_group_create_full(
         display_name={"en": "Group Full"},
         create_share=True,
         group_type=group_type_model.name,
-        allowed_email_senders_users=frozenset({sender_user.name}),
-        allowed_email_senders_groups=frozenset({sender_group.name}),
-        member_roles=frozenset({_build_role_reference(role_model.public_id, name=role_model.name)}),
+        allowed_email_senders_users=set({sender_user.name}),
+        allowed_email_senders_groups=set({sender_group.name}),
+        member_roles=set({_build_role_reference(role_model.public_id, name=role_model.name)}),
         school=_build_school_reference(school_model.public_id, name=school_model.name),
         email="group-full@example.com",
     )
@@ -362,9 +362,9 @@ async def _setup_group_create_minimal(
         display_name={"en": "Group Min"},
         create_share=False,
         group_type=group_type_model.name,
-        allowed_email_senders_users=frozenset(),
-        allowed_email_senders_groups=frozenset(),
-        member_roles=frozenset(),
+        allowed_email_senders_users=set(),
+        allowed_email_senders_groups=set(),
+        member_roles=set(),
         school=_build_school_reference(school_model.public_id, name=school_model.name),
         email=None,
     )
@@ -390,9 +390,9 @@ async def _setup_group_create_missing_group_type(
         display_name={"en": "Group Fail Type"},
         create_share=False,
         group_type="missing-group-type",
-        allowed_email_senders_users=frozenset(),
-        allowed_email_senders_groups=frozenset(),
-        member_roles=frozenset(),
+        allowed_email_senders_users=set(),
+        allowed_email_senders_groups=set(),
+        member_roles=set(),
         school=_build_school_reference(school_model.public_id, name=school_model.name),
         email=None,
     )
@@ -412,9 +412,9 @@ async def _setup_group_create_missing_school(
         display_name={"en": "Group Fail School"},
         create_share=False,
         group_type=group_type_model.name,
-        allowed_email_senders_users=frozenset(),
-        allowed_email_senders_groups=frozenset(),
-        member_roles=frozenset(),
+        allowed_email_senders_users=set(),
+        allowed_email_senders_groups=set(),
+        member_roles=set(),
         school=_build_school_reference(uuid.uuid4(), name="ghost-school"),
         email=None,
     )
@@ -435,9 +435,9 @@ async def _setup_group_create_missing_role(
         display_name={"en": "Group Fail Role"},
         create_share=False,
         group_type=group_type_model.name,
-        allowed_email_senders_users=frozenset(),
-        allowed_email_senders_groups=frozenset(),
-        member_roles=frozenset({_build_role_reference(uuid.uuid4(), name="ghost-role")}),
+        allowed_email_senders_users=set(),
+        allowed_email_senders_groups=set(),
+        member_roles=set({_build_role_reference(uuid.uuid4(), name="ghost-role")}),
         school=_build_school_reference(school_model.public_id, name=school_model.name),
         email=None,
     )
@@ -550,8 +550,8 @@ async def _setup_user_create_full(
     membership = SchoolMembership(
         school=_build_school_reference(school_model.public_id, name=school_model.name),
         is_primary=True,
-        roles=frozenset({_build_role_reference(role_model.public_id, name=role_model.name)}),
-        groups=frozenset({_build_group_reference(group_model.public_id, name=group_model.name)}),
+        roles=set({_build_role_reference(role_model.public_id, name=role_model.name)}),
+        groups=set({_build_group_reference(group_model.public_id, name=group_model.name)}),
     )
     user = User(
         public_id=uuid.uuid4(),
@@ -561,11 +561,9 @@ async def _setup_user_create_full(
         firstname="Create",
         lastname="Full",
         active=True,
-        school_memberships=frozenset({membership}),
-        legal_wards=frozenset({_build_user_reference(ward_model.public_id, name=ward_model.name)}),
-        legal_guardians=frozenset(
-            {_build_user_reference(guardian_model.public_id, name=guardian_model.name)}
-        ),
+        school_memberships=set({membership}),
+        legal_wards=set({_build_user_reference(ward_model.public_id, name=ward_model.name)}),
+        legal_guardians=set({_build_user_reference(guardian_model.public_id, name=guardian_model.name)}),
         email="user-full@example.com",
     )
     return UserCreateExpectation(
@@ -590,9 +588,9 @@ async def _setup_user_create_minimal(
         firstname="Create",
         lastname="Min",
         active=True,
-        school_memberships=frozenset(),
-        legal_wards=frozenset(),
-        legal_guardians=frozenset(),
+        school_memberships=set(),
+        legal_wards=set(),
+        legal_guardians=set(),
     )
     return UserCreateExpectation(
         user=user,
@@ -617,8 +615,8 @@ async def _setup_user_create_multi_membership(
         return SchoolMembership(
             school=_build_school_reference(school_id, name=school_name),
             is_primary=is_primary,
-            roles=frozenset({_build_role_reference(role_model.public_id, name=role_model.name)}),
-            groups=frozenset({_build_group_reference(group_model.public_id, name=group_model.name)}),
+            roles=set({_build_role_reference(role_model.public_id, name=role_model.name)}),
+            groups=set({_build_group_reference(group_model.public_id, name=group_model.name)}),
         )
 
     user = User(
@@ -629,14 +627,14 @@ async def _setup_user_create_multi_membership(
         firstname="Create",
         lastname="Multi",
         active=True,
-        school_memberships=frozenset(
+        school_memberships=set(
             {
                 membership(school_a.public_id, school_a.name, True),
                 membership(school_b.public_id, school_b.name, False),
             }
         ),
-        legal_wards=frozenset(),
-        legal_guardians=frozenset(),
+        legal_wards=set(),
+        legal_guardians=set(),
     )
     return UserCreateExpectation(
         user=user,
@@ -656,8 +654,8 @@ async def _setup_user_create_missing_school(
     membership = SchoolMembership(
         school=_build_school_reference(uuid.uuid4(), name="ghost-school"),
         is_primary=True,
-        roles=frozenset({_build_role_reference(role_model.public_id, name=role_model.name)}),
-        groups=frozenset({_build_group_reference(group_model.public_id, name=group_model.name)}),
+        roles=set({_build_role_reference(role_model.public_id, name=role_model.name)}),
+        groups=set({_build_group_reference(group_model.public_id, name=group_model.name)}),
     )
     return User(
         public_id=uuid.uuid4(),
@@ -667,9 +665,9 @@ async def _setup_user_create_missing_school(
         firstname="Fail",
         lastname="School",
         active=True,
-        school_memberships=frozenset({membership}),
-        legal_wards=frozenset(),
-        legal_guardians=frozenset(),
+        school_memberships=set({membership}),
+        legal_wards=set(),
+        legal_guardians=set(),
     )
 
 
@@ -683,8 +681,8 @@ async def _setup_user_create_missing_role(
     membership = SchoolMembership(
         school=_build_school_reference(school_model.public_id, name=school_model.name),
         is_primary=True,
-        roles=frozenset({_build_role_reference(uuid.uuid4(), name="ghost-role")}),
-        groups=frozenset({_build_group_reference(group_model.public_id, name=group_model.name)}),
+        roles=set({_build_role_reference(uuid.uuid4(), name="ghost-role")}),
+        groups=set({_build_group_reference(group_model.public_id, name=group_model.name)}),
     )
     return User(
         public_id=uuid.uuid4(),
@@ -694,9 +692,9 @@ async def _setup_user_create_missing_role(
         firstname="Fail",
         lastname="Role",
         active=True,
-        school_memberships=frozenset({membership}),
-        legal_wards=frozenset(),
-        legal_guardians=frozenset(),
+        school_memberships=set({membership}),
+        legal_wards=set(),
+        legal_guardians=set(),
     )
 
 
@@ -709,8 +707,8 @@ async def _setup_user_create_missing_ward(
     membership = SchoolMembership(
         school=_build_school_reference(school_model.public_id, name=school_model.name),
         is_primary=True,
-        roles=frozenset(),
-        groups=frozenset(),
+        roles=set(),
+        groups=set(),
     )
     return User(
         public_id=uuid.uuid4(),
@@ -720,9 +718,9 @@ async def _setup_user_create_missing_ward(
         firstname="Fail",
         lastname="Ward",
         active=True,
-        school_memberships=frozenset({membership}),
-        legal_wards=frozenset({_build_user_reference(uuid.uuid4(), name="ghost-ward")}),
-        legal_guardians=frozenset(),
+        school_memberships=set({membership}),
+        legal_wards=set({_build_user_reference(uuid.uuid4(), name="ghost-ward")}),
+        legal_guardians=set(),
     )
 
 

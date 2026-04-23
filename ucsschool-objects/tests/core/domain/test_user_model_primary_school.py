@@ -16,8 +16,8 @@ def test_primary_school_returns_unloaded_when_memberships_unloaded() -> None:
 
 def test_primary_school_raises_when_no_primary_membership() -> None:
     school = build_school()
-    membership = SchoolMembership(school=school, is_primary=False, roles=frozenset(), groups=frozenset())
-    user = build_user(school_memberships=frozenset({membership}))
+    membership = SchoolMembership(school=school, is_primary=False, roles=set(), groups=set())
+    user = build_user(school_memberships=set({membership}))
     with pytest.raises(ValueError, match="no primary school"):
         _ = user.primary_school
 
@@ -25,10 +25,10 @@ def test_primary_school_raises_when_no_primary_membership() -> None:
 def test_primary_school_returns_school_of_primary_membership() -> None:
     primary = build_school("primary")
     secondary = build_school("secondary")
-    memberships = frozenset(
+    memberships = set(
         {
-            SchoolMembership(school=secondary, is_primary=False, roles=frozenset(), groups=frozenset()),
-            SchoolMembership(school=primary, is_primary=True, roles=frozenset(), groups=frozenset()),
+            SchoolMembership(school=secondary, is_primary=False, roles=set(), groups=set()),
+            SchoolMembership(school=primary, is_primary=True, roles=set(), groups=set()),
         }
     )
     user = build_user(school_memberships=memberships)
@@ -37,14 +37,14 @@ def test_primary_school_returns_school_of_primary_membership() -> None:
 
 def test_primary_school_is_cached() -> None:
     school = build_school()
-    membership = SchoolMembership(school=school, is_primary=True, roles=frozenset(), groups=frozenset())
-    user = build_user(school_memberships=frozenset({membership}))
+    membership = SchoolMembership(school=school, is_primary=True, roles=set(), groups=set())
+    user = build_user(school_memberships=set({membership}))
     first = user.primary_school
     second = user.primary_school
     assert first == second
 
 
 def test_primary_school_raises_when_no_memberships() -> None:
-    user = build_user(school_memberships=frozenset())
+    user = build_user(school_memberships=set())
     with pytest.raises(ValueError, match="no primary school"):
         _ = user.primary_school
