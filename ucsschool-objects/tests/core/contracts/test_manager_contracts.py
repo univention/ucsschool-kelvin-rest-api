@@ -47,7 +47,20 @@ async def _setup_school_manager_case(factories: ManagerContractFactories) -> Man
 def _build_group_manager_case(group_type_name: str, group_name: str) -> ManagerSetup:
     async def _setup_group_manager_case(factories: ManagerContractFactories) -> ManagerSearchExpectation:
         group_type = await factories.group_type_factory(name=group_type_name)
-        group = await factories.group_factory(name=group_name, group_type=group_type)
+        school = await factories.school_factory(name=f"{group_name}-school")
+        sender_user = await factories.user_factory(name=f"{group_name}-sender-user")
+        sender_group = await factories.group_factory(
+            name=f"{group_name}-sender-group",
+            group_type=group_type,
+            school=school,
+        )
+        group = await factories.group_factory(
+            name=group_name,
+            group_type=group_type,
+            school=school,
+            allowed_email_senders_users=[sender_user],
+            allowed_email_senders_groups=[sender_group],
+        )
         return ManagerSearchExpectation(
             public_id=group.public_id,
             expected_name=group_name,

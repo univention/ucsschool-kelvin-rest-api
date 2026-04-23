@@ -304,7 +304,13 @@ GroupCreateSetup = Callable[
     Awaitable[GroupCreateExpectation],
 ]
 GroupCreateFailSetup = Callable[
-    [AsyncSchoolFactory, AsyncGroupTypeFactory, AsyncRoleFactory],
+    [
+        AsyncSchoolFactory,
+        AsyncGroupTypeFactory,
+        AsyncRoleFactory,
+        AsyncUserFactory,
+        AsyncGroupFactory,
+    ],
     Awaitable[Group],
 ]
 
@@ -330,8 +336,12 @@ async def _setup_group_create_full(
         display_name={"en": "Group Full"},
         create_share=True,
         group_type=group_type_model.name,
-        allowed_email_senders_users=set({sender_user.name}),
-        allowed_email_senders_groups=set({sender_group.name}),
+        allowed_email_senders_users=set(
+            {_build_user_reference(sender_user.public_id, name=sender_user.name)}
+        ),
+        allowed_email_senders_groups=set(
+            {_build_group_reference(sender_group.public_id, name=sender_group.name)}
+        ),
         member_roles=set({_build_role_reference(role_model.public_id, name=role_model.name)}),
         school=_build_school_reference(school_model.public_id, name=school_model.name),
         email="group-full@example.com",
@@ -380,6 +390,8 @@ async def _setup_group_create_missing_group_type(
     school_factory: AsyncSchoolFactory,
     group_type_factory: AsyncGroupTypeFactory,
     role_factory: AsyncRoleFactory,
+    user_factory: AsyncUserFactory,
+    group_factory: AsyncGroupFactory,
 ) -> Group:
     school_model = await school_factory(name="group-school-fail-type")
     return Group(
@@ -402,6 +414,8 @@ async def _setup_group_create_missing_school(
     school_factory: AsyncSchoolFactory,
     group_type_factory: AsyncGroupTypeFactory,
     role_factory: AsyncRoleFactory,
+    user_factory: AsyncUserFactory,
+    group_factory: AsyncGroupFactory,
 ) -> Group:
     group_type_model = await group_type_factory(name="group-type-fail-school")
     return Group(
@@ -424,6 +438,8 @@ async def _setup_group_create_missing_role(
     school_factory: AsyncSchoolFactory,
     group_type_factory: AsyncGroupTypeFactory,
     role_factory: AsyncRoleFactory,
+    user_factory: AsyncUserFactory,
+    group_factory: AsyncGroupFactory,
 ) -> Group:
     school_model = await school_factory(name="group-school-fail-role")
     group_type_model = await group_type_factory(name="group-type-fail-role")
@@ -438,6 +454,58 @@ async def _setup_group_create_missing_role(
         allowed_email_senders_users=set(),
         allowed_email_senders_groups=set(),
         member_roles=set({_build_role_reference(uuid.uuid4(), name="ghost-role")}),
+        school=_build_school_reference(school_model.public_id, name=school_model.name),
+        email=None,
+    )
+
+
+async def _setup_group_create_missing_sender_user(
+    school_factory: AsyncSchoolFactory,
+    group_type_factory: AsyncGroupTypeFactory,
+    role_factory: AsyncRoleFactory,
+    user_factory: AsyncUserFactory,
+    group_factory: AsyncGroupFactory,
+) -> Group:
+    school_model = await school_factory(name="group-school-fail-sender-user")
+    group_type_model = await group_type_factory(name="group-type-fail-sender-user")
+    return Group(
+        public_id=uuid.uuid4(),
+        record_uid="rec-group-fail-sender-user",
+        source_uid="src-group-fail-sender-user",
+        name="group-fail-sender-user",
+        display_name={"en": "Group Fail Sender User"},
+        create_share=False,
+        group_type=group_type_model.name,
+        allowed_email_senders_users=set({_build_user_reference(uuid.uuid4(), name="ghost-user")}),
+        allowed_email_senders_groups=set(),
+        member_roles=set(),
+        school=_build_school_reference(school_model.public_id, name=school_model.name),
+        email=None,
+    )
+
+
+async def _setup_group_create_missing_sender_group(
+    school_factory: AsyncSchoolFactory,
+    group_type_factory: AsyncGroupTypeFactory,
+    role_factory: AsyncRoleFactory,
+    user_factory: AsyncUserFactory,
+    group_factory: AsyncGroupFactory,
+) -> Group:
+    school_model = await school_factory(name="group-school-fail-sender-group")
+    group_type_model = await group_type_factory(name="group-type-fail-sender-group")
+    return Group(
+        public_id=uuid.uuid4(),
+        record_uid="rec-group-fail-sender-group",
+        source_uid="src-group-fail-sender-group",
+        name="group-fail-sender-group",
+        display_name={"en": "Group Fail Sender Group"},
+        create_share=False,
+        group_type=group_type_model.name,
+        allowed_email_senders_users=set(),
+        allowed_email_senders_groups=set(
+            {_build_group_reference(uuid.uuid4(), name="ghost-sender-group")}
+        ),
+        member_roles=set(),
         school=_build_school_reference(school_model.public_id, name=school_model.name),
         email=None,
     )
@@ -497,6 +565,8 @@ async def test_group_manager_create_success(
         pytest.param(_setup_group_create_missing_group_type, id="missing-group-type"),
         pytest.param(_setup_group_create_missing_school, id="missing-school"),
         pytest.param(_setup_group_create_missing_role, id="missing-role"),
+        pytest.param(_setup_group_create_missing_sender_user, id="missing-sender-user"),
+        pytest.param(_setup_group_create_missing_sender_group, id="missing-sender-group"),
     ],
 )
 async def test_group_manager_create_failure(
@@ -504,9 +574,17 @@ async def test_group_manager_create_failure(
     school_factory: AsyncSchoolFactory,
     group_type_factory: AsyncGroupTypeFactory,
     role_factory: AsyncRoleFactory,
+    user_factory: AsyncUserFactory,
+    group_factory: AsyncGroupFactory,
     setup_case: GroupCreateFailSetup,
 ) -> None:
-    group = await setup_case(school_factory, group_type_factory, role_factory)
+    group = await setup_case(
+        school_factory,
+        group_type_factory,
+        role_factory,
+        user_factory,
+        group_factory,
+    )
 
     with pytest.raises(NotFound):
         await SQLAlchemyGroupManager(db_session).create(group)
