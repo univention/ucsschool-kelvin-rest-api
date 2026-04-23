@@ -67,10 +67,10 @@ class Group:
     create_share: bool | UnloadedType
     group_type: str | UnloadedType
     allowed_email_senders_users: set[
-        str
+        User
     ] | UnloadedType  # TODO: check that object is not edited directly
     allowed_email_senders_groups: set[
-        str
+        Group
     ] | UnloadedType  # TODO: check that object is not edited directly
     member_roles: set[Role] | UnloadedType  # TODO: check that object is not edited directly
     school: School | UnloadedType
