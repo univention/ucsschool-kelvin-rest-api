@@ -11,7 +11,6 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
-    _bulk_fetch_by_name,
     _bulk_fetch_by_public_id,
     _check_nullable_value_presence,
     _check_value_presence,
@@ -230,28 +229,36 @@ class SQLAlchemyGroupManager(Manager[Group]):
             object_type="Group",
             field_name="allowed_email_senders_users",
         )
-        users_by_name = await _bulk_fetch_by_name(
-            self._session,
-            UserModel,
-            UserModel.name,
-            list(allowed_email_senders_users),
-            "User",
+        sender_user_public_ids: list[UUID] = []
+        for sender_user in allowed_email_senders_users:
+            sender_public_id = _check_value_presence(
+                sender_user.public_id, object_type="User", field_name="public_id"
+            )
+            if not isinstance(sender_public_id, UUID):
+                raise ValueError("Group.allowed_email_senders_users entries must have a public_id.")
+            sender_user_public_ids.append(sender_public_id)
+        users_by_id = await _bulk_fetch_by_public_id(
+            self._session, UserModel, sender_user_public_ids, "User"
         )
-        group_model.allowed_email_senders_users = list(users_by_name.values())
+        group_model.allowed_email_senders_users = list(users_by_id.values())
 
         allowed_email_senders_groups = _check_value_presence(
             data.allowed_email_senders_groups,
             object_type="Group",
             field_name="allowed_email_senders_groups",
         )
-        groups_by_name = await _bulk_fetch_by_name(
-            self._session,
-            GroupModel,
-            GroupModel.name,
-            list(allowed_email_senders_groups),
-            "Group",
+        sender_group_public_ids: list[UUID] = []
+        for sender_group in allowed_email_senders_groups:
+            sender_public_id = _check_value_presence(
+                sender_group.public_id, object_type="Group", field_name="public_id"
+            )
+            if not isinstance(sender_public_id, UUID):
+                raise ValueError("Group.allowed_email_senders_groups entries must have a public_id.")
+            sender_group_public_ids.append(sender_public_id)
+        groups_by_id = await _bulk_fetch_by_public_id(
+            self._session, GroupModel, sender_group_public_ids, "Group"
         )
-        group_model.allowed_email_senders_groups = list(groups_by_name.values())
+        group_model.allowed_email_senders_groups = list(groups_by_id.values())
 
         self._session.add(group_model)
         await self._session.flush()
