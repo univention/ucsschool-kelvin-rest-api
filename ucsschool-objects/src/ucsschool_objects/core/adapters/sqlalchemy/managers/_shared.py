@@ -131,30 +131,6 @@ async def _bulk_fetch_by_public_id(
     return by_id
 
 
-async def _bulk_fetch_by_name(
-    session: AsyncSession,
-    model_class: type[TModel],
-    name_col: InstrumentedAttribute[str],
-    names: Sequence[str],
-    object_type: str,
-) -> dict[str, TModel]:
-    """Fetch multiple ORM objects via a single IN query keyed by name.
-
-    Raises NotFound if any requested name has no matching row.
-    """
-    if not names:
-        return {}
-    unique_names = list(dict.fromkeys(names))
-    results = (
-        (await session.execute(select(model_class).where(name_col.in_(unique_names)))).scalars().all()
-    )
-    by_name: dict[str, TModel] = {cast(str, getattr(r, "name")): r for r in results}
-    missing = set(unique_names) - by_name.keys()
-    if missing:
-        raise NotFound(object_type=object_type, public_id=next(iter(missing)))
-    return by_name
-
-
 def _get_exposed_fields(model: type) -> frozenset[str]:
     """Extract queryable first-level column names from a SQLAlchemy model.
 
