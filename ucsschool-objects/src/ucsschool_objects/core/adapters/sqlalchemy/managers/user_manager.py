@@ -176,7 +176,7 @@ class SQLAlchemyUserManager(Manager[User]):
 
     async def _build_memberships(
         self,
-        memberships: set[DomainSchoolMembership] | UnloadedType,
+        memberships: dict[UUID, DomainSchoolMembership] | UnloadedType,
     ) -> list[SchoolMembership]:
         if isinstance(memberships, UnloadedType):
             return []
@@ -187,11 +187,13 @@ class SQLAlchemyUserManager(Manager[User]):
         school_ids: list[UUID] = []
         all_role_ids: list[UUID] = []
         all_group_ids: list[UUID] = []
-        for m in memberships:
+        for membership_school_id, m in memberships.items():
             school = m.school
             if isinstance(school, UnloadedType) or not isinstance(school.public_id, UUID):
                 raise ValueError("All membership schools must be loaded with public_id for create().")
             school_id: UUID = school.public_id
+            if membership_school_id != school_id:
+                raise ValueError("school_memberships keys must match membership school public_id.")
             role_ids: list[UUID] = []
             for r in m.roles:
                 if not isinstance(r.public_id, UUID):
