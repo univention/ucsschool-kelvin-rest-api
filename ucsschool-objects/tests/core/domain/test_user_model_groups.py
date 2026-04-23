@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import cast
+from uuid import UUID
+
 from tests.core.domain.helpers.model_builders import (
     school as build_school,
     school_class as build_school_class,
@@ -20,7 +23,7 @@ def test_groups_returns_unloaded_when_memberships_unloaded() -> None:
 def test_groups_returns_empty_tuple_when_no_groups() -> None:
     school = build_school()
     membership = SchoolMembership(school=school, is_primary=True, roles=set(), groups=set())
-    user = build_user(school_memberships=set({membership}))
+    user = build_user(school_memberships={cast(UUID, school.public_id): membership})
     assert user.groups == set()
 
 
@@ -36,7 +39,12 @@ def test_groups_deduplicates_across_memberships() -> None:
     m2 = SchoolMembership(
         school=school2, is_primary=False, roles=set(), groups=set({g_shared, g_only_second})
     )
-    user = build_user(school_memberships=set({m1, m2}))
+    user = build_user(
+        school_memberships={
+            cast(UUID, m1.school.public_id): m1,
+            cast(UUID, m2.school.public_id): m2,
+        }
+    )
     result = user.groups
     assert isinstance(result, set)
     assert len(result) == 3
@@ -50,7 +58,7 @@ def test_groups_is_cached() -> None:
     school = build_school()
     g = build_school_class()
     membership = SchoolMembership(school=school, is_primary=True, roles=set(), groups=set({g}))
-    user = build_user(school_memberships=set({membership}))
+    user = build_user(school_memberships={cast(UUID, school.public_id): membership})
     first = user.groups
     second = user.groups
     assert first == second
