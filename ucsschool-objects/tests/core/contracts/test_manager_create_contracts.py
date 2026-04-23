@@ -299,6 +299,12 @@ class GroupCreateExpectation:
     expected_sender_group_names: set[str]
 
 
+@dataclass(frozen=True)
+class GroupCreateFailureExpectation:
+    group: Group
+    expected_exception: type[Exception]
+
+
 GroupCreateSetup = Callable[
     [AsyncSchoolFactory, AsyncGroupTypeFactory, AsyncRoleFactory, AsyncUserFactory, AsyncGroupFactory],
     Awaitable[GroupCreateExpectation],
@@ -311,7 +317,7 @@ GroupCreateFailSetup = Callable[
         AsyncUserFactory,
         AsyncGroupFactory,
     ],
-    Awaitable[Group],
+    Awaitable[GroupCreateFailureExpectation],
 ]
 
 
@@ -392,21 +398,24 @@ async def _setup_group_create_missing_group_type(
     role_factory: AsyncRoleFactory,
     user_factory: AsyncUserFactory,
     group_factory: AsyncGroupFactory,
-) -> Group:
+) -> GroupCreateFailureExpectation:
     school_model = await school_factory(name="group-school-fail-type")
-    return Group(
-        public_id=uuid.uuid4(),
-        record_uid="rec-group-fail-type",
-        source_uid="src-group-fail-type",
-        name="group-fail-type",
-        display_name={"en": "Group Fail Type"},
-        create_share=False,
-        group_type="missing-group-type",
-        allowed_email_senders_users=set(),
-        allowed_email_senders_groups=set(),
-        member_roles=set(),
-        school=_build_school_reference(school_model.public_id, name=school_model.name),
-        email=None,
+    return GroupCreateFailureExpectation(
+        group=Group(
+            public_id=uuid.uuid4(),
+            record_uid="rec-group-fail-type",
+            source_uid="src-group-fail-type",
+            name="group-fail-type",
+            display_name={"en": "Group Fail Type"},
+            create_share=False,
+            group_type="missing-group-type",
+            allowed_email_senders_users=set(),
+            allowed_email_senders_groups=set(),
+            member_roles=set(),
+            school=_build_school_reference(school_model.public_id, name=school_model.name),
+            email=None,
+        ),
+        expected_exception=NotFound,
     )
 
 
@@ -416,21 +425,24 @@ async def _setup_group_create_missing_school(
     role_factory: AsyncRoleFactory,
     user_factory: AsyncUserFactory,
     group_factory: AsyncGroupFactory,
-) -> Group:
+) -> GroupCreateFailureExpectation:
     group_type_model = await group_type_factory(name="group-type-fail-school")
-    return Group(
-        public_id=uuid.uuid4(),
-        record_uid="rec-group-fail-school",
-        source_uid="src-group-fail-school",
-        name="group-fail-school",
-        display_name={"en": "Group Fail School"},
-        create_share=False,
-        group_type=group_type_model.name,
-        allowed_email_senders_users=set(),
-        allowed_email_senders_groups=set(),
-        member_roles=set(),
-        school=_build_school_reference(uuid.uuid4(), name="ghost-school"),
-        email=None,
+    return GroupCreateFailureExpectation(
+        group=Group(
+            public_id=uuid.uuid4(),
+            record_uid="rec-group-fail-school",
+            source_uid="src-group-fail-school",
+            name="group-fail-school",
+            display_name={"en": "Group Fail School"},
+            create_share=False,
+            group_type=group_type_model.name,
+            allowed_email_senders_users=set(),
+            allowed_email_senders_groups=set(),
+            member_roles=set(),
+            school=_build_school_reference(uuid.uuid4(), name="ghost-school"),
+            email=None,
+        ),
+        expected_exception=NotFound,
     )
 
 
@@ -440,22 +452,25 @@ async def _setup_group_create_missing_role(
     role_factory: AsyncRoleFactory,
     user_factory: AsyncUserFactory,
     group_factory: AsyncGroupFactory,
-) -> Group:
+) -> GroupCreateFailureExpectation:
     school_model = await school_factory(name="group-school-fail-role")
     group_type_model = await group_type_factory(name="group-type-fail-role")
-    return Group(
-        public_id=uuid.uuid4(),
-        record_uid="rec-group-fail-role",
-        source_uid="src-group-fail-role",
-        name="group-fail-role",
-        display_name={"en": "Group Fail Role"},
-        create_share=False,
-        group_type=group_type_model.name,
-        allowed_email_senders_users=set(),
-        allowed_email_senders_groups=set(),
-        member_roles=set({_build_role_reference(uuid.uuid4(), name="ghost-role")}),
-        school=_build_school_reference(school_model.public_id, name=school_model.name),
-        email=None,
+    return GroupCreateFailureExpectation(
+        group=Group(
+            public_id=uuid.uuid4(),
+            record_uid="rec-group-fail-role",
+            source_uid="src-group-fail-role",
+            name="group-fail-role",
+            display_name={"en": "Group Fail Role"},
+            create_share=False,
+            group_type=group_type_model.name,
+            allowed_email_senders_users=set(),
+            allowed_email_senders_groups=set(),
+            member_roles=set({_build_role_reference(uuid.uuid4(), name="ghost-role")}),
+            school=_build_school_reference(school_model.public_id, name=school_model.name),
+            email=None,
+        ),
+        expected_exception=NotFound,
     )
 
 
@@ -465,22 +480,25 @@ async def _setup_group_create_missing_sender_user(
     role_factory: AsyncRoleFactory,
     user_factory: AsyncUserFactory,
     group_factory: AsyncGroupFactory,
-) -> Group:
+) -> GroupCreateFailureExpectation:
     school_model = await school_factory(name="group-school-fail-sender-user")
     group_type_model = await group_type_factory(name="group-type-fail-sender-user")
-    return Group(
-        public_id=uuid.uuid4(),
-        record_uid="rec-group-fail-sender-user",
-        source_uid="src-group-fail-sender-user",
-        name="group-fail-sender-user",
-        display_name={"en": "Group Fail Sender User"},
-        create_share=False,
-        group_type=group_type_model.name,
-        allowed_email_senders_users=set({_build_user_reference(uuid.uuid4(), name="ghost-user")}),
-        allowed_email_senders_groups=set(),
-        member_roles=set(),
-        school=_build_school_reference(school_model.public_id, name=school_model.name),
-        email=None,
+    return GroupCreateFailureExpectation(
+        group=Group(
+            public_id=uuid.uuid4(),
+            record_uid="rec-group-fail-sender-user",
+            source_uid="src-group-fail-sender-user",
+            name="group-fail-sender-user",
+            display_name={"en": "Group Fail Sender User"},
+            create_share=False,
+            group_type=group_type_model.name,
+            allowed_email_senders_users=set({_build_user_reference(uuid.uuid4(), name="ghost-user")}),
+            allowed_email_senders_groups=set(),
+            member_roles=set(),
+            school=_build_school_reference(school_model.public_id, name=school_model.name),
+            email=None,
+        ),
+        expected_exception=NotFound,
     )
 
 
@@ -490,24 +508,150 @@ async def _setup_group_create_missing_sender_group(
     role_factory: AsyncRoleFactory,
     user_factory: AsyncUserFactory,
     group_factory: AsyncGroupFactory,
-) -> Group:
+) -> GroupCreateFailureExpectation:
     school_model = await school_factory(name="group-school-fail-sender-group")
     group_type_model = await group_type_factory(name="group-type-fail-sender-group")
-    return Group(
-        public_id=uuid.uuid4(),
-        record_uid="rec-group-fail-sender-group",
-        source_uid="src-group-fail-sender-group",
-        name="group-fail-sender-group",
-        display_name={"en": "Group Fail Sender Group"},
-        create_share=False,
-        group_type=group_type_model.name,
-        allowed_email_senders_users=set(),
-        allowed_email_senders_groups=set(
-            {_build_group_reference(uuid.uuid4(), name="ghost-sender-group")}
+    return GroupCreateFailureExpectation(
+        group=Group(
+            public_id=uuid.uuid4(),
+            record_uid="rec-group-fail-sender-group",
+            source_uid="src-group-fail-sender-group",
+            name="group-fail-sender-group",
+            display_name={"en": "Group Fail Sender Group"},
+            create_share=False,
+            group_type=group_type_model.name,
+            allowed_email_senders_users=set(),
+            allowed_email_senders_groups=set(
+                {_build_group_reference(uuid.uuid4(), name="ghost-sender-group")}
+            ),
+            member_roles=set(),
+            school=_build_school_reference(school_model.public_id, name=school_model.name),
+            email=None,
         ),
-        member_roles=set(),
-        school=_build_school_reference(school_model.public_id, name=school_model.name),
-        email=None,
+        expected_exception=NotFound,
+    )
+
+
+async def _setup_group_create_sender_user_without_public_id(
+    school_factory: AsyncSchoolFactory,
+    group_type_factory: AsyncGroupTypeFactory,
+    role_factory: AsyncRoleFactory,
+    user_factory: AsyncUserFactory,
+    group_factory: AsyncGroupFactory,
+) -> GroupCreateFailureExpectation:
+    school_model = await school_factory(name="group-school-fail-sender-user-public-id")
+    group_type_model = await group_type_factory(name="group-type-fail-sender-user-public-id")
+    return GroupCreateFailureExpectation(
+        group=Group(
+            public_id=uuid.uuid4(),
+            record_uid="rec-group-fail-sender-user-public-id",
+            source_uid="src-group-fail-sender-user-public-id",
+            name="group-fail-sender-user-public-id",
+            display_name={"en": "Group Fail Sender User Public Id"},
+            create_share=False,
+            group_type=group_type_model.name,
+            allowed_email_senders_users=set(
+                {
+                    User(
+                        record_uid="rec-invalid-sender-user",
+                        source_uid="src-invalid-sender-user",
+                        name="invalid-sender-user",
+                        firstname="Invalid",
+                        lastname="Sender",
+                        active=True,
+                        school_memberships={},
+                        legal_wards=set(),
+                        legal_guardians=set(),
+                    )
+                }
+            ),
+            allowed_email_senders_groups=set(),
+            member_roles=set(),
+            school=_build_school_reference(school_model.public_id, name=school_model.name),
+            email=None,
+        ),
+        expected_exception=ValueError,
+    )
+
+
+async def _setup_group_create_sender_group_without_public_id(
+    school_factory: AsyncSchoolFactory,
+    group_type_factory: AsyncGroupTypeFactory,
+    role_factory: AsyncRoleFactory,
+    user_factory: AsyncUserFactory,
+    group_factory: AsyncGroupFactory,
+) -> GroupCreateFailureExpectation:
+    school_model = await school_factory(name="group-school-fail-sender-group-public-id")
+    group_type_model = await group_type_factory(name="group-type-fail-sender-group-public-id")
+    return GroupCreateFailureExpectation(
+        group=Group(
+            public_id=uuid.uuid4(),
+            record_uid="rec-group-fail-sender-group-public-id",
+            source_uid="src-group-fail-sender-group-public-id",
+            name="group-fail-sender-group-public-id",
+            display_name={"en": "Group Fail Sender Group Public Id"},
+            create_share=False,
+            group_type=group_type_model.name,
+            allowed_email_senders_users=set(),
+            allowed_email_senders_groups=set(
+                {
+                    Group(
+                        record_uid="rec-invalid-sender-group",
+                        source_uid="src-invalid-sender-group",
+                        name="invalid-sender-group",
+                        display_name={"en": "Invalid Sender Group"},
+                        create_share=False,
+                        group_type="workgroup",
+                        allowed_email_senders_users=set(),
+                        allowed_email_senders_groups=set(),
+                        member_roles=set(),
+                        school=_build_school_reference(
+                            school_model.public_id,
+                            name=school_model.name,
+                        ),
+                        email=None,
+                    )
+                }
+            ),
+            member_roles=set(),
+            school=_build_school_reference(school_model.public_id, name=school_model.name),
+            email=None,
+        ),
+        expected_exception=ValueError,
+    )
+
+
+async def _setup_group_create_school_without_public_id(
+    school_factory: AsyncSchoolFactory,
+    group_type_factory: AsyncGroupTypeFactory,
+    role_factory: AsyncRoleFactory,
+    user_factory: AsyncUserFactory,
+    group_factory: AsyncGroupFactory,
+) -> GroupCreateFailureExpectation:
+    group_type_model = await group_type_factory(name="group-type-fail-school-public-id")
+    return GroupCreateFailureExpectation(
+        group=Group(
+            public_id=uuid.uuid4(),
+            record_uid="rec-group-fail-school-public-id",
+            source_uid="src-group-fail-school-public-id",
+            name="group-fail-school-public-id",
+            display_name={"en": "Group Fail School Public Id"},
+            create_share=False,
+            group_type=group_type_model.name,
+            allowed_email_senders_users=set(),
+            allowed_email_senders_groups=set(),
+            member_roles=set(),
+            school=School(
+                record_uid="rec-invalid-school",
+                source_uid="src-invalid-school",
+                name="invalid-school",
+                display_name={"en": "Invalid School"},
+                educational_servers=set({"edu.example.com"}),
+                administrative_servers=set({"adm.example.com"}),
+            ),
+            email=None,
+        ),
+        expected_exception=ValueError,
     )
 
 
@@ -567,6 +711,15 @@ async def test_group_manager_create_success(
         pytest.param(_setup_group_create_missing_role, id="missing-role"),
         pytest.param(_setup_group_create_missing_sender_user, id="missing-sender-user"),
         pytest.param(_setup_group_create_missing_sender_group, id="missing-sender-group"),
+        pytest.param(
+            _setup_group_create_sender_user_without_public_id,
+            id="sender-user-without-public-id",
+        ),
+        pytest.param(
+            _setup_group_create_sender_group_without_public_id,
+            id="sender-group-without-public-id",
+        ),
+        pytest.param(_setup_group_create_school_without_public_id, id="school-without-public-id"),
     ],
 )
 async def test_group_manager_create_failure(
@@ -578,7 +731,7 @@ async def test_group_manager_create_failure(
     group_factory: AsyncGroupFactory,
     setup_case: GroupCreateFailSetup,
 ) -> None:
-    group = await setup_case(
+    expectation = await setup_case(
         school_factory,
         group_type_factory,
         role_factory,
@@ -586,8 +739,8 @@ async def test_group_manager_create_failure(
         group_factory,
     )
 
-    with pytest.raises(NotFound):
-        await SQLAlchemyGroupManager(db_session).create(group)
+    with pytest.raises(expectation.expected_exception):
+        await SQLAlchemyGroupManager(db_session).create(expectation.group)
 
 
 # ---------------------------------------------------------------------------
@@ -601,6 +754,13 @@ class UserCreateExpectation:
     expected_school_names: set[str]
     expected_role_names: set[str]
     expected_ward_names: set[str]
+    expected_guardian_names: set[str]
+
+
+@dataclass(frozen=True)
+class UserCreateFailureExpectation:
+    user: User
+    expected_exception: type[Exception]
 
 
 UserCreateSetup = Callable[
@@ -609,7 +769,7 @@ UserCreateSetup = Callable[
 ]
 UserCreateFailSetup = Callable[
     [AsyncSchoolFactory, AsyncRoleFactory, AsyncGroupFactory],
-    Awaitable[User],
+    Awaitable[UserCreateFailureExpectation],
 ]
 
 
@@ -649,6 +809,7 @@ async def _setup_user_create_full(
         expected_school_names={school_model.name},
         expected_role_names={role_model.name},
         expected_ward_names={ward_model.name},
+        expected_guardian_names={guardian_model.name},
     )
 
 
@@ -675,6 +836,7 @@ async def _setup_user_create_minimal(
         expected_school_names=set(),
         expected_role_names=set(),
         expected_ward_names=set(),
+        expected_guardian_names=set(),
     )
 
 
@@ -720,6 +882,33 @@ async def _setup_user_create_multi_membership(
         expected_school_names={school_a.name, school_b.name},
         expected_role_names={role_model.name},
         expected_ward_names=set(),
+        expected_guardian_names=set(),
+    )
+
+
+async def _setup_user_create_unloaded_relations(
+    school_factory: AsyncSchoolFactory,
+    role_factory: AsyncRoleFactory,
+    group_factory: AsyncGroupFactory,
+    user_factory: AsyncUserFactory,
+) -> UserCreateExpectation:
+    user = User(
+        record_uid="rec-user-unloaded",
+        source_uid="src-user-unloaded",
+        name="user-create-unloaded",
+        firstname="Create",
+        lastname="Unloaded",
+        active=True,
+        school_memberships=UNLOADED,
+        legal_wards=UNLOADED,
+        legal_guardians=UNLOADED,
+    )
+    return UserCreateExpectation(
+        user=user,
+        expected_school_names=set(),
+        expected_role_names=set(),
+        expected_ward_names=set(),
+        expected_guardian_names=set(),
     )
 
 
@@ -727,7 +916,7 @@ async def _setup_user_create_missing_school(
     school_factory: AsyncSchoolFactory,
     role_factory: AsyncRoleFactory,
     group_factory: AsyncGroupFactory,
-) -> User:
+) -> UserCreateFailureExpectation:
     role_model = await role_factory(name="user-role-fail-school")
     group_model = await group_factory(name="user-group-fail-school")
     ghost_school_id = uuid.uuid4()
@@ -737,17 +926,20 @@ async def _setup_user_create_missing_school(
         roles=set({_build_role_reference(role_model.public_id, name=role_model.name)}),
         groups=set({_build_group_reference(group_model.public_id, name=group_model.name)}),
     )
-    return User(
-        public_id=uuid.uuid4(),
-        record_uid="rec-user-fail-school",
-        source_uid="src-user-fail-school",
-        name="user-fail-school",
-        firstname="Fail",
-        lastname="School",
-        active=True,
-        school_memberships={ghost_school_id: membership},
-        legal_wards=set(),
-        legal_guardians=set(),
+    return UserCreateFailureExpectation(
+        user=User(
+            public_id=uuid.uuid4(),
+            record_uid="rec-user-fail-school",
+            source_uid="src-user-fail-school",
+            name="user-fail-school",
+            firstname="Fail",
+            lastname="School",
+            active=True,
+            school_memberships={ghost_school_id: membership},
+            legal_wards=set(),
+            legal_guardians=set(),
+        ),
+        expected_exception=NotFound,
     )
 
 
@@ -755,7 +947,7 @@ async def _setup_user_create_missing_role(
     school_factory: AsyncSchoolFactory,
     role_factory: AsyncRoleFactory,
     group_factory: AsyncGroupFactory,
-) -> User:
+) -> UserCreateFailureExpectation:
     school_model = await school_factory(name="user-school-fail-role")
     group_model = await group_factory(name="user-group-fail-role")
     membership = SchoolMembership(
@@ -764,17 +956,20 @@ async def _setup_user_create_missing_role(
         roles=set({_build_role_reference(uuid.uuid4(), name="ghost-role")}),
         groups=set({_build_group_reference(group_model.public_id, name=group_model.name)}),
     )
-    return User(
-        public_id=uuid.uuid4(),
-        record_uid="rec-user-fail-role",
-        source_uid="src-user-fail-role",
-        name="user-fail-role",
-        firstname="Fail",
-        lastname="Role",
-        active=True,
-        school_memberships={school_model.public_id: membership},
-        legal_wards=set(),
-        legal_guardians=set(),
+    return UserCreateFailureExpectation(
+        user=User(
+            public_id=uuid.uuid4(),
+            record_uid="rec-user-fail-role",
+            source_uid="src-user-fail-role",
+            name="user-fail-role",
+            firstname="Fail",
+            lastname="Role",
+            active=True,
+            school_memberships={school_model.public_id: membership},
+            legal_wards=set(),
+            legal_guardians=set(),
+        ),
+        expected_exception=NotFound,
     )
 
 
@@ -782,7 +977,7 @@ async def _setup_user_create_missing_ward(
     school_factory: AsyncSchoolFactory,
     role_factory: AsyncRoleFactory,
     group_factory: AsyncGroupFactory,
-) -> User:
+) -> UserCreateFailureExpectation:
     school_model = await school_factory(name="user-school-fail-ward")
     membership = SchoolMembership(
         school=_build_school_reference(school_model.public_id, name=school_model.name),
@@ -790,17 +985,158 @@ async def _setup_user_create_missing_ward(
         roles=set(),
         groups=set(),
     )
-    return User(
-        public_id=uuid.uuid4(),
-        record_uid="rec-user-fail-ward",
-        source_uid="src-user-fail-ward",
-        name="user-fail-ward",
-        firstname="Fail",
-        lastname="Ward",
-        active=True,
-        school_memberships={school_model.public_id: membership},
-        legal_wards=set({_build_user_reference(uuid.uuid4(), name="ghost-ward")}),
-        legal_guardians=set(),
+    return UserCreateFailureExpectation(
+        user=User(
+            public_id=uuid.uuid4(),
+            record_uid="rec-user-fail-ward",
+            source_uid="src-user-fail-ward",
+            name="user-fail-ward",
+            firstname="Fail",
+            lastname="Ward",
+            active=True,
+            school_memberships={school_model.public_id: membership},
+            legal_wards=set({_build_user_reference(uuid.uuid4(), name="ghost-ward")}),
+            legal_guardians=set(),
+        ),
+        expected_exception=NotFound,
+    )
+
+
+async def _setup_user_create_membership_school_without_public_id(
+    school_factory: AsyncSchoolFactory,
+    role_factory: AsyncRoleFactory,
+    group_factory: AsyncGroupFactory,
+) -> UserCreateFailureExpectation:
+    membership = SchoolMembership(
+        school=School(
+            record_uid="rec-invalid-school",
+            source_uid="src-invalid-school",
+            name="invalid-school",
+            display_name={"en": "Invalid School"},
+            educational_servers=set({"edu.example.com"}),
+            administrative_servers=set({"adm.example.com"}),
+        ),
+        is_primary=True,
+        roles=set(),
+        groups=set(),
+    )
+    return UserCreateFailureExpectation(
+        user=User(
+            public_id=uuid.uuid4(),
+            record_uid="rec-user-fail-membership-school-public-id",
+            source_uid="src-user-fail-membership-school-public-id",
+            name="user-fail-membership-school-public-id",
+            firstname="Fail",
+            lastname="MembershipSchoolPublicId",
+            active=True,
+            school_memberships={uuid.uuid4(): membership},
+            legal_wards=set(),
+            legal_guardians=set(),
+        ),
+        expected_exception=ValueError,
+    )
+
+
+async def _setup_user_create_membership_key_mismatch(
+    school_factory: AsyncSchoolFactory,
+    role_factory: AsyncRoleFactory,
+    group_factory: AsyncGroupFactory,
+) -> UserCreateFailureExpectation:
+    school_model = await school_factory(name="user-school-fail-membership-key")
+    membership = SchoolMembership(
+        school=_build_school_reference(school_model.public_id, name=school_model.name),
+        is_primary=True,
+        roles=set(),
+        groups=set(),
+    )
+    return UserCreateFailureExpectation(
+        user=User(
+            public_id=uuid.uuid4(),
+            record_uid="rec-user-fail-membership-key",
+            source_uid="src-user-fail-membership-key",
+            name="user-fail-membership-key",
+            firstname="Fail",
+            lastname="MembershipKey",
+            active=True,
+            school_memberships={uuid.uuid4(): membership},
+            legal_wards=set(),
+            legal_guardians=set(),
+        ),
+        expected_exception=ValueError,
+    )
+
+
+async def _setup_user_create_membership_role_without_public_id(
+    school_factory: AsyncSchoolFactory,
+    role_factory: AsyncRoleFactory,
+    group_factory: AsyncGroupFactory,
+) -> UserCreateFailureExpectation:
+    school_model = await school_factory(name="user-school-fail-membership-role-public-id")
+    membership = SchoolMembership(
+        school=_build_school_reference(school_model.public_id, name=school_model.name),
+        is_primary=True,
+        roles=set({Role(name="role-without-public-id", display_name={"en": "Role Without Public Id"})}),
+        groups=set(),
+    )
+    return UserCreateFailureExpectation(
+        user=User(
+            public_id=uuid.uuid4(),
+            record_uid="rec-user-fail-membership-role-public-id",
+            source_uid="src-user-fail-membership-role-public-id",
+            name="user-fail-membership-role-public-id",
+            firstname="Fail",
+            lastname="MembershipRolePublicId",
+            active=True,
+            school_memberships={school_model.public_id: membership},
+            legal_wards=set(),
+            legal_guardians=set(),
+        ),
+        expected_exception=ValueError,
+    )
+
+
+async def _setup_user_create_membership_group_without_public_id(
+    school_factory: AsyncSchoolFactory,
+    role_factory: AsyncRoleFactory,
+    group_factory: AsyncGroupFactory,
+) -> UserCreateFailureExpectation:
+    school_model = await school_factory(name="user-school-fail-membership-group-public-id")
+    membership = SchoolMembership(
+        school=_build_school_reference(school_model.public_id, name=school_model.name),
+        is_primary=True,
+        roles=set(),
+        groups=set(
+            {
+                Group(
+                    record_uid="rec-group-without-public-id",
+                    source_uid="src-group-without-public-id",
+                    name="group-without-public-id",
+                    display_name={"en": "Group Without Public Id"},
+                    create_share=False,
+                    group_type="workgroup",
+                    allowed_email_senders_users=set(),
+                    allowed_email_senders_groups=set(),
+                    member_roles=set(),
+                    school=_build_school_reference(school_model.public_id, name=school_model.name),
+                    email=None,
+                )
+            }
+        ),
+    )
+    return UserCreateFailureExpectation(
+        user=User(
+            public_id=uuid.uuid4(),
+            record_uid="rec-user-fail-membership-group-public-id",
+            source_uid="src-user-fail-membership-group-public-id",
+            name="user-fail-membership-group-public-id",
+            firstname="Fail",
+            lastname="MembershipGroupPublicId",
+            active=True,
+            school_memberships={school_model.public_id: membership},
+            legal_wards=set(),
+            legal_guardians=set(),
+        ),
+        expected_exception=ValueError,
     )
 
 
@@ -811,6 +1147,7 @@ async def _setup_user_create_missing_ward(
         pytest.param(_setup_user_create_full, id="full"),
         pytest.param(_setup_user_create_minimal, id="minimal-empty-relations"),
         pytest.param(_setup_user_create_multi_membership, id="multiple-memberships"),
+        pytest.param(_setup_user_create_unloaded_relations, id="unloaded-relations-auto-public-id"),
     ],
 )
 async def test_user_manager_create_success(
@@ -832,6 +1169,7 @@ async def test_user_manager_create_success(
                 selectinload(UserModel.school_memberships).selectinload(SchoolMembershipModel.school),
                 selectinload(UserModel.school_memberships).selectinload(SchoolMembershipModel.roles),
                 selectinload(UserModel.legal_wards),
+                selectinload(UserModel.legal_guardians),
             )
             .where(UserModel.name == expectation.user.name)
         )
@@ -841,6 +1179,7 @@ async def test_user_manager_create_success(
         r.name for m in persisted.school_memberships for r in m.roles
     } == expectation.expected_role_names
     assert {w.name for w in persisted.legal_wards} == expectation.expected_ward_names
+    assert {g.name for g in persisted.legal_guardians} == expectation.expected_guardian_names
 
 
 @pytest.mark.asyncio
@@ -850,6 +1189,19 @@ async def test_user_manager_create_success(
         pytest.param(_setup_user_create_missing_school, id="missing-school"),
         pytest.param(_setup_user_create_missing_role, id="missing-role"),
         pytest.param(_setup_user_create_missing_ward, id="missing-ward"),
+        pytest.param(
+            _setup_user_create_membership_school_without_public_id,
+            id="membership-school-without-public-id",
+        ),
+        pytest.param(_setup_user_create_membership_key_mismatch, id="membership-key-mismatch"),
+        pytest.param(
+            _setup_user_create_membership_role_without_public_id,
+            id="membership-role-without-public-id",
+        ),
+        pytest.param(
+            _setup_user_create_membership_group_without_public_id,
+            id="membership-group-without-public-id",
+        ),
     ],
 )
 async def test_user_manager_create_failure(
@@ -859,7 +1211,7 @@ async def test_user_manager_create_failure(
     group_factory: AsyncGroupFactory,
     setup_case: UserCreateFailSetup,
 ) -> None:
-    user = await setup_case(school_factory, role_factory, group_factory)
+    expectation = await setup_case(school_factory, role_factory, group_factory)
 
-    with pytest.raises(NotFound):
-        await SQLAlchemyUserManager(db_session).create(user)
+    with pytest.raises(expectation.expected_exception):
+        await SQLAlchemyUserManager(db_session).create(expectation.user)
