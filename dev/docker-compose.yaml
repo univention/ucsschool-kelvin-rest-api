@@ -29,6 +29,7 @@ services:
     volumes:
       # Secrets and certificates
       - ./_vm_config/provisioning_config.json:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json:ro
+      - ./_vm_config/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
     stdin_open: true
     tty: true
     environment:
