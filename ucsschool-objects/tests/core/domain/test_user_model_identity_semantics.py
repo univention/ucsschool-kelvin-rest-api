@@ -125,14 +125,14 @@ def test_school_membership_equality_uses_school_primary_roles_and_groups() -> No
     membership1 = SchoolMembership(
         school=school,
         is_primary=True,
-        roles=frozenset({role}),
-        groups=frozenset({group}),
+        roles=set({role}),
+        groups=set({group}),
     )
     membership2 = SchoolMembership(
         school=school,
         is_primary=True,
-        roles=frozenset({role}),
-        groups=frozenset({group}),
+        roles=set({role}),
+        groups=set({group}),
     )
 
     assert membership1 == membership2
@@ -148,14 +148,14 @@ def test_school_membership_equality_detects_different_loaded_fields() -> None:
     membership1 = SchoolMembership(
         school=school,
         is_primary=True,
-        roles=frozenset({role1}),
-        groups=frozenset({group}),
+        roles=set({role1}),
+        groups=set({group}),
     )
     membership2 = SchoolMembership(
         school=school,
         is_primary=True,
-        roles=frozenset({role2}),
-        groups=frozenset({group}),
+        roles=set({role2}),
+        groups=set({group}),
     )
 
     assert membership1 != membership2
@@ -172,8 +172,8 @@ def test_school_membership_equality_detects_different_loaded_fields() -> None:
             SchoolMembership(
                 school=build_school(),
                 is_primary=True,
-                roles=frozenset(),
-                groups=frozenset(),
+                roles=set(),
+                groups=set(),
             ),
             id="school-membership",
         ),
