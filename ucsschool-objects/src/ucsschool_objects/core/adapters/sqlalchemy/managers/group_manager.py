@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict
-from typing import cast
+from typing import Any, cast
 from uuid import UUID
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
-from sqlalchemy import Select, select
+from sqlalchemy import Select, delete, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
@@ -247,4 +248,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         await _apply_group_patch(result, patched, current, self._session)
 
     async def delete(self, public_id: UUID) -> None:
-        raise NotImplementedError("Group delete is not implemented yet.")  # pragma: no cover
+        stmt = delete(GroupModel).where(GroupModel.public_id == public_id)
+        result = cast(CursorResult[Any], await self._session.execute(stmt))
+        if result.rowcount == 0:
+            raise NotFound(object_type="Group", public_id=str(public_id))
