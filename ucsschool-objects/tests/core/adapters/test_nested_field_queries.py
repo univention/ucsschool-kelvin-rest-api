@@ -21,11 +21,14 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import _is_loaded, _loaded_value
 from ucsschool_objects.core.domain import (
     UNLOADED,
+    UNSET,
     And,
     Filter,
     Not,
     Operator,
     Or,
+    School,
+    SchoolMembership,
     SearchQuery,
     SortSpec,
     UnsupportedNestedField,
@@ -352,3 +355,53 @@ def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPa
 
     assert group.school is UNLOADED
     assert group.group_type is UNLOADED
+
+
+def test_to_user_raises_when_membership_school_has_no_uuid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
+
+    model = SimpleNamespace(
+        public_id=uuid4(),
+        record_uid="record-uid",
+        source_uid="source-uid",
+        name="user-name",
+        firstname="User",
+        lastname="Name",
+        email=None,
+        birthday=None,
+        expiration_date=None,
+        active=True,
+        school_memberships=[object()],
+        legal_wards=(),
+        legal_guardians=(),
+    )
+
+    monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        to_domain,
+        "_to_school_membership",
+        lambda _membership: SchoolMembership(
+            school=School(
+                public_id=UNSET,
+                record_uid="school-record",
+                source_uid="school-source",
+                name="school-name",
+                display_name={"en": "School Name"},
+                educational_servers=set({"edu.example.com"}),
+                administrative_servers=set({"adm.example.com"}),
+            ),
+            is_primary=True,
+            roles=set(),
+            groups=set(),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="Mapped school membership has no UUID school public_id"):
+        to_domain.to_user(
+            model,  # type: ignore[arg-type]
+            include_memberships=True,
+            include_legal_wards=False,
+            include_legal_guardians=False,
+        )
