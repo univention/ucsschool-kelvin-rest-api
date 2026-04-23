@@ -148,6 +148,7 @@ COPY --from=connector-builder $VIRTUAL_ENV $VIRTUAL_ENV
 COPY docker/start-connector.sh .
 COPY alembic ./alembic
 COPY kelvin-connector ./kelvin-connector
+COPY ucsschool-objects ./ucsschool-objects
 
 ENTRYPOINT ["/app/start-connector.sh"]
 VOLUME /var/log

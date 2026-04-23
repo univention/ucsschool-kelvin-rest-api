@@ -65,9 +65,12 @@ fetch-vm-data: .get-target ## Fetches necessary information from a UCS host, to 
 	echo "HOSTNAME=$$(ssh $(TARGET) ucr get hostname)" >> $(VM_CONF_DIR)/env
 	echo "DOCKER_HOST_NAME=$(TARGET)" >> $(VM_CONF_DIR)/env
 	echo "TARGET=$(TARGET)" >> $(VM_CONF_DIR)/env
-	echo "UCSSCHOOL_KELVIN_DB_URI=postgresql://postgres:5432/ucsschool-kelvin-rest-api?sslmode=disable" >> $(VM_CONF_DIR)/env
+	echo "UCSSCHOOL_KELVIN_DB_URI=postgresql+psycopg://postgres:5432/ucsschool-kelvin-rest-api?sslmode=disable" >> $(VM_CONF_DIR)/env
 	echo "UCSSCHOOL_KELVIN_DB_USERNAME=ucsschool-kelvin-rest-api" >> $(VM_CONF_DIR)/env
 	echo "UCSSCHOOL_KELVIN_DB_PASSWORD_FILE=/etc/ucsschool/kelvin/postgresql-kelvin.secret" >> $(VM_CONF_DIR)/env
+	echo "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" >> $(VM_CONF_DIR)/env
+	echo "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $(VM_CONF_DIR)/env
+
 
 build-docker-image:  ## Builds the Kelvin docker image
 	@docker build --network host -t ucsschool-kelvin-rest-api:dev -f docker/Dockerfile .

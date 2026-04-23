@@ -167,12 +167,12 @@ setup_provisioning_subscriptions() {
 
     if [ $(ucr get "server/role") != "domaincontroller_master" ]; then
             echo "Not running on primary, skipping provisioning setup."
-            exit
+            return 0
     fi
 
     if [ -f  $APP_PROVISIONING_CONFIG_FILE ]; then
             echo "$APP_PROVISIONING_CONFIG_FILE already exists, skipping provisioning setup."
-            exit
+            return 0
     fi
 
     FQDN=$(ucr get ldap/master)
@@ -203,7 +203,7 @@ EOF
       "topic": "groups/group"
     }
     ],
-  "request_prefill": false,
+  "request_prefill": true,
   "password": "${SUBSCRIPTION_PASSWORD}"
 }
 EOF
@@ -233,7 +233,7 @@ header = "Content-Type: application/json"
 url = "$BASE_URL/v1/subscriptions"
 EOF
 ))
-if [ $? -ne 0]; then
+if [ $? -ne 0 ]; then
     echo "Error: Request to create subscription failed with: $response_create"
     return 1
 fi

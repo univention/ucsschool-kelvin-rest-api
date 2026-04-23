@@ -134,6 +134,22 @@ class User:
             return NotImplemented
         return self.public_id == other.public_id
 
+    @classmethod
+    def minimal(cls, public_id: UUID) -> User:
+        unloaded = UnloadedType()
+        return User(
+            public_id=public_id,
+            record_uid=unloaded,
+            source_uid=unloaded,
+            name=unloaded,
+            firstname=unloaded,
+            lastname=unloaded,
+            active=unloaded,
+            school_memberships=unloaded,
+            legal_guardians=unloaded,
+            legal_wards=unloaded,
+        )
+
     @property
     def primary_school(self) -> School | UnloadedType:
         if isinstance(self.school_memberships, UnloadedType):
