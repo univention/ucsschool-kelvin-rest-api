@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from dataclasses import asdict
+from typing import cast
 from uuid import UUID
 
+from jsonpatch import JsonPatch  # type: ignore[import-untyped]
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
@@ -11,20 +14,36 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _compose_field_map,
     _load_requested_scalar_attributes,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_school
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import school_from_patch, to_school
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import to_school_model
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain import (
     LoadSpec,
     NotFound,
     School,
+    SchoolValidator,
     SearchQuery,
     SortSpec,
 )
+from ucsschool_objects.core.domain.patch import normalise
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import School as SchoolModel
 
 __all__ = ["SQLAlchemySchoolManager"]
+
+
+def _apply_school_patch(model: SchoolModel, patched: dict[str, object]) -> None:
+    for field in (
+        "record_uid",
+        "source_uid",
+        "name",
+        "display_name",
+        "class_share_file_server",
+        "home_share_file_server",
+    ):
+        setattr(model, field, patched[field])
+    model.educational_servers = list(cast(list[str], patched["educational_servers"]))
+    model.administrative_servers = list(cast(list[str], patched["administrative_servers"]))
 
 
 class SQLAlchemySchoolManager(Manager[School]):
@@ -104,7 +123,15 @@ class SQLAlchemySchoolManager(Manager[School]):
         public_id: UUID,
         operations: Sequence[JSONPathOperation],
     ) -> None:
-        raise NotImplementedError("School modify is not implemented yet.")  # pragma: no cover
+        stmt = select(SchoolModel).where(SchoolModel.public_id == public_id)
+        result = (await self._session.execute(stmt)).scalar_one_or_none()
+        if result is None:
+            raise NotFound(object_type="School", public_id=str(public_id))
+
+        current = cast(dict[str, object], normalise(asdict(to_school(result))))
+        patched = cast(dict[str, object], JsonPatch(list(operations)).apply(current))
+        SchoolValidator.validate(school_from_patch(patched, result.public_id))
+        _apply_school_patch(result, patched)
 
     async def delete(self, public_id: UUID) -> None:
         raise NotImplementedError("School delete is not implemented yet.")  # pragma: no cover

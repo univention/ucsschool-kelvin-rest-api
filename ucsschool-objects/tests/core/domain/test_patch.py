@@ -11,64 +11,64 @@ from tests.core.domain.helpers.model_builders import (
     user as build_user,
 )
 from ucsschool_objects.core.domain.models import SchoolMembership
-from ucsschool_objects.core.domain.patch import _create_patch, _normalise, track_changes
+from ucsschool_objects.core.domain.patch import _create_patch, normalise, track_changes
 
-# --- _normalise ---
-
-
-def test_normalise_sorts_flat_list() -> None:
-    assert _normalise(["c", "a", "b"]) == ["a", "b", "c"]
+# --- normalise ---
 
 
-def test_normalise_empty_list() -> None:
-    assert _normalise([]) == []
+def testnormalise_sorts_flat_list() -> None:
+    assert normalise(["c", "a", "b"]) == ["a", "b", "c"]
 
 
-def test_normalise_leaves_scalar_unchanged() -> None:
-    assert _normalise("hello") == "hello"
-    assert _normalise(42) == 42
-    assert _normalise(None) is None
+def testnormalise_empty_list() -> None:
+    assert normalise([]) == []
 
 
-def test_normalise_sorts_nested_list_in_dict() -> None:
-    result = _normalise({"servers": ["z", "a", "m"]})
+def testnormalise_leaves_scalar_unchanged() -> None:
+    assert normalise("hello") == "hello"
+    assert normalise(42) == 42
+    assert normalise(None) is None
+
+
+def testnormalise_sorts_nested_list_in_dict() -> None:
+    result = normalise({"servers": ["z", "a", "m"]})
     assert result == {"servers": ["a", "m", "z"]}
 
 
-def test_normalise_sorts_list_of_dicts_by_str() -> None:
+def testnormalise_sorts_list_of_dicts_by_str() -> None:
     items = [{"name": "z"}, {"name": "a"}]
-    result = _normalise(items)
+    result = normalise(items)
     assert result == sorted(items, key=str)
 
 
-def test_normalise_converts_set_to_sorted_list() -> None:
-    result = _normalise({"c", "a", "b"})
+def testnormalise_converts_set_to_sorted_list() -> None:
+    result = normalise({"c", "a", "b"})
     assert result == ["a", "b", "c"]
 
 
-def test_normalise_converts_frozenset_to_sorted_list() -> None:
-    result = _normalise(frozenset({"c", "a", "b"}))
+def testnormalise_converts_frozenset_to_sorted_list() -> None:
+    result = normalise(frozenset({"c", "a", "b"}))
     assert result == ["a", "b", "c"]
 
 
-def test_normalise_converts_uuid_to_str() -> None:
+def testnormalise_converts_uuid_to_str() -> None:
     u = uuid.uuid4()
-    assert _normalise(u) == str(u)
+    assert normalise(u) == str(u)
 
 
-def test_normalise_converts_uuid_dict_key_to_str() -> None:
+def testnormalise_converts_uuid_dict_key_to_str() -> None:
     u = uuid.uuid4()
-    result = _normalise({u: "value"})
+    result = normalise({u: "value"})
     assert result == {str(u): "value"}
 
 
-def test_normalise_converts_date_to_isoformat() -> None:
+def testnormalise_converts_date_to_isoformat() -> None:
     d = date(2024, 1, 15)
-    assert _normalise(d) == "2024-01-15"
+    assert normalise(d) == "2024-01-15"
 
 
-def test_normalise_recurses_into_nested_dicts() -> None:
-    result = _normalise({"outer": {"inner": ["b", "a"]}})
+def testnormalise_recurses_into_nested_dicts() -> None:
+    result = normalise({"outer": {"inner": ["b", "a"]}})
     assert result == {"outer": {"inner": ["a", "b"]}}
 
 

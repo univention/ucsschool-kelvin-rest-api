@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Any
+from dataclasses import asdict
+from datetime import date
+from typing import Any, cast
 from uuid import UUID
 
+from jsonpatch import JsonPatch  # type: ignore[import-untyped]
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -18,7 +21,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _role_scalar_columns,
     _school_scalar_columns,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_user
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_user, user_from_patch
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
     resolve_user_create_relations,
     to_user_model,
@@ -29,8 +32,11 @@ from ucsschool_objects.core.domain import (
     NotFound,
     SearchQuery,
     SortSpec,
+    UnsupportedOperation,
     User,
+    UserValidator,
 )
+from ucsschool_objects.core.domain.patch import normalise
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -41,6 +47,15 @@ from ucsschool_objects.database_models import (
 )
 
 __all__ = ["SQLAlchemyUserManager"]
+
+
+def _apply_user_patch(model: UserModel, patched: dict[str, object]) -> None:
+    for field in ("record_uid", "source_uid", "name", "firstname", "lastname", "email", "active"):
+        setattr(model, field, patched[field])
+    birthday_val = patched["birthday"]
+    model.birthday = date.fromisoformat(cast(str, birthday_val)) if birthday_val is not None else None
+    exp_val = patched["expiration_date"]
+    model.expiration_date = date.fromisoformat(cast(str, exp_val)) if exp_val is not None else None
 
 
 def _includes_user_memberships(load: LoadSpec) -> bool:
@@ -241,7 +256,33 @@ class SQLAlchemyUserManager(Manager[User]):
         public_id: UUID,
         operations: Sequence[JSONPathOperation],
     ) -> None:
-        raise NotImplementedError("User modify is not implemented yet.")  # pragma: no cover
+        _UNSUPPORTED = {"school_memberships", "legal_wards", "legal_guardians"}
+        for op in operations:
+            top_level = op["path"].lstrip("/").split("/")[0]
+            if top_level in _UNSUPPORTED:
+                raise UnsupportedOperation(f"Modifying {top_level!r} via patch is not supported.")
+
+        stmt = select(UserModel).where(UserModel.public_id == public_id)
+        result = (await self._session.execute(stmt)).scalar_one_or_none()
+        if result is None:
+            raise NotFound(object_type="User", public_id=str(public_id))
+
+        current = cast(
+            dict[str, object],
+            normalise(
+                asdict(
+                    to_user(
+                        result,
+                        include_memberships=False,
+                        include_legal_wards=False,
+                        include_legal_guardians=False,
+                    )
+                )
+            ),
+        )
+        patched = cast(dict[str, object], JsonPatch(list(operations)).apply(current))
+        UserValidator.validate(user_from_patch(patched, result.public_id))
+        _apply_user_patch(result, patched)
 
     async def delete(self, public_id: UUID) -> None:
         raise NotImplementedError("User delete is not implemented yet.")  # pragma: no cover

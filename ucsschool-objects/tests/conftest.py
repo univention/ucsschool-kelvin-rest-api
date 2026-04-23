@@ -289,8 +289,8 @@ def user_data_factory(faker: Any) -> UserDataFactory:
             "email": faker.unique.email(),
             "record_uid": faker.unique.ssn(),
             "source_uid": faker.unique.ssn(),
-            "birthday": faker.date_time(),
-            "expiration_date": faker.date_time(),
+            "birthday": faker.date_object(),
+            "expiration_date": faker.date_object(),
             "active": random.choice([True, False]),  # nosec
         }
 

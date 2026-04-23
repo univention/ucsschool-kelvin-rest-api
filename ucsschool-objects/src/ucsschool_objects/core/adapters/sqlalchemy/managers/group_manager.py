@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from dataclasses import asdict
+from typing import cast
 from uuid import UUID
 
+from jsonpatch import JsonPatch  # type: ignore[import-untyped]
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -16,7 +19,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _role_scalar_columns,
     _school_scalar_columns,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_group
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import group_from_patch, to_group
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
     resolve_group_create_relations,
     to_group_model,
@@ -24,11 +27,15 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain import (
     Group,
+    GroupValidator,
     LoadSpec,
     NotFound,
+    Role,
     SearchQuery,
     SortSpec,
+    UnsupportedOperation,
 )
+from ucsschool_objects.core.domain.patch import normalise
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -39,6 +46,31 @@ from ucsschool_objects.database_models import (
 )
 
 __all__ = ["SQLAlchemyGroupManager"]
+
+
+async def _apply_group_patch(
+    model: GroupModel,
+    patched: dict[str, object],
+    current: dict[str, object],
+    session: AsyncSession,
+) -> None:
+    for field in ("record_uid", "source_uid", "name", "display_name", "email"):
+        setattr(model, field, patched[field])
+    model.has_share = cast(bool, patched["create_share"])
+
+    if patched["member_roles"] != current["member_roles"]:
+        role_ids = [cast(Role, r).public_id for r in cast(list[object], patched["member_roles"])]
+        roles_result = await session.execute(select(RoleModel).where(RoleModel.public_id.in_(role_ids)))
+        model.member_roles = list(roles_result.scalars())
+
+    if patched["group_type"] != current["group_type"]:
+        gt_result = await session.execute(
+            select(GroupTypeModel).where(GroupTypeModel.name == patched["group_type"])
+        )
+        new_gt = gt_result.scalar_one_or_none()
+        if new_gt is None:
+            raise NotFound(object_type="GroupType", public_id=str(patched["group_type"]))
+        model.group_type = new_gt
 
 
 class SQLAlchemyGroupManager(Manager[Group]):
@@ -188,7 +220,31 @@ class SQLAlchemyGroupManager(Manager[Group]):
         public_id: UUID,
         operations: Sequence[JSONPathOperation],
     ) -> None:
-        raise NotImplementedError("Group modify is not implemented yet.")  # pragma: no cover
+        _UNSUPPORTED = {"school", "allowed_email_senders_users", "allowed_email_senders_groups"}
+        for op in operations:
+            top_level = op["path"].lstrip("/").split("/")[0]
+            if top_level in _UNSUPPORTED:
+                raise UnsupportedOperation(f"Modifying {top_level!r} via patch is not supported.")
+
+        stmt = (
+            select(GroupModel)
+            .where(GroupModel.public_id == public_id)
+            .options(
+                selectinload(GroupModel.group_type),
+                selectinload(GroupModel.school),
+                selectinload(GroupModel.member_roles),
+                selectinload(GroupModel.allowed_email_senders_users),
+                selectinload(GroupModel.allowed_email_senders_groups),
+            )
+        )
+        result = (await self._session.execute(stmt)).scalar_one_or_none()
+        if result is None:
+            raise NotFound(object_type="Group", public_id=str(public_id))
+
+        current = cast(dict[str, object], normalise(asdict(to_group(result))))
+        patched = cast(dict[str, object], JsonPatch(list(operations)).apply(current))
+        GroupValidator.validate(group_from_patch(patched, result.public_id))
+        await _apply_group_patch(result, patched, current, self._session)
 
     async def delete(self, public_id: UUID) -> None:
         raise NotImplementedError("Group delete is not implemented yet.")  # pragma: no cover
