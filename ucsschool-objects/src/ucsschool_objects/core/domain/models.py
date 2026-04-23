@@ -72,6 +72,7 @@ class Group:
     allowed_email_senders_groups: set[
         Group
     ] | UnloadedType  # TODO: check that object is not edited directly
+    members: set[User] | UnloadedType  # TODO: check that object is not edited directly
     member_roles: set[Role] | UnloadedType  # TODO: check that object is not edited directly
     school: School | UnloadedType
     public_id: UUID | UnsetType = UNSET
