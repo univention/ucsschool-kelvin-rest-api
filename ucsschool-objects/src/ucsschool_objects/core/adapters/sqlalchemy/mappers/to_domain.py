@@ -100,11 +100,7 @@ def to_school(model: SchoolModel) -> School:
         name=_loaded_value(model, "name", _as_str),
         display_name=_loaded_value(model, "display_name", _as_display_name),
         educational_servers=_loaded_value(model, "educational_servers", _as_set_str),
-        administrative_servers=_loaded_value(
-            model,
-            "administrative_servers",
-            _as_set_str,
-        ),
+        administrative_servers=_loaded_value(model, "administrative_servers", _as_set_str),
         class_share_file_server=_loaded_value(model, "class_share_file_server", _as_optional_str),
         home_share_file_server=_loaded_value(model, "home_share_file_server", _as_optional_str),
     )
@@ -159,14 +155,12 @@ def to_group(model: GroupModel) -> Group:
     )
 
 
-def _to_school_membership(
-    model: SchoolMembershipModel,
-) -> SchoolMembership:
+def _to_school_membership(model: SchoolMembershipModel) -> SchoolMembership:
     return SchoolMembership(
         school=to_school(model.school),
         is_primary=model.is_primary,
-        roles=set(to_role(r) for r in model.roles),
-        groups=set(to_group(group) for group in model.groups),
+        roles={to_role(role) for role in model.roles},
+        groups={to_group(group) for group in model.groups},
     )
 
 
