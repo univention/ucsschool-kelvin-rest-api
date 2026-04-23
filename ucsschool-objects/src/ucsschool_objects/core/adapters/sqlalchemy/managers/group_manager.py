@@ -16,11 +16,11 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _role_scalar_columns,
     _school_scalar_columns,
 )
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_group
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
     resolve_group_create_relations,
     to_group_model,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.mapping import to_group
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain import (
     Group,
