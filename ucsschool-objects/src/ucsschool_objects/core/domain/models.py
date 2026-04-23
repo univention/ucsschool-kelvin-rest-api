@@ -66,9 +66,13 @@ class Group:
     display_name: dict[str, str] | UnloadedType
     create_share: bool | UnloadedType
     group_type: str | UnloadedType
-    allowed_email_senders_users: set[str] | UnloadedType  #TODO: check that object is not edited directly
-    allowed_email_senders_groups: set[str] | UnloadedType  #TODO: check that object is not edited directly
-    member_roles: set[Role] | UnloadedType  #TODO: check that object is not edited directly
+    allowed_email_senders_users: set[
+        str
+    ] | UnloadedType  # TODO: check that object is not edited directly
+    allowed_email_senders_groups: set[
+        str
+    ] | UnloadedType  # TODO: check that object is not edited directly
+    member_roles: set[Role] | UnloadedType  # TODO: check that object is not edited directly
     school: School | UnloadedType
     public_id: UUID | UnsetType = UNSET
     email: str | None | UnloadedType = None
@@ -86,8 +90,8 @@ class Group:
 class SchoolMembership:
     school: School
     is_primary: bool
-    roles: set[Role]  #TODO: check that object is not edited directly
-    groups: set[Group]  #TODO: check that object is not edited directly
+    roles: set[Role]  # TODO: check that object is not edited directly
+    groups: set[Group]  # TODO: check that object is not edited directly
 
     def __hash__(self) -> int:
         return hash((self.school, self.is_primary, self.roles, self.groups))
@@ -116,9 +120,9 @@ class User:
     firstname: str | UnloadedType
     lastname: str | UnloadedType
     active: bool | UnloadedType
-    school_memberships: set[SchoolMembership] | UnloadedType
-    legal_wards: set["User"] | UnloadedType  #TODO: check that object is not edited directly
-    legal_guardians: set["User"] | UnloadedType  #TODO: check that object is not edited directly
+    school_memberships: dict[UUID, SchoolMembership] | UnloadedType
+    legal_wards: set["User"] | UnloadedType  # TODO: check that object is not edited directly
+    legal_guardians: set["User"] | UnloadedType  # TODO: check that object is not edited directly
     public_id: UUID | UnsetType = UNSET
     email: str | None | UnloadedType = None
     birthday: date | None | UnloadedType = None
@@ -136,7 +140,7 @@ class User:
     def primary_school(self) -> School | UnloadedType:
         if isinstance(self.school_memberships, UnloadedType):
             return UNLOADED
-        for membership in self.school_memberships:
+        for membership in self.school_memberships.values():
             if membership.is_primary:
                 return membership.school
         raise ValueError("User has no primary school membership.")
@@ -146,7 +150,7 @@ class User:
         if isinstance(self.school_memberships, UnloadedType):
             return UNLOADED
         result: set[Group] = set()
-        for membership in self.school_memberships:
+        for membership in self.school_memberships.values():
             result.update(membership.groups)
         return result  # TODO: yield?
 
@@ -155,6 +159,6 @@ class User:
         if isinstance(self.school_memberships, UnloadedType):
             return UNLOADED
         result: set[Role] = set()
-        for membership in self.school_memberships:
+        for membership in self.school_memberships.values():
             result.update(membership.roles)
-        return result  #TODO: yield?
+        return result  # TODO: yield?
