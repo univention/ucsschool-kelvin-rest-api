@@ -7,7 +7,8 @@ from typing import Any, cast
 from uuid import UUID
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
-from sqlalchemy import Select, select
+from sqlalchemy import Select, delete, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -285,4 +286,7 @@ class SQLAlchemyUserManager(Manager[User]):
         _apply_user_patch(result, patched)
 
     async def delete(self, public_id: UUID) -> None:
-        raise NotImplementedError("User delete is not implemented yet.")  # pragma: no cover
+        stmt = delete(UserModel).where(UserModel.public_id == public_id)
+        result = cast(CursorResult[Any], await self._session.execute(stmt))
+        if result.rowcount == 0:
+            raise NotFound(object_type="User", public_id=str(public_id))

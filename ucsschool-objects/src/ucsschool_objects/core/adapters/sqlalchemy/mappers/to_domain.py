@@ -5,12 +5,10 @@ from datetime import date, datetime
 from typing import TypeVar, cast, overload
 from uuid import UUID
 
-from sqlalchemy import inspect, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import inspect
 from ucsschool_objects.core.domain import (
     UNLOADED,
     Group,
-    NotFound,
     Role,
     School,
     SchoolMembership,
@@ -19,7 +17,6 @@ from ucsschool_objects.core.domain import (
 )
 from ucsschool_objects.database_models import (
     Group as GroupModel,
-    GroupType as GroupTypeModel,
     Role as RoleModel,
     School as SchoolModel,
     SchoolMembership as SchoolMembershipModel,
@@ -234,54 +231,6 @@ def to_user(
         legal_wards=legal_wards,
         legal_guardians=legal_guardians,
     )
-
-
-def apply_school_patch(model: SchoolModel, patched: dict[str, object]) -> None:
-    for field in (
-        "record_uid",
-        "source_uid",
-        "name",
-        "display_name",
-        "class_share_file_server",
-        "home_share_file_server",
-    ):
-        setattr(model, field, patched[field])
-    model.educational_servers = list(cast(list[str], patched["educational_servers"]))
-    model.administrative_servers = list(cast(list[str], patched["administrative_servers"]))
-
-
-async def apply_group_patch(
-    model: GroupModel,
-    patched: dict[str, object],
-    current: dict[str, object],
-    session: AsyncSession,
-) -> None:
-    for field in ("record_uid", "source_uid", "name", "display_name", "email"):
-        setattr(model, field, patched[field])
-    model.has_share = cast(bool, patched["create_share"])
-
-    if patched["member_roles"] != current["member_roles"]:
-        role_ids = [cast(Role, r).public_id for r in cast(list[object], patched["member_roles"])]
-        roles_result = await session.execute(select(RoleModel).where(RoleModel.public_id.in_(role_ids)))
-        model.member_roles = list(roles_result.scalars())
-
-    if patched["group_type"] != current["group_type"]:
-        gt_result = await session.execute(
-            select(GroupTypeModel).where(GroupTypeModel.name == patched["group_type"])
-        )
-        new_gt = gt_result.scalar_one_or_none()
-        if new_gt is None:
-            raise NotFound(object_type="GroupType", public_id=str(patched["group_type"]))
-        model.group_type = new_gt
-
-
-def apply_user_patch(model: UserModel, patched: dict[str, object]) -> None:
-    for field in ("record_uid", "source_uid", "name", "firstname", "lastname", "email", "active"):
-        setattr(model, field, patched[field])
-    birthday_val = patched["birthday"]
-    model.birthday = date.fromisoformat(cast(str, birthday_val)) if birthday_val is not None else None
-    exp_val = patched["expiration_date"]
-    model.expiration_date = date.fromisoformat(cast(str, exp_val)) if exp_val is not None else None
 
 
 def school_from_patch(patched: dict[str, object], public_id: UUID) -> School:

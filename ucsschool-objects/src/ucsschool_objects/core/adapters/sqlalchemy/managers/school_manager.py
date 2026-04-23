@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict
-from typing import cast
+from typing import Any, cast
 from uuid import UUID
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
@@ -134,4 +135,7 @@ class SQLAlchemySchoolManager(Manager[School]):
         _apply_school_patch(result, patched)
 
     async def delete(self, public_id: UUID) -> None:
-        raise NotImplementedError("School delete is not implemented yet.")  # pragma: no cover
+        stmt = delete(SchoolModel).where(SchoolModel.public_id == public_id)
+        result = cast(CursorResult[Any], await self._session.execute(stmt))
+        if result.rowcount == 0:
+            raise NotFound(object_type="School", public_id=str(public_id))

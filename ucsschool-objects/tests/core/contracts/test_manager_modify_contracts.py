@@ -494,3 +494,71 @@ async def test_user_manager_modify_empty_name_raises_and_does_not_persist(
         await db_session.execute(select(UserModel).where(UserModel.public_id == user.public_id))
     ).scalar_one()
     assert result.name == "valid-user"
+
+
+# ---------------------------------------------------------------------------
+# delete — integration tests (school, group, user)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_school_manager_delete_removes_row(
+    db_session: AsyncSession,
+    school_factory: AsyncSchoolFactory,
+) -> None:
+    school = await school_factory()
+    await SQLAlchemySchoolManager(db_session).delete(school.public_id)
+    result = (
+        await db_session.execute(select(SchoolModel).where(SchoolModel.public_id == school.public_id))
+    ).scalar_one_or_none()
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_school_manager_delete_not_found_raises(
+    db_session: AsyncSession,
+) -> None:
+    with pytest.raises(NotFound):
+        await SQLAlchemySchoolManager(db_session).delete(uuid.uuid4())
+
+
+@pytest.mark.asyncio
+async def test_group_manager_delete_removes_row(
+    db_session: AsyncSession,
+    group_factory: AsyncGroupFactory,
+) -> None:
+    group = await group_factory()
+    await SQLAlchemyGroupManager(db_session).delete(group.public_id)
+    result = (
+        await db_session.execute(select(GroupModel).where(GroupModel.public_id == group.public_id))
+    ).scalar_one_or_none()
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_group_manager_delete_not_found_raises(
+    db_session: AsyncSession,
+) -> None:
+    with pytest.raises(NotFound):
+        await SQLAlchemyGroupManager(db_session).delete(uuid.uuid4())
+
+
+@pytest.mark.asyncio
+async def test_user_manager_delete_removes_row(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+) -> None:
+    user = await user_factory()
+    await SQLAlchemyUserManager(db_session).delete(user.public_id)
+    result = (
+        await db_session.execute(select(UserModel).where(UserModel.public_id == user.public_id))
+    ).scalar_one_or_none()
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_user_manager_delete_not_found_raises(
+    db_session: AsyncSession,
+) -> None:
+    with pytest.raises(NotFound):
+        await SQLAlchemyUserManager(db_session).delete(uuid.uuid4())
