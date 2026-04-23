@@ -53,6 +53,7 @@ def _group(**overrides: Any) -> Group:
         email=None,
         allowed_email_senders_users=UNLOADED,
         allowed_email_senders_groups=UNLOADED,
+        members=UNLOADED,
         member_roles=UNLOADED,
         school=UNLOADED,
     )

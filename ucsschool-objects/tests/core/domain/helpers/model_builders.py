@@ -44,6 +44,7 @@ def school_class(name: str = "class1") -> Group:
         email=None,
         allowed_email_senders_users=UNLOADED,
         allowed_email_senders_groups=UNLOADED,
+        members=UNLOADED,
         member_roles=UNLOADED,
         school=UNLOADED,
     )
@@ -61,6 +62,7 @@ def workgroup(name: str = "wg1") -> Group:
         email=None,
         allowed_email_senders_users=set(),
         allowed_email_senders_groups=set(),
+        members=set(),
         member_roles=UNLOADED,
         school=UNLOADED,
     )
