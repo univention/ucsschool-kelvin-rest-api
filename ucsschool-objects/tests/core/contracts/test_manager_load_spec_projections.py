@@ -55,6 +55,7 @@ GROUP_LOAD_ATTRS = (
     "group_type",
     "allowed_email_senders_users",
     "allowed_email_senders_groups",
+    "members",
     "member_roles",
     "school",
 )
@@ -165,10 +166,12 @@ async def _setup_group_case(
     group_type_factory: GroupTypeFactory,
     user_factory: UserFactory,
     role_factory: RoleFactory,
+    school_membership_factory: SchoolMembershipFactory,
 ) -> tuple[SQLAlchemyGroupManager, UUID, SearchQuery, dict[str, object]]:
     school = await school_factory(name="projection-group-school")
     group_type = await group_type_factory(name="projection-group-type")
     sender_user = await user_factory(name="sender-user")
+    member_user = await user_factory(name="member-user")
     sender_group = await group_factory(name="sender-group", school=school, group_type=group_type)
     member_role = await role_factory(name="projection-member-role")
     group = await group_factory(
@@ -183,11 +186,14 @@ async def _setup_group_case(
         attribute_names=[
             "allowed_email_senders_users",
             "allowed_email_senders_groups",
+            "members",
             "member_roles",
         ],
     )
+    member_membership = await school_membership_factory(user=member_user, school=school, is_primary=True)
     group.allowed_email_senders_users.append(sender_user)
     group.allowed_email_senders_groups.append(sender_group)
+    group.members.append(member_membership)
     group.member_roles.append(member_role)
     await db_session.flush()
     db_session.expunge_all()
@@ -206,6 +212,7 @@ async def _setup_group_case(
             "group_type": "projection-group-type",
             "sender_user": "sender-user",
             "sender_group": "sender-group",
+            "member_user": "member-user",
             "member_role": "projection-member-role",
             "school_name": "projection-group-school",
         },
@@ -315,6 +322,7 @@ async def test_group_manager_load_spec_projection_matrix(
     group_type_factory: GroupTypeFactory,
     role_factory: RoleFactory,
     user_factory: UserFactory,
+    school_membership_factory: SchoolMembershipFactory,
     load_attr: str,
     method_name: Literal["get", "search"],
 ) -> None:
@@ -325,6 +333,7 @@ async def test_group_manager_load_spec_projection_matrix(
         group_type_factory,
         user_factory,
         role_factory,
+        school_membership_factory,
     )
     spec = LoadSpec.from_attributes(load_attr)
     result = await _fetch_loaded_record(manager, public_id, query, spec, method_name)
@@ -344,6 +353,9 @@ async def test_group_manager_load_spec_projection_matrix(
         assert {sender_group.name for sender_group in result.allowed_email_senders_groups} == {
             context["sender_group"]
         }
+    elif load_attr == "members":
+        assert not isinstance(result.members, UnloadedType)
+        assert {member.name for member in result.members} == {context["member_user"]}
     elif load_attr == "member_roles":
         assert not isinstance(result.member_roles, UnloadedType)
         assert {member_role.name for member_role in result.member_roles} == {context["member_role"]}

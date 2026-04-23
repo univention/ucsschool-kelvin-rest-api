@@ -96,6 +96,7 @@ def test_group_equality_by_public_id() -> None:
         email=None,
         allowed_email_senders_users=UNLOADED,
         allowed_email_senders_groups=UNLOADED,
+        members=UNLOADED,
         member_roles=UNLOADED,
         school=UNLOADED,
     )
@@ -110,6 +111,7 @@ def test_group_equality_by_public_id() -> None:
         email=None,
         allowed_email_senders_users=UNLOADED,
         allowed_email_senders_groups=UNLOADED,
+        members=UNLOADED,
         member_roles=UNLOADED,
         school=UNLOADED,
     )
