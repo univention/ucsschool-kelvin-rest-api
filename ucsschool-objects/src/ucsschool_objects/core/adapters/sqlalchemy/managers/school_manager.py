@@ -11,8 +11,8 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _compose_field_map,
     _load_requested_scalar_attributes,
 )
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_school
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import to_school_model
-from ucsschool_objects.core.adapters.sqlalchemy.mapping import to_school
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain import (
     LoadSpec,
