@@ -66,14 +66,10 @@ class Group:
     display_name: dict[str, str] | UnloadedType
     create_share: bool | UnloadedType
     group_type: str | UnloadedType
-    allowed_email_senders_users: set[
-        User
-    ] | UnloadedType  # TODO: check that object is not edited directly
-    allowed_email_senders_groups: set[
-        Group
-    ] | UnloadedType  # TODO: check that object is not edited directly
-    members: set[User] | UnloadedType  # TODO: check that object is not edited directly
-    member_roles: set[Role] | UnloadedType  # TODO: check that object is not edited directly
+    allowed_email_senders_users: set[User] | UnloadedType
+    allowed_email_senders_groups: set[Group] | UnloadedType
+    members: set[User] | UnloadedType
+    member_roles: set[Role] | UnloadedType
     school: School | UnloadedType
     public_id: UUID | UnsetType = UNSET
     email: str | None | UnloadedType = None
@@ -91,8 +87,8 @@ class Group:
 class SchoolMembership:
     school: School
     is_primary: bool
-    roles: set[Role]  # TODO: check that object is not edited directly
-    groups: set[Group]  # TODO: check that object is not edited directly
+    roles: set[Role]
+    groups: set[Group]
 
     def __hash__(self) -> int:
         # Roles/groups are mutable sets on the model, so normalize for hashing.
@@ -123,8 +119,8 @@ class User:
     lastname: str | UnloadedType
     active: bool | UnloadedType
     school_memberships: dict[UUID, SchoolMembership] | UnloadedType
-    legal_wards: set["User"] | UnloadedType  # TODO: check that object is not edited directly
-    legal_guardians: set["User"] | UnloadedType  # TODO: check that object is not edited directly
+    legal_wards: set["User"] | UnloadedType
+    legal_guardians: set["User"] | UnloadedType
     public_id: UUID | UnsetType = UNSET
     email: str | None | UnloadedType = None
     birthday: date | None | UnloadedType = None
