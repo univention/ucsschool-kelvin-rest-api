@@ -10,7 +10,7 @@ from tests.core.domain.helpers.model_builders import (
     user as build_user,
     workgroup as build_workgroup,
 )
-from ucsschool_objects.core.domain import UNLOADED, Group, Role, SchoolMembership, User
+from ucsschool_objects.core.domain import UNLOADED, Group, Role, School, SchoolMembership, User
 
 
 def test_user_is_hashable() -> None:
@@ -73,6 +73,69 @@ def test_user_equality_by_public_id() -> None:
         legal_guardians=UNLOADED,
     )
     assert u1 == u2
+
+
+def test_school_minimal_only_loads_public_id() -> None:
+    public_id = uuid.uuid4()
+
+    school = School.minimal(public_id)
+
+    assert school.public_id == public_id
+    assert isinstance(school.record_uid, type(UNLOADED))
+    assert isinstance(school.source_uid, type(UNLOADED))
+    assert isinstance(school.name, type(UNLOADED))
+    assert isinstance(school.display_name, type(UNLOADED))
+    assert isinstance(school.educational_servers, type(UNLOADED))
+    assert isinstance(school.administrative_servers, type(UNLOADED))
+    assert isinstance(school.class_share_file_server, type(UNLOADED))
+    assert isinstance(school.home_share_file_server, type(UNLOADED))
+
+
+def test_role_minimal_only_loads_public_id() -> None:
+    public_id = uuid.uuid4()
+
+    role = Role.minimal(public_id)
+
+    assert role.public_id == public_id
+    assert isinstance(role.name, type(UNLOADED))
+    assert isinstance(role.display_name, type(UNLOADED))
+
+
+def test_group_minimal_only_loads_public_id() -> None:
+    public_id = uuid.uuid4()
+
+    group = Group.minimal(public_id)
+
+    assert group.public_id == public_id
+    assert isinstance(group.record_uid, type(UNLOADED))
+    assert isinstance(group.source_uid, type(UNLOADED))
+    assert isinstance(group.name, type(UNLOADED))
+    assert isinstance(group.display_name, type(UNLOADED))
+    assert isinstance(group.create_share, type(UNLOADED))
+    assert isinstance(group.group_type, type(UNLOADED))
+    assert isinstance(group.allowed_email_senders_users, type(UNLOADED))
+    assert isinstance(group.allowed_email_senders_groups, type(UNLOADED))
+    assert isinstance(group.members, type(UNLOADED))
+    assert isinstance(group.member_roles, type(UNLOADED))
+    assert isinstance(group.school, type(UNLOADED))
+    assert isinstance(group.email, type(UNLOADED))
+
+
+def test_user_minimal_only_loads_public_id() -> None:
+    public_id = uuid.uuid4()
+
+    user = User.minimal(public_id)
+
+    assert user.public_id == public_id
+    assert isinstance(user.record_uid, type(UNLOADED))
+    assert isinstance(user.source_uid, type(UNLOADED))
+    assert isinstance(user.name, type(UNLOADED))
+    assert isinstance(user.firstname, type(UNLOADED))
+    assert isinstance(user.lastname, type(UNLOADED))
+    assert isinstance(user.active, type(UNLOADED))
+    assert isinstance(user.school_memberships, type(UNLOADED))
+    assert isinstance(user.legal_wards, type(UNLOADED))
+    assert isinstance(user.legal_guardians, type(UNLOADED))
 
 
 def test_role_equality_by_public_id() -> None:

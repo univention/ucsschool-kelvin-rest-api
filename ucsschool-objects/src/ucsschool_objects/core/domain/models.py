@@ -42,6 +42,21 @@ class School:
             return NotImplemented
         return self.public_id == other.public_id
 
+    @classmethod
+    def minimal(cls, public_id: UUID) -> School:
+        unloaded = UnloadedType()
+        return cls(
+            public_id=public_id,
+            record_uid=unloaded,
+            source_uid=unloaded,
+            name=unloaded,
+            display_name=unloaded,
+            educational_servers=unloaded,
+            administrative_servers=unloaded,
+            class_share_file_server=unloaded,
+            home_share_file_server=unloaded,
+        )
+
 
 @dataclass(frozen=True, eq=False)
 class Role:
@@ -56,6 +71,15 @@ class Role:
         if not isinstance(other, Role):
             return NotImplemented
         return self.public_id == other.public_id
+
+    @classmethod
+    def minimal(cls, public_id: UUID) -> Role:
+        unloaded = UnloadedType()
+        return cls(
+            public_id=public_id,
+            name=unloaded,
+            display_name=unloaded,
+        )
 
 
 @dataclass(eq=False)
@@ -81,6 +105,25 @@ class Group:
         if not isinstance(other, Group):
             return NotImplemented
         return self.public_id == other.public_id
+
+    @classmethod
+    def minimal(cls, public_id: UUID) -> Group:
+        unloaded = UnloadedType()
+        return cls(
+            public_id=public_id,
+            record_uid=unloaded,
+            source_uid=unloaded,
+            name=unloaded,
+            display_name=unloaded,
+            create_share=unloaded,
+            group_type=unloaded,
+            allowed_email_senders_users=unloaded,
+            allowed_email_senders_groups=unloaded,
+            members=unloaded,
+            member_roles=unloaded,
+            school=unloaded,
+            email=unloaded,
+        )
 
 
 @dataclass(eq=False)
@@ -137,7 +180,7 @@ class User:
     @classmethod
     def minimal(cls, public_id: UUID) -> User:
         unloaded = UnloadedType()
-        return User(
+        return cls(
             public_id=public_id,
             record_uid=unloaded,
             source_uid=unloaded,

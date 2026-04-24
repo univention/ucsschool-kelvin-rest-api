@@ -156,3 +156,35 @@ async def test_session_scope_rolls_back_on_exception(
         )
 
     assert count == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("prop_name", ["schools", "roles", "groups", "users"])
+async def test_protocol_port_getter(
+    wired_storage_factory: KelvinSqlAlchemySessionFactory,
+    prop_name: str,
+) -> None:
+    async with wired_storage_factory.transaction_scope() as storage:
+        first = getattr(storage, prop_name)
+        second = getattr(storage, prop_name)
+    assert first is second
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("prop_name", ["session", "schools", "roles", "groups", "users"])
+async def test_raises_when_session_not_active(
+    wired_storage_factory: KelvinSqlAlchemySessionFactory,
+    prop_name: str,
+) -> None:
+    storage = wired_storage_factory.transaction_scope()
+    with pytest.raises(RuntimeError, match="Storage session is not active"):
+        getattr(storage, prop_name)
+
+
+@pytest.mark.asyncio
+async def test_require_transaction_raises_when_not_active(
+    wired_storage_factory: KelvinSqlAlchemySessionFactory,
+) -> None:
+    storage = wired_storage_factory.transaction_scope()
+    with pytest.raises(RuntimeError, match="Storage transaction is not active"):
+        storage._require_transaction()
