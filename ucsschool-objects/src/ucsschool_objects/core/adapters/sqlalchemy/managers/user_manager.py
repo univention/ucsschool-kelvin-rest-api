@@ -172,6 +172,20 @@ def _with_user_load_options(stmt: Select[tuple[UserModel]], load: LoadSpec) -> S
     return _with_user_related_load_options(stmt, load)
 
 
+def _classify_patch_operation(parts: list[str]) -> str | None:
+    top = parts[0]
+    depth = len(parts)
+    if top == "school_memberships":
+        if depth >= 3 and parts[2] in ("groups", "roles") and depth <= 4:
+            return top
+        raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
+    if top in ("legal_guardians", "legal_wards"):
+        if depth <= 2:
+            return top
+        raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
+    return None
+
+
 class SQLAlchemyUserManager(Manager[User]):
     _SCALAR_FIELD_MAP: dict[str, FieldColumn] = {
         "record_uid": UserModel.record_uid,
@@ -225,32 +239,16 @@ class SQLAlchemyUserManager(Manager[User]):
     def _check_modify_operations(
         self, operations: Sequence[JSONPathOperation]
     ) -> tuple[bool, bool, bool]:
-        modifies_memberships = False
-        modifies_guardians = False
-        modifies_wards = False
-
+        flags: dict[str, bool] = {
+            "school_memberships": False,
+            "legal_guardians": False,
+            "legal_wards": False,
+        }
         for op in operations:
-            parts = op["path"].lstrip("/").split("/")
-            top = parts[0]
-            depth = len(parts)
-
-            if top == "school_memberships":
-                if depth >= 3 and parts[2] in ("groups", "roles") and depth <= 4:
-                    modifies_memberships = True
-                else:
-                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
-            elif top == "legal_guardians":
-                if depth <= 2:
-                    modifies_guardians = True
-                else:
-                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
-            elif top == "legal_wards":
-                if depth <= 2:
-                    modifies_wards = True
-                else:
-                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
-
-        return modifies_memberships, modifies_guardians, modifies_wards
+            key = _classify_patch_operation(op["path"].lstrip("/").split("/"))
+            if key is not None:
+                flags[key] = True
+        return flags["school_memberships"], flags["legal_guardians"], flags["legal_wards"]
 
     def _modify_query(
         self,
