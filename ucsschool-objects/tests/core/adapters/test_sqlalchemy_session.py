@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncGenerator
+from typing import cast
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import func, make_url, select
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from ucsschool_objects.core.adapters.sqlalchemy.session import (
+    DatabaseSettings,
+    KelvinSqlAlchemySessionFactory,
+    build_engine,
+    build_kelvin_storage_session_factory,
     build_session_factory,
-    session_scope,
-    transaction_scope,
 )
 from ucsschool_objects.database_models import Base, School
 
@@ -32,7 +34,8 @@ def _make_school(name: str) -> School:
 
 @pytest_asyncio.fixture
 async def sqlite_engine() -> AsyncGenerator[AsyncEngine, None]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", poolclass=StaticPool)
+    settings = DatabaseSettings(url=make_url("sqlite+aiosqlite:///:memory:"))
+    engine = build_engine(settings)
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
     yield engine
@@ -41,71 +44,9 @@ async def sqlite_engine() -> AsyncGenerator[AsyncEngine, None]:
     await engine.dispose()
 
 
-@pytest.mark.asyncio
-async def test_transaction_scope_commits_on_success(sqlite_engine: AsyncEngine) -> None:
-    session_factory = build_session_factory(sqlite_engine)
-    school_name = "committed-school"
-
-    async with transaction_scope(sqlite_engine, session_factory) as session:
-        session.add(_make_school(school_name))
-
-    async with session_factory() as session:
-        count = await session.scalar(
-            select(func.count()).select_from(School).where(School.name == school_name)
-        )
-
-    assert count == 1
-
-
-@pytest.mark.asyncio
-async def test_transaction_scope_rolls_back_on_exception(sqlite_engine: AsyncEngine) -> None:
-    session_factory = build_session_factory(sqlite_engine)
-    school_name = "rolled-back-school"
-
-    with pytest.raises(RuntimeError, match="boom"):
-        async with transaction_scope(sqlite_engine, session_factory) as session:
-            session.add(_make_school(school_name))
-            raise RuntimeError("boom")
-
-    async with session_factory() as session:
-        count = await session.scalar(
-            select(func.count()).select_from(School).where(School.name == school_name)
-        )
-
-    assert count == 0
-
-
-@pytest.mark.asyncio
-async def test_session_scope_does_not_commit_implicitly(sqlite_engine: AsyncEngine) -> None:
-    session_factory = build_session_factory(sqlite_engine)
-    school_name = "not-committed-school"
-
-    async with session_scope(sqlite_engine, session_factory) as session:
-        session.add(_make_school(school_name))
-
-    async with session_factory() as session:
-        count = await session.scalar(
-            select(func.count()).select_from(School).where(School.name == school_name)
-        )
-
-    assert count == 0
-
-
-@pytest.mark.asyncio
-async def test_session_scope_allows_explicit_commit(sqlite_engine: AsyncEngine) -> None:
-    session_factory = build_session_factory(sqlite_engine)
-    school_name = "explicitly-committed-school"
-
-    async with session_scope(sqlite_engine, session_factory) as session:
-        session.add(_make_school(school_name))
-        await session.commit()
-
-    async with session_factory() as session:
-        count = await session.scalar(
-            select(func.count()).select_from(School).where(School.name == school_name)
-        )
-
-    assert count == 1
+@pytest.fixture
+def wired_storage_factory(sqlite_engine: AsyncEngine) -> KelvinSqlAlchemySessionFactory:
+    return cast(KelvinSqlAlchemySessionFactory, build_kelvin_storage_session_factory(sqlite_engine))
 
 
 @pytest.mark.asyncio
@@ -115,6 +56,101 @@ async def test_build_session_factory_disables_autoflush(sqlite_engine: AsyncEngi
 
     async with session_factory() as session:
         session.add(_make_school(school_name))
+        count = await session.scalar(
+            select(func.count()).select_from(School).where(School.name == school_name)
+        )
+
+    assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_transaction_scope_commits_on_success(
+    sqlite_engine: AsyncEngine, wired_storage_factory: KelvinSqlAlchemySessionFactory
+) -> None:
+    school_name = "committed-school"
+
+    async with wired_storage_factory.transaction_scope() as storage:
+        storage.session.add(_make_school(school_name))
+
+    session_factory = build_session_factory(sqlite_engine)
+    async with session_factory() as session:
+        count = await session.scalar(
+            select(func.count()).select_from(School).where(School.name == school_name)
+        )
+
+    assert count == 1
+
+
+@pytest.mark.asyncio
+async def test_transaction_scope_rolls_back_on_exception(
+    sqlite_engine: AsyncEngine, wired_storage_factory: KelvinSqlAlchemySessionFactory
+) -> None:
+    school_name = "rolled-back-school"
+
+    with pytest.raises(RuntimeError, match="boom"):
+        async with wired_storage_factory.transaction_scope() as storage:
+            storage.session.add(_make_school(school_name))
+            raise RuntimeError("boom")
+
+    session_factory = build_session_factory(sqlite_engine)
+    async with session_factory() as session:
+        count = await session.scalar(
+            select(func.count()).select_from(School).where(School.name == school_name)
+        )
+
+    assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_session_scope_does_not_commit_implicitly(
+    sqlite_engine: AsyncEngine, wired_storage_factory: KelvinSqlAlchemySessionFactory
+) -> None:
+    school_name = "not-committed-by-session-scope"
+
+    async with wired_storage_factory.session_scope() as storage:
+        storage.session.add(_make_school(school_name))
+
+    session_factory = build_session_factory(sqlite_engine)
+    async with session_factory() as session:
+        count = await session.scalar(
+            select(func.count()).select_from(School).where(School.name == school_name)
+        )
+
+    assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_session_scope_allows_explicit_commit(
+    sqlite_engine: AsyncEngine, wired_storage_factory: KelvinSqlAlchemySessionFactory
+) -> None:
+    school_name = "explicitly-committed-school"
+
+    async with wired_storage_factory.session_scope() as storage:
+        storage.session.add(_make_school(school_name))
+        await storage.session.commit()
+
+    session_factory = build_session_factory(sqlite_engine)
+    async with session_factory() as session:
+        count = await session.scalar(
+            select(func.count()).select_from(School).where(School.name == school_name)
+        )
+
+    assert count == 1
+
+
+@pytest.mark.asyncio
+async def test_session_scope_rolls_back_on_exception(
+    sqlite_engine: AsyncEngine, wired_storage_factory: KelvinSqlAlchemySessionFactory
+) -> None:
+    school_name = "uow-session-rollback"
+
+    with pytest.raises(RuntimeError, match="boom"):
+        async with wired_storage_factory.session_scope() as storage:
+            storage.session.add(_make_school(school_name))
+            raise RuntimeError("boom")
+
+    session_factory = build_session_factory(sqlite_engine)
+    async with session_factory() as session:
         count = await session.scalar(
             select(func.count()).select_from(School).where(School.name == school_name)
         )

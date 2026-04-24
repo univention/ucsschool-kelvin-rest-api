@@ -24,7 +24,11 @@ from .models import (
     UnloadedType,
     User,
 )
-from .ports import Manager
+from .ports import (
+    KelvinStorageSession,
+    KelvinStorageSessionFactory,
+    Manager,
+)
 from .query import (
     And,
     Filter,
@@ -71,6 +75,8 @@ __all__ = [
     "SortSpec",
     "UNLOADED",
     "UNSET",
+    "KelvinStorageSession",
+    "KelvinStorageSessionFactory",
     "UnloadedType",
     "UnsupportedFilterField",
     "UnsupportedFilterOperator",
