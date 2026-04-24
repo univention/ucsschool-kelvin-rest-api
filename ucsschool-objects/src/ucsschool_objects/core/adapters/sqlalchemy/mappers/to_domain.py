@@ -245,8 +245,8 @@ def school_from_patch(patched: dict[str, object], public_id: UUID) -> School:
         display_name=dict(cast(dict[str, str], patched["display_name"])),
         educational_servers=set(cast(list[str], patched["educational_servers"])),
         administrative_servers=set(cast(list[str], patched["administrative_servers"])),
-        class_share_file_server=cast("str | None", patched["class_share_file_server"]),
-        home_share_file_server=cast("str | None", patched["home_share_file_server"]),
+        class_share_file_server=cast(str | None, patched["class_share_file_server"]),
+        home_share_file_server=cast(str | None, patched["home_share_file_server"]),
     )
 
 
@@ -259,7 +259,7 @@ def group_from_patch(patched: dict[str, object], public_id: UUID) -> Group:
         display_name=dict(cast(dict[str, str], patched["display_name"])),
         create_share=cast(bool, patched["create_share"]),
         group_type=cast(str, patched["group_type"]),
-        email=cast("str | None", patched["email"]),
+        email=cast(str | None, patched["email"]),
         school=UNLOADED,
         members=UNLOADED,
         member_roles=UNLOADED,
@@ -278,7 +278,7 @@ def user_from_patch(patched: dict[str, object], public_id: UUID) -> User:
         name=cast(str, patched["name"]),
         firstname=cast(str, patched["firstname"]),
         lastname=cast(str, patched["lastname"]),
-        email=cast("str | None", patched["email"]),
+        email=cast(str | None, patched["email"]),
         active=cast(bool, patched["active"]),
         birthday=date.fromisoformat(cast(str, birthday_val)) if birthday_val is not None else None,
         expiration_date=date.fromisoformat(cast(str, expiration_val))
