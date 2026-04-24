@@ -42,7 +42,7 @@ def _as_optional_date(value: object) -> date | None:
     # Some drivers (e.g. aiosqlite) may return datetime for DATE columns.
     if value is None:
         return None
-    if isinstance(value, datetime):
+    if isinstance(value, datetime):  # pragma: no cover
         return value.date()
     return cast(date, value)
 

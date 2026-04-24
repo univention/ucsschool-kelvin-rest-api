@@ -23,7 +23,10 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyUserManager,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.managers.school_manager import _apply_school_patch
-from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import _apply_user_patch
+from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import (
+    _apply_user_patch,
+    _extract_public_ids,
+)
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
     to_group,
     to_role,
@@ -195,6 +198,18 @@ def test_apply_user_patch_toggles_active_flag() -> None:
     assert model.active is False
 
 
+def test_extract_public_ids_ignores_items_without_public_id() -> None:
+    assert _extract_public_ids([{}]) == set()
+
+
+def test_to_user_returns_none_for_null_birthday() -> None:
+    model = _bare_user()  # birthday=None by default
+    user = to_user(
+        model, include_memberships=False, include_legal_wards=False, include_legal_guardians=False
+    )
+    assert user.birthday is None
+
+
 # ---------------------------------------------------------------------------
 # SQLAlchemySchoolManager.modify — integration tests
 # ---------------------------------------------------------------------------
@@ -324,6 +339,19 @@ async def test_group_manager_modify_group_type(
 
     loaded = await _load_group_full(db_session, group.public_id)
     assert loaded.group_type.name == new_gt.name
+
+
+@pytest.mark.asyncio
+async def test_group_manager_modify_group_type_not_found_raises(
+    db_session: AsyncSession,
+    group_factory: AsyncGroupFactory,
+) -> None:
+    group = await group_factory()
+    with pytest.raises(NotFound):
+        await SQLAlchemyGroupManager(db_session).modify(
+            group.public_id,
+            [{"op": "replace", "path": "/group_type", "value": "nonexistent-type"}],
+        )
 
 
 @pytest.mark.asyncio
@@ -658,6 +686,130 @@ async def test_user_manager_modify_legal_wards_deep_attribute_raises(
             user.public_id,
             [{"op": "replace", "path": "/legal_wards/0/name", "value": "x"}],
         )
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_groups_unchanged_is_noop(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    group_factory: AsyncGroupFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    user = await user_factory()
+    school = await school_factory()
+    group_a = await group_factory()
+    await school_membership_factory(user=user, school=school, groups=[group_a])
+
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": f"/school_memberships/{school.public_id}/groups",
+            "value": [{"public_id": str(group_a.public_id)}],
+        }
+    ]
+    await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
+
+    updated = (
+        await db_session.execute(
+            select(SchoolMembershipModel)
+            .options(selectinload(SchoolMembershipModel.groups))
+            .where(
+                SchoolMembershipModel.user_id == user.id,
+                SchoolMembershipModel.school_id == school.id,
+            )
+        )
+    ).scalar_one()
+    assert {g.public_id for g in updated.groups} == {group_a.public_id}
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_groups_clear(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    group_factory: AsyncGroupFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    user = await user_factory()
+    school = await school_factory()
+    group_a = await group_factory()
+    await school_membership_factory(user=user, school=school, groups=[group_a])
+
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": f"/school_memberships/{school.public_id}/groups",
+            "value": [],
+        }
+    ]
+    await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
+
+    updated = (
+        await db_session.execute(
+            select(SchoolMembershipModel)
+            .options(selectinload(SchoolMembershipModel.groups))
+            .where(
+                SchoolMembershipModel.user_id == user.id,
+                SchoolMembershipModel.school_id == school.id,
+            )
+        )
+    ).scalar_one()
+    assert updated.groups == []
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_legal_guardians_noop(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+) -> None:
+    guardian = await user_factory()
+    user = await user_factory(legal_guardians=[guardian])
+
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": "/legal_guardians",
+            "value": [{"public_id": str(guardian.public_id)}],
+        }
+    ]
+    await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
+
+    updated = (
+        await db_session.execute(
+            select(UserModel)
+            .options(selectinload(UserModel.legal_guardians))
+            .where(UserModel.public_id == user.public_id)
+        )
+    ).scalar_one()
+    assert {g.public_id for g in updated.legal_guardians} == {guardian.public_id}
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_legal_wards_clear(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+) -> None:
+    ward = await user_factory()
+    user = await user_factory(legal_wards=[ward])
+
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": "/legal_wards",
+            "value": [],
+        }
+    ]
+    await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
+
+    updated = (
+        await db_session.execute(
+            select(UserModel)
+            .options(selectinload(UserModel.legal_wards))
+            .where(UserModel.public_id == user.public_id)
+        )
+    ).scalar_one()
+    assert updated.legal_wards == []
 
 
 # ---------------------------------------------------------------------------
