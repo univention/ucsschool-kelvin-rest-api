@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+from collections.abc import Coroutine
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from kelvin_connector.models import (
     EventType,
@@ -40,6 +41,9 @@ class KelvinConnectorEventHandler(UDMEventHandler):
     ) -> None:
         self.synchronization_manager = synchronization_manager
         super().__init__(logger, *args, **kwargs)
+
+    def _run_sync(self, coroutine: Coroutine[Any, Any, None]) -> None:
+        asyncio.run(coroutine)
 
     def _is_school_object_event(self, event: QueryEventObject) -> bool:
         if event["topic"] not in ["users/user", "groups/group", "container/ou"]:
@@ -78,7 +82,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.CREATE,
                 )
-                asyncio.run(self.synchronization_manager.handle_user_event(user_event))
+                self._run_sync(self.synchronization_manager.handle_user_event(user_event))
             case "groups/group":
                 group_event = GroupEvent(
                     timestamp=metadata["ts"],
@@ -87,7 +91,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.CREATE,
                 )
-                asyncio.run(self.synchronization_manager.handle_group_event(group_event))
+                self._run_sync(self.synchronization_manager.handle_group_event(group_event))
             case "container/ou":
                 school_event = SchoolEvent(
                     timestamp=metadata["ts"],
@@ -96,7 +100,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.CREATE,
                 )
-                asyncio.run(self.synchronization_manager.handle_school_event(school_event))
+                self._run_sync(self.synchronization_manager.handle_school_event(school_event))
 
     @override
     def _handle_modify(
