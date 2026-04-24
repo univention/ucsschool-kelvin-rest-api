@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from dataclasses import asdict
 from typing import Any, cast
 from uuid import UUID
 
-from jsonpatch import JsonPatch  # type: ignore[import-untyped]
 from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
+    _apply_patch,
     _compose_field_map,
     _load_requested_scalar_attributes,
 )
@@ -26,7 +25,6 @@ from ucsschool_objects.core.domain import (
     SearchQuery,
     SortSpec,
 )
-from ucsschool_objects.core.domain.patch import normalise
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import School as SchoolModel
 
@@ -129,8 +127,8 @@ class SQLAlchemySchoolManager(Manager[School]):
         if result is None:
             raise NotFound(object_type="School", public_id=str(public_id))
 
-        current = cast(dict[str, object], normalise(asdict(to_school(result))))
-        patched = cast(dict[str, object], JsonPatch(list(operations)).apply(current))
+        current_domain = to_school(result)
+        patched = _apply_patch(operations=operations, current_domain_obj=current_domain)
         SchoolValidator.validate(school_from_patch(patched, result.public_id))
         _apply_school_patch(result, patched)
 

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Any, TypeAlias, TypeVar, cast
+from typing import Any, ClassVar, Protocol, TypeAlias, TypeVar, cast
 from uuid import UUID, uuid4
 
+from jsonpatch import JsonPatch  # type: ignore[import-untyped]
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import load_only
@@ -20,6 +21,8 @@ from ucsschool_objects.core.domain import (
     Or,
     UnloadedType,
 )
+from ucsschool_objects.core.domain.patch import normalise
+from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 from ucsschool_objects.database_models import (
     Base,
     Role as RoleModel,
@@ -36,6 +39,8 @@ __all__ = [
     "_check_value_presence",
     "generate_public_id",
     "_extract_public_ids",
+    "_apply_patch",
+    "DataclassInstance",
 ]
 
 QueryExpr: TypeAlias = Filter | And | Or | Not
@@ -69,6 +74,12 @@ class JoinSpec:
     exposed_fields: frozenset[str] = frozenset()
 
 
+class DataclassInstance(Protocol):
+    """Protocol for types decorated with @dataclass."""
+
+    __dataclass_fields__: ClassVar[dict[str, Any]]
+
+
 def generate_public_id() -> UUID:
     """Generate a new UUID (version 4) for public_id."""
     return uuid4()
@@ -85,6 +96,16 @@ def _extract_public_ids(items: list[object]) -> set[UUID]:
         if raw is not None:
             ids.add(UUID(str(raw)))
     return ids
+
+
+def _apply_patch(
+    *,
+    operations: Sequence[JSONPathOperation],
+    current_domain_obj: DataclassInstance,
+) -> dict[str, object]:
+    """Apply JSON Patch operations to a domain object and return the patched dict."""
+    current_dict = cast(dict[str, object], normalise(asdict(current_domain_obj)))
+    return cast(dict[str, object], JsonPatch(list(operations)).apply(current_dict))
 
 
 async def _fetch_one_by_public_id(
