@@ -6,7 +6,6 @@ from datetime import date
 from typing import Any, cast
 from uuid import UUID
 
-from jsonpatch import JsonPatch  # type: ignore[import-untyped]
 from sqlalchemy import Select, delete, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +15,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
+    _apply_patch,
     _compose_field_map,
     _extract_public_ids,
     _get_exposed_fields,
@@ -243,6 +243,56 @@ class SQLAlchemyUserManager(Manager[User]):
     def __init__(self, session: AsyncSession):
         self._session = session
 
+    def _check_modify_operations(
+        self, operations: Sequence[JSONPathOperation]
+    ) -> tuple[bool, bool, bool]:
+        modifies_memberships = False
+        modifies_guardians = False
+        modifies_wards = False
+
+        for op in operations:
+            parts = op["path"].lstrip("/").split("/")
+            top = parts[0]
+            depth = len(parts)
+
+            if top == "school_memberships":
+                if depth >= 3 and parts[2] in ("groups", "roles") and depth <= 4:
+                    modifies_memberships = True
+                else:
+                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
+            elif top == "legal_guardians":
+                if depth <= 2:
+                    modifies_guardians = True
+                else:
+                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
+            elif top == "legal_wards":
+                if depth <= 2:
+                    modifies_wards = True
+                else:
+                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
+
+        return modifies_memberships, modifies_guardians, modifies_wards
+
+    def _modify_query(
+        self,
+        public_id: UUID,
+        modifies_memberships: bool,
+        modifies_guardians: bool,
+        modifies_wards: bool,
+    ) -> Select[tuple[UserModel]]:
+        stmt = select(UserModel).where(UserModel.public_id == public_id)
+        if modifies_memberships:
+            stmt = stmt.options(
+                selectinload(UserModel.school_memberships).selectinload(SchoolMembership.school),
+                selectinload(UserModel.school_memberships).selectinload(SchoolMembership.groups),
+                selectinload(UserModel.school_memberships).selectinload(SchoolMembership.roles),
+            )
+        if modifies_guardians:
+            stmt = stmt.options(selectinload(UserModel.legal_guardians))
+        if modifies_wards:
+            stmt = stmt.options(selectinload(UserModel.legal_wards))
+        return stmt
+
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> User:
         stmt = select(UserModel).where(UserModel.public_id == public_id)
         if load is not None:
@@ -311,84 +361,47 @@ class SQLAlchemyUserManager(Manager[User]):
         public_id: UUID,
         operations: Sequence[JSONPathOperation],
     ) -> None:
-        modifies_memberships = False
-        modifies_guardians = False
-        modifies_wards = False
+        m_memberships, m_guardians, m_wards = self._check_modify_operations(operations)
 
-        for op in operations:
-            parts = op["path"].lstrip("/").split("/")
-            top = parts[0]
-            depth = len(parts)
-
-            if top == "school_memberships":
-                if depth >= 3 and parts[2] in ("groups", "roles") and depth <= 4:
-                    modifies_memberships = True
-                else:
-                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
-            elif top == "legal_guardians":
-                if depth <= 2:
-                    modifies_guardians = True
-                else:
-                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
-            elif top == "legal_wards":
-                if depth <= 2:
-                    modifies_wards = True
-                else:
-                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
-
-        stmt = select(UserModel).where(UserModel.public_id == public_id)
-        if modifies_memberships:
-            stmt = stmt.options(
-                selectinload(UserModel.school_memberships).selectinload(SchoolMembership.school),
-                selectinload(UserModel.school_memberships).selectinload(SchoolMembership.groups),
-                selectinload(UserModel.school_memberships).selectinload(SchoolMembership.roles),
-            )
-        if modifies_guardians:
-            stmt = stmt.options(selectinload(UserModel.legal_guardians))
-        if modifies_wards:
-            stmt = stmt.options(selectinload(UserModel.legal_wards))
-
+        stmt = self._modify_query(public_id, m_memberships, m_guardians, m_wards)
         result = (await self._session.execute(stmt)).scalar_one_or_none()
         if result is None:
             raise NotFound(object_type="User", public_id=str(public_id))
 
-        current = cast(
-            dict[str, object],
-            normalise(
-                asdict(
-                    to_user(
-                        result,
-                        include_memberships=modifies_memberships,
-                        include_legal_wards=modifies_wards,
-                        include_legal_guardians=modifies_guardians,
-                    )
-                )
-            ),
+        current_domain = to_user(
+            result,
+            include_memberships=m_memberships,
+            include_legal_wards=m_wards,
+            include_legal_guardians=m_guardians,
         )
-        patched = cast(dict[str, object], JsonPatch(list(operations)).apply(current))
+        patched = _apply_patch(operations=operations, current_domain_obj=current_domain)
         UserValidator.validate(user_from_patch(patched, result.public_id))
+
         _apply_user_patch(result, patched)
 
-        if modifies_memberships:
+        if m_memberships:
+            current_dict = cast(dict[str, object], normalise(asdict(current_domain)))
             await _apply_membership_relation_changes(
                 result,
-                cast(dict[str, object], current.get("school_memberships", {})),
+                cast(dict[str, object], current_dict.get("school_memberships", {})),
                 cast(dict[str, object], patched.get("school_memberships", {})),
                 self._session,
             )
-        if modifies_guardians:
+        if m_guardians:
+            current_dict = cast(dict[str, object], normalise(asdict(current_domain)))
             await _apply_legal_relation_changes(
                 result,
                 "legal_guardians",
-                cast(list[object], current.get("legal_guardians", [])),
+                cast(list[object], current_dict.get("legal_guardians", [])),
                 cast(list[object], patched.get("legal_guardians", [])),
                 self._session,
             )
-        if modifies_wards:
+        if m_wards:
+            current_dict = cast(dict[str, object], normalise(asdict(current_domain)))
             await _apply_legal_relation_changes(
                 result,
                 "legal_wards",
-                cast(list[object], current.get("legal_wards", [])),
+                cast(list[object], current_dict.get("legal_wards", [])),
                 cast(list[object], patched.get("legal_wards", [])),
                 self._session,
             )
