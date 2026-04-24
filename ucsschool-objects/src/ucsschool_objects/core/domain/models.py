@@ -150,7 +150,7 @@ class User:
         result: set[Group] = set()
         for membership in self.school_memberships.values():
             result.update(membership.groups)
-        return result  # TODO: yield?
+        return result
 
     @property
     def roles(self) -> set[Role] | UnloadedType:
@@ -159,4 +159,4 @@ class User:
         result: set[Role] = set()
         for membership in self.school_memberships.values():
             result.update(membership.roles)
-        return result  # TODO: yield?
+        return result
