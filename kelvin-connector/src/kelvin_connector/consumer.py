@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+from collections.abc import Coroutine
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from kelvin_connector.models import (
     EventType,
@@ -20,16 +21,8 @@ from provisioning_consumer_lib import AttributeMapping, ConsumerModule, UDMEvent
 from provisioning_consumer_lib.consumer import Metadata, QueryEventObject
 from sqlalchemy.ext.asyncio import create_async_engine
 from typing_extensions import override
-from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemyGroupManager,
-    SQLAlchemyRoleManager,
-    SQLAlchemySchoolManager,
-    SQLAlchemyUserManager,
-)
 from ucsschool_objects.core.adapters.sqlalchemy.session import (
-    build_session_factory,
-    session_scope,
-    transaction_scope,
+    build_kelvin_storage_session_factory,
 )
 
 from .ports import SynchronizationManagerProtocol
@@ -48,6 +41,9 @@ class KelvinConnectorEventHandler(UDMEventHandler):
     ) -> None:
         self.synchronization_manager = synchronization_manager
         super().__init__(logger, *args, **kwargs)
+
+    def _run_sync(self, coroutine: Coroutine[Any, Any, None]) -> None:
+        asyncio.run(coroutine)
 
     def _is_school_object_event(self, event: QueryEventObject) -> bool:
         if event["topic"] not in ["users/user", "groups/group", "container/ou"]:
@@ -86,7 +82,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.CREATE,
                 )
-                asyncio.run(self.synchronization_manager.handle_user_event(user_event))
+                self._run_sync(self.synchronization_manager.handle_user_event(user_event))
             case "groups/group":
                 group_event = GroupEvent(
                     timestamp=metadata["ts"],
@@ -95,7 +91,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.CREATE,
                 )
-                asyncio.run(self.synchronization_manager.handle_group_event(group_event))
+                self._run_sync(self.synchronization_manager.handle_group_event(group_event))
             case "container/ou":
                 school_event = SchoolEvent(
                     timestamp=metadata["ts"],
@@ -104,7 +100,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.CREATE,
                 )
-                asyncio.run(self.synchronization_manager.handle_school_event(school_event))
+                self._run_sync(self.synchronization_manager.handle_school_event(school_event))
 
     @override
     def _handle_modify(
@@ -129,7 +125,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.MODIFY,
                 )
-                self.synchronization_manager.handle_user_event(user_event)
+                self._run_sync(self.synchronization_manager.handle_user_event(user_event))
             case "groups/group":
                 group_event = GroupEvent(
                     timestamp=metadata["ts"],
@@ -138,7 +134,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.MODIFY,
                 )
-                self.synchronization_manager.handle_group_event(group_event)
+                self._run_sync(self.synchronization_manager.handle_group_event(group_event))
             case "container/ou":
                 school_event = SchoolEvent(
                     timestamp=metadata["ts"],
@@ -147,7 +143,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.MODIFY,
                 )
-                self.synchronization_manager.handle_school_event(school_event)
+                self._run_sync(self.synchronization_manager.handle_school_event(school_event))
             case _:
                 object_type = new["objectType"]
                 logger.error(f"Unknown object type {object_type}")
@@ -169,7 +165,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=None,
                     event_type=EventType.DELETE,
                 )
-                self.synchronization_manager.handle_user_event(user_event)
+                self._run_sync(self.synchronization_manager.handle_user_event(user_event))
             case "groups/group":
                 group_event = GroupEvent(
                     timestamp=metadata["ts"],
@@ -178,7 +174,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=None,
                     event_type=EventType.DELETE,
                 )
-                self.synchronization_manager.handle_group_event(group_event)
+                self._run_sync(self.synchronization_manager.handle_group_event(group_event))
             case "container/ou":
                 school_event = SchoolEvent(
                     timestamp=metadata["ts"],
@@ -187,7 +183,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=None,
                     event_type=EventType.DELETE,
                 )
-                self.synchronization_manager.handle_school_event(school_event)
+                self._run_sync(self.synchronization_manager.handle_school_event(school_event))
             case _:
                 object_type = old["objectType"]
                 logger.error(f"Unknown object type {object_type}")
@@ -211,15 +207,8 @@ def main():
 
     engine = create_async_engine(DB_URL)
 
-    synchronization_manager = SynchronizationManager(
-        reader_session_builder=session_scope,
-        writer_session_builder=transaction_scope,
-        session_factory=build_session_factory(engine),
-        user_manager_class=SQLAlchemyUserManager,
-        group_manager_class=SQLAlchemyGroupManager,
-        role_manager_class=SQLAlchemyRoleManager,
-        school_manager_class=SQLAlchemySchoolManager,
-    )
+    storage_factory = build_kelvin_storage_session_factory(engine)
+    synchronization_manager = SynchronizationManager(storage_factory=storage_factory)
 
     CONFIG_DIR = Path("/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/")
 
