@@ -68,6 +68,7 @@ async def _apply_membership_group_changes(
     patched_memberships: dict[str, object],
     session: AsyncSession,
 ) -> None:
+    memberships_by_school = {m.school.public_id: m for m in model.school_memberships}
     for school_uuid_str, patched_m in patched_memberships.items():
         current_m = cast(dict[str, object], current_memberships.get(school_uuid_str, {}))
         current_group_ids = _extract_public_ids(cast(list[object], current_m.get("groups", [])))
@@ -78,11 +79,8 @@ async def _apply_membership_group_changes(
             continue
 
         school_uuid = UUID(school_uuid_str)
-        orm_membership = next(
-            (m for m in model.school_memberships if m.school.public_id == school_uuid),
-            None,
-        )
-        if orm_membership is None:
+        orm_membership = memberships_by_school.get(school_uuid)
+        if orm_membership is None:  # pragma: no cover
             continue
 
         if patched_group_ids:
