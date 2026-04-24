@@ -50,6 +50,72 @@ from ucsschool_objects.database_models import (
 __all__ = ["SQLAlchemyUserManager"]
 
 
+def _extract_public_ids(items: list[object]) -> set[UUID]:
+    ids: set[UUID] = set()
+    for item in items:
+        if isinstance(item, dict):
+            raw = cast(object, item.get("public_id"))
+        else:
+            raw = getattr(item, "public_id", None)
+        if raw is not None:
+            ids.add(UUID(str(raw)))
+    return ids
+
+
+async def _apply_membership_group_changes(
+    model: UserModel,
+    current_memberships: dict[str, object],
+    patched_memberships: dict[str, object],
+    session: AsyncSession,
+) -> None:
+    for school_uuid_str, patched_m in patched_memberships.items():
+        current_m = cast(dict[str, object], current_memberships.get(school_uuid_str, {}))
+        current_group_ids = _extract_public_ids(cast(list[object], current_m.get("groups", [])))
+        patched_group_ids = _extract_public_ids(
+            cast(list[object], cast(dict[str, object], patched_m).get("groups", []))
+        )
+        if current_group_ids == patched_group_ids:
+            continue
+
+        school_uuid = UUID(school_uuid_str)
+        orm_membership = next(
+            (m for m in model.school_memberships if m.school.public_id == school_uuid),
+            None,
+        )
+        if orm_membership is None:
+            continue
+
+        if patched_group_ids:
+            groups_result = await session.execute(
+                select(GroupModel).where(GroupModel.public_id.in_(patched_group_ids))
+            )
+            orm_membership.groups = list(groups_result.scalars())
+        else:
+            orm_membership.groups = []
+
+
+async def _apply_legal_relation_changes(
+    model: UserModel,
+    relation: str,
+    current_list: list[object],
+    patched_list: list[object],
+    session: AsyncSession,
+) -> None:
+    current_ids = _extract_public_ids(current_list)
+    patched_ids = _extract_public_ids(patched_list)
+    if current_ids == patched_ids:
+        return
+
+    if patched_ids:
+        users_result = await session.execute(
+            select(UserModel).where(UserModel.public_id.in_(patched_ids))
+        )
+        new_users = list(users_result.scalars())
+    else:
+        new_users = []
+    setattr(model, relation, new_users)
+
+
 def _apply_user_patch(model: UserModel, patched: dict[str, object]) -> None:
     for field in ("record_uid", "source_uid", "name", "firstname", "lastname", "email", "active"):
         setattr(model, field, patched[field])
@@ -257,13 +323,43 @@ class SQLAlchemyUserManager(Manager[User]):
         public_id: UUID,
         operations: Sequence[JSONPathOperation],
     ) -> None:
-        _UNSUPPORTED = {"school_memberships", "legal_wards", "legal_guardians"}
+        modifies_memberships = False
+        modifies_guardians = False
+        modifies_wards = False
+
         for op in operations:
-            top_level = op["path"].lstrip("/").split("/")[0]
-            if top_level in _UNSUPPORTED:
-                raise UnsupportedOperation(f"Modifying {top_level!r} via patch is not supported.")
+            parts = op["path"].lstrip("/").split("/")
+            top = parts[0]
+            depth = len(parts)
+
+            if top == "school_memberships":
+                if depth >= 3 and parts[2] == "groups" and depth <= 4:
+                    modifies_memberships = True
+                else:
+                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
+            elif top == "legal_guardians":
+                if depth <= 2:
+                    modifies_guardians = True
+                else:
+                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
+            elif top == "legal_wards":
+                if depth <= 2:
+                    modifies_wards = True
+                else:
+                    raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
 
         stmt = select(UserModel).where(UserModel.public_id == public_id)
+        if modifies_memberships:
+            stmt = stmt.options(
+                selectinload(UserModel.school_memberships).selectinload(SchoolMembership.school),
+                selectinload(UserModel.school_memberships).selectinload(SchoolMembership.groups),
+                selectinload(UserModel.school_memberships).selectinload(SchoolMembership.roles),
+            )
+        if modifies_guardians:
+            stmt = stmt.options(selectinload(UserModel.legal_guardians))
+        if modifies_wards:
+            stmt = stmt.options(selectinload(UserModel.legal_wards))
+
         result = (await self._session.execute(stmt)).scalar_one_or_none()
         if result is None:
             raise NotFound(object_type="User", public_id=str(public_id))
@@ -274,9 +370,9 @@ class SQLAlchemyUserManager(Manager[User]):
                 asdict(
                     to_user(
                         result,
-                        include_memberships=False,
-                        include_legal_wards=False,
-                        include_legal_guardians=False,
+                        include_memberships=modifies_memberships,
+                        include_legal_wards=modifies_wards,
+                        include_legal_guardians=modifies_guardians,
                     )
                 )
             ),
@@ -284,6 +380,30 @@ class SQLAlchemyUserManager(Manager[User]):
         patched = cast(dict[str, object], JsonPatch(list(operations)).apply(current))
         UserValidator.validate(user_from_patch(patched, result.public_id))
         _apply_user_patch(result, patched)
+
+        if modifies_memberships:
+            await _apply_membership_group_changes(
+                result,
+                cast(dict[str, object], current.get("school_memberships", {})),
+                cast(dict[str, object], patched.get("school_memberships", {})),
+                self._session,
+            )
+        if modifies_guardians:
+            await _apply_legal_relation_changes(
+                result,
+                "legal_guardians",
+                cast(list[object], current.get("legal_guardians", [])),
+                cast(list[object], patched.get("legal_guardians", [])),
+                self._session,
+            )
+        if modifies_wards:
+            await _apply_legal_relation_changes(
+                result,
+                "legal_wards",
+                cast(list[object], current.get("legal_wards", [])),
+                cast(list[object], patched.get("legal_wards", [])),
+                self._session,
+            )
 
     async def delete(self, public_id: UUID) -> None:
         stmt = delete(UserModel).where(UserModel.public_id == public_id)
