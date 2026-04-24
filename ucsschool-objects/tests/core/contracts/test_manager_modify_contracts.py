@@ -22,11 +22,9 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemySchoolManager,
     SQLAlchemyUserManager,
 )
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import _extract_public_ids
 from ucsschool_objects.core.adapters.sqlalchemy.managers.school_manager import _apply_school_patch
-from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import (
-    _apply_user_patch,
-    _extract_public_ids,
-)
+from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import _apply_user_patch
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
     to_group,
     to_role,
@@ -118,6 +116,7 @@ async def _load_group_full(session: AsyncSession, public_id: UUID) -> GroupModel
             selectinload(GroupModel.group_type),
             selectinload(GroupModel.school),
             selectinload(GroupModel.member_roles),
+            selectinload(GroupModel.members).selectinload(SchoolMembershipModel.user),
             selectinload(GroupModel.allowed_email_senders_users),
             selectinload(GroupModel.allowed_email_senders_groups),
         )
@@ -322,6 +321,177 @@ async def test_group_manager_modify_adds_member_role(
 
 
 @pytest.mark.asyncio
+async def test_group_manager_modify_members(
+    db_session: AsyncSession,
+    group_factory: AsyncGroupFactory,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    school = await school_factory()
+    group = await group_factory(school=school)
+    user = await user_factory()
+    membership = await school_membership_factory(user=user, school=school)
+
+    group_domain = to_group(await _load_group_full(db_session, group.public_id))
+    dst = copy.copy(group_domain)
+    dst.members = {
+        to_user(
+            user, include_memberships=False, include_legal_wards=False, include_legal_guardians=False
+        )
+    }
+    ops = _create_patch(group_domain, dst)
+
+    await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
+
+    loaded = await _load_group_full(db_session, group.public_id)
+    assert any(m.id == membership.id for m in loaded.members)
+
+
+@pytest.mark.asyncio
+async def test_group_manager_modify_allowed_email_senders_users(
+    db_session: AsyncSession,
+    group_factory: AsyncGroupFactory,
+    user_factory: AsyncUserFactory,
+) -> None:
+    group = await group_factory()
+    user = await user_factory()
+
+    group_domain = to_group(await _load_group_full(db_session, group.public_id))
+    dst = copy.copy(group_domain)
+    dst.allowed_email_senders_users = {
+        to_user(
+            user, include_memberships=False, include_legal_wards=False, include_legal_guardians=False
+        )
+    }
+    ops = _create_patch(group_domain, dst)
+
+    await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
+
+    loaded = await _load_group_full(db_session, group.public_id)
+    assert any(u.id == user.id for u in loaded.allowed_email_senders_users)
+
+
+@pytest.mark.asyncio
+async def test_group_manager_modify_allowed_email_senders_groups(
+    db_session: AsyncSession,
+    group_factory: AsyncGroupFactory,
+) -> None:
+    group = await group_factory()
+    sender_group = await group_factory()
+
+    group_domain = to_group(await _load_group_full(db_session, group.public_id))
+    dst = copy.copy(group_domain)
+    dst.allowed_email_senders_groups = {
+        to_group(await _load_group_full(db_session, sender_group.public_id))
+    }
+    ops = _create_patch(group_domain, dst)
+
+    await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
+
+    loaded = await _load_group_full(db_session, group.public_id)
+    assert any(g.id == sender_group.id for g in loaded.allowed_email_senders_groups)
+
+
+@pytest.mark.asyncio
+async def test_group_manager_modify_school(
+    db_session: AsyncSession,
+    group_factory: AsyncGroupFactory,
+    school_factory: AsyncSchoolFactory,
+) -> None:
+    school_a = await school_factory()
+    school_b = await school_factory()
+    group = await group_factory(school=school_a)
+
+    group_domain = to_group(await _load_group_full(db_session, group.public_id))
+    dst = copy.copy(group_domain)
+    dst.school = to_school(school_b)
+    ops = _create_patch(group_domain, dst, replace_fields=frozenset({"school"}))
+
+    await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
+
+    loaded = await _load_group_full(db_session, group.public_id)
+    assert loaded.school.public_id == school_b.public_id
+
+
+@pytest.mark.asyncio
+async def test_group_manager_modify_members_clear(
+    db_session: AsyncSession,
+    group_factory: AsyncGroupFactory,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    school = await school_factory()
+    user = await user_factory()
+    membership = await school_membership_factory(user=user, school=school)
+    group = await group_factory(school=school, members=[membership])
+
+    group_domain = to_group(await _load_group_full(db_session, group.public_id))
+    dst = copy.copy(group_domain)
+    dst.members = set()
+    ops = _create_patch(group_domain, dst)
+
+    await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
+
+    loaded = await _load_group_full(db_session, group.public_id)
+    assert len(loaded.members) == 0
+
+
+@pytest.mark.asyncio
+async def test_group_manager_modify_allowed_email_senders_users_clear(
+    db_session: AsyncSession,
+    group_factory: AsyncGroupFactory,
+    user_factory: AsyncUserFactory,
+) -> None:
+    user = await user_factory()
+    group = await group_factory(allowed_email_senders_users=[user])
+
+    group_domain = to_group(await _load_group_full(db_session, group.public_id))
+    dst = copy.copy(group_domain)
+    dst.allowed_email_senders_users = set()
+    ops = _create_patch(group_domain, dst)
+
+    await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
+
+    loaded = await _load_group_full(db_session, group.public_id)
+    assert len(loaded.allowed_email_senders_users) == 0
+
+
+@pytest.mark.asyncio
+async def test_group_manager_modify_allowed_email_senders_groups_clear(
+    db_session: AsyncSession,
+    group_factory: AsyncGroupFactory,
+) -> None:
+    sender_group = await group_factory()
+    group = await group_factory(allowed_email_senders_groups=[sender_group])
+
+    group_domain = to_group(await _load_group_full(db_session, group.public_id))
+    dst = copy.copy(group_domain)
+    dst.allowed_email_senders_groups = set()
+    ops = _create_patch(group_domain, dst)
+
+    await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
+
+    loaded = await _load_group_full(db_session, group.public_id)
+    assert len(loaded.allowed_email_senders_groups) == 0
+
+
+@pytest.mark.asyncio
+async def test_group_manager_modify_school_null_raises(
+    db_session: AsyncSession,
+    group_factory: AsyncGroupFactory,
+) -> None:
+    group = await group_factory()
+    # Manually craft a patch that sets school to null, bypassing create_patch logic
+    # if necessary, but actually we just want to see if the manager handles it.
+    ops: list[JSONPathOperation] = [{"op": "replace", "path": "/school", "value": None}]
+
+    with pytest.raises(ValueError, match="Group.school must not be null"):
+        await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
+
+
+@pytest.mark.asyncio
 async def test_group_manager_modify_group_type(
     db_session: AsyncSession,
     group_factory: AsyncGroupFactory,
@@ -360,10 +530,19 @@ async def test_group_manager_modify_unsupported_path_raises(
     group_factory: AsyncGroupFactory,
 ) -> None:
     group = await group_factory()
-    with pytest.raises(UnsupportedOperation):
-        await SQLAlchemyGroupManager(db_session).modify(
+    manager = SQLAlchemyGroupManager(db_session)
+    # Deep patch on school object
+    with pytest.raises(UnsupportedOperation, match="via deep patch"):
+        await manager.modify(
             group.public_id,
             [{"op": "replace", "path": "/school/name", "value": "x"}],
+        )
+
+    # Deep patch on collection
+    with pytest.raises(UnsupportedOperation, match="via deep patch"):
+        await manager.modify(
+            group.public_id,
+            [{"op": "replace", "path": "/members/0/name", "value": "x"}],
         )
 
 

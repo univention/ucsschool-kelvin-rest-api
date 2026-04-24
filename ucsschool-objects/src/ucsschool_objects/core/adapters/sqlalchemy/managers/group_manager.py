@@ -15,6 +15,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
     JoinType,
     _compose_field_map,
+    _extract_public_ids,
     _get_exposed_fields,
     _load_requested_scalar_attributes,
     _role_scalar_columns,
@@ -65,6 +66,42 @@ async def _apply_group_patch(
         roles_result = await session.execute(select(RoleModel).where(RoleModel.public_id.in_(role_ids)))
         model.member_roles = list(roles_result.scalars())
 
+    if patched["members"] != current["members"]:
+        member_user_ids = _extract_public_ids(cast(list[object], patched["members"]))
+        if member_user_ids:
+            stmt = (
+                select(SchoolMembershipModel)
+                .join(UserModel)
+                .where(
+                    UserModel.public_id.in_(member_user_ids),
+                    SchoolMembershipModel.school_id == model.school_id,
+                )
+            )
+            members_result = await session.execute(stmt)
+            model.members = list(members_result.scalars())
+        else:
+            model.members = []
+
+    if patched["allowed_email_senders_users"] != current["allowed_email_senders_users"]:
+        user_ids = _extract_public_ids(cast(list[object], patched["allowed_email_senders_users"]))
+        if user_ids:
+            users_result = await session.execute(
+                select(UserModel).where(UserModel.public_id.in_(user_ids))
+            )
+            model.allowed_email_senders_users = list(users_result.scalars())
+        else:
+            model.allowed_email_senders_users = []
+
+    if patched["allowed_email_senders_groups"] != current["allowed_email_senders_groups"]:
+        group_ids = _extract_public_ids(cast(list[object], patched["allowed_email_senders_groups"]))
+        if group_ids:
+            groups_result = await session.execute(
+                select(GroupModel).where(GroupModel.public_id.in_(group_ids))
+            )
+            model.allowed_email_senders_groups = list(groups_result.scalars())
+        else:
+            model.allowed_email_senders_groups = []
+
     if patched["group_type"] != current["group_type"]:
         gt_result = await session.execute(
             select(GroupTypeModel).where(GroupTypeModel.name == patched["group_type"])
@@ -73,6 +110,17 @@ async def _apply_group_patch(
         if new_gt is None:
             raise NotFound(object_type="GroupType", public_id=str(patched["group_type"]))
         model.group_type = new_gt
+
+    if patched["school"] != current["school"]:
+        school_id = _extract_public_ids([patched["school"]])
+        if not school_id:
+            # Domain model says school is mandatory (not | None), so this shouldn't happen
+            # if validation passes.
+            raise ValueError("Group.school must not be null.")
+        new_school = await session.execute(
+            select(SchoolModel).where(SchoolModel.public_id == next(iter(school_id)))
+        )
+        model.school = new_school.scalar_one()
 
 
 class SQLAlchemyGroupManager(Manager[Group]):
@@ -229,11 +277,22 @@ class SQLAlchemyGroupManager(Manager[Group]):
         public_id: UUID,
         operations: Sequence[JSONPathOperation],
     ) -> None:
-        _UNSUPPORTED = {"school", "allowed_email_senders_users", "allowed_email_senders_groups"}
         for op in operations:
-            top_level = op["path"].lstrip("/").split("/")[0]
-            if top_level in _UNSUPPORTED:
-                raise UnsupportedOperation(f"Modifying {top_level!r} via patch is not supported.")
+            parts = op["path"].lstrip("/").split("/")
+            top = parts[0]
+            depth = len(parts)
+
+            if top == "school":
+                if depth > 1:
+                    raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
+            elif top in (
+                "allowed_email_senders_users",
+                "allowed_email_senders_groups",
+                "members",
+                "member_roles",
+            ):
+                if depth > 2:
+                    raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
 
         stmt = (
             select(GroupModel)
@@ -242,6 +301,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
                 selectinload(GroupModel.group_type),
                 selectinload(GroupModel.school),
                 selectinload(GroupModel.member_roles),
+                selectinload(GroupModel.members).selectinload(SchoolMembershipModel.user),
                 selectinload(GroupModel.allowed_email_senders_users),
                 selectinload(GroupModel.allowed_email_senders_groups),
             )

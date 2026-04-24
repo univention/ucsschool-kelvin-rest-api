@@ -35,6 +35,7 @@ __all__ = [
     "FieldColumn",
     "_check_value_presence",
     "generate_public_id",
+    "_extract_public_ids",
 ]
 
 QueryExpr: TypeAlias = Filter | And | Or | Not
@@ -71,6 +72,19 @@ class JoinSpec:
 def generate_public_id() -> UUID:
     """Generate a new UUID (version 4) for public_id."""
     return uuid4()
+
+
+def _extract_public_ids(items: list[object]) -> set[UUID]:
+    """Extract public_id UUIDs from a list of objects or dicts."""
+    ids: set[UUID] = set()
+    for item in items:
+        if isinstance(item, dict):
+            raw = cast(object, item.get("public_id"))
+        else:
+            raw = getattr(item, "public_id", None)
+        if raw is not None:
+            ids.add(UUID(str(raw)))
+    return ids
 
 
 async def _fetch_one_by_public_id(
