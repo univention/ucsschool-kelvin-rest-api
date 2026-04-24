@@ -748,6 +748,42 @@ async def test_user_manager_modify_groups_in_school_membership(
 
 
 @pytest.mark.asyncio
+async def test_user_manager_modify_roles_in_school_membership(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    role_factory: AsyncRoleFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    user = await user_factory()
+    school = await school_factory()
+    role_a = await role_factory()
+    role_b = await role_factory()
+    await school_membership_factory(user=user, school=school, roles=[role_a])
+
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": f"/school_memberships/{school.public_id}/roles",
+            "value": [{"public_id": str(role_b.public_id)}],
+        }
+    ]
+    await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
+
+    updated = (
+        await db_session.execute(
+            select(SchoolMembershipModel)
+            .options(selectinload(SchoolMembershipModel.roles))
+            .where(
+                SchoolMembershipModel.user_id == user.id,
+                SchoolMembershipModel.school_id == school.id,
+            )
+        )
+    ).scalar_one()
+    assert {r.public_id for r in updated.roles} == {role_b.public_id}
+
+
+@pytest.mark.asyncio
 async def test_user_manager_modify_school_membership_group_deep_attribute_raises(
     db_session: AsyncSession,
     user_factory: AsyncUserFactory,
@@ -767,7 +803,26 @@ async def test_user_manager_modify_school_membership_group_deep_attribute_raises
 
 
 @pytest.mark.asyncio
-async def test_user_manager_modify_school_membership_non_groups_path_raises(
+async def test_user_manager_modify_school_membership_role_deep_attribute_raises(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+) -> None:
+    user = await user_factory()
+    with pytest.raises(UnsupportedOperation):
+        await SQLAlchemyUserManager(db_session).modify(
+            user.public_id,
+            [
+                {
+                    "op": "replace",
+                    "path": f"/school_memberships/{uuid.uuid4()}/roles/0/name",
+                    "value": "x",
+                }
+            ],
+        )
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_school_membership_unsupported_field_path_raises(
     db_session: AsyncSession,
     user_factory: AsyncUserFactory,
 ) -> None:
