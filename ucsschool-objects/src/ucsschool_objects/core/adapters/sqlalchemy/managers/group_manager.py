@@ -172,17 +172,19 @@ class SQLAlchemyGroupManager(Manager[Group]):
             top = parts[0]
             depth = len(parts)
 
-            if top == "school":
-                if depth > 1:
-                    raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
-            elif top in (
-                "allowed_email_senders_users",
-                "allowed_email_senders_groups",
-                "members",
-                "member_roles",
+            if top == "school" and depth > 1:
+                raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
+            elif (
+                top
+                in (
+                    "allowed_email_senders_users",
+                    "allowed_email_senders_groups",
+                    "members",
+                    "member_roles",
+                )
+                and depth > 2
             ):
-                if depth > 2:
-                    raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
+                raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
 
     def _modify_query(self, public_id: UUID) -> Select[tuple[GroupModel]]:
         return (
