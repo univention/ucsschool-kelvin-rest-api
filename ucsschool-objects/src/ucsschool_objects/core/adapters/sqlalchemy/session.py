@@ -1,16 +1,37 @@
 import os
-from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncGenerator
+from types import TracebackType
 
 from sqlalchemy import make_url
 from sqlalchemy.engine.url import URL
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    AsyncSessionTransaction,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import StaticPool
+from ucsschool_objects.core.adapters.sqlalchemy.managers import (
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
+)
+from ucsschool_objects.core.domain import (
+    Group,
+    KelvinStorageSession,
+    KelvinStorageSessionFactory,
+    Manager,
+    Role,
+    School,
+    User,
+)
 
 
 @dataclass(frozen=True, slots=True)
-class DatabaseSettings:  # pragma: no cover
+class DatabaseSettings:
     url: URL
     echo: bool = False
     pool_size: int = 10
@@ -42,13 +63,26 @@ def _build_settings() -> DatabaseSettings:  # pragma: no cover
     return DatabaseSettings(url=_get_url())
 
 
-def build_engine(settings: DatabaseSettings) -> AsyncEngine:  # pragma: no cover
+def build_engine(settings: DatabaseSettings) -> AsyncEngine:
     """
     Builds a SQLAlchemy AsyncEngine using the provided settings.
 
     An engine is a shared resource that manages database connections and should typically
     be created once per application.
     """
+    if settings.url.drivername.startswith("sqlite") and settings.url.database == ":memory:":
+        return create_async_engine(
+            settings.url,
+            echo=settings.echo,
+            poolclass=StaticPool,
+        )
+
+    if settings.url.drivername.startswith("sqlite"):
+        return create_async_engine(
+            settings.url,
+            echo=settings.echo,
+        )
+
     return create_async_engine(
         settings.url,
         echo=settings.echo,
@@ -73,45 +107,118 @@ def build_session_factory(
     )
 
 
-@asynccontextmanager
-async def transaction_scope(
-    engine: AsyncEngine, session_factory: async_sessionmaker[AsyncSession]
-) -> AsyncGenerator[AsyncSession, None]:
-    """Async context manager that provides a database session within a transaction.
+def build_kelvin_storage_session_factory(
+    engine: AsyncEngine,
+) -> KelvinStorageSessionFactory:
+    """Build a KelvinStorageSessionFactory from an engine.
 
-    Reads connection settings from environment variables (see _get_url).
-    Commits automatically on clean exit, rolls back on exception.
-
-    Usage::
-
-        engine = build_engine(_build_settings())
-        session_factory = build_session_factory(engine)
-        async with transaction_scope(engine, session_factory) as db_session:
-            result = await db_session.execute(select(User))
+    This is intended for composition roots so FastAPI and CLI callers do not
+    have to construct SQLAlchemy sessions directly.
     """
-    async with session_factory() as db_session:
-        async with db_session.begin():
-            yield db_session
+    session_factory = build_session_factory(engine)
+    return KelvinSqlAlchemySessionFactory(session_factory)
 
 
-@asynccontextmanager
-async def session_scope(
-    engine: AsyncEngine, session_factory: async_sessionmaker[AsyncSession]
-) -> AsyncGenerator[AsyncSession, None]:
-    """Async context manager that provides a database session without an automatic transaction.
+class KelvinSqlAlchemySession(KelvinStorageSession):
+    """Storage session that binds domain managers to a single SQLAlchemy session."""
 
-    Reads connection settings from environment variables (see _get_url).
-    Does not automatically commit or roll back; caller is responsible for transaction management.
+    def __init__(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        *,
+        transactional: bool,
+    ) -> None:
+        self._session_factory = session_factory
+        self._transactional = transactional
+        self._session: AsyncSession | None = None
+        self._transaction: AsyncSessionTransaction | None = None
+        self._schools: SQLAlchemySchoolManager | None = None
+        self._roles: SQLAlchemyRoleManager | None = None
+        self._groups: SQLAlchemyGroupManager | None = None
+        self._users: SQLAlchemyUserManager | None = None
 
-    NOTE Use that session_scope is cheaper than transaction_scope, so it may be preferable for
-         read-only operations or when the caller wants explicit control over transactions.
+    async def __aenter__(self) -> "KelvinSqlAlchemySession":
+        self._session = self._session_factory()
+        if self._transactional:
+            self._transaction = self._session.begin()
+            await self._transaction.__aenter__()
+        return self
 
-    Usage::
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        session = self._require_session()
+        try:
+            if self._transactional:
+                transaction = self._require_transaction()
+                await transaction.__aexit__(exc_type, exc, tb)
+            elif session.in_transaction():
+                # session_scope does not auto-commit on success.
+                await session.rollback()
+        finally:
+            await session.close()
+            self._session = None
+            self._transaction = None
+            self._schools = None
+            self._roles = None
+            self._groups = None
+            self._users = None
 
-        engine = build_engine(_build_settings())
-        session_factory = build_session_factory(engine)
-        async with session_scope(engine, session_factory) as db_session:
-            result = await db_session.execute(select(User))
-    """
-    async with session_factory() as db_session:
-        yield db_session
+    @property
+    def schools(self) -> Manager[School]:
+        if self._schools is None:
+            self._schools = SQLAlchemySchoolManager(self._require_session())
+        return self._schools
+
+    @property
+    def roles(self) -> Manager[Role]:
+        if self._roles is None:
+            self._roles = SQLAlchemyRoleManager(self._require_session())
+        return self._roles
+
+    @property
+    def groups(self) -> Manager[Group]:
+        if self._groups is None:
+            self._groups = SQLAlchemyGroupManager(self._require_session())
+        return self._groups
+
+    @property
+    def users(self) -> Manager[User]:
+        if self._users is None:
+            self._users = SQLAlchemyUserManager(self._require_session())
+        return self._users
+
+    @property
+    def session(self) -> AsyncSession:
+        """Return the active SQLAlchemy session for adapter-level compatibility layers."""
+
+        return self._require_session()
+
+    def _require_session(self) -> AsyncSession:
+        if self._session is None:
+            raise RuntimeError("Storage session is not active. Use 'async with'.")
+        return self._session
+
+    def _require_transaction(self) -> AsyncSessionTransaction:
+        if self._transaction is None:
+            raise RuntimeError("Storage transaction is not active. Use 'async with'.")
+        return self._transaction
+
+
+class KelvinSqlAlchemySessionFactory(KelvinStorageSessionFactory):
+    """Factory that creates SQLAlchemy-backed Kelvin storage sessions."""
+
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+        self._session_factory = session_factory
+
+    def __call__(self) -> KelvinSqlAlchemySession:
+        return self.transaction_scope()
+
+    def transaction_scope(self) -> KelvinSqlAlchemySession:
+        return KelvinSqlAlchemySession(self._session_factory, transactional=True)
+
+    def session_scope(self) -> KelvinSqlAlchemySession:
+        return KelvinSqlAlchemySession(self._session_factory, transactional=False)

@@ -25,6 +25,8 @@ from ucsschool_objects.core.domain import (  # Domain entities; Query DSL; Excep
     InvalidInFilter,
     InvalidLikeFilter,
     InvalidRangeFilter,
+    KelvinStorageSession,
+    KelvinStorageSessionFactory,
     LoadSpec,
     Manager,
     Not,
@@ -81,5 +83,7 @@ __all__ = [
     "UnsupportedOperation",
     "UnsupportedSortField",
     # Ports
+    "KelvinStorageSession",
+    "KelvinStorageSessionFactory",
     "Manager",
 ]
