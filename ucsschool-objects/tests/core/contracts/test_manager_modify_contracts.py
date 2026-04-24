@@ -14,6 +14,7 @@ from tests.test_types import (
     AsyncGroupTypeFactory,
     AsyncRoleFactory,
     AsyncSchoolFactory,
+    AsyncSchoolMembershipFactory,
     AsyncUserFactory,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
@@ -31,9 +32,11 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
 )
 from ucsschool_objects.core.domain import NotFound, UnsupportedOperation
 from ucsschool_objects.core.domain.patch import _create_patch
+from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     School as SchoolModel,
+    SchoolMembership as SchoolMembershipModel,
     User as UserModel,
 )
 
@@ -494,6 +497,167 @@ async def test_user_manager_modify_empty_name_raises_and_does_not_persist(
         await db_session.execute(select(UserModel).where(UserModel.public_id == user.public_id))
     ).scalar_one()
     assert result.name == "valid-user"
+
+
+# ---------------------------------------------------------------------------
+# SQLAlchemyUserManager.modify — group and legal relation tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_groups_in_school_membership(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    group_factory: AsyncGroupFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    user = await user_factory()
+    school = await school_factory()
+    group_a = await group_factory()
+    group_b = await group_factory()
+    await school_membership_factory(user=user, school=school, groups=[group_a])
+
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": f"/school_memberships/{school.public_id}/groups",
+            "value": [{"public_id": str(group_b.public_id)}],
+        }
+    ]
+    await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
+
+    updated = (
+        await db_session.execute(
+            select(SchoolMembershipModel)
+            .options(selectinload(SchoolMembershipModel.groups))
+            .where(
+                SchoolMembershipModel.user_id == user.id,
+                SchoolMembershipModel.school_id == school.id,
+            )
+        )
+    ).scalar_one()
+    assert {g.public_id for g in updated.groups} == {group_b.public_id}
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_school_membership_group_deep_attribute_raises(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+) -> None:
+    user = await user_factory()
+    with pytest.raises(UnsupportedOperation):
+        await SQLAlchemyUserManager(db_session).modify(
+            user.public_id,
+            [
+                {
+                    "op": "replace",
+                    "path": f"/school_memberships/{uuid.uuid4()}/groups/0/name",
+                    "value": "x",
+                }
+            ],
+        )
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_school_membership_non_groups_path_raises(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+) -> None:
+    user = await user_factory()
+    with pytest.raises(UnsupportedOperation):
+        await SQLAlchemyUserManager(db_session).modify(
+            user.public_id,
+            [
+                {
+                    "op": "replace",
+                    "path": f"/school_memberships/{uuid.uuid4()}/is_primary",
+                    "value": True,
+                }
+            ],
+        )
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_legal_guardians(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+) -> None:
+    guardian_a = await user_factory()
+    guardian_b = await user_factory()
+    user = await user_factory(legal_guardians=[guardian_a])
+
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": "/legal_guardians",
+            "value": [{"public_id": str(guardian_b.public_id)}],
+        }
+    ]
+    await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
+
+    updated = (
+        await db_session.execute(
+            select(UserModel)
+            .options(selectinload(UserModel.legal_guardians))
+            .where(UserModel.public_id == user.public_id)
+        )
+    ).scalar_one()
+    assert {g.public_id for g in updated.legal_guardians} == {guardian_b.public_id}
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_legal_guardians_deep_attribute_raises(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+) -> None:
+    user = await user_factory()
+    with pytest.raises(UnsupportedOperation):
+        await SQLAlchemyUserManager(db_session).modify(
+            user.public_id,
+            [{"op": "replace", "path": "/legal_guardians/0/name", "value": "x"}],
+        )
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_legal_wards(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+) -> None:
+    ward_a = await user_factory()
+    ward_b = await user_factory()
+    user = await user_factory(legal_wards=[ward_a])
+
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": "/legal_wards",
+            "value": [{"public_id": str(ward_b.public_id)}],
+        }
+    ]
+    await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
+
+    updated = (
+        await db_session.execute(
+            select(UserModel)
+            .options(selectinload(UserModel.legal_wards))
+            .where(UserModel.public_id == user.public_id)
+        )
+    ).scalar_one()
+    assert {w.public_id for w in updated.legal_wards} == {ward_b.public_id}
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_legal_wards_deep_attribute_raises(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+) -> None:
+    user = await user_factory()
+    with pytest.raises(UnsupportedOperation):
+        await SQLAlchemyUserManager(db_session).modify(
+            user.public_id,
+            [{"op": "replace", "path": "/legal_wards/0/name", "value": "x"}],
+        )
 
 
 # ---------------------------------------------------------------------------
