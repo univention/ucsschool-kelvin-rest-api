@@ -20,16 +20,8 @@ from provisioning_consumer_lib import AttributeMapping, ConsumerModule, UDMEvent
 from provisioning_consumer_lib.consumer import Metadata, QueryEventObject
 from sqlalchemy.ext.asyncio import create_async_engine
 from typing_extensions import override
-from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemyGroupManager,
-    SQLAlchemyRoleManager,
-    SQLAlchemySchoolManager,
-    SQLAlchemyUserManager,
-)
 from ucsschool_objects.core.adapters.sqlalchemy.session import (
-    build_session_factory,
-    session_scope,
-    transaction_scope,
+    build_kelvin_storage_session_factory,
 )
 
 from .ports import SynchronizationManagerProtocol
@@ -211,15 +203,8 @@ def main():
 
     engine = create_async_engine(DB_URL)
 
-    synchronization_manager = SynchronizationManager(
-        reader_session_builder=session_scope,
-        writer_session_builder=transaction_scope,
-        session_factory=build_session_factory(engine),
-        user_manager_class=SQLAlchemyUserManager,
-        group_manager_class=SQLAlchemyGroupManager,
-        role_manager_class=SQLAlchemyRoleManager,
-        school_manager_class=SQLAlchemySchoolManager,
-    )
+    storage_factory = build_kelvin_storage_session_factory(engine)
+    synchronization_manager = SynchronizationManager(storage_factory=storage_factory)
 
     CONFIG_DIR = Path("/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/")
 
