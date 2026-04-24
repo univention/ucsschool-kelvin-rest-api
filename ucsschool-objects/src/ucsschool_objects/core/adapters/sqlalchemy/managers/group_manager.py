@@ -20,6 +20,8 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _load_requested_scalar_attributes,
     _role_scalar_columns,
     _school_scalar_columns,
+    _sync_collection,
+    _sync_scalar_relation,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import group_from_patch, to_group
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
@@ -32,7 +34,6 @@ from ucsschool_objects.core.domain import (
     GroupValidator,
     LoadSpec,
     NotFound,
-    Role,
     SearchQuery,
     SortSpec,
     UnsupportedOperation,
@@ -51,6 +52,44 @@ from ucsschool_objects.database_models import (
 __all__ = ["SQLAlchemyGroupManager"]
 
 
+async def _sync_group_members(
+    session: AsyncSession,
+    model: GroupModel,
+    patched_members: list[object],
+    current_members: list[object],
+) -> None:
+    current_ids = _extract_public_ids(current_members)
+    patched_ids = _extract_public_ids(patched_members)
+    if current_ids == patched_ids:
+        return
+
+    if patched_ids:
+        stmt = (
+            select(SchoolMembershipModel)
+            .join(UserModel)
+            .where(
+                UserModel.public_id.in_(patched_ids),
+                SchoolMembershipModel.school_id == model.school_id,
+            )
+        )
+        members_result = await session.execute(stmt)
+        model.members = list(members_result.scalars())
+    else:
+        model.members = []
+
+
+async def _sync_group_type(
+    session: AsyncSession, model: GroupModel, patched_val: object, current_val: object
+) -> None:
+    if patched_val == current_val:
+        return
+    gt_result = await session.execute(select(GroupTypeModel).where(GroupTypeModel.name == patched_val))
+    new_gt = gt_result.scalar_one_or_none()
+    if new_gt is None:
+        raise NotFound(object_type="GroupType", public_id=str(patched_val))
+    model.group_type = new_gt
+
+
 async def _apply_group_patch(
     model: GroupModel,
     patched: dict[str, object],
@@ -61,66 +100,37 @@ async def _apply_group_patch(
         setattr(model, field, patched[field])
     model.has_share = cast(bool, patched["create_share"])
 
-    if patched["member_roles"] != current["member_roles"]:
-        role_ids = [cast(Role, r).public_id for r in cast(list[object], patched["member_roles"])]
-        roles_result = await session.execute(select(RoleModel).where(RoleModel.public_id.in_(role_ids)))
-        model.member_roles = list(roles_result.scalars())
-
-    if patched["members"] != current["members"]:
-        member_user_ids = _extract_public_ids(cast(list[object], patched["members"]))
-        if member_user_ids:
-            stmt = (
-                select(SchoolMembershipModel)
-                .join(UserModel)
-                .where(
-                    UserModel.public_id.in_(member_user_ids),
-                    SchoolMembershipModel.school_id == model.school_id,
-                )
-            )
-            members_result = await session.execute(stmt)
-            model.members = list(members_result.scalars())
-        else:
-            model.members = []
-
-    if patched["allowed_email_senders_users"] != current["allowed_email_senders_users"]:
-        user_ids = _extract_public_ids(cast(list[object], patched["allowed_email_senders_users"]))
-        if user_ids:
-            users_result = await session.execute(
-                select(UserModel).where(UserModel.public_id.in_(user_ids))
-            )
-            model.allowed_email_senders_users = list(users_result.scalars())
-        else:
-            model.allowed_email_senders_users = []
-
-    if patched["allowed_email_senders_groups"] != current["allowed_email_senders_groups"]:
-        group_ids = _extract_public_ids(cast(list[object], patched["allowed_email_senders_groups"]))
-        if group_ids:
-            groups_result = await session.execute(
-                select(GroupModel).where(GroupModel.public_id.in_(group_ids))
-            )
-            model.allowed_email_senders_groups = list(groups_result.scalars())
-        else:
-            model.allowed_email_senders_groups = []
-
-    if patched["group_type"] != current["group_type"]:
-        gt_result = await session.execute(
-            select(GroupTypeModel).where(GroupTypeModel.name == patched["group_type"])
-        )
-        new_gt = gt_result.scalar_one_or_none()
-        if new_gt is None:
-            raise NotFound(object_type="GroupType", public_id=str(patched["group_type"]))
-        model.group_type = new_gt
-
-    if patched["school"] != current["school"]:
-        school_id = _extract_public_ids([patched["school"]])
-        if not school_id:
-            # Domain model says school is mandatory (not | None), so this shouldn't happen
-            # if validation passes.
-            raise ValueError("Group.school must not be null.")
-        new_school = await session.execute(
-            select(SchoolModel).where(SchoolModel.public_id == next(iter(school_id)))
-        )
-        model.school = new_school.scalar_one()
+    await _sync_collection(
+        session,
+        model,
+        "member_roles",
+        cast(list[object], patched["member_roles"]),
+        cast(list[object], current["member_roles"]),
+        RoleModel,
+    )
+    await _sync_group_members(
+        session, model, cast(list[object], patched["members"]), cast(list[object], current["members"])
+    )
+    await _sync_collection(
+        session,
+        model,
+        "allowed_email_senders_users",
+        cast(list[object], patched["allowed_email_senders_users"]),
+        cast(list[object], current["allowed_email_senders_users"]),
+        UserModel,
+    )
+    await _sync_collection(
+        session,
+        model,
+        "allowed_email_senders_groups",
+        cast(list[object], patched["allowed_email_senders_groups"]),
+        cast(list[object], current["allowed_email_senders_groups"]),
+        GroupModel,
+    )
+    await _sync_group_type(session, model, patched["group_type"], current["group_type"])
+    await _sync_scalar_relation(
+        session, model, "school", patched["school"], current["school"], SchoolModel
+    )
 
 
 class SQLAlchemyGroupManager(Manager[Group]):

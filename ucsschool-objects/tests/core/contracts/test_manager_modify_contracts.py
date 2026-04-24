@@ -22,7 +22,10 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemySchoolManager,
     SQLAlchemyUserManager,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import _extract_public_ids
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _extract_public_ids,
+    _sync_scalar_relation,
+)
 from ucsschool_objects.core.adapters.sqlalchemy.managers.school_manager import _apply_school_patch
 from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import _apply_user_patch
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
@@ -199,6 +202,25 @@ def test_apply_user_patch_toggles_active_flag() -> None:
 
 def test_extract_public_ids_ignores_items_without_public_id() -> None:
     assert _extract_public_ids([{}]) == set()
+
+
+@pytest.mark.asyncio
+async def test_sync_scalar_relation_clears_optional(db_session: AsyncSession) -> None:
+    # We use a dummy object and any model class to test the branch in _shared logic
+    class Dummy:
+        school = "something"
+
+    model = Dummy()
+    await _sync_scalar_relation(
+        db_session,
+        model,
+        "school",
+        patched_val=None,
+        current_val="something",
+        target_model=SchoolModel,
+        mandatory=False,
+    )
+    assert model.school is None
 
 
 def test_to_user_returns_none_for_null_birthday() -> None:

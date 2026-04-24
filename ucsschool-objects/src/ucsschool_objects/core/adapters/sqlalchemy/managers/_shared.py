@@ -41,6 +41,8 @@ __all__ = [
     "_extract_public_ids",
     "_apply_patch",
     "DataclassInstance",
+    "_sync_collection",
+    "_sync_scalar_relation",
 ]
 
 QueryExpr: TypeAlias = Filter | And | Or | Not
@@ -106,6 +108,59 @@ def _apply_patch(
     """Apply JSON Patch operations to a domain object and return the patched dict."""
     current_dict = cast(dict[str, object], normalise(asdict(current_domain_obj)))
     return cast(dict[str, object], JsonPatch(list(operations)).apply(current_dict))
+
+
+async def _sync_collection(
+    session: AsyncSession,
+    model: Any,
+    relation: str,
+    patched_list: list[object],
+    current_list: list[object],
+    target_model: type[TModel],
+) -> None:
+    """Sync a collection relationship based on public_id list comparison."""
+    current_ids = _extract_public_ids(current_list)
+    patched_ids = _extract_public_ids(patched_list)
+    if current_ids == patched_ids:
+        return
+
+    if patched_ids:
+        result = await session.execute(
+            select(target_model).where(getattr(target_model, "public_id").in_(patched_ids))
+        )
+        setattr(model, relation, list(result.scalars()))
+    else:
+        setattr(model, relation, [])
+
+
+async def _sync_scalar_relation(
+    session: AsyncSession,
+    model: Any,
+    relation: str,
+    patched_val: object,
+    current_val: object,
+    target_model: type[TModel],
+    *,
+    mandatory: bool = True,
+) -> None:
+    """Sync a scalar (to-one) relationship based on public_id comparison."""
+    if patched_val == current_val:
+        return
+
+    # To domain objects, relations like 'school' are objects, so we extract its public_id.
+    # We wrap it in a list to reuse our helper.
+    ids = _extract_public_ids([patched_val] if patched_val is not None else [])
+    if not ids:
+        if mandatory:
+            raise ValueError(f"{model.__class__.__name__}.{relation} must not be null.")
+        setattr(model, relation, None)
+        return
+
+    public_id = next(iter(ids))
+    result = await session.execute(
+        select(target_model).where(getattr(target_model, "public_id") == public_id)
+    )
+    setattr(model, relation, result.scalar_one())
 
 
 async def _fetch_one_by_public_id(
