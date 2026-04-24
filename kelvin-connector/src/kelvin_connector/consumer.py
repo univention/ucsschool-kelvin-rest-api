@@ -125,7 +125,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.MODIFY,
                 )
-                self.synchronization_manager.handle_user_event(user_event)
+                self._run_sync(self.synchronization_manager.handle_user_event(user_event))
             case "groups/group":
                 group_event = GroupEvent(
                     timestamp=metadata["ts"],
@@ -134,7 +134,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.MODIFY,
                 )
-                self.synchronization_manager.handle_group_event(group_event)
+                self._run_sync(self.synchronization_manager.handle_group_event(group_event))
             case "container/ou":
                 school_event = SchoolEvent(
                     timestamp=metadata["ts"],
@@ -143,7 +143,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=new,
                     event_type=EventType.MODIFY,
                 )
-                self.synchronization_manager.handle_school_event(school_event)
+                self._run_sync(self.synchronization_manager.handle_school_event(school_event))
             case _:
                 object_type = new["objectType"]
                 logger.error(f"Unknown object type {object_type}")
@@ -165,7 +165,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=None,
                     event_type=EventType.DELETE,
                 )
-                self.synchronization_manager.handle_user_event(user_event)
+                self._run_sync(self.synchronization_manager.handle_user_event(user_event))
             case "groups/group":
                 group_event = GroupEvent(
                     timestamp=metadata["ts"],
@@ -174,7 +174,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=None,
                     event_type=EventType.DELETE,
                 )
-                self.synchronization_manager.handle_group_event(group_event)
+                self._run_sync(self.synchronization_manager.handle_group_event(group_event))
             case "container/ou":
                 school_event = SchoolEvent(
                     timestamp=metadata["ts"],
@@ -183,7 +183,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new=None,
                     event_type=EventType.DELETE,
                 )
-                self.synchronization_manager.handle_school_event(school_event)
+                self._run_sync(self.synchronization_manager.handle_school_event(school_event))
             case _:
                 object_type = old["objectType"]
                 logger.error(f"Unknown object type {object_type}")
