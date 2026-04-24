@@ -63,7 +63,7 @@ def _build_settings() -> DatabaseSettings:  # pragma: no cover
     return DatabaseSettings(url=_get_url())
 
 
-def build_engine(settings: DatabaseSettings) -> AsyncEngine:
+def build_engine(settings: DatabaseSettings) -> AsyncEngine:  # pragma: no cover
     """
     Builds a SQLAlchemy AsyncEngine using the provided settings.
 
@@ -213,9 +213,6 @@ class KelvinSqlAlchemySessionFactory(KelvinStorageSessionFactory):
 
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         self._session_factory = session_factory
-
-    def __call__(self) -> KelvinSqlAlchemySession:
-        return self.transaction_scope()
 
     def transaction_scope(self) -> KelvinSqlAlchemySession:
         return KelvinSqlAlchemySession(self._session_factory, transactional=True)
