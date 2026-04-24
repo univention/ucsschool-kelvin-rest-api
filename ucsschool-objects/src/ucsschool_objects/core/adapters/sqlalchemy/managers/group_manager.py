@@ -166,24 +166,20 @@ class SQLAlchemyGroupManager(Manager[Group]):
     def __init__(self, session: AsyncSession):
         self._session = session
 
+    _MAX_PATCH_DEPTH: dict[str, int] = {
+        "school": 1,
+        "allowed_email_senders_users": 2,
+        "allowed_email_senders_groups": 2,
+        "members": 2,
+        "member_roles": 2,
+    }
+
     def _check_modify_operations(self, operations: Sequence[JSONPathOperation]) -> None:
         for op in operations:
             parts = op["path"].lstrip("/").split("/")
             top = parts[0]
-            depth = len(parts)
-
-            if top == "school" and depth > 1:
-                raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
-            elif (
-                top
-                in (
-                    "allowed_email_senders_users",
-                    "allowed_email_senders_groups",
-                    "members",
-                    "member_roles",
-                )
-                and depth > 2
-            ):
+            max_depth = self._MAX_PATCH_DEPTH.get(top)
+            if max_depth is not None and len(parts) > max_depth:
                 raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
 
     def _modify_query(self, public_id: UUID) -> Select[tuple[GroupModel]]:
