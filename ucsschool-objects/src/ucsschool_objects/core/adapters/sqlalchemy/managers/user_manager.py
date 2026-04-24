@@ -51,7 +51,7 @@ from ucsschool_objects.database_models import (
 __all__ = ["SQLAlchemyUserManager"]
 
 
-async def _apply_membership_group_changes(
+async def _apply_membership_relation_changes(
     model: UserModel,
     current_memberships: dict[str, object],
     patched_memberships: dict[str, object],
@@ -60,25 +60,26 @@ async def _apply_membership_group_changes(
     memberships_by_school = {m.school.public_id: m for m in model.school_memberships}
     for school_uuid_str, patched_m in patched_memberships.items():
         current_m = cast(dict[str, object], current_memberships.get(school_uuid_str, {}))
-        current_group_ids = _extract_public_ids(cast(list[object], current_m.get("groups", [])))
-        patched_group_ids = _extract_public_ids(
-            cast(list[object], cast(dict[str, object], patched_m).get("groups", []))
-        )
-        if current_group_ids == patched_group_ids:
-            continue
-
         school_uuid = UUID(school_uuid_str)
         orm_membership = memberships_by_school.get(school_uuid)
         if orm_membership is None:  # pragma: no cover
             continue
 
-        if patched_group_ids:
-            groups_result = await session.execute(
-                select(GroupModel).where(GroupModel.public_id.in_(patched_group_ids))
+        for relation, model_class in [("groups", GroupModel), ("roles", RoleModel)]:
+            current_ids = _extract_public_ids(cast(list[object], current_m.get(relation, [])))
+            patched_ids = _extract_public_ids(
+                cast(list[object], cast(dict[str, object], patched_m).get(relation, []))
             )
-            orm_membership.groups = list(groups_result.scalars())
-        else:
-            orm_membership.groups = []
+            if current_ids == patched_ids:
+                continue
+
+            if patched_ids:
+                result = await session.execute(
+                    select(model_class).where(getattr(model_class, "public_id").in_(patched_ids))
+                )
+                setattr(orm_membership, relation, list(result.scalars()))
+            else:
+                setattr(orm_membership, relation, [])
 
 
 async def _apply_legal_relation_changes(
@@ -320,7 +321,7 @@ class SQLAlchemyUserManager(Manager[User]):
             depth = len(parts)
 
             if top == "school_memberships":
-                if depth >= 3 and parts[2] == "groups" and depth <= 4:
+                if depth >= 3 and parts[2] in ("groups", "roles") and depth <= 4:
                     modifies_memberships = True
                 else:
                     raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
@@ -369,7 +370,7 @@ class SQLAlchemyUserManager(Manager[User]):
         _apply_user_patch(result, patched)
 
         if modifies_memberships:
-            await _apply_membership_group_changes(
+            await _apply_membership_relation_changes(
                 result,
                 cast(dict[str, object], current.get("school_memberships", {})),
                 cast(dict[str, object], patched.get("school_memberships", {})),
