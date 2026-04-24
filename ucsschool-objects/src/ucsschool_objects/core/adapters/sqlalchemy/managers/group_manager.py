@@ -5,7 +5,6 @@ from dataclasses import asdict
 from typing import Any, cast
 from uuid import UUID
 
-from jsonpatch import JsonPatch  # type: ignore[import-untyped]
 from sqlalchemy import Select, delete, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +13,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
+    _apply_patch,
     _compose_field_map,
     _extract_public_ids,
     _get_exposed_fields,
@@ -156,6 +156,38 @@ class SQLAlchemyGroupManager(Manager[Group]):
     def __init__(self, session: AsyncSession):
         self._session = session
 
+    def _check_modify_operations(self, operations: Sequence[JSONPathOperation]) -> None:
+        for op in operations:
+            parts = op["path"].lstrip("/").split("/")
+            top = parts[0]
+            depth = len(parts)
+
+            if top == "school":
+                if depth > 1:
+                    raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
+            elif top in (
+                "allowed_email_senders_users",
+                "allowed_email_senders_groups",
+                "members",
+                "member_roles",
+            ):
+                if depth > 2:
+                    raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
+
+    def _modify_query(self, public_id: UUID) -> Select[tuple[GroupModel]]:
+        return (
+            select(GroupModel)
+            .where(GroupModel.public_id == public_id)
+            .options(
+                selectinload(GroupModel.group_type),
+                selectinload(GroupModel.school),
+                selectinload(GroupModel.member_roles),
+                selectinload(GroupModel.members).selectinload(SchoolMembershipModel.user),
+                selectinload(GroupModel.allowed_email_senders_users),
+                selectinload(GroupModel.allowed_email_senders_groups),
+            )
+        )
+
     def _base_stmt(self, load: LoadSpec | None) -> Select[tuple[GroupModel]]:
         stmt = select(GroupModel)
         stmt = _load_requested_scalar_attributes(
@@ -277,43 +309,19 @@ class SQLAlchemyGroupManager(Manager[Group]):
         public_id: UUID,
         operations: Sequence[JSONPathOperation],
     ) -> None:
-        for op in operations:
-            parts = op["path"].lstrip("/").split("/")
-            top = parts[0]
-            depth = len(parts)
+        self._check_modify_operations(operations)
 
-            if top == "school":
-                if depth > 1:
-                    raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
-            elif top in (
-                "allowed_email_senders_users",
-                "allowed_email_senders_groups",
-                "members",
-                "member_roles",
-            ):
-                if depth > 2:
-                    raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
-
-        stmt = (
-            select(GroupModel)
-            .where(GroupModel.public_id == public_id)
-            .options(
-                selectinload(GroupModel.group_type),
-                selectinload(GroupModel.school),
-                selectinload(GroupModel.member_roles),
-                selectinload(GroupModel.members).selectinload(SchoolMembershipModel.user),
-                selectinload(GroupModel.allowed_email_senders_users),
-                selectinload(GroupModel.allowed_email_senders_groups),
-            )
-        )
+        stmt = self._modify_query(public_id)
         result = (await self._session.execute(stmt)).scalar_one_or_none()
         if result is None:
             raise NotFound(object_type="Group", public_id=str(public_id))
 
-        current = cast(dict[str, object], normalise(asdict(to_group(result))))
-        patched = cast(dict[str, object], JsonPatch(list(operations)).apply(current))
+        current_domain = to_group(result)
+        patched = _apply_patch(operations=operations, current_domain_obj=current_domain)
         GroupValidator.validate(group_from_patch(patched, result.public_id))
-        await _apply_group_patch(result, patched, current, self._session)
+
+        current_dict = cast(dict[str, object], normalise(asdict(current_domain)))
+        await _apply_group_patch(result, patched, current_dict, self._session)
 
     async def delete(self, public_id: UUID) -> None:
         stmt = delete(GroupModel).where(GroupModel.public_id == public_id)
