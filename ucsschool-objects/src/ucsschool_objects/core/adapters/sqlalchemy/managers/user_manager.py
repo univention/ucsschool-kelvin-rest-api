@@ -22,6 +22,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _load_requested_scalar_attributes,
     _role_scalar_columns,
     _school_scalar_columns,
+    _sync_collection,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_user, user_from_patch
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
@@ -80,28 +81,6 @@ async def _apply_membership_relation_changes(
                 setattr(orm_membership, relation, list(result.scalars()))
             else:
                 setattr(orm_membership, relation, [])
-
-
-async def _apply_legal_relation_changes(
-    model: UserModel,
-    relation: str,
-    current_list: list[object],
-    patched_list: list[object],
-    session: AsyncSession,
-) -> None:
-    current_ids = _extract_public_ids(current_list)
-    patched_ids = _extract_public_ids(patched_list)
-    if current_ids == patched_ids:
-        return
-
-    if patched_ids:
-        users_result = await session.execute(
-            select(UserModel).where(UserModel.public_id.in_(patched_ids))
-        )
-        new_users = list(users_result.scalars())
-    else:
-        new_users = []
-    setattr(model, relation, new_users)
 
 
 def _apply_user_patch(model: UserModel, patched: dict[str, object]) -> None:
@@ -389,21 +368,23 @@ class SQLAlchemyUserManager(Manager[User]):
             )
         if m_guardians:
             current_dict = cast(dict[str, object], normalise(asdict(current_domain)))
-            await _apply_legal_relation_changes(
+            await _sync_collection(
+                self._session,
                 result,
                 "legal_guardians",
-                cast(list[object], current_dict.get("legal_guardians", [])),
                 cast(list[object], patched.get("legal_guardians", [])),
-                self._session,
+                cast(list[object], current_dict.get("legal_guardians", [])),
+                UserModel,
             )
         if m_wards:
             current_dict = cast(dict[str, object], normalise(asdict(current_domain)))
-            await _apply_legal_relation_changes(
+            await _sync_collection(
+                self._session,
                 result,
                 "legal_wards",
-                cast(list[object], current_dict.get("legal_wards", [])),
                 cast(list[object], patched.get("legal_wards", [])),
-                self._session,
+                cast(list[object], current_dict.get("legal_wards", [])),
+                UserModel,
             )
 
     async def delete(self, public_id: UUID) -> None:
