@@ -17,6 +17,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
     JoinType,
     _compose_field_map,
+    _extract_public_ids,
     _get_exposed_fields,
     _load_requested_scalar_attributes,
     _role_scalar_columns,
@@ -48,18 +49,6 @@ from ucsschool_objects.database_models import (
 )
 
 __all__ = ["SQLAlchemyUserManager"]
-
-
-def _extract_public_ids(items: list[object]) -> set[UUID]:
-    ids: set[UUID] = set()
-    for item in items:
-        if isinstance(item, dict):
-            raw = cast(object, item.get("public_id"))
-        else:
-            raw = getattr(item, "public_id", None)
-        if raw is not None:
-            ids.add(UUID(str(raw)))
-    return ids
 
 
 async def _apply_membership_group_changes(
