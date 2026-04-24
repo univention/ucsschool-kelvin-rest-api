@@ -130,23 +130,21 @@ def to_group(model: GroupModel) -> Group:
 
     allowed_email_senders_users: set[User] | UnloadedType = UNLOADED
     if _is_loaded(model, "allowed_email_senders_users"):
-        allowed_email_senders_users = set(
+        allowed_email_senders_users = {
             _to_related_user(user) for user in model.allowed_email_senders_users
-        )
+        }
 
     allowed_email_senders_groups: set[Group] | UnloadedType = UNLOADED
     if _is_loaded(model, "allowed_email_senders_groups"):
-        allowed_email_senders_groups = set(
-            to_group(group) for group in model.allowed_email_senders_groups
-        )
+        allowed_email_senders_groups = {to_group(group) for group in model.allowed_email_senders_groups}
 
     members: set[User] | UnloadedType = UNLOADED
     if _is_loaded(model, "members"):
-        members = set(_to_related_user(membership.user) for membership in model.members)
+        members = {_to_related_user(membership.user) for membership in model.members}
 
     member_roles: set[Role] | UnloadedType = UNLOADED
     if _is_loaded(model, "member_roles"):
-        member_roles = set(to_role(role) for role in model.member_roles)
+        member_roles = {to_role(role) for role in model.member_roles}
 
     return Group(
         public_id=model.public_id,
@@ -193,7 +191,7 @@ def _to_related_user(model: UserModel) -> User:
 
 
 def _optional_user_relation(models: tuple[UserModel, ...] | list[UserModel]) -> set[User]:
-    return set(_to_related_user(model) for model in models)
+    return {_to_related_user(model) for model in models}
 
 
 def to_user(
