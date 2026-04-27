@@ -83,6 +83,11 @@ add_middlewares(app, logger)
 add_exception_handlers(app, logger)
 
 
+@app.get("/health", include_in_schema=False)
+async def health():
+    return {"status": "ok"}
+
+
 @app.post(URL_TOKEN_BASE, response_model=Token)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
