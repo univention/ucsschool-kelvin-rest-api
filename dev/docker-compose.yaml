@@ -21,6 +21,9 @@ services:
   connector:
     image: ucsschool-kelvin-connector:dev
     pull_policy: build
+    depends_on:
+      kelvin:
+        condition: service_healthy
     build:
       context: ..
       dockerfile: docker/Dockerfile
