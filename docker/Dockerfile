@@ -94,6 +94,8 @@ COPY kelvin-api/usr/share/ucs-school-import/configs/kelvin_defaults.json /usr/sh
 
 
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+HEALTHCHECK --interval=5s --timeout=3s --start-period=60s --retries=5 \
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8911/health')" || exit 1
 ENTRYPOINT ["/kelvin/start-kelvin.sh"]
 EXPOSE 8911
 
