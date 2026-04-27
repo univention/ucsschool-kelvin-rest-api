@@ -41,7 +41,7 @@ def get_database_url() -> URL:
         username=env_or_ucr("ucsschool/kelvin/db/username"),
         password=Path(
             os.getenv(
-                "UCSSCHOOL_KELVIN_DB_PASSWORDFILE", "/etc/ucsschool/kelvin/postgresql-kelvin.secret"
+                "UCSSCHOOL_KELVIN_DB_PASSWORD_FILE", "/etc/ucsschool/kelvin/postgresql-kelvin.secret"
             )
         )
         .read_text()
