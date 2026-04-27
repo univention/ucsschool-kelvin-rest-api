@@ -3,8 +3,7 @@ import logging
 import time
 from contextlib import contextmanager
 
-from kelvin_connector.database_models import Base as KelvinConnectorBase
-from sqlalchemy import MetaData, engine_from_config, pool, text
+from sqlalchemy import engine_from_config, pool, text
 from ucsschool_objects.database_models import Base
 
 from alembic import context
@@ -19,14 +18,7 @@ logger = logging.getLogger()
 config = context.config
 
 
-combined_metadata = MetaData()
-
-for base in [Base, KelvinConnectorBase]:
-    for table in base.metadata.tables.values():
-        table.to_metadata(combined_metadata)
-
-
-target_metadata = combined_metadata
+target_metadata = Base.metadata
 
 config.set_main_option("sqlalchemy.url", get_database_url().render_as_string(hide_password=False))
 
@@ -124,7 +116,7 @@ def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
-        target_metadata=combined_metadata,
+        target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -161,7 +153,7 @@ def run_migrations_online() -> None:
                 logger.info("No pending migrations.")
 
             logger.info("Migration log:")
-            context.configure(connection=connection, target_metadata=combined_metadata)
+            context.configure(connection=connection, target_metadata=target_metadata)
 
             with context.begin_transaction():
                 context.run_migrations()
