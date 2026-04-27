@@ -1,7 +1,7 @@
 """add mapping tables
 
 Revision ID: e8b27dd51414
-Revises: cdf3c3e64973
+Revises: f1c5bf519a40
 Create Date: 2026-04-22 09:08:54.262075
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "e8b27dd51414"
-down_revision: Union[str, Sequence[str], None] = "cdf3c3e64973"
+down_revision: Union[str, Sequence[str], None] = "f1c5bf519a40"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
