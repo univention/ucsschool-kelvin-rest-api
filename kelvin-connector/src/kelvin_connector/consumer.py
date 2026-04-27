@@ -19,10 +19,11 @@ from kelvin_connector.sync import SynchronizationManager
 from loguru import logger
 from provisioning_consumer_lib import AttributeMapping, ConsumerModule, UDMEventHandler
 from provisioning_consumer_lib.consumer import Metadata, QueryEventObject
-from sqlalchemy.ext.asyncio import create_async_engine
 from typing_extensions import override
 from ucsschool_objects.core.adapters.sqlalchemy.session import (
+    build_engine,
     build_kelvin_storage_session_factory,
+    build_settings,
 )
 
 from .ports import SynchronizationManagerProtocol
@@ -200,13 +201,13 @@ def main():
         logger.critical("Provisioning API FQDN is missing.")
         sys.exit(1)
 
-    DB_URL = os.environ.get("UCSSCHOOL_KELVIN_DB_URI", None)
-    if not DB_URL:
-        logger.critical("No database URL given.")
+    try:
+        settings = build_settings()
+    except RuntimeError as e:
+        logger.critical(str(e))
         sys.exit(1)
 
-    engine = create_async_engine(DB_URL)
-
+    engine = build_engine(settings)
     storage_factory = build_kelvin_storage_session_factory(engine)
     synchronization_manager = SynchronizationManager(storage_factory=storage_factory)
 

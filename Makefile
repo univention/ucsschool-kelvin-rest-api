@@ -83,8 +83,15 @@ dev-server: build-docker-image ## Start local Kelvin development server
 		exit 1; \
 	fi
 	@set -a && source $(VM_CONF_DIR)/env && set +a && \
+	{ cat appcenter/includes/setup-provisioning-subscription.sh; echo 'setup_provisioning_subscriptions'; } | \
+		ssh $$TARGET "SUBSCRIPTION_NAME='kelvin-connector-dev' FORCE='true' APP_PROVISIONING_CONFIG_FILE='/tmp/kelvin-provisioning_config.json' bash -s" && \
+	scp $$TARGET:/tmp/kelvin-provisioning_config.json $(VM_CONF_DIR)/provisioning_config.json && \
 	trap 'docker compose -f dev/docker-compose.yaml down' EXIT && \
 		docker compose -f dev/docker-compose.yaml up --watch
 
 alembic-migration: .running-dev-server .get-alembic-message ## Creates a new alembic revison from kelvin-dev
 	uv run --env-file .env.alembic alembic revision --autogenerate -m "$(ALEMBIC_MESSAGE)"
+
+setup-provisioning-subscription: .get-target ## Create a provisioning subscription on TARGET (SUBSCRIPTION_NAME=kelvin-connector, FORCE=false)
+	{ cat appcenter/includes/setup-provisioning-subscription.sh; echo 'setup_provisioning_subscriptions'; } | \
+		ssh $(TARGET) "SUBSCRIPTION_NAME='$${SUBSCRIPTION_NAME:-kelvin-connector}' FORCE='$${FORCE:-false}' APP_PROVISIONING_CONFIG_FILE='dev/_vm_config/provisioning_config.json' bash -s"

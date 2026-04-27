@@ -59,7 +59,7 @@ def _get_url() -> URL:  # pragma: no cover
     return sqlalchemy_url
 
 
-def _build_settings() -> DatabaseSettings:  # pragma: no cover
+def build_settings() -> DatabaseSettings:  # pragma: no cover
     return DatabaseSettings(url=_get_url())
 
 

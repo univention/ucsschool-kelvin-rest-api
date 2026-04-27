@@ -148,6 +148,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                         roles = await storage.roles.search(role_search_query)
 
                         # TODO school specific groups
+                        # TODO use dn to id mapping
                         group_search_query = SearchQuery(
                             Or(
                                 clauses=tuple(
@@ -161,10 +162,39 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                         school_memberships[school.public_id] = SchoolMembership(
                             school, groups=set(groups), is_primary=True, roles=set(roles)
                         )
+                    # TODO use dn to id mapping
+                    ward_names = user_event.new["properties"].get("ucsschoolLegalWard", [])
+                    if ward_names:
+                        legal_ward_query = SearchQuery(
+                            Or(
+                                clauses=tuple(
+                                    Filter(field="name", op=Operator.EQ, value=ward)
+                                    for ward in ward_names
+                                )
+                            )
+                        )
+                        legal_wards = set(await storage.users.search(legal_ward_query))
+                    else:
+                        legal_wards = set()
+                    guardian_names = user_event.new["properties"].get("ucsschoolLegalGuardian", [])
+                    if guardian_names:
+                        legal_guardian_query = SearchQuery(
+                            Or(
+                                clauses=tuple(
+                                    Filter(field="name", op=Operator.EQ, value=guardian)
+                                    for guardian in guardian_names
+                                )
+                            )
+                        )
+                        legal_guardians = set(await storage.users.search(legal_guardian_query))
+                    else:
+                        legal_guardians = set()
                     user_keyword_arguments = self.udm_property_mapper.map(user_event.new["properties"])
+                    user_keyword_arguments["school_memberships"] = school_memberships
+                    user_keyword_arguments["legal_wards"] = legal_wards
+                    user_keyword_arguments["legal_guardians"] = legal_guardians
                     user = User(
                         public_id=user_event.new["id"],
-                        school_memberships=school_memberships,
                         **user_keyword_arguments,
                     )
                     await storage.users.create(user)
