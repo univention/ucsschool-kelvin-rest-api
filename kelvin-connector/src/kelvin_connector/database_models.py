@@ -1,11 +1,8 @@
 import uuid
 
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-
-class Base(DeclarativeBase):
-    ...
+from sqlalchemy.orm import Mapped, mapped_column
+from ucsschool_objects.database_models import Base
 
 
 class SchoolDNMapping(Base):
@@ -13,7 +10,7 @@ class SchoolDNMapping(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     public_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("school.id", ondelete="CASCADE"), nullable=False, index=True, unique=True
+        ForeignKey("school.public_id", ondelete="CASCADE"), nullable=False, index=True, unique=True
     )
     dn: Mapped[str] = mapped_column(String(4096), nullable=False, index=True, unique=True)
 
@@ -23,7 +20,7 @@ class GroupDNMapping(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     public_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("group.id", ondelete="CASCADE"), nullable=False, index=True, unique=True
+        ForeignKey("group.public_id", ondelete="CASCADE"), nullable=False, index=True, unique=True
     )
     dn: Mapped[str] = mapped_column(String(4096), nullable=False, index=True, unique=True)
 
@@ -33,6 +30,6 @@ class UserDNMapping(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     public_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True, unique=True
+        ForeignKey("user.public_id", ondelete="CASCADE"), nullable=False, index=True, unique=True
     )
     dn: Mapped[str] = mapped_column(String(4096), nullable=False, index=True, unique=True)

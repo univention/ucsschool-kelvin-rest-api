@@ -24,9 +24,9 @@ def upgrade() -> None:
     op.create_table(
         "school_dn_public_id_mapping",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("public_id", sa.Integer(), nullable=False),
+        sa.Column("public_id", sa.UUID(), nullable=False),
         sa.Column("dn", sa.String(length=4096), nullable=False),
-        sa.ForeignKeyConstraint(["public_id"], ["school.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["public_id"], ["school.public_id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -41,9 +41,9 @@ def upgrade() -> None:
     op.create_table(
         "user_dn_public_id_mapping",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("public_id", sa.Integer(), nullable=False),
+        sa.Column("public_id", sa.UUID(), nullable=False),
         sa.Column("dn", sa.String(length=4096), nullable=False),
-        sa.ForeignKeyConstraint(["public_id"], ["user.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["public_id"], ["user.public_id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -58,9 +58,9 @@ def upgrade() -> None:
     op.create_table(
         "group_dn_public_id_mapping",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("public_id", sa.Integer(), nullable=False),
+        sa.Column("public_id", sa.UUID(), nullable=False),
         sa.Column("dn", sa.String(length=4096), nullable=False),
-        sa.ForeignKeyConstraint(["public_id"], ["group.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["public_id"], ["group.public_id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

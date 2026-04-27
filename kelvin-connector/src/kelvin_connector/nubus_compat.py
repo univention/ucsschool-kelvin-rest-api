@@ -1,11 +1,14 @@
 import uuid
 from enum import StrEnum
-from typing import Iterable, Protocol
+from typing import Iterable, Protocol, TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database_models import GroupDNMapping, SchoolDNMapping, UserDNMapping
+
+if TYPE_CHECKING:  # pragma: no cover
+    from ucsschool_objects.core.domain.ports import KelvinStorageSession
 
 
 class ObjectType(StrEnum):
@@ -33,7 +36,7 @@ class DNIDMapper(Protocol):
 
         If a DN is not known, it is not part of the result.
         """
-        ...
+        ...  # pragma: no cover
 
     async def public_ids_to_dns(
         self, object_type: ObjectType, public_ids: Iterable[uuid.UUID]
@@ -43,7 +46,7 @@ class DNIDMapper(Protocol):
 
         If a `public_id` is not known, it is not part of the result.
         """
-        ...
+        ...  # pragma: no cover
 
     async def set_mapping(self, object_type: ObjectType, dn: str, public_id: uuid.UUID | None) -> None:
         """
@@ -55,7 +58,7 @@ class DNIDMapper(Protocol):
         by that `public_id` is deleted from the database, the mapping is also removed
         automatically.
         """
-        ...
+        ...  # pragma: no cover
 
 
 class SQLAlchemyDNIDMapper(DNIDMapper):
@@ -86,21 +89,18 @@ class SQLAlchemyDNIDMapper(DNIDMapper):
                 select(model.public_id, model.dn).where(model.public_id.in_(public_ids))
             )
         ).all()
-        return {dn: public_id for dn, public_id in result}
+        return {public_id: dn for public_id, dn in result}
 
     async def set_mapping(self, object_type: ObjectType, dn: str, public_id: uuid.UUID | None) -> None:
         model = self.TYPE_TO_MODEL_MAPPING[object_type]
-        async with self._session.begin():
-            existing_mapping = (
-                await self._session.execute(select(model).where(model.dn == dn))
-            ).scalar_one_or_none()
-            if existing_mapping and public_id is None:
-                await self._session.delete(existing_mapping)
-            elif existing_mapping is None and public_id:
-                model(public_id=public_id, dn=dn)
-                self._session.add(model)
-            elif existing_mapping and public_id:
-                existing_mapping.public_id = public_id
-                existing_mapping.dn = dn
-                self._session.add(model)
-            await self._session.commit()
+        existing_mapping = (
+            await self._session.execute(select(model).where(model.dn == dn))
+        ).scalar_one_or_none()
+        if existing_mapping and public_id is None:
+            await self._session.delete(existing_mapping)
+        elif existing_mapping is None and public_id is not None:
+            instance = model(public_id=public_id, dn=dn)
+            self._session.add(instance)
+        elif existing_mapping and public_id is not None:
+            existing_mapping.public_id = public_id
+            existing_mapping.dn = dn

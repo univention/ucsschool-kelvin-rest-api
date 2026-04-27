@@ -1,4 +1,5 @@
-from typing import Any, Callable, final
+import uuid
+from typing import Any, Callable, cast, final
 from uuid import UUID
 
 from kelvin_connector.models import (
@@ -8,6 +9,8 @@ from kelvin_connector.models import (
     UserEvent,
 )
 from kelvin_connector.ports import SynchronizationManagerProtocol
+from loguru import logger
+from ucsschool_objects.core.adapters.sqlalchemy.session import KelvinSqlAlchemySession
 from ucsschool_objects.core.domain import SearchQuery
 from ucsschool_objects.core.domain.models import SchoolMembership, UnsetType, User
 from ucsschool_objects.core.domain.ports import KelvinStorageSessionFactory
@@ -16,6 +19,8 @@ from ucsschool_objects.core.domain.query import (
     Operator,
     Or,
 )
+
+from .nubus_compat import ObjectType, SQLAlchemyDNIDMapper
 
 UDM_USER_PROPERTY_MAPPING = {
     "ucsschoolRecordUID": "record_uid",
@@ -119,6 +124,8 @@ class SynchronizationManager(SynchronizationManagerProtocol):
 
     async def handle_user_event(self, user_event: UserEvent) -> None:
         async with self.storage_factory.transaction_scope() as storage:
+            mapper = SQLAlchemyDNIDMapper(cast(KelvinSqlAlchemySession, storage).session)
+
             match user_event.event_type:
                 case EventType.CREATE:
                     if user_event.new is None:
@@ -135,6 +142,19 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                     )
                     schools = await storage.schools.search(school_search_query)
 
+                    group_dns: list[str] = user_event.new["properties"].get("groups", [])
+                    group_dn_to_id = await mapper.dns_to_public_ids(ObjectType.GROUP, group_dns)
+                    for dn in group_dns:
+                        if dn not in group_dn_to_id:
+                            logger.info(f"Group DN {dn!r} not yet in mapper, skipping")
+                    known_group_ids = [str(uid) for uid in group_dn_to_id.values()]
+                    if known_group_ids:
+                        groups = await storage.groups.search(
+                            SearchQuery(Filter(field="public_id", op=Operator.IN, value=known_group_ids))
+                        )
+                    else:
+                        groups = []
+
                     for school in schools:
                         role_search_query = SearchQuery(
                             Or(
@@ -146,79 +166,101 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                             )
                         )
                         roles = await storage.roles.search(role_search_query)
-
-                        # TODO school specific groups
-                        # TODO use dn to id mapping
-                        group_search_query = SearchQuery(
-                            Or(
-                                clauses=tuple(
-                                    Filter(field="name", op=Operator.EQ, value=group)
-                                    for group in user_event.new["properties"]["groups"]
-                                )
-                            )
-                        )
-                        groups = await storage.groups.search(group_search_query)
                         assert not isinstance(school.public_id, UnsetType)
                         school_memberships[school.public_id] = SchoolMembership(
                             school, groups=set(groups), is_primary=True, roles=set(roles)
                         )
-                    # TODO use dn to id mapping
-                    ward_names = user_event.new["properties"].get("ucsschoolLegalWard", [])
-                    if ward_names:
-                        legal_ward_query = SearchQuery(
-                            Or(
-                                clauses=tuple(
-                                    Filter(field="name", op=Operator.EQ, value=ward)
-                                    for ward in ward_names
+
+                    ward_dns: list[str] = user_event.new["properties"].get("ucsschoolLegalWard", [])
+                    ward_dn_to_id = await mapper.dns_to_public_ids(ObjectType.USER, ward_dns)
+                    for dn in ward_dns:
+                        if dn not in ward_dn_to_id:
+                            logger.info(f"Legal ward DN {dn!r} not yet in mapper, skipping")
+                    known_ward_ids = [str(uid) for uid in ward_dn_to_id.values()]
+                    legal_wards = (
+                        set(
+                            await storage.users.search(
+                                SearchQuery(
+                                    Filter(field="public_id", op=Operator.IN, value=known_ward_ids)
                                 )
                             )
                         )
-                        legal_wards = set(await storage.users.search(legal_ward_query))
-                    else:
-                        legal_wards = set()
-                    guardian_names = user_event.new["properties"].get("ucsschoolLegalGuardian", [])
-                    if guardian_names:
-                        legal_guardian_query = SearchQuery(
-                            Or(
-                                clauses=tuple(
-                                    Filter(field="name", op=Operator.EQ, value=guardian)
-                                    for guardian in guardian_names
+                        if known_ward_ids
+                        else set()
+                    )
+
+                    guardian_dns: list[str] = user_event.new["properties"].get(
+                        "ucsschoolLegalGuardian", []
+                    )
+                    guardian_dn_to_id = await mapper.dns_to_public_ids(ObjectType.USER, guardian_dns)
+                    for dn in guardian_dns:
+                        if dn not in guardian_dn_to_id:
+                            logger.info(f"Legal guardian DN {dn!r} not yet in mapper, skipping")
+                    known_guardian_ids = [str(uid) for uid in guardian_dn_to_id.values()]
+                    legal_guardians = (
+                        set(
+                            await storage.users.search(
+                                SearchQuery(
+                                    Filter(field="public_id", op=Operator.IN, value=known_guardian_ids)
                                 )
                             )
                         )
-                        legal_guardians = set(await storage.users.search(legal_guardian_query))
-                    else:
-                        legal_guardians = set()
+                        if known_guardian_ids
+                        else set()
+                    )
+
                     user_keyword_arguments = self.udm_property_mapper.map(user_event.new["properties"])
                     user_keyword_arguments["school_memberships"] = school_memberships
                     user_keyword_arguments["legal_wards"] = legal_wards
                     user_keyword_arguments["legal_guardians"] = legal_guardians
+                    public_id = uuid.UUID(user_event.new["properties"]["univentionObjectIdentifier"])
                     user = User(
-                        public_id=user_event.new["id"],
+                        public_id=public_id,
                         **user_keyword_arguments,
                     )
                     await storage.users.create(user)
+                    await mapper.set_mapping(ObjectType.USER, user_event.new["dn"], public_id)
+
                 case EventType.DELETE:
                     if user_event.old is None:
                         return
-                    await storage.users.delete(user_event.old["id"])
+                    await storage.users.delete(
+                        uuid.UUID(user_event.old["properties"]["univentionObjectIdentifier"])
+                    )
+
                 case EventType.MODIFY:
                     pass
 
     async def handle_group_event(self, group_event: GroupEvent) -> None:
-        match group_event.event_type:
-            case EventType.CREATE:
-                pass
-            case EventType.DELETE:
-                pass
-            case EventType.MODIFY:
-                pass
+        async with self.storage_factory.transaction_scope() as storage:
+            mapper = SQLAlchemyDNIDMapper(cast(KelvinSqlAlchemySession, storage).session)
+
+            match group_event.event_type:
+                case EventType.CREATE:
+                    if group_event.new is None:
+                        return
+                    # TODO: create group in storage, then write mapping:
+                    # await mapper.set_mapping(
+                    #     ObjectType.GROUP, group_event.new["dn"], group_event.new["id"]
+                    # )
+                case EventType.DELETE:
+                    pass
+                case EventType.MODIFY:
+                    pass
 
     async def handle_school_event(self, school_event: SchoolEvent) -> None:
-        match school_event.event_type:
-            case EventType.CREATE:
-                pass
-            case EventType.DELETE:
-                pass
-            case EventType.MODIFY:
-                pass
+        async with self.storage_factory.transaction_scope() as storage:
+            mapper = SQLAlchemyDNIDMapper(cast(KelvinSqlAlchemySession, storage).session)
+
+            match school_event.event_type:
+                case EventType.CREATE:
+                    if school_event.new is None:
+                        return
+                    # TODO: create school in storage, then write mapping:
+                    # await mapper.set_mapping(
+                    #     ObjectType.SCHOOL, school_event.new["dn"], school_event.new["id"]
+                    # )
+                case EventType.DELETE:
+                    pass
+                case EventType.MODIFY:
+                    pass
