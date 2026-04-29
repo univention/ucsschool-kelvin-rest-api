@@ -42,7 +42,6 @@ from ucsschool_objects.core.domain.patch import normalise
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import (
     Group as GroupModel,
-    GroupType as GroupTypeModel,
     Role as RoleModel,
     School as SchoolModel,
     SchoolMembership as SchoolMembershipModel,
@@ -76,18 +75,6 @@ async def _sync_group_members(
         model.members = list(members_result.scalars())
     else:
         model.members = []
-
-
-async def _sync_group_type(
-    session: AsyncSession, model: GroupModel, patched_val: object, current_val: object
-) -> None:
-    if patched_val == current_val:
-        return
-    gt_result = await session.execute(select(GroupTypeModel).where(GroupTypeModel.name == patched_val))
-    new_gt = gt_result.scalar_one_or_none()
-    if new_gt is None:
-        raise NotFound(object_type="GroupType", public_id=str(patched_val))
-    model.group_type = new_gt
 
 
 async def _apply_group_patch(
@@ -127,7 +114,14 @@ async def _apply_group_patch(
         cast(list[object], current["allowed_email_senders_groups"]),
         GroupModel,
     )
-    await _sync_group_type(session, model, patched["group_type"], current["group_type"])
+    await _sync_collection(
+        session,
+        model,
+        "group_type",
+        cast(list[object], patched["group_type"]),
+        cast(list[object], current["group_type"]),
+        RoleModel,
+    )
     await _sync_scalar_relation(
         session, model, "school", patched["school"], current["school"], SchoolModel
     )
@@ -187,7 +181,9 @@ class SQLAlchemyGroupManager(Manager[Group]):
             select(GroupModel)
             .where(GroupModel.public_id == public_id)
             .options(
-                selectinload(GroupModel.group_type),
+                selectinload(GroupModel.group_type).load_only(
+                    RoleModel.public_id, *_role_scalar_columns()
+                ),
                 selectinload(GroupModel.school),
                 selectinload(GroupModel.member_roles),
                 selectinload(GroupModel.members).selectinload(SchoolMembershipModel.user),
@@ -205,7 +201,11 @@ class SQLAlchemyGroupManager(Manager[Group]):
             self._LOAD_ATTRIBUTE_MAP,
         )
         if load is not None and load.includes("group_type"):
-            stmt = stmt.options(selectinload(GroupModel.group_type).load_only(GroupTypeModel.name))
+            stmt = stmt.options(
+                selectinload(GroupModel.group_type).load_only(
+                    RoleModel.public_id, *_role_scalar_columns()
+                )
+            )
         if load is not None and load.includes("allowed_email_senders_users"):
             stmt = stmt.options(
                 selectinload(GroupModel.allowed_email_senders_users).load_only(

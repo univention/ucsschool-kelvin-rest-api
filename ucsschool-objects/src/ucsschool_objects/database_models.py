@@ -78,8 +78,8 @@ class School(Base):
         },
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    display_name: Mapped[dict[str, str]] = mapped_column(
-        JSON, nullable=False, default=dict, info={"udm_attr": "displayName"}
+    display_name: Mapped[str] = mapped_column(
+        String(255), nullable=False, default="", info={"udm_attr": "displayName"}
     )
     educational_servers: Mapped[list[str]] = mapped_column(JSON(), nullable=False, default=list)
     administrative_servers: Mapped[list[str]] = mapped_column(JSON(), nullable=False, default=list)
@@ -126,18 +126,17 @@ class Group(Base):
     name: Mapped[str] = mapped_column(
         String(255), nullable=False, unique=True, info={"udm_attr": "name"}
     )
-    display_name: Mapped[dict[str, str]] = mapped_column(
-        JSON, nullable=False, default=dict, info={"udm_attr": "displayName"}
+    display_name: Mapped[str] = mapped_column(
+        String(255), nullable=False, default="", info={"udm_attr": "displayName"}
     )
     has_share: Mapped[bool] = mapped_column(BOOLEAN, nullable=False, default=False)
     email: Mapped[str | None] = mapped_column(
         String(255), nullable=True, unique=True, info={"udm_attr": "mailAddress"}
     )
 
-    group_type_id: Mapped[int] = mapped_column(
-        ForeignKey("group_type.id", ondelete="NO ACTION"), nullable=False
+    group_type: Mapped[list["Role"]] = relationship(
+        "Role", secondary="group_type_role_association", lazy="raise"
     )
-    group_type: Mapped["GroupType"] = relationship("GroupType", lazy="selectin")
 
     school_id: Mapped[int] = mapped_column(ForeignKey("school.id", ondelete="NO ACTION"), nullable=False)
     school: Mapped["School"] = relationship("School", lazy="selectin")
@@ -293,14 +292,6 @@ def sync_primary_user_constraint(
     target.primary_user_constraint = target.user_id if target.is_primary else None
 
 
-class GroupType(Base):
-    __tablename__ = "group_type"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    display_name: Mapped[dict[str, str]] = mapped_column(JSON, nullable=False, default=dict)
-
-
 ###############################
 ##### Association objects #####
 ###############################
@@ -319,6 +310,17 @@ class GroupMemberAssociation(Base):
 
 class GroupRoleAssociation(Base):
     __tablename__ = "group_role_association"
+
+    group_id: Mapped[int] = mapped_column(
+        ForeignKey("group.id", ondelete="CASCADE"), nullable=False, primary_key=True
+    )
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey("role.id", ondelete="CASCADE"), nullable=False, primary_key=True
+    )
+
+
+class GroupTypeRoleAssociation(Base):
+    __tablename__ = "group_type_role_association"
 
     group_id: Mapped[int] = mapped_column(
         ForeignKey("group.id", ondelete="CASCADE"), nullable=False, primary_key=True

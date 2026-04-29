@@ -21,7 +21,6 @@ from tests.test_types import (
     AsyncSchoolMembershipFactory,
     AsyncUserFactory,
     GroupDataFactory,
-    GroupTypeDataFactory,
     ModelFactory,
     RoleDataFactory,
     SchoolDataFactory,
@@ -30,7 +29,6 @@ from tests.test_types import (
 from ucsschool_objects.database_models import (
     Base,
     Group,
-    GroupType,
     Role,
     School,
     SchoolMembership,
@@ -175,33 +173,8 @@ def school_factory(
 
 
 @pytest.fixture
-def group_type_data_factory(faker: Any) -> GroupTypeDataFactory:
-    def _group_type_data_factory() -> dict[str, object]:
-        return {
-            "name": faker.unique.name(),
-            "display_name": {"de": faker.name(), "en": faker.name()},
-        }
-
-    return _group_type_data_factory
-
-
-@pytest.fixture
-def group_type_factory(
-    db_session: AsyncSession,
-    group_type_data_factory: GroupTypeDataFactory,
-    unset_sentinel: object,
-) -> AsyncGroupTypeFactory:
-    async def _factory(persisted: bool = True, **overrides: object) -> GroupType:
-        target_session = cast(AsyncSession, overrides.pop("db_session", db_session))
-        group_type_data: dict[str, object] = group_type_data_factory()
-        group_type_data.update(overrides)
-        group_type = GroupType(**_drop_unset_values(group_type_data, unset_sentinel))
-        if persisted:
-            target_session.add(group_type)
-            await target_session.flush()
-        return group_type
-
-    return _factory
+def group_type_factory(role_factory: AsyncRoleFactory) -> AsyncGroupTypeFactory:
+    return role_factory
 
 
 @pytest.fixture
@@ -246,7 +219,6 @@ def group_data_factory(faker: Any) -> GroupDataFactory:
             "display_name": {"de": faker.name(), "en": faker.name()},
             "has_share": random.choice([True, False]),  # nosec
             "email": faker.email(),
-            "group_type": None,
             "school": None,
         }
 
@@ -257,17 +229,24 @@ def group_data_factory(faker: Any) -> GroupDataFactory:
 def group_factory(
     db_session: AsyncSession,
     group_data_factory: GroupDataFactory,
-    group_type_factory: AsyncGroupTypeFactory,
+    role_factory: AsyncRoleFactory,
     school_factory: AsyncSchoolFactory,
     unset_sentinel: object,
 ) -> AsyncGroupFactory:
     async def _factory(persisted: bool = True, **overrides: object) -> Group:
         target_session = cast(AsyncSession, overrides.pop("db_session", db_session))
+        group_type_override = overrides.pop("group_type", None)
         group_data: dict[str, object] = group_data_factory()
         group_data.update(overrides)
         group = Group(**_drop_unset_values(group_data, unset_sentinel))
-        if "group_type" not in overrides:
-            group.group_type = await group_type_factory(persisted=False, db_session=target_session)
+        if group_type_override is not None:
+            group.group_type = cast(
+                list[Role],
+                group_type_override if isinstance(group_type_override, list) else [group_type_override],
+            )
+        else:
+            role = await role_factory(db_session=target_session)
+            group.group_type = [role]
         if "school" not in overrides:
             group.school = await school_factory(persisted=False, db_session=target_session)
         if persisted:

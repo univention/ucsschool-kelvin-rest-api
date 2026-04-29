@@ -54,7 +54,7 @@ def _bare_school(**overrides: object) -> SchoolModel:
         "record_uid": "rec",
         "source_uid": "src",
         "name": "school",
-        "display_name": {"en": "School"},
+        "display_name": "School",
         "educational_servers": ["edu1"],
         "administrative_servers": ["adm1"],
         "class_share_file_server": None,
@@ -69,7 +69,7 @@ def _school_patched(**overrides: object) -> dict[str, object]:
         "record_uid": "rec",
         "source_uid": "src",
         "name": "school",
-        "display_name": {"en": "School"},
+        "display_name": "School",
         "educational_servers": ["edu1"],
         "administrative_servers": ["adm1"],
         "class_share_file_server": None,
@@ -157,10 +157,10 @@ def test_apply_school_patch_replaces_json_list() -> None:
     assert model.educational_servers == ["edu1", "edu2"]
 
 
-def test_apply_school_patch_updates_display_name_dict() -> None:
+def test_apply_school_patch_updates_display_name() -> None:
     model = _bare_school()
-    _apply_school_patch(model, _school_patched(display_name={"en": "New", "de": "Neu"}))
-    assert model.display_name == {"en": "New", "de": "Neu"}
+    _apply_school_patch(model, _school_patched(display_name="New"))
+    assert model.display_name == "New"
 
 
 # ---------------------------------------------------------------------------
@@ -524,13 +524,13 @@ async def test_group_manager_modify_group_type(
 
     group_domain = to_group(await _load_group_full(db_session, group.public_id))
     dst = copy.copy(group_domain)
-    dst.group_type = new_gt.name
+    dst.group_type = {to_role(new_gt)}
     ops = _create_patch(group_domain, dst)
 
     await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
 
     loaded = await _load_group_full(db_session, group.public_id)
-    assert loaded.group_type.name == new_gt.name
+    assert {r.name for r in loaded.group_type} == {new_gt.name}
 
 
 @pytest.mark.asyncio

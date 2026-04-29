@@ -389,7 +389,7 @@ def test_to_user_raises_when_membership_school_has_no_uuid(
                 record_uid="school-record",
                 source_uid="school-source",
                 name="school-name",
-                display_name={"en": "School Name"},
+                display_name="School Name",
                 educational_servers=set({"edu.example.com"}),
                 administrative_servers=set({"adm.example.com"}),
             ),

@@ -209,7 +209,7 @@ async def _setup_group_case(
             "display_name": group.display_name,
             "create_share": True,
             "email": "projection-group@example.org",
-            "group_type": "projection-group-type",
+            "group_type": {"projection-group-type"},
             "sender_user": "sender-user",
             "sender_group": "sender-group",
             "member_user": "member-user",
@@ -342,7 +342,8 @@ async def test_group_manager_load_spec_projection_matrix(
     if load_attr in {"record_uid", "source_uid", "name", "display_name", "create_share", "email"}:
         assert getattr(result, load_attr) == context[load_attr]
     elif load_attr == "group_type":
-        assert result.group_type == context["group_type"]
+        assert not isinstance(result.group_type, UnloadedType)
+        assert {r.name for r in result.group_type} == context["group_type"]
     elif load_attr == "allowed_email_senders_users":
         assert not isinstance(result.allowed_email_senders_users, UnloadedType)
         assert {sender_user.name for sender_user in result.allowed_email_senders_users} == {
