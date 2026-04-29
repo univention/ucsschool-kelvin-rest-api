@@ -49,11 +49,19 @@ class KelvinConnectorEventHandler(UDMEventHandler):
     def _is_school_object_event(self, event: QueryEventObject) -> bool:
         if event["topic"] not in ["users/user", "groups/group", "container/ou"]:
             raise UnknownTopicException()
+        properties = None
         if "old" in event["body"] and "properties" in event["body"]["old"]:
-            return "ucsschoolRole" in event["body"]["old"]["properties"]
+            properties = event["body"]["old"]["properties"]
         elif "new" in event["body"] and "properties" in event["body"]["new"]:
-            return "ucsschoolRole" in event["body"]["new"]["properties"]
-        return False
+            properties = event["body"]["new"]["properties"]
+        if properties is None or "ucsschoolRole" not in properties:
+            return False
+        if event["topic"] == "groups/group":
+            return any(
+                role.startswith("school_class") or role.startswith("workgroup")
+                for role in properties["ucsschoolRole"]
+            )
+        return True
 
     @override
     def handle_event(self, event: QueryEventObject) -> bool:
