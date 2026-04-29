@@ -27,7 +27,7 @@ class School:
     record_uid: str | UnloadedType
     source_uid: str | UnloadedType
     name: str | UnloadedType
-    display_name: dict[str, str] | UnloadedType
+    display_name: str | UnloadedType
     educational_servers: set[str] | UnloadedType
     administrative_servers: set[str] | UnloadedType
     public_id: UUID | UnsetType = UNSET
@@ -87,9 +87,9 @@ class Group:
     record_uid: str | UnloadedType
     source_uid: str | UnloadedType
     name: str | UnloadedType
-    display_name: dict[str, str] | UnloadedType
+    display_name: str | UnloadedType
     create_share: bool | UnloadedType
-    group_type: str | UnloadedType
+    group_type: set[Role] | UnloadedType
     allowed_email_senders_users: set[User] | UnloadedType
     allowed_email_senders_groups: set[Group] | UnloadedType
     members: set[User] | UnloadedType
