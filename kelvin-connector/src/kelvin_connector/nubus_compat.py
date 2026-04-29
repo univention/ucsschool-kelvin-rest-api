@@ -33,7 +33,7 @@ class DNIDMapper(Protocol):
 
         If a DN is not known, it is not part of the result.
         """
-        ...
+        ...  # pragma: no cover
 
     async def public_ids_to_dns(
         self, object_type: ObjectType, public_ids: Iterable[uuid.UUID]
@@ -43,7 +43,7 @@ class DNIDMapper(Protocol):
 
         If a `public_id` is not known, it is not part of the result.
         """
-        ...
+        ...  # pragma: no cover
 
     async def set_mapping(self, object_type: ObjectType, dn: str, public_id: uuid.UUID | None) -> None:
         """
@@ -55,7 +55,7 @@ class DNIDMapper(Protocol):
         by that `public_id` is deleted from the database, the mapping is also removed
         automatically.
         """
-        ...
+        ...  # pragma: no cover
 
 
 class SQLAlchemyDNIDMapper(DNIDMapper):
