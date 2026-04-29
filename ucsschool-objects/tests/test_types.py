@@ -3,7 +3,6 @@ from typing import TypeAlias
 
 from ucsschool_objects.database_models import (
     Group,
-    GroupType,
     Role,
     School,
     SchoolMembership,
@@ -14,16 +13,15 @@ SchoolDataFactory: TypeAlias = Callable[[], dict[str, object]]
 GroupDataFactory: TypeAlias = Callable[[], dict[str, object]]
 UserDataFactory: TypeAlias = Callable[[], dict[str, object]]
 RoleDataFactory: TypeAlias = Callable[[], dict[str, object]]
-GroupTypeDataFactory: TypeAlias = Callable[[], dict[str, object]]
 
 AsyncSchoolFactory: TypeAlias = Callable[..., Awaitable[School]]
 AsyncGroupFactory: TypeAlias = Callable[..., Awaitable[Group]]
 AsyncUserFactory: TypeAlias = Callable[..., Awaitable[User]]
 AsyncRoleFactory: TypeAlias = Callable[..., Awaitable[Role]]
-AsyncGroupTypeFactory: TypeAlias = Callable[..., Awaitable[GroupType]]
+AsyncGroupTypeFactory: TypeAlias = Callable[..., Awaitable[Role]]
 AsyncSchoolMembershipFactory: TypeAlias = Callable[..., Awaitable[SchoolMembership]]
 
-ModelInstance: TypeAlias = Group | GroupType | Role | School | SchoolMembership | User
+ModelInstance: TypeAlias = Group | Role | School | SchoolMembership | User
 RecordSourceInstance: TypeAlias = Group | School | User
 
 ModelFactory: TypeAlias = (
@@ -31,7 +29,6 @@ ModelFactory: TypeAlias = (
     | AsyncGroupFactory
     | AsyncUserFactory
     | AsyncRoleFactory
-    | AsyncGroupTypeFactory
     | AsyncSchoolMembershipFactory
 )
 RecordSourceFactory: TypeAlias = Callable[..., Awaitable[RecordSourceInstance]]
