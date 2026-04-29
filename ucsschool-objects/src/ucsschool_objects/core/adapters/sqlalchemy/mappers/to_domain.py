@@ -103,7 +103,7 @@ def to_school(model: SchoolModel) -> School:
         record_uid=_loaded_value(model, "record_uid", _as_str),
         source_uid=_loaded_value(model, "source_uid", _as_str),
         name=_loaded_value(model, "name", _as_str),
-        display_name=_loaded_value(model, "display_name", _as_display_name),
+        display_name=_loaded_value(model, "display_name", _as_str),
         educational_servers=_loaded_value(model, "educational_servers", _as_set_str),
         administrative_servers=_loaded_value(model, "administrative_servers", _as_set_str),
         class_share_file_server=_loaded_value(model, "class_share_file_server", _as_optional_str),
@@ -124,9 +124,9 @@ def to_group(model: GroupModel) -> Group:
     if _is_loaded(model, "school"):
         school = to_school(model.school)
 
-    group_type: str | UnloadedType = UNLOADED
+    group_type: set[Role] | UnloadedType = UNLOADED
     if _is_loaded(model, "group_type"):
-        group_type = model.group_type.name
+        group_type = {to_role(r) for r in model.group_type}
 
     allowed_email_senders_users: set[User] | UnloadedType = UNLOADED
     if _is_loaded(model, "allowed_email_senders_users"):
@@ -151,7 +151,7 @@ def to_group(model: GroupModel) -> Group:
         record_uid=_loaded_value(model, "record_uid", _as_str),
         source_uid=_loaded_value(model, "source_uid", _as_str),
         name=_loaded_value(model, "name", _as_str),
-        display_name=_loaded_value(model, "display_name", _as_display_name),
+        display_name=_loaded_value(model, "display_name", _as_str),
         create_share=_loaded_value(model, "has_share", _as_bool),
         group_type=group_type,
         email=_loaded_value(model, "email", _as_optional_str),
@@ -242,7 +242,7 @@ def school_from_patch(patched: dict[str, object], public_id: UUID) -> School:
         record_uid=cast(str, patched["record_uid"]),
         source_uid=cast(str, patched["source_uid"]),
         name=cast(str, patched["name"]),
-        display_name=dict(cast(dict[str, str], patched["display_name"])),
+        display_name=cast(str, patched["display_name"]),
         educational_servers=set(cast(list[str], patched["educational_servers"])),
         administrative_servers=set(cast(list[str], patched["administrative_servers"])),
         class_share_file_server=cast(str | None, patched["class_share_file_server"]),
@@ -251,14 +251,23 @@ def school_from_patch(patched: dict[str, object], public_id: UUID) -> School:
 
 
 def group_from_patch(patched: dict[str, object], public_id: UUID) -> Group:
+    raw_group_type = cast(list[dict[str, object]], patched["group_type"])
+    group_type: set[Role] = {
+        Role(
+            public_id=UUID(str(entry["public_id"])),
+            name=cast(str, entry["name"]),
+            display_name=cast(dict[str, str], entry["display_name"]),
+        )
+        for entry in raw_group_type
+    }
     return Group(
         public_id=public_id,
         record_uid=cast(str, patched["record_uid"]),
         source_uid=cast(str, patched["source_uid"]),
         name=cast(str, patched["name"]),
-        display_name=dict(cast(dict[str, str], patched["display_name"])),
+        display_name=cast(str, patched["display_name"]),
         create_share=cast(bool, patched["create_share"]),
-        group_type=cast(str, patched["group_type"]),
+        group_type=group_type,
         email=cast(str | None, patched["email"]),
         school=UNLOADED,
         members=UNLOADED,
