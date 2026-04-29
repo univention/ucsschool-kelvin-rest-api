@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import cast
@@ -11,25 +12,25 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _bulk_fetch_by_public_id,
     _check_nullable_value_presence,
     _check_value_presence,
-    _fetch_one_by_name,
     _fetch_one_by_public_id,
     generate_public_id,
 )
-from ucsschool_objects.core.domain import UNSET, Group, NotFound, Role, School, UnloadedType, User
+from ucsschool_objects.core.domain import UNSET, Group, Role, School, UnloadedType, User
 from ucsschool_objects.core.domain.models import SchoolMembership as DomainSchoolMembership
 from ucsschool_objects.database_models import (
     Group as GroupModel,
-    GroupType as GroupTypeModel,
     Role as RoleModel,
     School as SchoolModel,
     SchoolMembership as SchoolMembershipModel,
     User as UserModel,
 )
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class GroupCreateRelations:
-    group_type: GroupTypeModel
+    group_type: list[RoleModel]
     school: SchoolModel
     member_roles: list[RoleModel]
     members: list[SchoolMembershipModel]
@@ -49,8 +50,8 @@ def to_school_model(data: School) -> SchoolModel:
         record_uid=_check_value_presence(data.record_uid, object_type="School", field_name="record_uid"),
         source_uid=_check_value_presence(data.source_uid, object_type="School", field_name="source_uid"),
         name=_check_value_presence(data.name, object_type="School", field_name="name"),
-        display_name=dict(
-            _check_value_presence(data.display_name, object_type="School", field_name="display_name"),
+        display_name=_check_value_presence(
+            data.display_name, object_type="School", field_name="display_name"
         ),
         educational_servers=list(
             _check_value_presence(
@@ -101,8 +102,8 @@ def to_group_model(data: Group) -> GroupModel:
         record_uid=_check_value_presence(data.record_uid, object_type="Group", field_name="record_uid"),
         source_uid=_check_value_presence(data.source_uid, object_type="Group", field_name="source_uid"),
         name=_check_value_presence(data.name, object_type="Group", field_name="name"),
-        display_name=dict(
-            _check_value_presence(data.display_name, object_type="Group", field_name="display_name"),
+        display_name=_check_value_presence(
+            data.display_name, object_type="Group", field_name="display_name"
         ),
         has_share=_check_value_presence(
             data.create_share, object_type="Group", field_name="create_share"
@@ -160,11 +161,12 @@ async def resolve_group_create_relations(
     session: AsyncSession,
     data: Group,
 ) -> GroupCreateRelations:
-    group_type_name = _check_value_presence(
+    group_type_roles = _check_value_presence(
         data.group_type, object_type="Group", field_name="group_type"
     )
-    group_type = await _fetch_one_by_name(
-        session, GroupTypeModel, GroupTypeModel.name, group_type_name, "GroupType"
+    group_type_role_ids = [r.public_id for r in group_type_roles if isinstance(r.public_id, UUID)]
+    group_type_roles_by_id = await _bulk_fetch_by_public_id(
+        session, RoleModel, group_type_role_ids, "Role"
     )
 
     school = _check_value_presence(data.school, object_type="Group", field_name="school")
@@ -218,7 +220,7 @@ async def resolve_group_create_relations(
     groups_by_id = await _bulk_fetch_by_public_id(session, GroupModel, sender_group_public_ids, "Group")
 
     return GroupCreateRelations(
-        group_type=group_type,
+        group_type=list(group_type_roles_by_id.values()),
         school=school_model,
         member_roles=list(roles_by_id.values()),
         members=membership_models,
@@ -251,10 +253,17 @@ async def _resolve_group_member_memberships(
     by_user_id: dict[int, SchoolMembershipModel] = {
         membership.user_id: membership for membership in memberships
     }
+    result = []
     for user in users_by_public_id.values():
         if user.id not in by_user_id:
-            raise NotFound(object_type="SchoolMembership", public_id=str(user.public_id))
-    return [by_user_id[user.id] for user in users_by_public_id.values()]
+            logger.warning(
+                "User %s has no membership in school %s, skipping as group member",
+                user.public_id,
+                school_model.public_id,
+            )
+            continue
+        result.append(by_user_id[user.id])
+    return result
 
 
 async def resolve_user_create_relations(
