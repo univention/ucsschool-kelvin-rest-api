@@ -2,34 +2,42 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 from __future__ import annotations
 
-import asyncio
-import os
-import sys
-from collections.abc import Coroutine
-from pathlib import Path
-from typing import TYPE_CHECKING, Any
+import enum
+from typing import TYPE_CHECKING
 
 from kelvin_connector.models import (
-    EventType,
-    GroupEvent,
-    SchoolEvent,
-    UserEvent,
+    GroupCreateEvent,
+    GroupDeleteEvent,
+    GroupModifyEvent,
+    GroupPayload,
+    SchoolCreateEvent,
+    SchoolDeleteEvent,
+    SchoolModifyEvent,
+    SchoolPayload,
+    UserCreateEvent,
+    UserDeleteEvent,
+    UserModifyEvent,
+    UserPayload,
 )
-from kelvin_connector.sync import SynchronizationManager
 from loguru import logger
-from provisioning_consumer_lib import AttributeMapping, ConsumerModule, UDMEventHandler
+from provisioning_consumer_lib import AttributeMapping, UDMEventHandler
 from provisioning_consumer_lib.consumer import Metadata, QueryEventObject
+from pydantic import ValidationError
 from typing_extensions import override
-from ucsschool_objects.core.adapters.sqlalchemy.session import (
-    build_engine,
-    build_kelvin_storage_session_factory,
-    build_settings,
-)
 
 from .ports import SynchronizationManagerProtocol
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from loguru import Logger
+
+
+class ObjectType(enum.StrEnum):
+    USERS = "users/user"
+    GROUPS = "groups/group"
+    OUS = "container/ou"
+
+
+SUBSCRIBED_TOPICS = [ObjectType.OUS, ObjectType.GROUPS, ObjectType.USERS]
 
 
 class UnknownTopicException(Exception):
@@ -38,17 +46,19 @@ class UnknownTopicException(Exception):
 
 class KelvinConnectorEventHandler(UDMEventHandler):
     def __init__(
-        self, synchronization_manager: SynchronizationManagerProtocol, logger: Logger, *args, **kwargs
+        self,
+        synchronization_manager: SynchronizationManagerProtocol,
+        logger: Logger,
+        *args,
+        **kwargs,
     ) -> None:
         self.synchronization_manager = synchronization_manager
         super().__init__(logger, *args, **kwargs)
 
-    def _run_sync(self, coroutine: Coroutine[Any, Any, None]) -> None:
-        asyncio.run(coroutine)
-
-    def _is_school_object_event(self, event: QueryEventObject) -> bool:
-        if event["topic"] not in ["users/user", "groups/group", "container/ou"]:
-            raise UnknownTopicException()
+    @override
+    async def is_relevant(self, event: QueryEventObject) -> bool:
+        if event["topic"] not in SUBSCRIBED_TOPICS:
+            return False
         properties = None
         if "old" in event["body"] and "properties" in event["body"]["old"]:
             properties = event["body"]["old"]["properties"]
@@ -56,6 +66,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
             properties = event["body"]["new"]["properties"]
         if properties is None or "ucsschoolRole" not in properties:
             return False
+        # TODO hard coded role checks
         if event["topic"] == "groups/group":
             return any(
                 role.startswith("school_class") or role.startswith("workgroup")
@@ -64,169 +75,107 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         return True
 
     @override
-    def handle_event(self, event: QueryEventObject) -> bool:
+    async def handle_event(self, event: QueryEventObject) -> bool:
+        self.logger.trace(event)
         try:
-            if not self._is_school_object_event(event):
-                self.logger.debug(f"Event {event} is no school object event.")
-                return True
-        except UnknownTopicException:
-            self.logger.error("Unknown topic encountered")
-            return False
-        return super().handle_event(event)
+            return await super().handle_event(event)
+        except ValidationError as exc:
+            logger.error("Dropping malformed event: {}", exc)
+            return True
 
     @override
-    def _handle_create(self, metadata: Metadata, new: AttributeMapping) -> None:
-        """
-        Called when a new object was created.
-
-        :param str metadata: metadata of the create event
-        :param dict new: new UDM objects attributes
-        """
+    async def _handle_create(self, metadata: Metadata, new: AttributeMapping) -> None:
         match new["objectType"]:
-            case "users/user":
-                user_event = UserEvent(
-                    timestamp=metadata["ts"],
-                    sequence_number=metadata["sequence_number"],
-                    old=None,
-                    new=new,
-                    event_type=EventType.CREATE,
+            case ObjectType.USERS:
+                await self.synchronization_manager.handle_user_create(
+                    UserCreateEvent(
+                        timestamp=metadata["ts"],
+                        sequence_number=metadata["sequence_number"],
+                        new=UserPayload.validate(new),
+                    )
                 )
-                self._run_sync(self.synchronization_manager.handle_user_event(user_event))
-            case "groups/group":
-                group_event = GroupEvent(
-                    timestamp=metadata["ts"],
-                    sequence_number=metadata["sequence_number"],
-                    old=None,
-                    new=new,
-                    event_type=EventType.CREATE,
+            case ObjectType.GROUPS:
+                await self.synchronization_manager.handle_group_create(
+                    GroupCreateEvent(
+                        timestamp=metadata["ts"],
+                        sequence_number=metadata["sequence_number"],
+                        new=GroupPayload.validate(new),
+                    )
                 )
-                self._run_sync(self.synchronization_manager.handle_group_event(group_event))
-            case "container/ou":
-                school_event = SchoolEvent(
-                    timestamp=metadata["ts"],
-                    sequence_number=metadata["sequence_number"],
-                    old=None,
-                    new=new,
-                    event_type=EventType.CREATE,
+            case ObjectType.OUS:
+                await self.synchronization_manager.handle_school_create(
+                    SchoolCreateEvent(
+                        timestamp=metadata["ts"],
+                        sequence_number=metadata["sequence_number"],
+                        new=SchoolPayload.validate(new),
+                    )
                 )
-                self._run_sync(self.synchronization_manager.handle_school_event(school_event))
+            case _:
+                logger.error(f"Unknown object type {new['objectType']} in create event")
 
     @override
-    def _handle_modify(
-        self, metadata: Metadata, old: AttributeMapping, new: AttributeMapping, has_moved: bool
+    async def _handle_modify(
+        self,
+        metadata: Metadata,
+        old: AttributeMapping,
+        new: AttributeMapping,
+        has_moved: bool,
     ) -> None:
-        """
-        Called when an existing object was modified or moved.
-
-        A move can be be detected by looking at <has_moved>. Attributes can be
-        modified during a move.
-
-        :param str metadata: metadata of the modify event
-        :param dict old: previous UDM objects attributes
-        :param dict new: new UDM objects attributes
-        """
+        # TODO has_moved is unused
         match new["objectType"]:
-            case "users/user":
-                user_event = UserEvent(
-                    timestamp=metadata["ts"],
-                    sequence_number=metadata["sequence_number"],
-                    old=old,
-                    new=new,
-                    event_type=EventType.MODIFY,
+            case ObjectType.USERS:
+                await self.synchronization_manager.handle_user_modify(
+                    UserModifyEvent(
+                        timestamp=metadata["ts"],
+                        sequence_number=metadata["sequence_number"],
+                        new=UserPayload.validate(new),
+                    )
                 )
-                self._run_sync(self.synchronization_manager.handle_user_event(user_event))
-            case "groups/group":
-                group_event = GroupEvent(
-                    timestamp=metadata["ts"],
-                    sequence_number=metadata["sequence_number"],
-                    old=old,
-                    new=new,
-                    event_type=EventType.MODIFY,
+            case ObjectType.GROUPS:
+                await self.synchronization_manager.handle_group_modify(
+                    GroupModifyEvent(
+                        timestamp=metadata["ts"],
+                        sequence_number=metadata["sequence_number"],
+                        new=GroupPayload.validate(new),
+                    )
                 )
-                self._run_sync(self.synchronization_manager.handle_group_event(group_event))
-            case "container/ou":
-                school_event = SchoolEvent(
-                    timestamp=metadata["ts"],
-                    sequence_number=metadata["sequence_number"],
-                    old=old,
-                    new=new,
-                    event_type=EventType.MODIFY,
+            case ObjectType.OUS:
+                await self.synchronization_manager.handle_school_modify(
+                    SchoolModifyEvent(
+                        timestamp=metadata["ts"],
+                        sequence_number=metadata["sequence_number"],
+                        new=SchoolPayload.validate(new),
+                    )
                 )
-                self._run_sync(self.synchronization_manager.handle_school_event(school_event))
             case _:
-                object_type = new["objectType"]
-                logger.error(f"Unknown object type {object_type}")
+                logger.error(f"Unknown object type {new['objectType']} in modify event.")
 
     @override
-    def _handle_remove(self, metadata: Metadata, old: AttributeMapping) -> None:
-        """
-        Called when an object was deleted.
-
-        :param str metadata: metadata of the delete event
-        :param dict old: previous UDM objects attributes
-        """
+    async def _handle_remove(self, metadata: Metadata, old: AttributeMapping) -> None:
         match old["objectType"]:
-            case "users/user":
-                user_event = UserEvent(
-                    timestamp=metadata["ts"],
-                    sequence_number=metadata["sequence_number"],
-                    old=old,
-                    new=None,
-                    event_type=EventType.DELETE,
+            case ObjectType.USERS:
+                await self.synchronization_manager.handle_user_delete(
+                    UserDeleteEvent(
+                        timestamp=metadata["ts"],
+                        sequence_number=metadata["sequence_number"],
+                        old=UserPayload.validate(old),
+                    )
                 )
-                self._run_sync(self.synchronization_manager.handle_user_event(user_event))
-            case "groups/group":
-                group_event = GroupEvent(
-                    timestamp=metadata["ts"],
-                    sequence_number=metadata["sequence_number"],
-                    old=old,
-                    new=None,
-                    event_type=EventType.DELETE,
+            case ObjectType.GROUPS:
+                await self.synchronization_manager.handle_group_delete(
+                    GroupDeleteEvent(
+                        timestamp=metadata["ts"],
+                        sequence_number=metadata["sequence_number"],
+                        old=GroupPayload.validate(old),
+                    )
                 )
-                self._run_sync(self.synchronization_manager.handle_group_event(group_event))
-            case "container/ou":
-                school_event = SchoolEvent(
-                    timestamp=metadata["ts"],
-                    sequence_number=metadata["sequence_number"],
-                    old=old,
-                    new=None,
-                    event_type=EventType.DELETE,
+            case ObjectType.OUS:
+                await self.synchronization_manager.handle_school_delete(
+                    SchoolDeleteEvent(
+                        timestamp=metadata["ts"],
+                        sequence_number=metadata["sequence_number"],
+                        old=SchoolPayload.validate(old),
+                    )
                 )
-                self._run_sync(self.synchronization_manager.handle_school_event(school_event))
             case _:
-                object_type = old["objectType"]
-                logger.error(f"Unknown object type {object_type}")
-
-
-def main():
-    LDAP_SERVER_TYPE = os.environ.get("LDAP_SERVER_TYPE", None)
-    if LDAP_SERVER_TYPE is None or LDAP_SERVER_TYPE != "master":
-        logger.critical(f"Connector cannot run on {LDAP_SERVER_TYPE=}.")
-        sys.exit(1)
-
-    PROVISIONING_API_FQDN = os.environ.get("PROVISIONING_FQDN", None)
-    if PROVISIONING_API_FQDN is None:
-        logger.critical("Provisioning API FQDN is missing.")
-        sys.exit(1)
-
-    try:
-        settings = build_settings()
-    except RuntimeError as e:
-        logger.critical(str(e))
-        sys.exit(1)
-
-    engine = build_engine(settings)
-    storage_factory = build_kelvin_storage_session_factory(engine)
-    synchronization_manager = SynchronizationManager(storage_factory=storage_factory)
-
-    CONFIG_DIR = Path("/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/")
-
-    event_handler = KelvinConnectorEventHandler(synchronization_manager, logger=logger)
-    consumer = ConsumerModule(
-        event_handler,
-        name="kelvin-connector",
-        provisioning_url=f"https://{PROVISIONING_API_FQDN}/univention/provisioning",
-        config_dir=CONFIG_DIR,
-    )
-
-    consumer.consume_loop()
+                logger.error(f"Unknown object type {old['objectType']} in remove event.")

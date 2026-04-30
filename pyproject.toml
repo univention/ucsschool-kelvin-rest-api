@@ -81,7 +81,9 @@ openapi-client-udm = { path = "openapi-client-udm-1.0.2.tar.gz" }
 univention-debhelper = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/release-5.2-5/ucs-release-5.2-5.tar.gz?path=packaging/univention-debhelper", subdirectory = "packaging/univention-debhelper" }
 univention-configuration-registry = { url = "https://git.knut.univention.de/univention/dev/ucs/-/archive/release-5.2-5/ucs-release-5.2-5.tar.gz?path=base/univention-config-registry", subdirectory = "base/univention-config-registry" }
 kelvin-connector = { workspace = true }
-provisioning-consumer = { git = "https://git.knut.univention.de/univention/dev/libraries/provisioning-consumer-template", branch = "pypi" }
+
+[[tool.uv.index]]
+url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/simple"
 
 [dependency-groups]
 dev = [

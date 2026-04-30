@@ -1,6 +1,6 @@
 import uuid
 from enum import StrEnum
-from typing import Iterable, Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable, Protocol, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -104,3 +104,9 @@ class SQLAlchemyDNIDMapper(DNIDMapper):
         elif existing_mapping and public_id is not None:
             existing_mapping.public_id = public_id
             existing_mapping.dn = dn
+
+
+def sqlalchemy_mapper_factory(storage: "KelvinStorageSession") -> DNIDMapper:
+    from ucsschool_objects.core.adapters.sqlalchemy.session import KelvinSqlAlchemySession
+
+    return SQLAlchemyDNIDMapper(cast(KelvinSqlAlchemySession, storage).session)
