@@ -72,7 +72,7 @@ header = "Content-Type: application/json"
 url = "$BASE_URL/v1/subscriptions"
 EOF
 ))
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         echo "Error: Request to create subscription failed with: $response_create"
         return 1
     fi

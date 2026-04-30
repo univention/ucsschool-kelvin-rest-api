@@ -3,6 +3,23 @@ from dataclasses import dataclass
 from enum import auto
 from typing import Any
 
+from pydantic import BaseModel
+
+
+class UDMEventBody(BaseModel):
+    old: None | dict[str, Any]
+    new: None | dict[str, Any]
+
+
+class UDMEventObject(BaseModel):
+    publisher_name: str
+    ts: str
+    realm: str
+    topic: str
+    body: UDMEventBody
+    sequence_number: int
+    num_delivered: int
+
 
 class EventType(enum.Enum):
     CREATE = auto()

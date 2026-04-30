@@ -311,7 +311,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             current_user, replace_fields=frozenset({"legal_wards", "legal_guardians"})
         ) as tracker:
             self._apply_user_changes(
-                current_user, user_kwargs, school_memberships, legal_wards, legal_guardians
+                current_user,
+                user_kwargs,
+                school_memberships,
+                legal_wards,
+                legal_guardians,
             )
         if tracker.patch:
             await storage.users.modify(public_id, tracker.patch)
