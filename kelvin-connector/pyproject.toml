@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "dependency-injector>=4.49.0",
     "loguru>=0.7.3",
     "provisioning-consumer",
     "python-ldap>=3.4.4",

@@ -18,6 +18,9 @@ engine = build_engine(settings)
 storage_factory = build_kelvin_storage_session_factory(engine)
 ```
 
+In the Kelvin connector application, these adapter helpers are now consumed through a
+`dependency-injector` container at the composition root for standardized startup wiring.
+
 ## Session Scope: Get Domain Models
 
 ```python
