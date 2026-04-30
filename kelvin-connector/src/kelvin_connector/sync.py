@@ -1,97 +1,46 @@
-import uuid
-from typing import Any, Callable, cast, final
+from typing import cast, final
 from uuid import UUID
 
 from kelvin_connector.models import (
-    EventType,
-    GroupEvent,
-    SchoolEvent,
-    UserEvent,
+    GroupCreateEvent,
+    GroupDeleteEvent,
+    GroupModifyEvent,
+    GroupProperties,
+    GuardianRole,
+    SchoolCreateEvent,
+    SchoolDeleteEvent,
+    SchoolModifyEvent,
+    UcsschoolRole,
+    UserCreateEvent,
+    UserDeleteEvent,
+    UserModifyEvent,
+    UserProperties,
 )
-from kelvin_connector.ports import SynchronizationManagerProtocol
+from kelvin_connector.ports import DNIDMapperFactory, SynchronizationManagerProtocol
 from loguru import logger
-from ucsschool_objects.core.adapters.sqlalchemy.session import KelvinSqlAlchemySession
+from typing_extensions import override
 from ucsschool_objects.core.domain import LoadSpec, SearchQuery
 from ucsschool_objects.core.domain.models import (
     UNLOADED,
     Group,
+    Role,
     School,
     SchoolMembership,
+    UnloadedType,
     UnsetType,
     User,
 )
 from ucsschool_objects.core.domain.patch import track_changes
-from ucsschool_objects.core.domain.ports import KelvinStorageSessionFactory
+from ucsschool_objects.core.domain.ports import KelvinStorageSession, KelvinStorageSessionFactory
 from ucsschool_objects.core.domain.query import (
     Filter,
     Operator,
     Or,
 )
 
-from .nubus_compat import ObjectType, SQLAlchemyDNIDMapper
+from .nubus_compat import DNIDMapper, ObjectType
 
-UDM_USER_PROPERTY_MAPPING = {
-    "ucsschoolRecordUID": "record_uid",
-    "ucsschoolSourceUID": "source_uid",
-    "username": "name",
-    "firstname": "firstname",
-    "lastname": "lastname",
-    "disabled": "active",
-    "school": "school_memberships",
-    "ucsschoolLegalWard": "legal_wards",
-    "ucsschoolLegalGuardian": "legal_guardians",
-    "e-mail": "email",
-    "birthday": "birthday",
-    "userexpiry": "expiration_date",
-}
-
-UDM_GROUP_PROPERTY_MAPPING = {
-    "ucsschoolRecordUID": "record_uid",
-    "ucsschoolSourceUID": "source_uid",
-    "name": "name",
-    "allowedEmailUsers": "allowed_email_senders_users",
-    "allowedEmailGroups": "allowed_email_senders_groups",
-    "school": "school",
-    "mailAddress": "email",
-}
-
-UDM_SCHOOL_PROPERTY_MAPPING = {
-    "name": "name",
-    "displayName": "display_name",
-    "ucsschoolHomeShareFileServer": "home_share_file_server",
-    "ucsschoolClassShareFileServer": "class_share_file_server",
-    # TODO: educational_servers, administrative_servers (no direct UDM property)
-}
-
-
-class UDMPropertyMapper:
-    def __init__(self):
-        self._mappings: dict[str, str] = {}
-        self._hooks: dict[str, Callable[..., Any]] = {}
-
-    def register_map(self, mapping: dict[str, str]) -> None:
-        for source_key, target_key in mapping.items():
-            if source_key in self._mappings:
-                raise ValueError(f"Source key '{source_key}' is already registered.")
-            if target_key in self._mappings.values():
-                raise ValueError(f"Target key '{target_key}' is already registered.")
-            self._mappings[source_key] = target_key
-
-    def register_hook(self, source_key: str, func: Callable[..., Any]):
-        if source_key not in self._mappings:
-            raise ValueError(f"Source key '{source_key}' is not registered.")
-        self._hooks[source_key] = func
-
-    def map(self, source: dict[str, Any]) -> dict[str, Any]:
-        result = {}
-        for source_key, target_key in self._mappings.items():
-            if source_key not in source:
-                continue
-            value = source[source_key]
-            if source_key in self._hooks:
-                value = self._hooks[source_key](value)
-            result[target_key] = value
-        return result
+DEFAULT_NUBUS_SOURCE_UID = "nubus"
 
 
 @final
@@ -99,26 +48,16 @@ class SynchronizationManager(SynchronizationManagerProtocol):
     def __init__(
         self,
         storage_factory: KelvinStorageSessionFactory,
+        mapper_factory: DNIDMapperFactory,
     ) -> None:
         self.storage_factory = storage_factory
-        self._build_property_mapper()
-
-    def _build_property_mapper(self) -> None:
-        self.udm_property_mapper = UDMPropertyMapper()
-        self.udm_property_mapper.register_map(UDM_USER_PROPERTY_MAPPING)
-        self.udm_property_mapper.register_hook("disabled", lambda x: not x)
-
-        self.udm_group_property_mapper = UDMPropertyMapper()
-        self.udm_group_property_mapper.register_map(UDM_GROUP_PROPERTY_MAPPING)
-
-        self.udm_school_property_mapper = UDMPropertyMapper()
-        self.udm_school_property_mapper.register_map(UDM_SCHOOL_PROPERTY_MAPPING)
+        self._mapper_factory = mapper_factory
 
     # ── Shared fetch helpers ────────────────────────────────────────────────
 
     async def _dns_to_known_ids(
         self,
-        mapper: SQLAlchemyDNIDMapper,
+        mapper: DNIDMapper,
         object_type: ObjectType,
         dns: list[str],
         log_label: str,
@@ -133,8 +72,8 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         self,
         dns: list[str],
         label: str,
-        mapper: SQLAlchemyDNIDMapper,
-        storage: Any,
+        mapper: DNIDMapper,
+        storage: KelvinStorageSession,
     ) -> set[User]:
         known_ids = await self._dns_to_known_ids(mapper, ObjectType.USER, dns, label)
         if not known_ids:
@@ -149,8 +88,8 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         self,
         dns: list[str],
         label: str,
-        mapper: SQLAlchemyDNIDMapper,
-        storage: Any,
+        mapper: DNIDMapper,
+        storage: KelvinStorageSession,
     ) -> set[Group]:
         known_ids = await self._dns_to_known_ids(mapper, ObjectType.GROUP, dns, label)
         if not known_ids:
@@ -161,8 +100,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             )
         )
 
-    async def _fetch_roles_by_entries(self, role_entries: list[str], storage: Any) -> set:
-        role_names = {r.split(":")[0] for r in role_entries}
+    async def _fetch_roles_by_names(
+        self, role_names: set[str], storage: KelvinStorageSession
+    ) -> set[Role]:
         if not role_names:
             return set()
         return set(
@@ -177,18 +117,28 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             )
         )
 
+    async def _fetch_roles_by_entries(
+        self, role_entries: list[UcsschoolRole], storage: KelvinStorageSession
+    ) -> set[Role]:
+        return await self._fetch_roles_by_names({r.role for r in role_entries}, storage)
+
+    async def _fetch_roles_by_guardian_entries(
+        self, guardian_roles: list[GuardianRole], storage: KelvinStorageSession
+    ) -> set[Role]:
+        return await self._fetch_roles_by_names({g.role_name for g in guardian_roles}, storage)
+
     async def _build_school_memberships(
         self,
         schools: list[School],
         groups: set[Group],
-        role_entries: list[str],
-        storage: Any,
+        roles: list[UcsschoolRole],
+        storage: KelvinStorageSession,
     ) -> dict[UUID, SchoolMembership]:
-        all_role_names = {r.split(":")[0] for r in role_entries}
-        roles_by_name: dict = {}
+        all_role_names = {r.role for r in roles}
+        roles_by_name: dict[str, Role] = {}
         if all_role_names:
             roles_by_name = {
-                r.name: r
+                cast(str, r.name): r
                 for r in await storage.roles.search(
                     SearchQuery(
                         Or(
@@ -200,118 +150,163 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 )
             }
         result: dict[UUID, SchoolMembership] = {}
-        for school in schools:
+        for i, school in enumerate(schools):
             assert not isinstance(school.public_id, UnsetType)
-            school_role_names = {r.split(":")[0] for r in role_entries if r.endswith(f":{school.name}")}
+
+            school_role_names = {r.role for r in roles if r.school == school.name}
+
+            school_groups: set[Group] = set()
+            for group in groups:
+                assert not isinstance(group.school, UnloadedType)
+                if group.school.public_id == school.public_id:
+                    school_groups.add(group)
+
             result[school.public_id] = SchoolMembership(
                 school,
-                groups=set(groups),
-                is_primary=True,
+                groups=school_groups,
+                is_primary=(i == 0),
                 roles={roles_by_name[n] for n in school_role_names if n in roles_by_name},
             )
         return result
 
     # ── User event handlers ─────────────────────────────────────────────────
 
-    async def handle_user_event(self, user_event: UserEvent) -> None:
+    @override
+    async def handle_user_create(self, event: UserCreateEvent) -> None:
         async with self.storage_factory.transaction_scope() as storage:
-            mapper = SQLAlchemyDNIDMapper(cast(KelvinSqlAlchemySession, storage).session)
-            match user_event.event_type:
-                case EventType.CREATE:
-                    await self._handle_user_create(user_event, storage, mapper)
-                case EventType.DELETE:
-                    await self._handle_user_delete(user_event, storage)
-                case EventType.MODIFY:
-                    await self._handle_user_modify(user_event, storage, mapper)
+            mapper = self._mapper_factory(storage)
+            await self._handle_user_create(event, storage, mapper)
+
+    @override
+    async def handle_user_modify(self, event: UserModifyEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            mapper = self._mapper_factory(storage)
+            await self._handle_user_modify(event, storage, mapper)
+
+    @override
+    async def handle_user_delete(self, event: UserDeleteEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            await self._handle_user_delete(event, storage)
 
     async def _handle_user_create(
-        self, user_event: UserEvent, storage: Any, mapper: SQLAlchemyDNIDMapper
+        self, event: UserCreateEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
-        if user_event.new is None:
-            return
-        props = user_event.new["properties"]
-        raw_schools = props["school"]
-        logger.debug("User {!r} has school property: {!r}", props.get("username"), raw_schools)
-        schools = list(
-            await storage.schools.search(
-                SearchQuery(
-                    Or(clauses=tuple(Filter(field="name", op=Operator.EQ, value=s) for s in raw_schools))
+        user_props = event.new.properties
+        logger.debug("User {!r} has school property: {!r}", user_props.username, user_props.school)
+        if user_props.school:
+            school_by_name = {
+                s.name: s
+                for s in await storage.schools.search(
+                    SearchQuery(
+                        Or(
+                            clauses=tuple(
+                                Filter(field="name", op=Operator.EQ, value=s) for s in user_props.school
+                            )
+                        )
+                    )
                 )
-            )
-        )
+            }
+            schools = [school_by_name[name] for name in user_props.school if name in school_by_name]
+        else:
+            schools = []
         if not schools:
             logger.warning(
                 "School(s) {!r} not found for user {!r}, dropping event",
-                raw_schools,
-                props.get("username"),
+                user_props.school,
+                user_props.username,
             )
             return
         logger.debug(
             "Found {} school(s) for user {!r}: {!r}",
             len(schools),
-            props.get("username"),
+            user_props.username,
             [s.name for s in schools],
         )
 
-        groups = await self._fetch_groups_by_dns(props.get("groups", []), "Group", mapper, storage)
+        groups = await self._fetch_groups_by_dns(user_props.groups, "Group", mapper, storage)
         school_memberships = await self._build_school_memberships(
-            schools, groups, props.get("ucsschoolRole", []), storage
+            schools, groups, user_props.ucsschoolRole, storage
         )
         legal_wards = await self._fetch_users_by_dns(
-            props.get("ucsschoolLegalWard", []), "Legal ward", mapper, storage
+            user_props.ucsschoolLegalWard, "Legal ward", mapper, storage
         )
         legal_guardians = await self._fetch_users_by_dns(
-            props.get("ucsschoolLegalGuardian", []), "Legal guardian", mapper, storage
+            user_props.ucsschoolLegalGuardian, "Legal guardian", mapper, storage
         )
 
-        user_kwargs = self.udm_property_mapper.map(props)
-        if not user_kwargs.get("record_uid"):
-            user_kwargs["record_uid"] = user_kwargs.get("name", "")
-        if not user_kwargs.get("source_uid"):
-            user_kwargs["source_uid"] = "UMC"
-        user_kwargs["school_memberships"] = school_memberships
-        user_kwargs["legal_wards"] = legal_wards
-        user_kwargs["legal_guardians"] = legal_guardians
-        public_id = uuid.UUID(props["univentionObjectIdentifier"])
-        await storage.users.create(User(public_id=public_id, **user_kwargs))
-        await mapper.set_mapping(ObjectType.USER, user_event.new["dn"], public_id)
+        public_id = user_props.univentionObjectIdentifier
+        await storage.users.create(
+            User(
+                public_id=public_id,
+                name=user_props.username,
+                firstname=user_props.firstname,
+                lastname=user_props.lastname,
+                active=not user_props.disabled,
+                email=user_props.mailPrimaryAddress,
+                birthday=user_props.birthday,
+                expiration_date=user_props.userexpiry,
+                record_uid=user_props.ucsschoolRecordUID or user_props.username,
+                source_uid=user_props.ucsschoolSourceUID or DEFAULT_NUBUS_SOURCE_UID,
+                school_memberships=school_memberships,
+                legal_wards=legal_wards,
+                legal_guardians=legal_guardians,
+            )
+        )
+        await mapper.set_mapping(ObjectType.USER, event.new.dn, public_id)
 
-    async def _handle_user_delete(self, user_event: UserEvent, storage: Any) -> None:
-        if user_event.old is None:
-            return
-        await storage.users.delete(uuid.UUID(user_event.old["properties"]["univentionObjectIdentifier"]))
+    async def _handle_user_delete(self, event: UserDeleteEvent, storage: KelvinStorageSession) -> None:
+        public_id = event.old.properties.univentionObjectIdentifier
+        await storage.users.delete(public_id)
 
     async def _handle_user_modify(
-        self, user_event: UserEvent, storage: Any, mapper: SQLAlchemyDNIDMapper
+        self, event: UserModifyEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
-        if user_event.new is None:
-            return
-        props = user_event.new["properties"]
-        public_id = uuid.UUID(props["univentionObjectIdentifier"])
+        user_props = event.new.properties
+        public_id = user_props.univentionObjectIdentifier
         current_user = await storage.users.get(
             public_id,
             load=LoadSpec.from_attributes("school_memberships", "legal_wards", "legal_guardians"),
         )
 
-        school_memberships = await self._maybe_rebuild_school_memberships(props, mapper, storage)
-        legal_wards = await self._maybe_fetch_users_for_prop(
-            props, "ucsschoolLegalWard", "Legal ward", mapper, storage
+        raw_schools = user_props.school
+        if raw_schools:
+            school_by_name = {
+                s.name: s
+                for s in await storage.schools.search(
+                    SearchQuery(
+                        Or(
+                            clauses=tuple(
+                                Filter(field="name", op=Operator.EQ, value=s) for s in raw_schools
+                            )
+                        )
+                    )
+                )
+            }
+            # sort by order of raw_schools, as the primary school
+            # in _build_school_memberships is derived from the first school
+            schools = [school_by_name[name] for name in raw_schools if name in school_by_name]
+        else:
+            schools = []
+        groups = await self._fetch_groups_by_dns(user_props.groups, "Group", mapper, storage)
+        school_memberships = await self._build_school_memberships(
+            schools, groups, user_props.ucsschoolRole, storage
         )
-        legal_guardians = await self._maybe_fetch_users_for_prop(
-            props, "ucsschoolLegalGuardian", "Legal guardian", mapper, storage
+        legal_wards = await self._fetch_users_by_dns(
+            user_props.ucsschoolLegalWard, "Legal ward", mapper, storage
         )
-
-        user_kwargs = self.udm_property_mapper.map(props)
-        if not user_kwargs.get("record_uid"):
-            user_kwargs["record_uid"] = user_kwargs.get("name", "")
-        if not user_kwargs.get("source_uid"):
-            user_kwargs["source_uid"] = "UMC"
+        legal_guardians = await self._fetch_users_by_dns(
+            user_props.ucsschoolLegalGuardian, "Legal guardian", mapper, storage
+        )
 
         with track_changes(
             current_user, replace_fields=frozenset({"legal_wards", "legal_guardians"})
         ) as tracker:
             self._apply_user_changes(
-                current_user, user_kwargs, school_memberships, legal_wards, legal_guardians
+                current_user,
+                user_props,
+                school_memberships,
+                legal_wards,
+                legal_guardians,
             )
         if tracker.patch:
             await storage.users.modify(public_id, tracker.patch)
@@ -319,78 +314,53 @@ class SynchronizationManager(SynchronizationManagerProtocol):
     def _apply_user_changes(
         self,
         user: User,
-        user_kwargs: dict,
-        school_memberships: Any,
-        legal_wards: Any,
-        legal_guardians: Any,
+        user_props: UserProperties,
+        school_memberships: dict[UUID, SchoolMembership],
+        legal_wards: set[User],
+        legal_guardians: set[User],
     ) -> None:
-        _membership_fields = frozenset({"school_memberships", "legal_wards", "legal_guardians"})
-        for field, value in user_kwargs.items():
-            if field not in _membership_fields:
-                setattr(user, field, value)
-        for field, value in (
-            ("school_memberships", school_memberships),
-            ("legal_wards", legal_wards),
-            ("legal_guardians", legal_guardians),
-        ):
-            if value is not UNLOADED:
-                setattr(user, field, value)
-
-    async def _maybe_rebuild_school_memberships(
-        self, props: dict, mapper: SQLAlchemyDNIDMapper, storage: Any
-    ) -> dict[UUID, SchoolMembership] | object:
-        if not ({"school", "groups", "ucsschoolRole"} & props.keys()):
-            return UNLOADED
-        schools = list(
-            await storage.schools.search(
-                SearchQuery(
-                    Or(
-                        clauses=tuple(
-                            Filter(field="name", op=Operator.EQ, value=s)
-                            for s in props.get("school", [])
-                        )
-                    )
-                )
-            )
-        )
-        groups = await self._fetch_groups_by_dns(props.get("groups", []), "Group", mapper, storage)
-        return await self._build_school_memberships(
-            schools, groups, props.get("ucsschoolRole", []), storage
-        )
-
-    async def _maybe_fetch_users_for_prop(
-        self,
-        props: dict,
-        prop_key: str,
-        label: str,
-        mapper: SQLAlchemyDNIDMapper,
-        storage: Any,
-    ) -> set[User] | object:
-        if prop_key not in props:
-            return UNLOADED
-        return await self._fetch_users_by_dns(props[prop_key], label, mapper, storage)
+        user.name = user_props.username
+        user.firstname = user_props.firstname
+        user.lastname = user_props.lastname
+        user.active = not user_props.disabled
+        user.email = user_props.mailPrimaryAddress
+        user.birthday = user_props.birthday
+        user.expiration_date = user_props.userexpiry
+        user.record_uid = user_props.ucsschoolRecordUID or user_props.username
+        user.source_uid = user_props.ucsschoolSourceUID or DEFAULT_NUBUS_SOURCE_UID
+        user.school_memberships = school_memberships
+        user.legal_wards = legal_wards
+        user.legal_guardians = legal_guardians
 
     # ── Group event handlers ────────────────────────────────────────────────
 
-    async def handle_group_event(self, group_event: GroupEvent) -> None:
+    @override
+    async def handle_group_create(self, event: GroupCreateEvent) -> None:
         async with self.storage_factory.transaction_scope() as storage:
-            mapper = SQLAlchemyDNIDMapper(cast(KelvinSqlAlchemySession, storage).session)
-            match group_event.event_type:
-                case EventType.CREATE:
-                    await self._handle_group_create(group_event, storage, mapper)
-                case EventType.DELETE:
-                    await self._handle_group_delete(group_event, storage)
-                case EventType.MODIFY:
-                    await self._handle_group_modify(group_event, storage, mapper)
+            mapper = self._mapper_factory(storage)
+            await self._handle_group_create(event, storage, mapper)
+
+    @override
+    async def handle_group_modify(self, event: GroupModifyEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            mapper = self._mapper_factory(storage)
+            await self._handle_group_modify(event, storage, mapper)
+
+    @override
+    async def handle_group_delete(self, event: GroupDeleteEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            await self._handle_group_delete(event, storage)
 
     async def _handle_group_create(
-        self, group_event: GroupEvent, storage: Any, mapper: SQLAlchemyDNIDMapper
+        self, event: GroupCreateEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
-        if group_event.new is None:
-            return
-        props = group_event.new["properties"]
-        group_name = props.get("name", "")
-        school_name = group_name.split("-")[0]
+        group_props = event.new.properties
+        group_name = group_props.name
+        school_name = (
+            group_props.ucsschoolRole[0].school
+            if group_props.ucsschoolRole
+            else group_name.split("-")[0]
+        )
         logger.debug("Looking up school {!r} for group {!r}", school_name, group_name)
 
         found_schools = list(
@@ -408,47 +378,48 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         school = found_schools[0]
 
         allowed_email_senders_users = await self._fetch_users_by_dns(
-            props.get("allowedEmailUsers", []), "Email sender user", mapper, storage
+            group_props.allowedEmailUsers, "Email sender user", mapper, storage
         )
         allowed_email_senders_groups = await self._fetch_groups_by_dns(
-            props.get("allowedEmailGroups", []), "Email sender group", mapper, storage
+            group_props.allowedEmailGroups, "Email sender group", mapper, storage
         )
-        members = await self._fetch_users_by_dns(props.get("users", []), "Member", mapper, storage)
-        group_type_roles = await self._fetch_roles_by_entries(props.get("ucsschoolRole", []), storage)
+        members = await self._fetch_users_by_dns(group_props.users, "Member", mapper, storage)
+        group_type_roles = await self._fetch_roles_by_entries(group_props.ucsschoolRole, storage)
+        member_roles = await self._fetch_roles_by_guardian_entries(
+            group_props.guardianMemberRoles, storage
+        )
 
-        group_kwargs = self.udm_group_property_mapper.map(props)
-        group_kwargs.update(
-            {
-                "record_uid": group_kwargs["name"],
-                "source_uid": "kelvin-connector",
-                "display_name": group_kwargs["name"],
-                "school": school,
-                "allowed_email_senders_users": allowed_email_senders_users,
-                "allowed_email_senders_groups": allowed_email_senders_groups,
-                "members": members,
-                "member_roles": set(),
-                "create_share": False,
-                "group_type": group_type_roles,
-            }
+        public_id = group_props.univentionObjectIdentifier
+        logger.debug("Creating group {}", group_props.name)
+        await storage.groups.create(
+            Group(
+                public_id=public_id,
+                name=group_props.name,
+                display_name=group_props.name,
+                record_uid=group_props.name,
+                source_uid="kelvin-connector",
+                email=group_props.mailAddress,
+                school=school,
+                allowed_email_senders_users=allowed_email_senders_users,
+                allowed_email_senders_groups=allowed_email_senders_groups,
+                members=members,
+                create_share=False,
+                group_type=group_type_roles,
+                member_roles=member_roles,
+            )
         )
-        public_id = uuid.UUID(props["univentionObjectIdentifier"])
-        await storage.groups.create(Group(public_id=public_id, **group_kwargs))
-        await mapper.set_mapping(ObjectType.GROUP, group_event.new["dn"], public_id)
+        logger.trace("Setting dn-id mapping {} -> {}", event.new.dn, public_id)
+        await mapper.set_mapping(ObjectType.GROUP, event.new.dn, public_id)
 
-    async def _handle_group_delete(self, group_event: GroupEvent, storage: Any) -> None:
-        if group_event.old is None:
-            return
-        await storage.groups.delete(
-            uuid.UUID(group_event.old["properties"]["univentionObjectIdentifier"])
-        )
+    async def _handle_group_delete(self, event: GroupDeleteEvent, storage: KelvinStorageSession) -> None:
+        public_id = event.old.properties.univentionObjectIdentifier
+        await storage.groups.delete(public_id)
 
     async def _handle_group_modify(
-        self, group_event: GroupEvent, storage: Any, mapper: SQLAlchemyDNIDMapper
+        self, event: GroupModifyEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
-        if group_event.new is None:
-            return
-        props = group_event.new["properties"]
-        public_id = uuid.UUID(props["univentionObjectIdentifier"])
+        group_props = event.new.properties
+        public_id = group_props.univentionObjectIdentifier
         current_group = await storage.groups.get(
             public_id,
             load=LoadSpec.from_attributes(
@@ -457,20 +428,34 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 "allowed_email_senders_users",
                 "allowed_email_senders_groups",
                 "members",
+                "member_roles",
             ),
         )
 
-        school = await self._maybe_fetch_school_for_group(props, storage)
-        allowed_email_senders_users = await self._maybe_fetch_users_for_prop(
-            props, "allowedEmailUsers", "Email sender user", mapper, storage
+        school_name = (
+            group_props.ucsschoolRole[0].school
+            if group_props.ucsschoolRole
+            else group_props.name.split("-")[0]
         )
-        allowed_email_senders_groups = await self._maybe_fetch_groups_for_prop(
-            props, "allowedEmailGroups", "Email sender group", mapper, storage
+        found = list(
+            await storage.schools.search(
+                SearchQuery(Filter(field="name", op=Operator.EQ, value=school_name))
+            )
         )
-        members = await self._maybe_fetch_users_for_prop(props, "users", "Member", mapper, storage)
-        group_type_roles = await self._maybe_fetch_group_type_roles(props, storage)
+        school: School | UnloadedType = found[0] if found else UNLOADED
 
-        group_kwargs = self.udm_group_property_mapper.map(props)
+        allowed_email_senders_users = await self._fetch_users_by_dns(
+            group_props.allowedEmailUsers, "Email sender user", mapper, storage
+        )
+        allowed_email_senders_groups = await self._fetch_groups_by_dns(
+            group_props.allowedEmailGroups, "Email sender group", mapper, storage
+        )
+        members = await self._fetch_users_by_dns(group_props.users, "Member", mapper, storage)
+        group_type_roles = await self._fetch_roles_by_entries(group_props.ucsschoolRole, storage)
+        member_roles = await self._fetch_roles_by_guardian_entries(
+            group_props.guardianMemberRoles, storage
+        )
+
         with track_changes(
             current_group,
             replace_fields=frozenset(
@@ -480,17 +465,19 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                     "allowed_email_senders_users",
                     "allowed_email_senders_groups",
                     "members",
+                    "member_roles",
                 }
             ),
         ) as tracker:
             self._apply_group_changes(
                 current_group,
-                group_kwargs,
+                group_props,
                 school,
                 group_type_roles,
                 allowed_email_senders_users,
                 allowed_email_senders_groups,
                 members,
+                member_roles,
             )
         if tracker.patch:
             await storage.groups.modify(public_id, tracker.patch)
@@ -498,105 +485,77 @@ class SynchronizationManager(SynchronizationManagerProtocol):
     def _apply_group_changes(
         self,
         group: Group,
-        group_kwargs: dict,
-        school: Any,
-        group_type_roles: Any,
-        allowed_email_senders_users: Any,
-        allowed_email_senders_groups: Any,
-        members: Any,
+        group_props: GroupProperties,
+        school: School | UnloadedType,
+        group_type_roles: set[Role],
+        allowed_email_senders_users: set[User],
+        allowed_email_senders_groups: set[Group],
+        members: set[User],
+        member_roles: set[Role],
     ) -> None:
-        group_name = group_kwargs.get("name")
-        if group_name:
-            group.name = group_name
-            group.display_name = group_name
-            group.record_uid = group_name
-        if "email" in group_kwargs:
-            group.email = group_kwargs["email"]
-        for field, value in (
-            ("school", school),
-            ("group_type", group_type_roles),
-            ("allowed_email_senders_users", allowed_email_senders_users),
-            ("allowed_email_senders_groups", allowed_email_senders_groups),
-            ("members", members),
-        ):
-            if value is not UNLOADED:
-                setattr(group, field, value)
-
-    async def _maybe_fetch_school_for_group(self, props: dict, storage: Any) -> School | object:
-        if "name" not in props:
-            return UNLOADED
-        school_name = props["name"].split("-")[0]
-        found = list(
-            await storage.schools.search(
-                SearchQuery(Filter(field="name", op=Operator.EQ, value=school_name))
-            )
-        )
-        return found[0] if found else UNLOADED
-
-    async def _maybe_fetch_groups_for_prop(
-        self,
-        props: dict,
-        prop_key: str,
-        label: str,
-        mapper: SQLAlchemyDNIDMapper,
-        storage: Any,
-    ) -> set[Group] | object:
-        if prop_key not in props:
-            return UNLOADED
-        return await self._fetch_groups_by_dns(props[prop_key], label, mapper, storage)
-
-    async def _maybe_fetch_group_type_roles(self, props: dict, storage: Any) -> set | object:
-        if "ucsschoolRole" not in props:
-            return UNLOADED
-        return await self._fetch_roles_by_entries(props["ucsschoolRole"], storage)
+        group.name = group_props.name
+        group.display_name = group_props.name
+        group.record_uid = group_props.name
+        if group_props.mailAddress is not None:
+            group.email = group_props.mailAddress
+        if school is not UNLOADED:
+            group.school = school
+        group.group_type = group_type_roles
+        group.allowed_email_senders_users = allowed_email_senders_users
+        group.allowed_email_senders_groups = allowed_email_senders_groups
+        group.members = members
+        group.member_roles = member_roles
 
     # ── School event handlers ───────────────────────────────────────────────
 
-    async def handle_school_event(self, school_event: SchoolEvent) -> None:
+    @override
+    async def handle_school_create(self, event: SchoolCreateEvent) -> None:
         async with self.storage_factory.transaction_scope() as storage:
-            mapper = SQLAlchemyDNIDMapper(cast(KelvinSqlAlchemySession, storage).session)
-            match school_event.event_type:
-                case EventType.CREATE:
-                    await self._handle_school_create(school_event, storage, mapper)
-                case EventType.DELETE:
-                    await self._handle_school_delete(school_event, storage)
-                case EventType.MODIFY:
-                    await self._handle_school_modify(school_event, storage)
+            mapper = self._mapper_factory(storage)
+            await self._handle_school_create(event, storage, mapper)
+
+    @override
+    async def handle_school_modify(self, event: SchoolModifyEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            await self._handle_school_modify(event, storage)
+
+    @override
+    async def handle_school_delete(self, event: SchoolDeleteEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            await self._handle_school_delete(event, storage)
 
     async def _handle_school_create(
-        self, school_event: SchoolEvent, storage: Any, mapper: SQLAlchemyDNIDMapper
+        self, event: SchoolCreateEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
-        if school_event.new is None:
-            return
-        school_kwargs = self.udm_school_property_mapper.map(school_event.new["properties"])
-        public_id = uuid.UUID(school_event.new["properties"]["univentionObjectIdentifier"])
+        school_props = event.new.properties
+        public_id = school_props.univentionObjectIdentifier
         school = School(
             public_id=public_id,
-            record_uid=school_kwargs["name"],
+            name=school_props.name,
+            display_name=school_props.displayName,
+            record_uid=school_props.name,
             source_uid="kelvin-connector",
             educational_servers={"TODO"},
             administrative_servers={"TODO"},
-            **school_kwargs,
         )
         await storage.schools.create(school)
-        await mapper.set_mapping(ObjectType.SCHOOL, school_event.new["dn"], public_id)
-        logger.info("School {!r} created (public_id={})", school_kwargs["name"], public_id)
+        await mapper.set_mapping(ObjectType.SCHOOL, event.new.dn, public_id)
+        logger.info("School {!r} created (public_id={})", school_props.name, public_id)
 
-    async def _handle_school_delete(self, school_event: SchoolEvent, storage: Any) -> None:
-        if school_event.old is None:
-            return
-        await storage.schools.delete(
-            uuid.UUID(school_event.old["properties"]["univentionObjectIdentifier"])
-        )
+    async def _handle_school_delete(
+        self, event: SchoolDeleteEvent, storage: KelvinStorageSession
+    ) -> None:
+        public_id = event.old.properties.univentionObjectIdentifier
+        await storage.schools.delete(public_id)
 
-    async def _handle_school_modify(self, school_event: SchoolEvent, storage: Any) -> None:
-        if school_event.new is None:
-            return
-        public_id = uuid.UUID(school_event.new["properties"]["univentionObjectIdentifier"])
+    async def _handle_school_modify(
+        self, event: SchoolModifyEvent, storage: KelvinStorageSession
+    ) -> None:
+        school_props = event.new.properties
+        public_id = school_props.univentionObjectIdentifier
         current_school = await storage.schools.get(public_id)
-        school_kwargs = self.udm_school_property_mapper.map(school_event.new["properties"])
         with track_changes(current_school) as tracker:
-            for field, value in school_kwargs.items():
-                setattr(current_school, field, value)
+            current_school.name = school_props.name
+            current_school.display_name = school_props.displayName
         if tracker.patch:
             await storage.schools.modify(public_id, tracker.patch)
