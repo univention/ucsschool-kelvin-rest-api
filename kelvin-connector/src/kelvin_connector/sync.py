@@ -135,7 +135,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         roles_by_name: dict[str, Role] = {}
         if all_role_names:
             roles_by_name = {
-                r.name: r
+                cast(str, r.name): r
                 for r in await storage.roles.search(
                     SearchQuery(
                         Or(
