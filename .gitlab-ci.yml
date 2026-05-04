@@ -24,4 +24,55 @@ include:
     rules:
       - if: $RUN_RENOVATE == "yes"
 
+  # 1) Core API: strict and blocking
   - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage@jgietzel/type_hint_tooling
+    inputs:
+      job_prefix: "mypy_core_"
+      python_paths: "kelvin-api/ucsschool kelvin-connector"
+      mypy_config_file: "pyproject.toml"
+      strict_mode: true
+      allow_failure: false
+      report_dir: ".typing-reports/mypy-core"
+      job_rules:
+        - if: $CI_MERGE_REQUEST_ID
+          changes:
+            - kelvin-api/**/*.py
+            - kelvin-connector/**/*.py
+            - pyproject.toml
+        - if: $CI_COMMIT_REF_PROTECTED == "true"
+
+  # 2) Shared libs/workspaces: permissive, migration lane
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage@jgietzel/type_hint_tooling
+    inputs:
+      job_prefix: "mypy_libs_"
+      python_paths: "ucs-school-lib ucs-school-import ucsschool-objects"
+      mypy_config_file: "pyproject.toml"
+      strict_mode: false
+      allow_failure: true
+      mypy_extra_args: "--ignore-missing-imports"
+      report_dir: ".typing-reports/mypy-libs"
+      job_rules:
+        - if: $CI_MERGE_REQUEST_ID
+          changes:
+            - ucs-school-lib/**/*.py
+            - ucs-school-import/**/*.py
+            - ucsschool-objects/**/*.py
+            - pyproject.toml
+        - if: $CI_COMMIT_REF_PROTECTED == "true"
+
+  # 3) Test/perf area: permissive + exclude invalid package dir
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage@jgietzel/type_hint_tooling
+    inputs:
+      job_prefix: "mypy_tests_"
+      python_paths: "ucs-test-ucsschool-kelvin"
+      mypy_config_file: "pyproject.toml"
+      strict_mode: false
+      allow_failure: true
+      mypy_extra_args: "--ignore-missing-imports --exclude=(^|/)94_ucsschool-kelvin-performance(/|$)"
+      report_dir: ".typing-reports/mypy-tests"
+      job_rules:
+        - if: $CI_MERGE_REQUEST_ID
+          changes:
+            - ucs-test-ucsschool-kelvin/**/*.py
+            - pyproject.toml
+        - if: $CI_COMMIT_REF_PROTECTED == "true"
