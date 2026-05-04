@@ -23,3 +23,5 @@ include:
       - renovatebot/renovate.gitlab-ci.yml
     rules:
       - if: $RUN_RENOVATE == "yes"
+
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage@jgietzel/type_hint_tooling
