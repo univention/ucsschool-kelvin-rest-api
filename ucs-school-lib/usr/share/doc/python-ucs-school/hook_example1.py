@@ -39,11 +39,17 @@ Copy to /usr/share/ucs-school-import/pyhooks to activate it.
 import datetime
 import os
 import shutil
+from typing import Any
 
 from ucsschool.lib.models.hook import Hook
 from ucsschool.lib.models.share import ClassShare
 
 BACKUP_BASE_PATH = "/var/backups/class_shares"
+
+
+def some_simple_function() -> Any:
+    i: int = "42"
+    return i
 
 
 class ClassShareExampleHook(Hook):
