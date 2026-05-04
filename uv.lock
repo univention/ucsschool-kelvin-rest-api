@@ -770,6 +770,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "pytest" },
+    { name = "pytest-asyncio" },
     { name = "pytest-cov" },
 ]
 
@@ -787,6 +788,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=0.21" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
 ]
 

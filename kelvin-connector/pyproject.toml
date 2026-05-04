@@ -27,6 +27,7 @@ connector = "kelvin_connector.connector:main"
 [tool.pytest.ini_options]
 addopts = "--verbose --showlocals -p no:warnings  --cov=kelvin_connector --cov-report=term-missing"
 testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [[tool.uv.index]]
 url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/simple"
@@ -48,5 +49,6 @@ exclude_lines = [
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "pytest-asyncio>=0.21",
     "pytest-cov>=4.0.0",
 ]

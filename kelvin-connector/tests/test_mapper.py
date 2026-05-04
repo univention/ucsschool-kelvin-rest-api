@@ -1,6 +1,10 @@
 from dataclasses import fields
 
-from kelvin_connector.sync import UDM_USER_PROPERTY_MAPPING, UDMPropertyMapper
+import pytest
+from kelvin_connector.property_mapper import (
+    UDM_USER_PROPERTY_MAPPING,
+    UDMPropertyMapper,
+)
 from ucsschool_objects.core.domain import User
 
 test_data = {
@@ -47,3 +51,23 @@ def test_fields_equal_mapping():
     user_fields = set([user_field.name for user_field in user_fields])
     user_fields.remove("public_id")
     assert user_fields == set(UDM_USER_PROPERTY_MAPPING.values())
+
+
+def test_register_map_raises_on_duplicate_source_key():
+    mapper = UDMPropertyMapper()
+    mapper.register_map({"key_a": "val_a"})
+    with pytest.raises(ValueError, match="Source key 'key_a' is already registered"):
+        mapper.register_map({"key_a": "val_b"})
+
+
+def test_register_map_raises_on_duplicate_target_key():
+    mapper = UDMPropertyMapper()
+    mapper.register_map({"key_a": "val_a"})
+    with pytest.raises(ValueError, match="Target key 'val_a' is already registered"):
+        mapper.register_map({"key_b": "val_a"})
+
+
+def test_register_hook_raises_on_unregistered_source_key():
+    mapper = UDMPropertyMapper()
+    with pytest.raises(ValueError, match="Source key 'missing' is not registered"):
+        mapper.register_hook("missing", lambda x: x)
