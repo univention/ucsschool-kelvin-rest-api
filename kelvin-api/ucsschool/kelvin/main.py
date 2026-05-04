@@ -179,3 +179,8 @@ app.mount(
     StaticFiles(directory=str(STATIC_FILES_PATH)),
     name="static_v2",
 )
+
+
+def some_simple_function() -> Any:
+    i: int = "42"
+    return i
