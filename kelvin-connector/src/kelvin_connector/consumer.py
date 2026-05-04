@@ -68,6 +68,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
 
     @override
     async def handle_event(self, event: QueryEventObject) -> bool:
+        self.logger.trace(event)
         UDMEventObject.validate(event)
         return await super().handle_event(event)
 
