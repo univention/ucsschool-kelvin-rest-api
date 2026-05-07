@@ -18,12 +18,14 @@ services:
     environment:
       POSTGRES_USER: ucsschool-kelvin-rest-api
       POSTGRES_PASSWORD: univention
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ucsschool-kelvin-rest-api"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
   connector:
     image: ucsschool-kelvin-connector:dev
     pull_policy: build
-    depends_on:
-      kelvin:
-        condition: service_healthy
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -39,6 +41,7 @@ services:
     environment:
       LDAP_SERVER_TYPE: "${LDAP_SERVER_TYPE}"
       PROVISIONING_FQDN: "${LDAP_SERVER_NAME}"
+      KELVIN_HEALTH_URL: "http://kelvin:8911/health"
     env_file:
       - _vm_config/env
     extra_hosts:
@@ -60,6 +63,9 @@ services:
   kelvin:
     image: ucsschool-kelvin-rest-api:dev
     pull_policy: build
+    depends_on:
+      postgres:
+        condition: service_healthy
     build:
       context: ..
       dockerfile: docker/Dockerfile
