@@ -4,17 +4,38 @@
 #   TRUSTED_PROXY_IPS: Optional. Comma-separated IPs/CIDRs trusted for
 #   X-Forwarded-* headers. If unset, Gunicorn ignores forwarded headers.
 
-APPCENTER_TIMEOUT=0
+TIMEOUT="${APPCENTER_WAIT_TIMEOUT:-60}"
+elapsed=0
 while [[ ! -f "/etc/machine.secret" ]]; do
-    if [[ APPCENTER_TIMEOUT -gt 60 ]]; then
-        echo "ERROR: univention appcenter did not write /etc/machine.secret"
+    if [[ $elapsed -ge $TIMEOUT ]]; then
+        echo "ERROR: timed out waiting for /etc/machine.secret after ${TIMEOUT}s"
         exit 1
     fi
-    # Currently the best way to wait for the appcenter to configure the container
-    echo "waiting for univention appcenter to create /etc/machine.secret"
+    echo "waiting for /etc/machine.secret (${elapsed}s / ${TIMEOUT}s)"
     sleep 1
-    ((APPCENTER_TIMEOUT++))
+    ((elapsed++))
 done
+
+if [[ -z "${UCSSCHOOL_KELVIN_DB_URI}" ]]; then
+    DB_URI_FILE="${UCSSCHOOL_KELVIN_DB_URI_FILE:-/etc/ucsschool/kelvin/postgresql-kelvin.uri}"
+    TIMEOUT="${MIGRATE_WAIT_TIMEOUT:-120}"
+    elapsed=0
+    while [[ ! -f "$DB_URI_FILE" ]]; do
+        if [[ $elapsed -ge $TIMEOUT ]]; then
+            echo "ERROR: timed out waiting for $DB_URI_FILE after ${TIMEOUT}s"
+            exit 1
+        fi
+        echo "waiting for $DB_URI_FILE (${elapsed}s / ${TIMEOUT}s)"
+        sleep 1
+        ((elapsed++))
+    done
+fi
+
+if [[ "$SKIP_UCSSCHOOL_KELVIN_DB_MIGRATION" != "true" ]]; then
+    echo "Migration log:"
+    alembic --config pyproject.toml upgrade head
+    echo "... migration done"
+fi
 
 NUM_WORKERS="${NUM_WORKERS:-$(ucr get ucsschool/kelvin/processes)}"
 
@@ -38,12 +59,6 @@ if [[ $? -eq 1 ]]; then
         --username "$MACHINE_USER" \
         --password "$MACHINE_PASSWORD" \
         "$DOCKER_HOST_NAME"
-fi
-
-if [[ "$SKIP_UCSSCHOOL_KELVIN_DB_MIGRATION" != "true" ]]; then
-    echo "Migration log:"
-    alembic --config pyproject.toml upgrade head
-    echo "... migration done"
 fi
 
 exec gunicorn \

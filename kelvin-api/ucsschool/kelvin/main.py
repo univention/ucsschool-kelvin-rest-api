@@ -84,7 +84,7 @@ add_exception_handlers(app, logger)
 
 
 @app.get("/health", include_in_schema=False)
-async def health():
+async def health(_: None = Depends(check_db_compatibility)):
     return {"status": "ok"}
 
 
