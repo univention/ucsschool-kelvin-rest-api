@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import cast
@@ -15,7 +14,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _fetch_one_by_public_id,
     generate_public_id,
 )
-from ucsschool_objects.core.domain import UNSET, Group, Role, School, UnloadedType, User
+from ucsschool_objects.core.domain import UNSET, Group, NotFound, Role, School, UnloadedType, User
 from ucsschool_objects.core.domain.models import SchoolMembership as DomainSchoolMembership
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -24,8 +23,6 @@ from ucsschool_objects.database_models import (
     SchoolMembership as SchoolMembershipModel,
     User as UserModel,
 )
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -256,12 +253,10 @@ async def _resolve_group_member_memberships(
     result = []
     for user in users_by_public_id.values():
         if user.id not in by_user_id:
-            logger.warning(
-                "User %s has no membership in school %s, skipping as group member",
-                user.public_id,
-                school_model.public_id,
+            raise NotFound(
+                object_type="SchoolMembership",
+                public_id=f"user={user.public_id}, school={school_model.public_id}",
             )
-            continue
         result.append(by_user_id[user.id])
     return result
 

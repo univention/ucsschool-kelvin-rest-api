@@ -541,8 +541,7 @@ async def test_group_manager_modify_group_type_not_found_raises(
     group = await group_factory()
     with pytest.raises(NotFound):
         await SQLAlchemyGroupManager(db_session).modify(
-            group.public_id,
-            [{"op": "replace", "path": "/group_type", "value": "nonexistent-type"}],
+            group.public_id, [{"op": "replace", "path": "/group_type", "value": "nonexistent-type"}]
         )
 
 

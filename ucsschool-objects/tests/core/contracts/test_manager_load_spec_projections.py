@@ -338,7 +338,7 @@ async def test_group_manager_load_spec_projection_matrix(
     spec = LoadSpec.from_attributes(load_attr)
     result = await _fetch_loaded_record(manager, public_id, query, spec, method_name)
 
-    _assert_only_expected_fields_loaded(result, {load_attr, "group_type", "school"})
+    _assert_only_expected_fields_loaded(result, {load_attr, "school"})
     if load_attr in {"record_uid", "source_uid", "name", "display_name", "create_share", "email"}:
         assert getattr(result, load_attr) == context[load_attr]
     elif load_attr == "group_type":

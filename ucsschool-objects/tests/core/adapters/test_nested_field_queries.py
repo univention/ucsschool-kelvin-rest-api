@@ -341,7 +341,7 @@ def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPa
         record_uid="record-uid",
         source_uid="source-uid",
         name="group-name",
-        display_name={"de_DE": "Group Name"},
+        display_name="Group Name",
         has_share=True,
         email=None,
         allowed_email_senders_users=(),

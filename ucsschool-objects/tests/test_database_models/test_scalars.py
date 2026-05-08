@@ -144,11 +144,11 @@ async def test_non_unique_scalar_set_to_duplicate(
     [
         ("school_factory", "id", int),
         ("school_factory", "public_id", uuid.UUID),
-        ("school_factory", "display_name", {}),
+        ("school_factory", "display_name", ""),
         ("school_factory", "administrative_servers", []),
         ("group_factory", "id", int),
         ("group_factory", "public_id", uuid.UUID),
-        ("group_factory", "display_name", {}),
+        ("group_factory", "display_name", ""),
         ("group_factory", "has_share", False),
         ("user_factory", "id", int),
         ("user_factory", "public_id", uuid.UUID),

@@ -143,7 +143,7 @@ def school_data_factory(faker: Any) -> SchoolDataFactory:
             "record_uid": faker.unique.ssn(),
             "source_uid": faker.unique.ssn(),
             "name": faker.unique.company(),
-            "display_name": {"de": faker.name(), "en": faker.name()},
+            "display_name": faker.name(),
             "educational_servers": [faker.domain_name() for _ in range(5)],
             "administrative_servers": [faker.domain_name() for _ in range(5)],
             "class_share_file_server": faker.domain_name(),
@@ -183,7 +183,7 @@ def role_data_factory(faker: Any) -> RoleDataFactory:
         return {
             "public_id": uuid.uuid4(),
             "name": faker.unique.name(),
-            "display_name": {"de": faker.name(), "en": faker.name()},
+            "display_name": faker.name(),
         }
 
     return _role_data_factory
@@ -216,7 +216,7 @@ def group_data_factory(faker: Any) -> GroupDataFactory:
             "record_uid": faker.unique.ssn(),
             "source_uid": faker.unique.ssn(),
             "name": faker.unique.name(),
-            "display_name": {"de": faker.name(), "en": faker.name()},
+            "display_name": faker.name(),
             "has_share": random.choice([True, False]),  # nosec
             "email": faker.email(),
             "school": None,

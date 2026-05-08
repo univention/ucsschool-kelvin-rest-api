@@ -26,7 +26,6 @@ if TYPE_CHECKING:
 @pytest.mark.parametrize(
     "model_factory,fk_name",
     [
-        ("group_factory", "group_type_id"),
         ("group_factory", "school_id"),
         ("school_membership_factory", "user_id"),
         ("school_membership_factory", "school_id"),
@@ -64,7 +63,6 @@ async def test_foreign_key_nullable(
 @pytest.mark.parametrize(
     "model_factory,relation_name",
     [
-        ("group_factory", "group_type"),
         ("group_factory", "school"),
     ],
     indirect=["model_factory"],
@@ -152,7 +150,6 @@ async def test_many_to_many_orm_delete_cascade(
 @pytest.mark.parametrize(
     "model_factory,relation_name",
     [
-        ("group_factory", "group_type"),
         ("group_factory", "school"),
         ("school_membership_factory", "user"),
         ("school_membership_factory", "school"),
@@ -174,6 +171,7 @@ async def test_relation_is_eager_loaded(
 @pytest.mark.parametrize(
     "model_factory,relation_name",
     [
+        ("group_factory", "group_type"),
         ("group_factory", "members"),
         ("group_factory", "allowed_email_senders_users"),
         ("group_factory", "allowed_email_senders_groups"),
