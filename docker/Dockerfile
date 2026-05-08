@@ -90,7 +90,6 @@ COPY kelvin-api/usr/share/ucs-school-import/configs/kelvin_defaults.json /usr/sh
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENTRYPOINT ["/kelvin/start-kelvin.sh"]
 VOLUME /var/log
-VOLUME /etc/univention
 EXPOSE 8911
 
 ARG app_id
