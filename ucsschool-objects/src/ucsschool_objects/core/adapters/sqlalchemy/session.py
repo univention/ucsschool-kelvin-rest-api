@@ -38,20 +38,23 @@ class DatabaseSettings:
     max_overflow: int = 20
 
 
+def _read_env_or_file(env_var: str, file_env_var: str) -> str:
+    value = os.getenv(env_var)
+    if value:
+        return value
+    file_path = os.getenv(file_env_var)
+    if file_path:
+        return Path(file_path).read_text().strip()
+    raise RuntimeError(f"Neither {env_var} nor {file_env_var} is set.")
+
+
 def _get_url() -> URL:  # pragma: no cover
     # TODO: merge with kelvin-api/ucsschool/kelvin/database.py
-    db_uri = os.getenv("UCSSCHOOL_KELVIN_DB_URI")
-    if not db_uri:
-        raise RuntimeError("UCSSCHOOL_KELVIN_DB_URI environment variable is not set.")
-    sqlalchemy_url = make_url(db_uri).set(
-        username=os.getenv("UCSSCHOOL_KELVIN_DB_USERNAME"),
-        password=Path(
-            os.getenv(
-                "UCSSCHOOL_KELVIN_DB_PASSWORD_FILE", "/etc/ucsschool/kelvin/postgresql-kelvin.secret"
-            )
-        )
-        .read_text()
-        .strip(),
+    sqlalchemy_url = make_url(
+        _read_env_or_file("UCSSCHOOL_KELVIN_DB_URI", "UCSSCHOOL_KELVIN_DB_URI_FILE")
+    ).set(
+        username=_read_env_or_file("UCSSCHOOL_KELVIN_DB_USERNAME", "UCSSCHOOL_KELVIN_DB_USERNAME_FILE"),
+        password=_read_env_or_file("UCSSCHOOL_KELVIN_DB_PASSWORD", "UCSSCHOOL_KELVIN_DB_PASSWORD_FILE"),
     )
 
     if not sqlalchemy_url.drivername or sqlalchemy_url.drivername == "postgresql":
