@@ -334,14 +334,14 @@ def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPa
     from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
 
     class _State:
-        unloaded = {"school", "group_type"}
+        unloaded = {"school", "roles"}
 
     model = SimpleNamespace(
         public_id=uuid4(),
         record_uid="record-uid",
         source_uid="source-uid",
         name="group-name",
-        display_name={"de_DE": "Group Name"},
+        display_name="Group Name",
         has_share=True,
         email=None,
         allowed_email_senders_users=(),
@@ -355,7 +355,7 @@ def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPa
     group = to_domain.to_group(model)  # type: ignore[arg-type]
 
     assert group.school is UNLOADED
-    assert group.group_type is UNLOADED
+    assert group.roles is UNLOADED
 
 
 def test_to_user_raises_when_membership_school_has_no_uuid(

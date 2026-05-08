@@ -117,9 +117,9 @@ async def _apply_group_patch(
     await _sync_collection(
         session,
         model,
-        "group_type",
-        cast(list[object], patched["group_type"]),
-        cast(list[object], current["group_type"]),
+        "roles",
+        cast(list[object], patched["roles"]),
+        cast(list[object], current["roles"]),
         RoleModel,
     )
     await _sync_scalar_relation(
@@ -181,9 +181,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
             select(GroupModel)
             .where(GroupModel.public_id == public_id)
             .options(
-                selectinload(GroupModel.group_type).load_only(
-                    RoleModel.public_id, *_role_scalar_columns()
-                ),
+                selectinload(GroupModel.roles).load_only(RoleModel.public_id, *_role_scalar_columns()),
                 selectinload(GroupModel.school),
                 selectinload(GroupModel.member_roles),
                 selectinload(GroupModel.members).selectinload(SchoolMembershipModel.user),
@@ -200,11 +198,9 @@ class SQLAlchemyGroupManager(Manager[Group]):
             load,
             self._LOAD_ATTRIBUTE_MAP,
         )
-        if load is not None and load.includes("group_type"):
+        if load is not None and load.includes("roles"):
             stmt = stmt.options(
-                selectinload(GroupModel.group_type).load_only(
-                    RoleModel.public_id, *_role_scalar_columns()
-                )
+                selectinload(GroupModel.roles).load_only(RoleModel.public_id, *_role_scalar_columns())
             )
         if load is not None and load.includes("allowed_email_senders_users"):
             stmt = stmt.options(
@@ -302,7 +298,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         """
         group_model = to_group_model(data)
         relations = await resolve_group_create_relations(self._session, data)
-        group_model.group_type = relations.group_type
+        group_model.roles = relations.roles
         group_model.school = relations.school
         group_model.member_roles = relations.member_roles
         group_model.members = cast(list[SchoolMembershipModel], getattr(relations, "members"))
