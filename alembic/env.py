@@ -7,12 +7,12 @@ from contextlib import contextmanager
 # Kelvin connector SQL models with the Base
 from kelvin_connector import database_models  # noqa: F401
 from sqlalchemy import engine_from_config, pool, text
+from ucsschool_objects.core.adapters.sqlalchemy.session import build_settings
 from ucsschool_objects.database_models import Base
 
 from alembic import context
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from ucsschool.kelvin.database import get_database_url
 from ucsschool.kelvin.service.log import setup_logging
 
 setup_logging()
@@ -23,7 +23,7 @@ config = context.config
 
 target_metadata = Base.metadata
 
-config.set_main_option("sqlalchemy.url", get_database_url().render_as_string(hide_password=False))
+config.set_main_option("sqlalchemy.url", build_settings().url.render_as_string(hide_password=False))
 
 
 def _advisory_lock_id() -> int:
