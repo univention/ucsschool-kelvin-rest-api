@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pathlib
 import uuid
 from collections.abc import AsyncGenerator
 from typing import cast
@@ -11,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from ucsschool_objects.core.adapters.sqlalchemy.session import (
     DatabaseSettings,
     KelvinSqlAlchemySessionFactory,
+    _read_env_or_file,
     build_engine,
     build_kelvin_storage_session_factory,
     build_session_factory,
@@ -188,3 +190,23 @@ async def test_require_transaction_raises_when_not_active(
     storage = wired_storage_factory.transaction_scope()
     with pytest.raises(RuntimeError, match="Storage transaction is not active"):
         storage._require_transaction()
+
+
+def test_read_env_or_file_reads_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MY_VAR", "direct-value")
+    assert _read_env_or_file("MY_VAR", "MY_VAR_FILE") == "direct-value"
+
+
+def test_read_env_or_file_reads_file(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    secret_file = tmp_path / "secret.txt"
+    secret_file.write_text("file-value\n")
+    monkeypatch.delenv("MY_VAR", raising=False)
+    monkeypatch.setenv("MY_VAR_FILE", str(secret_file))
+    assert _read_env_or_file("MY_VAR", "MY_VAR_FILE") == "file-value"
+
+
+def test_read_env_or_file_raises_when_neither_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("MY_VAR", raising=False)
+    monkeypatch.delenv("MY_VAR_FILE", raising=False)
+    with pytest.raises(RuntimeError, match="Neither MY_VAR nor MY_VAR_FILE is set"):
+        _read_env_or_file("MY_VAR", "MY_VAR_FILE")
