@@ -118,17 +118,21 @@ async def _sync_collection(
     current_list: list[object],
     target_model: type[TModel],
 ) -> None:
-    """Sync a collection relationship based on public_id list comparison."""
+    """Sync a collection relationship based on public_id list comparison.
+
+    Raises NotFound if any requested public_id has no matching row.
+    """
     current_ids = _extract_public_ids(current_list)
     patched_ids = _extract_public_ids(patched_list)
     if current_ids == patched_ids:
         return
 
     if patched_ids:
-        result = await session.execute(
-            select(target_model).where(getattr(target_model, "public_id").in_(patched_ids))
+        object_type = target_model.__name__
+        records = await _bulk_fetch_by_public_id(
+            session, target_model, list(patched_ids), object_type
         )
-        setattr(model, relation, list(result.scalars()))
+        setattr(model, relation, list(records.values()))
     else:
         setattr(model, relation, [])
 
@@ -175,20 +179,6 @@ async def _fetch_one_by_public_id(
     ).scalar_one_or_none()
     if result is None:
         raise NotFound(object_type=object_type, public_id=str(public_id))
-    return result
-
-
-async def _fetch_one_by_name(
-    session: AsyncSession,
-    model_class: type[TModel],
-    name_col: InstrumentedAttribute[str],
-    name: str,
-    object_type: str,
-) -> TModel:
-    """Fetch a single ORM object by name column. Raises NotFound if absent."""
-    result = (await session.execute(select(model_class).where(name_col == name))).scalar_one_or_none()
-    if result is None:
-        raise NotFound(object_type=object_type, public_id=name)
     return result
 
 
