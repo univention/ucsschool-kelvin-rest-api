@@ -35,7 +35,7 @@ print(hostname)
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
       - /usr/share/ca-certificates:/usr/share/ca-certificates:ro
-      - /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json:ro
+      - /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf:ro
       - /usr/local/share/ca-certificates:/usr/local/share/ca-certificates:ro
       - /etc/ucsschool/kelvin:/etc/ucsschool/kelvin
     environment:
