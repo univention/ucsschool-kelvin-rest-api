@@ -375,7 +375,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             group_props.allowedEmailGroups, "Email sender group", mapper, storage
         )
         members = await self._fetch_users_by_dns(group_props.users, "Member", mapper, storage)
-        group_type_roles = await self._fetch_roles_by_entries(group_props.ucsschoolRole, storage)
+        group_roles = await self._fetch_roles_by_entries(group_props.ucsschoolRole, storage)
         member_roles = await self._fetch_roles_by_guardian_entries(
             group_props.guardianMemberRoles, storage
         )
@@ -395,7 +395,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 allowed_email_senders_groups=allowed_email_senders_groups,
                 members=members,
                 create_share=False,
-                roles=group_type_roles,
+                roles=group_roles,
                 member_roles=member_roles,
             )
         )
@@ -442,7 +442,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             group_props.allowedEmailGroups, "Email sender group", mapper, storage
         )
         members = await self._fetch_users_by_dns(group_props.users, "Member", mapper, storage)
-        group_type_roles = await self._fetch_roles_by_entries(group_props.ucsschoolRole, storage)
+        group_roles = await self._fetch_roles_by_entries(group_props.ucsschoolRole, storage)
         member_roles = await self._fetch_roles_by_guardian_entries(
             group_props.guardianMemberRoles, storage
         )
@@ -464,7 +464,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 current_group,
                 group_props,
                 school,
-                group_type_roles,
+                group_roles,
                 allowed_email_senders_users,
                 allowed_email_senders_groups,
                 members,
@@ -478,7 +478,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         group: Group,
         group_props: GroupProperties,
         school: School | UnloadedType,
-        group_type_roles: set[Role],
+        group_roles: set[Role],
         allowed_email_senders_users: set[User],
         allowed_email_senders_groups: set[Group],
         members: set[User],
@@ -491,7 +491,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             group.email = group_props.mailAddress
         if school is not UNLOADED:
             group.school = school
-        group.roles = group_type_roles
+        group.roles = group_roles
         group.allowed_email_senders_users = allowed_email_senders_users
         group.allowed_email_senders_groups = allowed_email_senders_groups
         group.members = members
