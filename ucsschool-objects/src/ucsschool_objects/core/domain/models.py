@@ -89,7 +89,7 @@ class Group:
     name: str | UnloadedType
     display_name: str | UnloadedType
     create_share: bool | UnloadedType
-    group_type: set[Role] | UnloadedType
+    roles: set[Role] | UnloadedType
     allowed_email_senders_users: set[User] | UnloadedType
     allowed_email_senders_groups: set[Group] | UnloadedType
     members: set[User] | UnloadedType
@@ -116,7 +116,7 @@ class Group:
             name=unloaded,
             display_name=unloaded,
             create_share=unloaded,
-            group_type=unloaded,
+            roles=unloaded,
             allowed_email_senders_users=unloaded,
             allowed_email_senders_groups=unloaded,
             members=unloaded,
