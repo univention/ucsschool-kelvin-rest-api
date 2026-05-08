@@ -24,7 +24,7 @@ def _make_school(name: str) -> School:
         record_uid=f"record-{name}",
         source_uid=f"source-{name}",
         name=name,
-        display_name={"de": name, "en": name},
+        display_name=name,
         educational_servers=[f"{name}.edu.example"],
         administrative_servers=[f"{name}.adm.example"],
         class_share_file_server=f"{name}.class.example",

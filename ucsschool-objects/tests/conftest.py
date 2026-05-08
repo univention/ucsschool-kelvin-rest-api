@@ -143,7 +143,7 @@ def school_data_factory(faker: Any) -> SchoolDataFactory:
             "record_uid": faker.unique.ssn(),
             "source_uid": faker.unique.ssn(),
             "name": faker.unique.company(),
-            "display_name": {"de": faker.name(), "en": faker.name()},
+            "display_name": faker.name(),
             "educational_servers": [faker.domain_name() for _ in range(5)],
             "administrative_servers": [faker.domain_name() for _ in range(5)],
             "class_share_file_server": faker.domain_name(),
@@ -173,7 +173,7 @@ def school_factory(
 
 
 @pytest.fixture
-def group_type_factory(role_factory: AsyncRoleFactory) -> AsyncGroupTypeFactory:
+def roles_factory(role_factory: AsyncRoleFactory) -> AsyncGroupTypeFactory:
     return role_factory
 
 
@@ -183,7 +183,7 @@ def role_data_factory(faker: Any) -> RoleDataFactory:
         return {
             "public_id": uuid.uuid4(),
             "name": faker.unique.name(),
-            "display_name": {"de": faker.name(), "en": faker.name()},
+            "display_name": faker.name(),
         }
 
     return _role_data_factory
@@ -216,7 +216,7 @@ def group_data_factory(faker: Any) -> GroupDataFactory:
             "record_uid": faker.unique.ssn(),
             "source_uid": faker.unique.ssn(),
             "name": faker.unique.name(),
-            "display_name": {"de": faker.name(), "en": faker.name()},
+            "display_name": faker.name(),
             "has_share": random.choice([True, False]),  # nosec
             "email": faker.email(),
             "school": None,
@@ -235,18 +235,18 @@ def group_factory(
 ) -> AsyncGroupFactory:
     async def _factory(persisted: bool = True, **overrides: object) -> Group:
         target_session = cast(AsyncSession, overrides.pop("db_session", db_session))
-        group_type_override = overrides.pop("group_type", None)
+        roles_override = overrides.pop("roles", None)
         group_data: dict[str, object] = group_data_factory()
         group_data.update(overrides)
         group = Group(**_drop_unset_values(group_data, unset_sentinel))
-        if group_type_override is not None:
-            group.group_type = cast(
+        if roles_override is not None:
+            group.roles = cast(
                 list[Role],
-                group_type_override if isinstance(group_type_override, list) else [group_type_override],
+                roles_override if isinstance(roles_override, list) else [roles_override],
             )
         else:
             role = await role_factory(db_session=target_session)
-            group.group_type = [role]
+            group.roles = [role]
         if "school" not in overrides:
             group.school = await school_factory(persisted=False, db_session=target_session)
         if persisted:

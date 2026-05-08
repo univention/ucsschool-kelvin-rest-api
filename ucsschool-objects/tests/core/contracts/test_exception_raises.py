@@ -101,7 +101,7 @@ def build_exception_case(
 async def test_group_manager_raises_invalid_filter(
     db_session: AsyncSession,
     group_factory: GroupFactory,
-    group_type_factory: GroupTypeFactory,
+    roles_factory: GroupTypeFactory,
     search_args: dict[str, Any],
     expected_exc_type: type[FieldInvalidFilter],
     expected_exc_message: str,
@@ -112,8 +112,8 @@ async def test_group_manager_raises_invalid_filter(
     Tests whether SQLAlchemyGroupManager.search raises the concrete InvalidFilter subtype
     for each failure mode.
     """
-    school_class_type = await group_type_factory(name="school_class")
-    await group_factory(group_type=school_class_type)
+    school_class_type = await roles_factory(name="school_class")
+    await group_factory(roles=school_class_type)
     manager = SQLAlchemyGroupManager(db_session)
 
     with pytest.raises(expected_exc_type, match=expected_exc_message) as exc_info:

@@ -47,8 +47,8 @@ def _as_optional_date(value: object) -> date | None:
     return cast(date, value)
 
 
-def _as_display_name(value: object) -> dict[str, str]:
-    return dict(cast(dict[str, str], value))
+def _as_role_display_name(value: object) -> dict[str, str]:
+    return cast(dict[str, str], value)
 
 
 def _as_set_str(value: object) -> set[str]:
@@ -115,7 +115,7 @@ def to_role(model: RoleModel) -> Role:
     return Role(
         public_id=model.public_id,
         name=_loaded_value(model, "name", _as_str),
-        display_name=_loaded_value(model, "display_name", _as_display_name),
+        display_name=_loaded_value(model, "display_name", _as_role_display_name),
     )
 
 
@@ -124,9 +124,9 @@ def to_group(model: GroupModel) -> Group:
     if _is_loaded(model, "school"):
         school = to_school(model.school)
 
-    group_type: set[Role] | UnloadedType = UNLOADED
-    if _is_loaded(model, "group_type"):
-        group_type = {to_role(r) for r in model.group_type}
+    roles: set[Role] | UnloadedType = UNLOADED
+    if _is_loaded(model, "roles"):
+        roles = {to_role(r) for r in model.roles}
 
     allowed_email_senders_users: set[User] | UnloadedType = UNLOADED
     if _is_loaded(model, "allowed_email_senders_users"):
@@ -153,7 +153,7 @@ def to_group(model: GroupModel) -> Group:
         name=_loaded_value(model, "name", _as_str),
         display_name=_loaded_value(model, "display_name", _as_str),
         create_share=_loaded_value(model, "has_share", _as_bool),
-        group_type=group_type,
+        roles=roles,
         email=_loaded_value(model, "email", _as_optional_str),
         allowed_email_senders_users=allowed_email_senders_users,
         allowed_email_senders_groups=allowed_email_senders_groups,
@@ -251,15 +251,6 @@ def school_from_patch(patched: dict[str, object], public_id: UUID) -> School:
 
 
 def group_from_patch(patched: dict[str, object], public_id: UUID) -> Group:
-    raw_group_type = cast(list[dict[str, object]], patched["group_type"])
-    group_type: set[Role] = {
-        Role(
-            public_id=UUID(str(entry["public_id"])),
-            name=cast(str, entry["name"]),
-            display_name=cast(dict[str, str], entry["display_name"]),
-        )
-        for entry in raw_group_type
-    }
     return Group(
         public_id=public_id,
         record_uid=cast(str, patched["record_uid"]),
@@ -267,7 +258,7 @@ def group_from_patch(patched: dict[str, object], public_id: UUID) -> Group:
         name=cast(str, patched["name"]),
         display_name=cast(str, patched["display_name"]),
         create_share=cast(bool, patched["create_share"]),
-        group_type=group_type,
+        roles=cast(set[Role], patched["roles"]),
         email=cast(str | None, patched["email"]),
         school=UNLOADED,
         members=UNLOADED,

@@ -112,7 +112,7 @@ def test_group_minimal_only_loads_public_id() -> None:
     assert isinstance(group.name, type(UNLOADED))
     assert isinstance(group.display_name, type(UNLOADED))
     assert isinstance(group.create_share, type(UNLOADED))
-    assert isinstance(group.group_type, type(UNLOADED))
+    assert isinstance(group.roles, type(UNLOADED))
     assert isinstance(group.allowed_email_senders_users, type(UNLOADED))
     assert isinstance(group.allowed_email_senders_groups, type(UNLOADED))
     assert isinstance(group.members, type(UNLOADED))
@@ -155,7 +155,7 @@ def test_group_equality_by_public_id() -> None:
         name="class-a",
         display_name=UNLOADED,
         create_share=False,
-        group_type=UNLOADED,
+        roles=UNLOADED,
         email=None,
         allowed_email_senders_users=UNLOADED,
         allowed_email_senders_groups=UNLOADED,
@@ -170,7 +170,7 @@ def test_group_equality_by_public_id() -> None:
         name="class-b",
         display_name=UNLOADED,
         create_share=True,
-        group_type=UNLOADED,
+        roles=UNLOADED,
         email=None,
         allowed_email_senders_users=UNLOADED,
         allowed_email_senders_groups=UNLOADED,

@@ -75,9 +75,9 @@ async def _setup_school_like_case(factories: SchoolQueryFactories) -> QueryExpec
 
 
 async def _setup_group_eq_case(factories: GroupQueryFactories) -> QueryExpectation:
-    workgroup_type = await factories.group_type_factory(name="workgroup")
-    await factories.group_factory(name="group-a", group_type=workgroup_type)
-    await factories.group_factory(name="group-b", group_type=workgroup_type)
+    role = await factories.roles_factory(name="workgroup")
+    await factories.group_factory(name="group-a", roles=role)
+    await factories.group_factory(name="group-b", roles=role)
     return QueryExpectation(
         query=SearchQuery(where=Filter(field="name", op=Operator.EQ, value="group-a")),
         expected_names=("group-a",),
@@ -85,9 +85,9 @@ async def _setup_group_eq_case(factories: GroupQueryFactories) -> QueryExpectati
 
 
 async def _setup_group_ne_case(factories: GroupQueryFactories) -> QueryExpectation:
-    workgroup_type = await factories.group_type_factory(name="workgroup")
-    await factories.group_factory(name="group-a", group_type=workgroup_type)
-    await factories.group_factory(name="group-b", group_type=workgroup_type)
+    role = await factories.roles_factory(name="workgroup")
+    await factories.group_factory(name="group-a", roles=role)
+    await factories.group_factory(name="group-b", roles=role)
     return QueryExpectation(
         query=SearchQuery(where=Filter(field="name", op=Operator.NE, value="group-a")),
         expected_names=("group-b",),
@@ -95,10 +95,10 @@ async def _setup_group_ne_case(factories: GroupQueryFactories) -> QueryExpectati
 
 
 async def _setup_group_in_case(factories: GroupQueryFactories) -> QueryExpectation:
-    workgroup_type = await factories.group_type_factory(name="workgroup")
-    await factories.group_factory(name="group-a", group_type=workgroup_type)
-    await factories.group_factory(name="group-b", group_type=workgroup_type)
-    await factories.group_factory(name="group-c", group_type=workgroup_type)
+    role = await factories.roles_factory(name="workgroup")
+    await factories.group_factory(name="group-a", roles=role)
+    await factories.group_factory(name="group-b", roles=role)
+    await factories.group_factory(name="group-c", roles=role)
     return QueryExpectation(
         query=SearchQuery(where=Filter(field="name", op=Operator.IN, value=["group-a", "group-c"])),
         expected_names=("group-a", "group-c"),
@@ -106,11 +106,11 @@ async def _setup_group_in_case(factories: GroupQueryFactories) -> QueryExpectati
 
 
 async def _setup_group_like_school_case(factories: GroupQueryFactories) -> QueryExpectation:
-    workgroup_type = await factories.group_type_factory(name="workgroup")
+    role = await factories.roles_factory(name="workgroup")
     alpha_school = await factories.school_factory(name="alpha-school")
     beta_school = await factories.school_factory(name="beta-school")
-    await factories.group_factory(name="group-a", school=alpha_school, group_type=workgroup_type)
-    await factories.group_factory(name="group-b", school=beta_school, group_type=workgroup_type)
+    await factories.group_factory(name="group-a", school=alpha_school, roles=role)
+    await factories.group_factory(name="group-b", school=beta_school, roles=role)
     return QueryExpectation(
         query=SearchQuery(where=Filter(field="school.name", op=Operator.LIKE, value="alpha%")),
         expected_names=("group-a",),
@@ -118,12 +118,12 @@ async def _setup_group_like_school_case(factories: GroupQueryFactories) -> Query
 
 
 async def _setup_group_and_case(factories: GroupQueryFactories) -> QueryExpectation:
-    workgroup_type = await factories.group_type_factory(name="workgroup")
+    role = await factories.roles_factory(name="workgroup")
     alpha_school = await factories.school_factory(name="alpha-school")
     beta_school = await factories.school_factory(name="beta-school")
-    await factories.group_factory(name="group-a", school=alpha_school, group_type=workgroup_type)
-    await factories.group_factory(name="group-b", school=alpha_school, group_type=workgroup_type)
-    await factories.group_factory(name="group-c", school=beta_school, group_type=workgroup_type)
+    await factories.group_factory(name="group-a", school=alpha_school, roles=role)
+    await factories.group_factory(name="group-b", school=alpha_school, roles=role)
+    await factories.group_factory(name="group-c", school=beta_school, roles=role)
     return QueryExpectation(
         query=SearchQuery(
             where=And(
@@ -138,11 +138,11 @@ async def _setup_group_and_case(factories: GroupQueryFactories) -> QueryExpectat
 
 
 async def _setup_group_or_case(factories: GroupQueryFactories) -> QueryExpectation:
-    workgroup_type = await factories.group_type_factory(name="workgroup")
+    role = await factories.roles_factory(name="workgroup")
     school = await factories.school_factory(name="main-school")
-    await factories.group_factory(name="group-a", school=school, group_type=workgroup_type)
-    await factories.group_factory(name="group-b", school=school, group_type=workgroup_type)
-    await factories.group_factory(name="group-c", school=school, group_type=workgroup_type)
+    await factories.group_factory(name="group-a", school=school, roles=role)
+    await factories.group_factory(name="group-b", school=school, roles=role)
+    await factories.group_factory(name="group-c", school=school, roles=role)
     return QueryExpectation(
         query=SearchQuery(
             where=Or(
@@ -157,10 +157,10 @@ async def _setup_group_or_case(factories: GroupQueryFactories) -> QueryExpectati
 
 
 async def _setup_group_not_case(factories: GroupQueryFactories) -> QueryExpectation:
-    workgroup_type = await factories.group_type_factory(name="workgroup")
+    role = await factories.roles_factory(name="workgroup")
     school = await factories.school_factory(name="main-school")
-    await factories.group_factory(name="group-a", school=school, group_type=workgroup_type)
-    await factories.group_factory(name="group-b", school=school, group_type=workgroup_type)
+    await factories.group_factory(name="group-a", school=school, roles=role)
+    await factories.group_factory(name="group-b", school=school, roles=role)
     return QueryExpectation(
         query=SearchQuery(where=Not(clause=Filter(field="name", op=Operator.EQ, value="group-a"))),
         expected_names=("group-b",),
@@ -324,14 +324,14 @@ async def test_school_query_operators(
 async def test_group_query_operators(
     db_session: AsyncSession,
     group_factory: GroupFactory,
-    group_type_factory: GroupTypeFactory,
+    roles_factory: GroupTypeFactory,
     school_factory: SchoolFactory,
     setup_case: GroupQuerySetup,
 ) -> None:
     factories = GroupQueryFactories(
         school_factory=school_factory,
         group_factory=group_factory,
-        group_type_factory=group_type_factory,
+        roles_factory=roles_factory,
     )
     expectation = await setup_case(factories)
     manager = cast(Manager[SearchNamedRecord], SQLAlchemyGroupManager(db_session))

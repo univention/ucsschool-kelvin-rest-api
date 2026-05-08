@@ -79,12 +79,12 @@ class GroupValidator:
             raise ValueError("Group.record_uid must not be empty.")
         if not group.source_uid:
             raise ValueError("Group.source_uid must not be empty.")
-        if not group.group_type:
-            raise ValueError("Group.group_type must not be empty.")
+        if not group.roles:
+            raise ValueError("Group.roles must not be empty.")
         # TODO: validate group name against gid syntax (alphanumeric + limited special chars).
         #   Currently skipped because it requires the UDM syntax parser (univention.admin.syntax.gid).
         #   See ucs-school-lib/modules/ucsschool/lib/models/attributes.py: GroupName
-        # TODO: for school_class group_type, validate that name starts with "{school.name}-".
+        # TODO: for school_class roles, validate that name starts with "{school.name}-".
         #   Requires school to be loaded (not UnloadedType).
         #   See ucs-school-lib/modules/ucsschool/lib/models/group.py: SchoolClass.validate()
 

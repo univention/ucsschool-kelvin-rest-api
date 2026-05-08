@@ -16,6 +16,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
     JoinType,
     _apply_patch,
+    _bulk_fetch_by_public_id,
     _compose_field_map,
     _extract_public_ids,
     _get_exposed_fields,
@@ -75,10 +76,11 @@ async def _apply_membership_relation_changes(
                 continue
 
             if patched_ids:
-                result = await session.execute(
-                    select(model_class).where(getattr(model_class, "public_id").in_(patched_ids))
+                object_type = model_class.__name__
+                records = await _bulk_fetch_by_public_id(
+                    session, model_class, list(patched_ids), object_type
                 )
-                setattr(orm_membership, relation, list(result.scalars()))
+                setattr(orm_membership, relation, list(records.values()))
             else:
                 setattr(orm_membership, relation, [])
 
