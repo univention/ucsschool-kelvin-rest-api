@@ -49,7 +49,7 @@ def _group(**overrides: Any) -> Group:
         name="Testschool-classA",
         display_name="",
         create_share=False,
-        group_type="school_class",
+        roles="school_class",
         email=None,
         allowed_email_senders_users=UNLOADED,
         allowed_email_senders_groups=UNLOADED,
@@ -155,9 +155,9 @@ class TestGroupValidation:
         with pytest.raises(ValueError, match="Group.source_uid"):
             GroupValidator.validate(_group(source_uid=""))
 
-    def test_empty_group_type_raises(self) -> None:
-        with pytest.raises(ValueError, match="Group.group_type"):
-            GroupValidator.validate(_group(group_type=""))
+    def test_empty_roles_raises(self) -> None:
+        with pytest.raises(ValueError, match="Group.roles"):
+            GroupValidator.validate(_group(roles=""))
 
 
 # ---------------------------------------------------------------------------

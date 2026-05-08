@@ -124,9 +124,9 @@ def to_group(model: GroupModel) -> Group:
     if _is_loaded(model, "school"):
         school = to_school(model.school)
 
-    group_type: set[Role] | UnloadedType = UNLOADED
-    if _is_loaded(model, "group_type"):
-        group_type = {to_role(r) for r in model.group_type}
+    roles: set[Role] | UnloadedType = UNLOADED
+    if _is_loaded(model, "roles"):
+        roles = {to_role(r) for r in model.roles}
 
     allowed_email_senders_users: set[User] | UnloadedType = UNLOADED
     if _is_loaded(model, "allowed_email_senders_users"):
@@ -153,7 +153,7 @@ def to_group(model: GroupModel) -> Group:
         name=_loaded_value(model, "name", _as_str),
         display_name=_loaded_value(model, "display_name", _as_str),
         create_share=_loaded_value(model, "has_share", _as_bool),
-        group_type=group_type,
+        roles=roles,
         email=_loaded_value(model, "email", _as_optional_str),
         allowed_email_senders_users=allowed_email_senders_users,
         allowed_email_senders_groups=allowed_email_senders_groups,
@@ -258,7 +258,7 @@ def group_from_patch(patched: dict[str, object], public_id: UUID) -> Group:
         name=cast(str, patched["name"]),
         display_name=cast(str, patched["display_name"]),
         create_share=cast(bool, patched["create_share"]),
-        group_type=cast(set[Role], patched["group_type"]),
+        roles=cast(set[Role], patched["roles"]),
         email=cast(str | None, patched["email"]),
         school=UNLOADED,
         members=UNLOADED,

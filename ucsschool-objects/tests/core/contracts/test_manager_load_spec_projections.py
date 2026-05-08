@@ -52,7 +52,7 @@ GROUP_LOAD_ATTRS = (
     "display_name",
     "create_share",
     "email",
-    "group_type",
+    "roles",
     "allowed_email_senders_users",
     "allowed_email_senders_groups",
     "members",
@@ -163,21 +163,21 @@ async def _setup_group_case(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
     group_factory: GroupFactory,
-    group_type_factory: GroupTypeFactory,
+    roles_factory: GroupTypeFactory,
     user_factory: UserFactory,
     role_factory: RoleFactory,
     school_membership_factory: SchoolMembershipFactory,
 ) -> tuple[SQLAlchemyGroupManager, UUID, SearchQuery, dict[str, object]]:
     school = await school_factory(name="projection-group-school")
-    group_type = await group_type_factory(name="projection-group-type")
+    group_type_role = await roles_factory(name="projection-group-type")
     sender_user = await user_factory(name="sender-user")
     member_user = await user_factory(name="member-user")
-    sender_group = await group_factory(name="sender-group", school=school, group_type=group_type)
+    sender_group = await group_factory(name="sender-group", school=school, roles=group_type_role)
     member_role = await role_factory(name="projection-member-role")
     group = await group_factory(
         name="projection-group",
         school=school,
-        group_type=group_type,
+        roles=group_type_role,
         has_share=True,
         email="projection-group@example.org",
     )
@@ -209,7 +209,7 @@ async def _setup_group_case(
             "display_name": group.display_name,
             "create_share": True,
             "email": "projection-group@example.org",
-            "group_type": {"projection-group-type"},
+            "roles": {"projection-group-type"},
             "sender_user": "sender-user",
             "sender_group": "sender-group",
             "member_user": "member-user",
@@ -223,14 +223,14 @@ async def _setup_user_case(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
     group_factory: GroupFactory,
-    group_type_factory: GroupTypeFactory,
+    roles_factory: GroupTypeFactory,
     role_factory: RoleFactory,
     user_factory: UserFactory,
     school_membership_factory: SchoolMembershipFactory,
 ) -> tuple[SQLAlchemyUserManager, UUID, SearchQuery, dict[str, object]]:
     school = await school_factory(name="projection-user-school")
-    group_type = await group_type_factory(name="projection-user-group-type")
-    group = await group_factory(name="projection-user-group", school=school, group_type=group_type)
+    group_type_role = await roles_factory(name="projection-user-group-type")
+    group = await group_factory(name="projection-user-group", school=school, roles=group_type_role)
     role = await role_factory(name="projection-user-role")
     guardian = await user_factory(name="projection-guardian")
     ward = await user_factory(name="projection-ward")
@@ -319,7 +319,7 @@ async def test_group_manager_load_spec_projection_matrix(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
     group_factory: GroupFactory,
-    group_type_factory: GroupTypeFactory,
+    roles_factory: GroupTypeFactory,
     role_factory: RoleFactory,
     user_factory: UserFactory,
     school_membership_factory: SchoolMembershipFactory,
@@ -330,7 +330,7 @@ async def test_group_manager_load_spec_projection_matrix(
         db_session,
         school_factory,
         group_factory,
-        group_type_factory,
+        roles_factory,
         user_factory,
         role_factory,
         school_membership_factory,
@@ -341,9 +341,9 @@ async def test_group_manager_load_spec_projection_matrix(
     _assert_only_expected_fields_loaded(result, {load_attr, "school"})
     if load_attr in {"record_uid", "source_uid", "name", "display_name", "create_share", "email"}:
         assert getattr(result, load_attr) == context[load_attr]
-    elif load_attr == "group_type":
-        assert not isinstance(result.group_type, UnloadedType)
-        assert {r.name for r in result.group_type} == context["group_type"]
+    elif load_attr == "roles":
+        assert not isinstance(result.roles, UnloadedType)
+        assert {r.name for r in result.roles} == context["roles"]
     elif load_attr == "allowed_email_senders_users":
         assert not isinstance(result.allowed_email_senders_users, UnloadedType)
         assert {sender_user.name for sender_user in result.allowed_email_senders_users} == {
@@ -372,7 +372,7 @@ async def test_user_manager_load_spec_projection_matrix(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
     group_factory: GroupFactory,
-    group_type_factory: GroupTypeFactory,
+    roles_factory: GroupTypeFactory,
     role_factory: RoleFactory,
     user_factory: UserFactory,
     school_membership_factory: SchoolMembershipFactory,
@@ -383,7 +383,7 @@ async def test_user_manager_load_spec_projection_matrix(
         db_session,
         school_factory,
         group_factory,
-        group_type_factory,
+        roles_factory,
         role_factory,
         user_factory,
         school_membership_factory,

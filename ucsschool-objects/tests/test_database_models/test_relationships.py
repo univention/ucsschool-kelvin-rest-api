@@ -171,7 +171,7 @@ async def test_relation_is_eager_loaded(
 @pytest.mark.parametrize(
     "model_factory,relation_name",
     [
-        ("group_factory", "group_type"),
+        ("group_factory", "roles"),
         ("group_factory", "members"),
         ("group_factory", "allowed_email_senders_users"),
         ("group_factory", "allowed_email_senders_groups"),

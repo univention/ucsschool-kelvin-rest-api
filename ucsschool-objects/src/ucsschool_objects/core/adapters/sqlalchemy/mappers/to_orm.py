@@ -27,7 +27,7 @@ from ucsschool_objects.database_models import (
 
 @dataclass(frozen=True)
 class GroupCreateRelations:
-    group_type: list[RoleModel]
+    roles: list[RoleModel]
     school: SchoolModel
     member_roles: list[RoleModel]
     members: list[SchoolMembershipModel]
@@ -158,12 +158,12 @@ async def resolve_group_create_relations(
     session: AsyncSession,
     data: Group,
 ) -> GroupCreateRelations:
-    group_type_roles = _check_value_presence(
-        data.group_type, object_type="Group", field_name="group_type"
+    group_roles = _check_value_presence(
+        data.roles, object_type="Group", field_name="roles"
     )
-    group_type_role_ids = [r.public_id for r in group_type_roles if isinstance(r.public_id, UUID)]
-    group_type_roles_by_id = await _bulk_fetch_by_public_id(
-        session, RoleModel, group_type_role_ids, "Role"
+    group_role_ids = [r.public_id for r in group_roles if isinstance(r.public_id, UUID)]
+    group_roles_by_id = await _bulk_fetch_by_public_id(
+        session, RoleModel, group_role_ids, "Role"
     )
 
     school = _check_value_presence(data.school, object_type="Group", field_name="school")
@@ -217,7 +217,7 @@ async def resolve_group_create_relations(
     groups_by_id = await _bulk_fetch_by_public_id(session, GroupModel, sender_group_public_ids, "Group")
 
     return GroupCreateRelations(
-        group_type=list(group_type_roles_by_id.values()),
+        roles=list(group_roles_by_id.values()),
         school=school_model,
         member_roles=list(roles_by_id.values()),
         members=membership_models,

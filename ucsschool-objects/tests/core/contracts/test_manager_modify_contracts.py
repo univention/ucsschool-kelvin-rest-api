@@ -116,7 +116,7 @@ async def _load_group_full(session: AsyncSession, public_id: UUID) -> GroupModel
         select(GroupModel)
         .where(GroupModel.public_id == public_id)
         .options(
-            selectinload(GroupModel.group_type),
+            selectinload(GroupModel.roles),
             selectinload(GroupModel.school),
             selectinload(GroupModel.member_roles),
             selectinload(GroupModel.members).selectinload(SchoolMembershipModel.user),
@@ -514,34 +514,36 @@ async def test_group_manager_modify_school_null_raises(
 
 
 @pytest.mark.asyncio
-async def test_group_manager_modify_group_type(
+async def test_group_manager_modify_roles(
     db_session: AsyncSession,
     group_factory: AsyncGroupFactory,
-    group_type_factory: AsyncGroupTypeFactory,
+    roles_factory: AsyncGroupTypeFactory,
 ) -> None:
     group = await group_factory()
-    new_gt = await group_type_factory(name="new-group-type")
+    new_gt = await roles_factory(name="new-group-type")
 
     group_domain = to_group(await _load_group_full(db_session, group.public_id))
     dst = copy.copy(group_domain)
-    dst.group_type = {to_role(new_gt)}
+    dst.roles = {to_role(new_gt)}
     ops = _create_patch(group_domain, dst)
 
     await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
 
     loaded = await _load_group_full(db_session, group.public_id)
-    assert {r.name for r in loaded.group_type} == {new_gt.name}
+    assert {r.name for r in loaded.roles} == {new_gt.name}
 
 
 @pytest.mark.asyncio
-async def test_group_manager_modify_group_type_not_found_raises(
+async def test_group_manager_modify_roles_not_found_raises(
     db_session: AsyncSession,
     group_factory: AsyncGroupFactory,
 ) -> None:
     group = await group_factory()
+    fake_uuid = str(uuid.uuid4())
     with pytest.raises(NotFound):
         await SQLAlchemyGroupManager(db_session).modify(
-            group.public_id, [{"op": "replace", "path": "/group_type", "value": "nonexistent-type"}]
+            group.public_id,
+            [{"op": "replace", "path": "/roles", "value": [{"public_id": fake_uuid}]}],
         )
 
 

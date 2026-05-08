@@ -134,7 +134,7 @@ class Group(Base):
         String(255), nullable=True, unique=True, info={"udm_attr": "mailAddress"}
     )
 
-    group_type: Mapped[list["Role"]] = relationship(
+    roles: Mapped[list["Role"]] = relationship(
         "Role", secondary="group_type_role_association", lazy="raise"
     )
 
