@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import cast
@@ -15,7 +14,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _fetch_one_by_public_id,
     generate_public_id,
 )
-from ucsschool_objects.core.domain import UNSET, Group, Role, School, UnloadedType, User
+from ucsschool_objects.core.domain import UNSET, Group, NotFound, Role, School, UnloadedType, User
 from ucsschool_objects.core.domain.models import SchoolMembership as DomainSchoolMembership
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -25,12 +24,10 @@ from ucsschool_objects.database_models import (
     User as UserModel,
 )
 
-logger = logging.getLogger(__name__)
-
 
 @dataclass(frozen=True)
 class GroupCreateRelations:
-    group_type: list[RoleModel]
+    roles: list[RoleModel]
     school: SchoolModel
     member_roles: list[RoleModel]
     members: list[SchoolMembershipModel]
@@ -161,13 +158,9 @@ async def resolve_group_create_relations(
     session: AsyncSession,
     data: Group,
 ) -> GroupCreateRelations:
-    group_type_roles = _check_value_presence(
-        data.group_type, object_type="Group", field_name="group_type"
-    )
-    group_type_role_ids = [r.public_id for r in group_type_roles if isinstance(r.public_id, UUID)]
-    group_type_roles_by_id = await _bulk_fetch_by_public_id(
-        session, RoleModel, group_type_role_ids, "Role"
-    )
+    group_roles = _check_value_presence(data.roles, object_type="Group", field_name="roles")
+    group_role_ids = [r.public_id for r in group_roles if isinstance(r.public_id, UUID)]
+    group_roles_by_id = await _bulk_fetch_by_public_id(session, RoleModel, group_role_ids, "Role")
 
     school = _check_value_presence(data.school, object_type="Group", field_name="school")
     if not isinstance(school.public_id, UUID):
@@ -220,7 +213,7 @@ async def resolve_group_create_relations(
     groups_by_id = await _bulk_fetch_by_public_id(session, GroupModel, sender_group_public_ids, "Group")
 
     return GroupCreateRelations(
-        group_type=list(group_type_roles_by_id.values()),
+        roles=list(group_roles_by_id.values()),
         school=school_model,
         member_roles=list(roles_by_id.values()),
         members=membership_models,
@@ -256,12 +249,10 @@ async def _resolve_group_member_memberships(
     result = []
     for user in users_by_public_id.values():
         if user.id not in by_user_id:
-            logger.warning(
-                "User %s has no membership in school %s, skipping as group member",
-                user.public_id,
-                school_model.public_id,
+            raise NotFound(
+                object_type="SchoolMembership",
+                public_id=f"user={user.public_id}, school={school_model.public_id}",
             )
-            continue
         result.append(by_user_id[user.id])
     return result
 
