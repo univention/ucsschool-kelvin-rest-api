@@ -35,7 +35,7 @@ class QueryExpectation:
 class ManagerContractFactories:
     school_factory: AsyncSchoolFactory
     group_factory: AsyncGroupFactory
-    group_type_factory: AsyncGroupTypeFactory
+    roles_factory: AsyncGroupTypeFactory
     role_factory: AsyncRoleFactory
     user_factory: AsyncUserFactory
 
@@ -49,7 +49,7 @@ class SchoolQueryFactories:
 class GroupQueryFactories:
     school_factory: AsyncSchoolFactory
     group_factory: AsyncGroupFactory
-    group_type_factory: AsyncGroupTypeFactory
+    roles_factory: AsyncGroupTypeFactory
 
 
 @dataclass(frozen=True)

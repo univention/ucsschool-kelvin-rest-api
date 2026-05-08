@@ -44,19 +44,19 @@ async def _setup_school_manager_case(factories: ManagerContractFactories) -> Man
     )
 
 
-def _build_group_manager_case(group_type_name: str, group_name: str) -> ManagerSetup:
+def _build_group_manager_case(role_name: str, group_name: str) -> ManagerSetup:
     async def _setup_group_manager_case(factories: ManagerContractFactories) -> ManagerSearchExpectation:
-        group_type = await factories.group_type_factory(name=group_type_name)
+        role = await factories.roles_factory(name=role_name)
         school = await factories.school_factory(name=f"{group_name}-school")
         sender_user = await factories.user_factory(name=f"{group_name}-sender-user")
         sender_group = await factories.group_factory(
             name=f"{group_name}-sender-group",
-            group_type=group_type,
+            roles=role,
             school=school,
         )
         group = await factories.group_factory(
             name=group_name,
-            group_type=group_type,
+            roles=role,
             school=school,
             allowed_email_senders_users=[sender_user],
             allowed_email_senders_groups=[sender_group],
@@ -111,7 +111,7 @@ async def test_manager_get_and_search_contract(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
     group_factory: GroupFactory,
-    group_type_factory: GroupTypeFactory,
+    roles_factory: GroupTypeFactory,
     role_factory: RoleFactory,
     user_factory: UserFactory,
     manager_cls: Callable[[AsyncSession], object],
@@ -120,7 +120,7 @@ async def test_manager_get_and_search_contract(
     factories = ManagerContractFactories(
         school_factory=school_factory,
         group_factory=group_factory,
-        group_type_factory=group_type_factory,
+        roles_factory=roles_factory,
         role_factory=role_factory,
         user_factory=user_factory,
     )
@@ -140,13 +140,13 @@ async def test_group_manager_supports_sorting_by_school_fields(
     db_session: AsyncSession,
     school_factory: SchoolFactory,
     group_factory: GroupFactory,
-    group_type_factory: GroupTypeFactory,
+    roles_factory: GroupTypeFactory,
 ) -> None:
-    workgroup_type = await group_type_factory(name="workgroup")
+    role = await roles_factory(name="workgroup")
     school_a = await school_factory(name="alpha")
     school_b = await school_factory(name="beta")
-    await group_factory(name="group-b", school=school_b, group_type=workgroup_type)
-    await group_factory(name="group-a", school=school_a, group_type=workgroup_type)
+    await group_factory(name="group-b", school=school_b, roles=role)
+    await group_factory(name="group-a", school=school_a, roles=role)
     manager = SQLAlchemyGroupManager(db_session)
 
     results = list(await manager.search(sort_by=(SortSpec(field="school.name", ascending=True),)))
