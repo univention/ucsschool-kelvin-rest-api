@@ -13,6 +13,7 @@ if TYPE_CHECKING:
         AsyncGroupTypeFactory,
         AsyncRoleFactory,
         AsyncSchoolFactory,
+        AsyncSchoolMembershipFactory,
         AsyncUserFactory,
     )
 
@@ -60,6 +61,8 @@ class RoleQueryFactories:
 @dataclass(frozen=True)
 class UserQueryFactories:
     user_factory: AsyncUserFactory
+    school_factory: AsyncSchoolFactory
+    school_membership_factory: AsyncSchoolMembershipFactory
 
 
 class NamedRecord(Protocol):
