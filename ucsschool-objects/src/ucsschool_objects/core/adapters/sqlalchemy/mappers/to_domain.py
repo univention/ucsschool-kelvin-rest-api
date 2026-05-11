@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Collection, Iterable
 from datetime import date, datetime
-from typing import TypeVar, cast, overload
+from typing import TypeVar, cast
 from uuid import UUID
 
 from sqlalchemy import inspect
@@ -23,7 +23,8 @@ from ucsschool_objects.database_models import (
     User as UserModel,
 )
 
-TTransformed = TypeVar("TTransformed")
+TModel = TypeVar("TModel")
+TConverted = TypeVar("TConverted")
 
 
 def _as_str(value: object) -> str:
@@ -55,67 +56,71 @@ def _as_set_str(value: object) -> set[str]:
     return set(cast(Iterable[str], value))
 
 
-def _is_loaded(model: object, attribute: str) -> bool:
+def _is_loaded(model: TModel, attribute: str) -> bool:
     state = inspect(model, raiseerr=False)
     if state is None:
         return True
-    unloaded = getattr(state, "unloaded", None)
+    unloaded = cast(Collection[str] | None, state.unloaded)
     if unloaded is None:
         return True
-    return attribute not in cast(Collection[str], unloaded)
+    return attribute not in unloaded
 
 
-@overload
 def _loaded_value(
-    model: object,
+    model: TModel,
     attribute: str,
-    transform: None = None,
 ) -> object | UnloadedType:
-    ...  # pragma: no cover
-
-
-@overload
-def _loaded_value(
-    model: object,
-    attribute: str,
-    transform: Callable[[object], TTransformed],
-) -> TTransformed | UnloadedType:
-    ...  # pragma: no cover
-
-
-def _loaded_value(
-    model: object,
-    attribute: str,
-    transform: Callable[[object], TTransformed] | None = None,
-) -> object | TTransformed | UnloadedType:
     if not _is_loaded(model, attribute):
         return UNLOADED
+    return cast(object, getattr(model, attribute))
 
-    value = cast(object, getattr(model, attribute))
-    if transform is None:
-        return value
-    return transform(value)
+
+def _convert_loaded(
+    value: object | UnloadedType,
+    converter: Callable[[object], TConverted],
+) -> TConverted | UnloadedType:
+    if isinstance(value, UnloadedType):
+        return UNLOADED
+    return converter(value)
 
 
 def to_school(model: SchoolModel) -> School:
     return School(
         public_id=model.public_id,
-        record_uid=_loaded_value(model, "record_uid", _as_str),
-        source_uid=_loaded_value(model, "source_uid", _as_str),
-        name=_loaded_value(model, "name", _as_str),
-        display_name=_loaded_value(model, "display_name", _as_str),
-        educational_servers=_loaded_value(model, "educational_servers", _as_set_str),
-        administrative_servers=_loaded_value(model, "administrative_servers", _as_set_str),
-        class_share_file_server=_loaded_value(model, "class_share_file_server", _as_optional_str),
-        home_share_file_server=_loaded_value(model, "home_share_file_server", _as_optional_str),
+        record_uid=_convert_loaded(_loaded_value(model, "record_uid"), _as_str),
+        source_uid=_convert_loaded(_loaded_value(model, "source_uid"), _as_str),
+        name=_convert_loaded(_loaded_value(model, "name"), _as_str),
+        display_name=_convert_loaded(
+            _loaded_value(model, "display_name"),
+            _as_str,
+        ),
+        educational_servers=_convert_loaded(
+            _loaded_value(model, "educational_servers"),
+            _as_set_str,
+        ),
+        administrative_servers=_convert_loaded(
+            _loaded_value(model, "administrative_servers"),
+            _as_set_str,
+        ),
+        class_share_file_server=_convert_loaded(
+            _loaded_value(model, "class_share_file_server"),
+            _as_optional_str,
+        ),
+        home_share_file_server=_convert_loaded(
+            _loaded_value(model, "home_share_file_server"),
+            _as_optional_str,
+        ),
     )
 
 
 def to_role(model: RoleModel) -> Role:
     return Role(
         public_id=model.public_id,
-        name=_loaded_value(model, "name", _as_str),
-        display_name=_loaded_value(model, "display_name", _as_role_display_name),
+        name=_convert_loaded(_loaded_value(model, "name"), _as_str),
+        display_name=_convert_loaded(
+            _loaded_value(model, "display_name"),
+            _as_role_display_name,
+        ),
     )
 
 
@@ -148,13 +153,16 @@ def to_group(model: GroupModel) -> Group:
 
     return Group(
         public_id=model.public_id,
-        record_uid=_loaded_value(model, "record_uid", _as_str),
-        source_uid=_loaded_value(model, "source_uid", _as_str),
-        name=_loaded_value(model, "name", _as_str),
-        display_name=_loaded_value(model, "display_name", _as_str),
-        create_share=_loaded_value(model, "has_share", _as_bool),
+        record_uid=_convert_loaded(_loaded_value(model, "record_uid"), _as_str),
+        source_uid=_convert_loaded(_loaded_value(model, "source_uid"), _as_str),
+        name=_convert_loaded(_loaded_value(model, "name"), _as_str),
+        display_name=_convert_loaded(
+            _loaded_value(model, "display_name"),
+            _as_str,
+        ),
+        create_share=_convert_loaded(_loaded_value(model, "has_share"), _as_bool),
         roles=roles,
-        email=_loaded_value(model, "email", _as_optional_str),
+        email=_convert_loaded(_loaded_value(model, "email"), _as_optional_str),
         allowed_email_senders_users=allowed_email_senders_users,
         allowed_email_senders_groups=allowed_email_senders_groups,
         members=members,
@@ -175,15 +183,18 @@ def _to_school_membership(model: SchoolMembershipModel) -> SchoolMembership:
 def _to_related_user(model: UserModel) -> User:
     return User(
         public_id=model.public_id,
-        record_uid=_loaded_value(model, "record_uid", _as_str),
-        source_uid=_loaded_value(model, "source_uid", _as_str),
-        name=_loaded_value(model, "name", _as_str),
-        firstname=_loaded_value(model, "firstname", _as_str),
-        lastname=_loaded_value(model, "lastname", _as_str),
-        email=_loaded_value(model, "email", _as_optional_str),
-        birthday=_loaded_value(model, "birthday", _as_optional_date),
-        expiration_date=_loaded_value(model, "expiration_date", _as_optional_date),
-        active=_loaded_value(model, "active", _as_bool),
+        record_uid=_convert_loaded(_loaded_value(model, "record_uid"), _as_str),
+        source_uid=_convert_loaded(_loaded_value(model, "source_uid"), _as_str),
+        name=_convert_loaded(_loaded_value(model, "name"), _as_str),
+        firstname=_convert_loaded(_loaded_value(model, "firstname"), _as_str),
+        lastname=_convert_loaded(_loaded_value(model, "lastname"), _as_str),
+        email=_convert_loaded(_loaded_value(model, "email"), _as_optional_str),
+        birthday=_convert_loaded(_loaded_value(model, "birthday"), _as_optional_date),
+        expiration_date=_convert_loaded(
+            _loaded_value(model, "expiration_date"),
+            _as_optional_date,
+        ),
+        active=_convert_loaded(_loaded_value(model, "active"), _as_bool),
         school_memberships=UNLOADED,
         legal_wards=UNLOADED,
         legal_guardians=UNLOADED,
@@ -221,15 +232,18 @@ def to_user(
 
     return User(
         public_id=model.public_id,
-        record_uid=_loaded_value(model, "record_uid", _as_str),
-        source_uid=_loaded_value(model, "source_uid", _as_str),
-        name=_loaded_value(model, "name", _as_str),
-        firstname=_loaded_value(model, "firstname", _as_str),
-        lastname=_loaded_value(model, "lastname", _as_str),
-        email=_loaded_value(model, "email", _as_optional_str),
-        birthday=_loaded_value(model, "birthday", _as_optional_date),
-        expiration_date=_loaded_value(model, "expiration_date", _as_optional_date),
-        active=_loaded_value(model, "active", _as_bool),
+        record_uid=_convert_loaded(_loaded_value(model, "record_uid"), _as_str),
+        source_uid=_convert_loaded(_loaded_value(model, "source_uid"), _as_str),
+        name=_convert_loaded(_loaded_value(model, "name"), _as_str),
+        firstname=_convert_loaded(_loaded_value(model, "firstname"), _as_str),
+        lastname=_convert_loaded(_loaded_value(model, "lastname"), _as_str),
+        email=_convert_loaded(_loaded_value(model, "email"), _as_optional_str),
+        birthday=_convert_loaded(_loaded_value(model, "birthday"), _as_optional_date),
+        expiration_date=_convert_loaded(
+            _loaded_value(model, "expiration_date"),
+            _as_optional_date,
+        ),
+        active=_convert_loaded(_loaded_value(model, "active"), _as_bool),
         school_memberships=school_memberships,
         legal_wards=legal_wards,
         legal_guardians=legal_guardians,
