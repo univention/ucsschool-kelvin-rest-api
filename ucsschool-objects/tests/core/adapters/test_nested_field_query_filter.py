@@ -115,7 +115,7 @@ def test_get_required_joins_deduplicates() -> None:
 
 @pytest.mark.asyncio
 async def test_apply_nested_joins_applies_left_outer_by_default() -> None:
-    """Test that apply_nested_joins applies left outer joins by default."""
+    """Test that apply_nested_joins applies left outer joins and DISTINCT."""
     from sqlalchemy import select
     from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec
     from ucsschool_objects.database_models import (
@@ -137,7 +137,8 @@ async def test_apply_nested_joins_applies_left_outer_by_default() -> None:
     stmt = select(UserModel)
     joined_stmt = apply_nested_joins(stmt, {"groups"}, registry)
 
-    # Just verify it returns a statement without error
+    # Single nested N:M join paths can duplicate root rows; DISTINCT must be applied.
+    assert joined_stmt._distinct is True
     assert joined_stmt is not None
 
 
@@ -173,8 +174,7 @@ async def test_apply_nested_joins_applies_distinct_for_multiple_joins() -> None:
     stmt = select(UserModel)
     joined_stmt = apply_nested_joins(stmt, {"groups", "roles"}, registry)
 
-    # Statement should have distinct applied (we can't easily verify this without executing)
-    # but it should compile without error
+    assert joined_stmt._distinct is True
     assert joined_stmt is not None
 
 

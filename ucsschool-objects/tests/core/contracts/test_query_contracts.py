@@ -33,6 +33,7 @@ if TYPE_CHECKING:
         AsyncGroupTypeFactory as GroupTypeFactory,
         AsyncRoleFactory as RoleFactory,
         AsyncSchoolFactory as SchoolFactory,
+        AsyncSchoolMembershipFactory as SchoolMembershipFactory,
         AsyncUserFactory as UserFactory,
     )
 
@@ -285,6 +286,37 @@ async def _setup_user_lte_case(factories: UserQueryFactories) -> QueryExpectatio
     )
 
 
+async def _setup_user_like_schools_case(factories: UserQueryFactories) -> QueryExpectation:
+    school_a = await factories.school_factory(name="school-a")
+    school_b = await factories.school_factory(name="school-b")
+    other_school = await factories.school_factory(name="other-school")
+
+    target_user = await factories.user_factory(name="anna")
+    other_user = await factories.user_factory(name="bert")
+
+    await factories.school_membership_factory(
+        user=target_user,
+        school=school_a,
+        is_primary=True,
+    )
+    await factories.school_membership_factory(
+        user=target_user,
+        school=school_b,
+        is_primary=False,
+    )
+
+    await factories.school_membership_factory(
+        user=other_user,
+        school=other_school,
+        is_primary=True,
+    )
+
+    return QueryExpectation(
+        query=SearchQuery(where=Filter(field="schools.name", op=Operator.LIKE, value="school-%")),
+        expected_names=("anna",),
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "setup_case",
@@ -375,14 +407,21 @@ async def test_role_query_operators(
         pytest.param(_setup_user_gte_case, id="user-gte"),
         pytest.param(_setup_user_lt_case, id="user-lt"),
         pytest.param(_setup_user_lte_case, id="user-lte"),
+        pytest.param(_setup_user_like_schools_case, id="user-like-schools"),
     ],
 )
 async def test_user_query_operators(
     db_session: AsyncSession,
     user_factory: UserFactory,
+    school_factory: SchoolFactory,
+    school_membership_factory: SchoolMembershipFactory,
     setup_case: UserQuerySetup,
 ) -> None:
-    factories = UserQueryFactories(user_factory=user_factory)
+    factories = UserQueryFactories(
+        user_factory=user_factory,
+        school_factory=school_factory,
+        school_membership_factory=school_membership_factory,
+    )
     expectation = await setup_case(factories)
     manager = cast(Manager[SearchNamedRecord], SQLAlchemyUserManager(db_session))
 
