@@ -13,6 +13,8 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
+    PatchDict,
+    PublicIdInput,
     _apply_patch,
     _compose_field_map,
     _extract_public_ids,
@@ -54,8 +56,8 @@ __all__ = ["SQLAlchemyGroupManager"]
 async def _sync_group_members(
     session: AsyncSession,
     model: GroupModel,
-    patched_members: list[object],
-    current_members: list[object],
+    patched_members: list[PublicIdInput],
+    current_members: list[PublicIdInput],
 ) -> None:
     current_ids = _extract_public_ids(current_members)
     patched_ids = _extract_public_ids(patched_members)
@@ -79,51 +81,59 @@ async def _sync_group_members(
 
 async def _apply_group_patch(
     model: GroupModel,
-    patched: dict[str, object],
-    current: dict[str, object],
+    patched: PatchDict,
+    current: PatchDict,
     session: AsyncSession,
 ) -> None:
-    for field in ("record_uid", "source_uid", "name", "display_name", "email"):
-        setattr(model, field, patched[field])
+    model.record_uid = cast(str, patched["record_uid"])
+    model.source_uid = cast(str, patched["source_uid"])
+    model.name = cast(str, patched["name"])
+    model.display_name = cast(str, patched["display_name"])
+    model.email = cast(str | None, patched["email"])
     model.has_share = cast(bool, patched["create_share"])
 
     await _sync_collection(
         session,
-        model,
-        "member_roles",
-        cast(list[object], patched["member_roles"]),
-        cast(list[object], current["member_roles"]),
+        cast(list[PublicIdInput], patched["member_roles"]),
+        cast(list[PublicIdInput], current["member_roles"]),
         RoleModel,
+        lambda values: setattr(model, "member_roles", values),
     )
     await _sync_group_members(
-        session, model, cast(list[object], patched["members"]), cast(list[object], current["members"])
+        session,
+        model,
+        cast(list[PublicIdInput], patched["members"]),
+        cast(list[PublicIdInput], current["members"]),
     )
     await _sync_collection(
         session,
-        model,
-        "allowed_email_senders_users",
-        cast(list[object], patched["allowed_email_senders_users"]),
-        cast(list[object], current["allowed_email_senders_users"]),
+        cast(list[PublicIdInput], patched["allowed_email_senders_users"]),
+        cast(list[PublicIdInput], current["allowed_email_senders_users"]),
         UserModel,
+        lambda values: setattr(model, "allowed_email_senders_users", values),
     )
     await _sync_collection(
         session,
-        model,
-        "allowed_email_senders_groups",
-        cast(list[object], patched["allowed_email_senders_groups"]),
-        cast(list[object], current["allowed_email_senders_groups"]),
+        cast(list[PublicIdInput], patched["allowed_email_senders_groups"]),
+        cast(list[PublicIdInput], current["allowed_email_senders_groups"]),
         GroupModel,
+        lambda values: setattr(model, "allowed_email_senders_groups", values),
     )
     await _sync_collection(
         session,
-        model,
-        "roles",
-        cast(list[object], patched["roles"]),
-        cast(list[object], current["roles"]),
+        cast(list[PublicIdInput], patched["roles"]),
+        cast(list[PublicIdInput], current["roles"]),
         RoleModel,
+        lambda values: setattr(model, "roles", values),
     )
     await _sync_scalar_relation(
-        session, model, "school", patched["school"], current["school"], SchoolModel
+        session,
+        "Group",
+        "school",
+        cast(PublicIdInput | None, patched["school"]),
+        cast(PublicIdInput | None, current["school"]),
+        SchoolModel,
+        lambda value: setattr(model, "school", cast(SchoolModel, value)),
     )
 
 
@@ -301,7 +311,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         group_model.roles = relations.roles
         group_model.school = relations.school
         group_model.member_roles = relations.member_roles
-        group_model.members = cast(list[SchoolMembershipModel], getattr(relations, "members"))
+        group_model.members = relations.members
         group_model.allowed_email_senders_users = relations.allowed_email_senders_users
         group_model.allowed_email_senders_groups = relations.allowed_email_senders_groups
 
@@ -324,7 +334,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         patched = _apply_patch(operations=operations, current_domain_obj=current_domain)
         GroupValidator.validate(group_from_patch(patched, result.public_id))
 
-        current_dict = cast(dict[str, object], normalise(asdict(current_domain)))
+        current_dict = cast(PatchDict, normalise(asdict(current_domain)))
         await _apply_group_patch(result, patched, current_dict, self._session)
 
     async def delete(self, public_id: UUID) -> None:
