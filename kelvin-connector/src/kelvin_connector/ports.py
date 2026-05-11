@@ -6,6 +6,9 @@ from .models import (
     GroupCreateEvent,
     GroupDeleteEvent,
     GroupModifyEvent,
+    HostGroupCreateEvent,
+    HostGroupDeleteEvent,
+    HostGroupModifyEvent,
     SchoolCreateEvent,
     SchoolDeleteEvent,
     SchoolModifyEvent,
@@ -46,4 +49,13 @@ class SynchronizationManagerProtocol(Protocol):  # pragma: no cover
         ...
 
     async def handle_school_delete(self, event: SchoolDeleteEvent) -> None:
+        ...
+
+    async def handle_host_group_create(self, event: HostGroupCreateEvent) -> None:
+        ...
+
+    async def handle_host_group_modify(self, event: HostGroupModifyEvent) -> None:
+        ...
+
+    async def handle_host_group_delete(self, event: HostGroupDeleteEvent) -> None:
         ...
