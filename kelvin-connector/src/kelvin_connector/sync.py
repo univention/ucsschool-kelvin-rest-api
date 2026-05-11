@@ -1,12 +1,16 @@
 from typing import cast, final
 from uuid import UUID
 
+from kelvin_connector.consumer import HOST_GROUP_NAME_RE
 from kelvin_connector.models import (
     GroupCreateEvent,
     GroupDeleteEvent,
     GroupModifyEvent,
     GroupProperties,
     GuardianRole,
+    HostGroupCreateEvent,
+    HostGroupDeleteEvent,
+    HostGroupModifyEvent,
     SchoolCreateEvent,
     SchoolDeleteEvent,
     SchoolModifyEvent,
@@ -41,6 +45,10 @@ from ucsschool_objects.core.domain.query import (
 from .nubus_compat import DNIDMapper, ObjectType
 
 DEFAULT_NUBUS_SOURCE_UID = "nubus"
+
+
+class SynchronizationException(Exception):
+    pass
 
 
 @final
@@ -535,8 +543,8 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             display_name=school_props.displayName,
             record_uid=school_props.name,
             source_uid="kelvin-connector",
-            educational_servers={"TODO"},
-            administrative_servers={"TODO"},
+            educational_servers=set(),
+            administrative_servers=set(),
         )
         await storage.schools.create(school)
         await mapper.set_mapping(ObjectType.SCHOOL, event.new.dn, public_id)
@@ -559,3 +567,50 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             current_school.display_name = school_props.displayName
         if tracker.patch:
             await storage.schools.modify(public_id, tracker.patch)
+
+    async def handle_host_group_create(self, event: HostGroupCreateEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            await self._handle_host_group_change(event, storage)
+
+    async def handle_host_group_modify(self, event: HostGroupModifyEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            await self._handle_host_group_change(event, storage)
+
+    async def _handle_host_group_change(
+        self, event: HostGroupModifyEvent | HostGroupCreateEvent, storage: KelvinStorageSession
+    ) -> None:
+        m = HOST_GROUP_NAME_RE.match(event.new.properties.name)
+        if m is None:
+            raise SynchronizationException(
+                f"Unable to handle event of type {type(event)}: Unexpected host group name."
+            )
+
+        group_type = m.group(2)
+        school_name = m.group(1)
+
+        schools = await storage.schools.search(
+            SearchQuery(Filter(field="name", op=Operator.LIKE, value=school_name))
+        )
+        try:
+            school = next(iter(schools))
+            if isinstance(school.public_id, UnsetType):
+                raise ValueError("Unexpected UnsetType in {}", school)
+        except StopIteration:
+            raise SynchronizationException(f"Unable to find school with name={school_name} in database.")
+
+        hosts = set(event.new.properties.hosts)
+
+        with track_changes(school) as tracker:
+            match group_type:
+                case "Edukativnetz":
+                    school.educational_servers = hosts
+                case "Verwaltungsnetz":
+                    school.administrative_servers = hosts
+                case _:  # pragma: no cover
+                    raise SynchronizationException("Unreachable code reached.")
+
+        if tracker.patch:
+            await storage.schools.modify(school.public_id, tracker.patch)
+
+    async def handle_host_group_delete(self, event: HostGroupDeleteEvent) -> None:
+        logger.debug("Ignoring host group delete event.")
