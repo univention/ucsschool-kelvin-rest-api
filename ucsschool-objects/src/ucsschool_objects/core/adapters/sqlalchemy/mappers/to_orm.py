@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import cast
+from typing import Protocol, cast, runtime_checkable
 from uuid import UUID
 
 from sqlalchemy import select
@@ -40,6 +40,11 @@ class UserCreateRelations:
     school_memberships: list[SchoolMembershipModel]
     legal_wards: list[UserModel] | None
     legal_guardians: list[UserModel] | None
+
+
+@runtime_checkable
+class PublicIdReference(Protocol):
+    public_id: object
 
 
 def to_school_model(data: School) -> SchoolModel:
@@ -145,8 +150,12 @@ def _extract_related_public_ids(
 ) -> list[UUID]:
     public_ids: list[UUID] = []
     for reference in references:
+        if not isinstance(reference, PublicIdReference):
+            raise ValueError(f"{owner_name} entries must have a public_id.")
         public_id = _check_value_presence(
-            getattr(reference, "public_id"), object_type=related_type, field_name="public_id"
+            reference.public_id,
+            object_type=related_type,
+            field_name="public_id",
         )
         if not isinstance(public_id, UUID):
             raise ValueError(f"{owner_name} entries must have a public_id.")
