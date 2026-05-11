@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import uuid
 from datetime import date
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -208,16 +209,22 @@ def test_extract_public_ids_ignores_items_without_public_id() -> None:
 async def test_sync_scalar_relation_clears_optional(db_session: AsyncSession) -> None:
     # We use a dummy object and any model class to test the branch in _shared logic
     class Dummy:
-        school = "something"
+        school: SchoolModel | None = None
 
     model = Dummy()
+    model.school = cast(SchoolModel, object())
+
+    def set_school(value: SchoolModel | None) -> None:
+        model.school = value
+
     await _sync_scalar_relation(
         db_session,
-        model,
+        "Dummy",
         "school",
         patched_val=None,
-        current_val="something",
+        current_val=model.school,
         target_model=SchoolModel,
+        set_relation=set_school,
         mandatory=False,
     )
     assert model.school is None

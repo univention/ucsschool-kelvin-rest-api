@@ -3,7 +3,20 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Callable, TypeAlias, TypeVar, cast
 
-from sqlalchemy import Date, DateTime, Float, Integer, Numeric, Select, and_, asc, desc, not_, or_
+from sqlalchemy import (
+    Date,
+    DateTime,
+    Float,
+    Integer,
+    Numeric,
+    Select,
+    and_,
+    asc,
+    desc,
+    inspect,
+    not_,
+    or_,
+)
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.type_api import TypeEngine
@@ -140,7 +153,7 @@ def _get_column_type(column: FieldColumn) -> TypeEngine[object] | None:
         return cast(TypeEngine[object], column.property.columns[0].type)
     # Keep fallback for expression-backed field maps (ColumnElement), e.g. computed
     # search/sort fields that may be introduced by future manager implementations.
-    return cast(TypeEngine[object] | None, getattr(column, "type", None))
+    return column.type
 
 
 def _supports_range_filters(column: FieldColumn) -> bool:
@@ -191,9 +204,22 @@ def _get_filter_column(
                 supported_fields=sorted(spec.exposed_fields),
             )
 
-        # Return from field_map if pre-populated, else resolve directly from
-        # validated model attribute.
-        return field_map.get(filter_expr.field, getattr(spec.target_model, field_part))
+        column = field_map.get(filter_expr.field)
+        if column is not None:
+            return column
+
+        inspection = inspect(spec.target_model, raiseerr=False)
+        if inspection is not None:
+            mapper = inspection.mapper
+            for mapped_attr in mapper.column_attrs:
+                if mapped_attr.key == field_part:
+                    return cast(FieldColumn, mapped_attr.class_attribute)
+
+        raise UnsupportedNestedField(
+            nested_field=filter_expr.field,
+            reason=f"Field '{field_part}' is not mapped for relation '{root}'",
+            supported_fields=sorted(spec.exposed_fields),
+        )
 
     raise UnsupportedFilterField(filter_expr.field)
 

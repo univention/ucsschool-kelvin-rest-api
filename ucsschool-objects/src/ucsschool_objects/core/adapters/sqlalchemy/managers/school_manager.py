@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
+    PatchDict,
     _apply_patch,
     _compose_field_map,
     _load_requested_scalar_attributes,
@@ -31,16 +32,13 @@ from ucsschool_objects.database_models import School as SchoolModel
 __all__ = ["SQLAlchemySchoolManager"]
 
 
-def _apply_school_patch(model: SchoolModel, patched: dict[str, object]) -> None:
-    for field in (
-        "record_uid",
-        "source_uid",
-        "name",
-        "display_name",
-        "class_share_file_server",
-        "home_share_file_server",
-    ):
-        setattr(model, field, patched[field])
+def _apply_school_patch(model: SchoolModel, patched: PatchDict) -> None:
+    model.record_uid = cast(str, patched["record_uid"])
+    model.source_uid = cast(str, patched["source_uid"])
+    model.name = cast(str, patched["name"])
+    model.display_name = cast(str, patched["display_name"])
+    model.class_share_file_server = cast(str | None, patched["class_share_file_server"])
+    model.home_share_file_server = cast(str | None, patched["home_share_file_server"])
     model.educational_servers = list(cast(list[str], patched["educational_servers"]))
     model.administrative_servers = list(cast(list[str], patched["administrative_servers"]))
 

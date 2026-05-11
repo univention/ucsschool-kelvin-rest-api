@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Any, ClassVar, Protocol, TypeAlias, TypeVar, cast
+from typing import Any, Callable, ClassVar, Protocol, TypeAlias, TypeVar, cast
 from uuid import UUID, uuid4
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
-from sqlalchemy import Select, select
+from sqlalchemy import Select, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import load_only
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -49,7 +49,18 @@ QueryExpr: TypeAlias = Filter | And | Or | Not
 ModelClass: TypeAlias = type[Base]
 TSelect = TypeVar("TSelect", bound=Select[Any])
 TRequired = TypeVar("TRequired")
+
+
+class PublicIdCarrier(Protocol):
+    @property
+    def public_id(self) -> UUID:
+        ...
+
+
 TModel = TypeVar("TModel", bound=Base)
+PublicIdCarrierDict: TypeAlias = dict[str, object]
+PublicIdInput: TypeAlias = PublicIdCarrier | PublicIdCarrierDict
+PatchDict: TypeAlias = dict[str, object]
 
 
 class JoinType(str, Enum):
@@ -87,14 +98,14 @@ def generate_public_id() -> UUID:
     return uuid4()
 
 
-def _extract_public_ids(items: list[object]) -> set[UUID]:
+def _extract_public_ids(items: Sequence[PublicIdInput]) -> set[UUID]:
     """Extract public_id UUIDs from a list of objects or dicts."""
     ids: set[UUID] = set()
     for item in items:
         if isinstance(item, dict):
-            raw = cast(object, item.get("public_id"))
+            raw = item.get("public_id")
         else:
-            raw = getattr(item, "public_id", None)
+            raw = item.public_id
         if raw is not None:
             ids.add(UUID(str(raw)))
     return ids
@@ -106,17 +117,24 @@ def _apply_patch(
     current_domain_obj: DataclassInstance,
 ) -> dict[str, object]:
     """Apply JSON Patch operations to a domain object and return the patched dict."""
-    current_dict = cast(dict[str, object], normalise(asdict(current_domain_obj)))
-    return cast(dict[str, object], JsonPatch(list(operations)).apply(current_dict))
+    current_dict = cast(PatchDict, normalise(asdict(current_domain_obj)))
+    return cast(PatchDict, JsonPatch(list(operations)).apply(current_dict))
+
+
+def _public_id_column(model_class: type[TModel]) -> InstrumentedAttribute[Any]:
+    inspection: Any = inspect(model_class, raiseerr=False)
+    if inspection is None:
+        raise ValueError(f"Model class {model_class.__name__} is not SQLAlchemy-inspectable.")
+    mapper: Any = inspection.mapper
+    return cast(InstrumentedAttribute[Any], mapper.column_attrs["public_id"].class_attribute)
 
 
 async def _sync_collection(
     session: AsyncSession,
-    model: Any,
-    relation: str,
-    patched_list: list[object],
-    current_list: list[object],
+    patched_list: Sequence[PublicIdInput],
+    current_list: Sequence[PublicIdInput],
     target_model: type[TModel],
+    set_relation: Callable[[list[TModel]], None],
 ) -> None:
     """Sync a collection relationship based on public_id list comparison.
 
@@ -130,18 +148,19 @@ async def _sync_collection(
     if patched_ids:
         object_type = target_model.__name__
         records = await _bulk_fetch_by_public_id(session, target_model, list(patched_ids), object_type)
-        setattr(model, relation, list(records.values()))
+        set_relation(list(records.values()))
     else:
-        setattr(model, relation, [])
+        set_relation([])
 
 
 async def _sync_scalar_relation(
     session: AsyncSession,
-    model: Any,
+    model_name: str,
     relation: str,
-    patched_val: object,
-    current_val: object,
+    patched_val: PublicIdInput | None,
+    current_val: PublicIdInput | None,
     target_model: type[TModel],
+    set_relation: Callable[[TModel | None], None],
     *,
     mandatory: bool = True,
 ) -> None:
@@ -154,15 +173,14 @@ async def _sync_scalar_relation(
     ids = _extract_public_ids([patched_val] if patched_val is not None else [])
     if not ids:
         if mandatory:
-            raise ValueError(f"{model.__class__.__name__}.{relation} must not be null.")
-        setattr(model, relation, None)
+            raise ValueError(f"{model_name}.{relation} must not be null.")
+        set_relation(None)
         return
 
     public_id = next(iter(ids))
-    result = await session.execute(
-        select(target_model).where(getattr(target_model, "public_id") == public_id)
-    )
-    setattr(model, relation, result.scalar_one())
+    public_id_column = _public_id_column(target_model)
+    result = await session.execute(select(target_model).where(public_id_column == public_id))
+    set_relation(result.scalar_one())
 
 
 async def _fetch_one_by_public_id(
@@ -172,8 +190,9 @@ async def _fetch_one_by_public_id(
     object_type: str,
 ) -> TModel:
     """Fetch a single ORM object by public_id. Raises NotFound if absent."""
+    public_id_column = _public_id_column(model_class)
     result = (
-        await session.execute(select(model_class).where(getattr(model_class, "public_id") == public_id))
+        await session.execute(select(model_class).where(public_id_column == public_id))
     ).scalar_one_or_none()
     if result is None:
         raise NotFound(object_type=object_type, public_id=str(public_id))
@@ -193,16 +212,13 @@ async def _bulk_fetch_by_public_id(
     if not public_ids:
         return {}
     unique_ids = list(dict.fromkeys(public_ids))
-    results = (
-        (
-            await session.execute(
-                select(model_class).where(getattr(model_class, "public_id").in_(unique_ids))
-            )
+    public_id_column = _public_id_column(model_class)
+    rows = (
+        await session.execute(
+            select(model_class, public_id_column).where(public_id_column.in_(unique_ids))
         )
-        .scalars()
-        .all()
-    )
-    by_id: dict[UUID, TModel] = {cast(UUID, getattr(r, "public_id")): r for r in results}
+    ).all()
+    by_id: dict[UUID, TModel] = {UUID(str(public_id)): model for model, public_id in rows}
     missing = set(unique_ids) - by_id.keys()
     if missing:
         raise NotFound(object_type=object_type, public_id=str(next(iter(missing))))
@@ -214,20 +230,11 @@ def _get_exposed_fields(model: type) -> frozenset[str]:
 
     Only includes actual database columns, skipping relationships and other attributes.
     """
-    fields = set()
-    for attr_name in dir(model):
-        if attr_name.startswith("_"):
-            continue
-        try:
-            attr = getattr(model, attr_name)
-            # Check if it's an InstrumentedAttribute with a columns property
-            if isinstance(attr, InstrumentedAttribute):
-                if hasattr(attr.property, "columns"):
-                    fields.add(attr_name)
-        except (AttributeError, TypeError):
-            # Skip attributes that can't be accessed or aren't column-backed
-            continue
-    return frozenset(fields)
+    inspection: Any = inspect(model, raiseerr=False)
+    if inspection is None:
+        return frozenset()
+    mapper: Any = inspection.mapper
+    return frozenset(column.key for column in mapper.column_attrs)
 
 
 def _iter_filters(expr: QueryExpr) -> Iterable[Filter]:
@@ -248,9 +255,14 @@ def _compose_field_map(
     """Build a field map from base fields and nested registry dot-path fields."""
     field_map = dict(base_field_map)
     for relation_name, spec in nested_field_registry.items():
+        mapper: Any = inspect(spec.target_model).mapper
+        target_columns: dict[str, FieldColumn] = {
+            column.key: cast(FieldColumn, column.class_attribute) for column in mapper.column_attrs
+        }
         for field_name in spec.exposed_fields:
             nested_field_key = f"{relation_name}.{field_name}"
-            field_map[nested_field_key] = getattr(spec.target_model, field_name)
+            if field_name in target_columns:
+                field_map[nested_field_key] = target_columns[field_name]
     return field_map
 
 

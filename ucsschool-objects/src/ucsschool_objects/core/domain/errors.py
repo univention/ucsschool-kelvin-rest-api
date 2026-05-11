@@ -50,7 +50,9 @@ class InvalidRangeFilter(InvalidFilter):
         self.field = field
         self.operator = operator
         self.value = value
-        operator_name = getattr(operator, "name", str(operator))
+        operator_name = str(operator)
+        if hasattr(operator, "name"):
+            operator_name = str(operator.name)
         super().__init__(
             f"{operator_name} operator requires a numeric or date-like field and non-null value "
             f"for field {field!r}; got {value!r}"

@@ -233,18 +233,13 @@ async def test_group_manager_all_school_fields_exposed(db_session: AsyncSession)
     assert "name" in school_spec.exposed_fields
 
 
-def test_get_exposed_fields_skips_attributes_that_raise() -> None:
-    """_get_exposed_fields gracefully skips model attributes that raise on access."""
-
-    class _RaisingDescriptor:
-        def __get__(self, obj: object, objtype: object = None) -> None:
-            raise AttributeError("simulated bad attribute")
+def test_get_exposed_fields_returns_empty_for_non_sqlalchemy_model() -> None:
+    """_get_exposed_fields returns no fields for non-SQLAlchemy models."""
 
     class _FakeModel:
-        raises_on_access = _RaisingDescriptor()
+        value = "ignored"
 
-    fields = _get_exposed_fields(_FakeModel)
-    assert "raises_on_access" not in fields
+    assert _get_exposed_fields(_FakeModel) == frozenset()
 
 
 def test_role_manager_field_map_includes_nested_fields_when_registry_populated(
@@ -327,7 +322,8 @@ def test_loaded_value_without_transform_returns_raw_value(monkeypatch: pytest.Mo
 
     monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: None)
 
-    assert _loaded_value(_Model(), "value") == "raw-value"
+    model = _Model()
+    assert _loaded_value(model, "value") == "raw-value"
 
 
 def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPatch) -> None:
