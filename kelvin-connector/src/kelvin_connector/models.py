@@ -95,6 +95,9 @@ class SchoolProperties(BaseModel):
 
 class EventPayload(BaseModel):
     dn: str = Field(..., min_length=1)
+    id: str
+    position: str
+    object_type: str = Field(..., alias="objectType")
 
     class Config:
         extra = Extra.allow
@@ -154,3 +157,29 @@ class SchoolModifyEvent(EventBase):
 
 class SchoolDeleteEvent(EventBase):
     old: SchoolPayload
+
+
+class HostGroupProperties(BaseModel):
+    univentionObjectIdentifier: UUID4
+    description: str | None
+    name: str
+    hosts: list[str]
+
+    class Config:
+        extra = Extra.allow
+
+
+class HostGroupPayload(EventPayload):
+    properties: HostGroupProperties
+
+
+class HostGroupCreateEvent(EventBase):
+    new: HostGroupPayload
+
+
+class HostGroupModifyEvent(EventBase):
+    new: HostGroupPayload
+
+
+class HostGroupDeleteEvent(EventBase):
+    old: HostGroupPayload

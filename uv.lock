@@ -778,7 +778,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "loguru", specifier = ">=0.7.3" },
-    { name = "provisioning-consumer-lib", specifier = ">=0.9.3" },
+    { name = "provisioning-consumer-lib", specifier = ">=0.9.6" },
     { name = "pydantic", specifier = ">=1.10.26" },
     { name = "python-ldap", specifier = ">=3.4.4" },
     { name = "requests", specifier = ">=2.32.4" },
@@ -1418,7 +1418,7 @@ wheels = [
 
 [[package]]
 name = "provisioning-consumer-lib"
-version = "0.9.5"
+version = "0.9.6"
 source = { registry = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/simple" }
 dependencies = [
     { name = "httpx" },
@@ -1426,9 +1426,9 @@ dependencies = [
     { name = "loguru" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/files/025ebb866bd860d91e0573e36c61cc4a14130d49c5b1914963744887d7fe03db/provisioning_consumer_lib-0.9.5.tar.gz", hash = "sha256:025ebb866bd860d91e0573e36c61cc4a14130d49c5b1914963744887d7fe03db" }
+sdist = { url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/files/0f33a9ac0e3b710dfbae9988c292f7e6cfded670ce5d3adf499d4a3ad5da0c48/provisioning_consumer_lib-0.9.6.tar.gz", hash = "sha256:0f33a9ac0e3b710dfbae9988c292f7e6cfded670ce5d3adf499d4a3ad5da0c48" }
 wheels = [
-    { url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/files/86e8bae02c6f7a1684e72641f396318cc94f80320ef5daeaad54b0b5ec4b2735/provisioning_consumer_lib-0.9.5-py3-none-any.whl", hash = "sha256:86e8bae02c6f7a1684e72641f396318cc94f80320ef5daeaad54b0b5ec4b2735" },
+    { url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/files/26a68b1efba4ee9138dc1727676b9563d23e94cef1de5fc6cd6986191f902815/provisioning_consumer_lib-0.9.6-py3-none-any.whl", hash = "sha256:26a68b1efba4ee9138dc1727676b9563d23e94cef1de5fc6cd6986191f902815" },
 ]
 
 [[package]]

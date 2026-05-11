@@ -27,9 +27,6 @@ def main():
         logger.critical("Provisioning API FQDN is missing.")
         sys.exit(1)
 
-    logger.remove()
-    logger.add(sys.stderr, level="TRACE")
-
     try:
         settings = build_settings()
     except RuntimeError as e:

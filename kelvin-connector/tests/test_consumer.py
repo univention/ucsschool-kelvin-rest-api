@@ -28,6 +28,8 @@ def _user_payload(uid: str | None = None) -> dict:
     return {
         "objectType": "users/user",
         "dn": "uid=testuser,cn=users,dc=test",
+        "id": "testuser",
+        "position": "cn=users,dc=test",
         "properties": {
             "univentionObjectIdentifier": uid or _uid(),
             "username": "testuser",
@@ -50,6 +52,8 @@ def _group_payload(uid: str | None = None) -> dict:
     return {
         "objectType": "groups/group",
         "dn": "cn=testgroup,cn=klassen,dc=test",
+        "id": "testgroup",
+        "position": "cn=klassen,dc=test",
         "properties": {
             "univentionObjectIdentifier": uid or _uid(),
             "name": "testgroup",
@@ -63,10 +67,28 @@ def _group_payload(uid: str | None = None) -> dict:
     }
 
 
+def _host_group_payload(uid: str | None = None) -> dict:
+    return {
+        "objectType": "groups/group",
+        "dn": "cn=OUdemoschool-DC-Edukativnetz,cn=ucsschool,cn=groups,dc=test",
+        "id": "OUdemoschool-DC-Edukativnetz",
+        "position": "cn=ucsschool,cn=groups,dc=test",
+        "name": "OUdemoschool-DC-Edukativnetz",
+        "properties": {
+            "univentionObjectIdentifier": uid or _uid(),
+            "name": "OUdemoschool-DC-Edukativnetz",
+            "description": "DC host group for demoschool",
+            "hosts": [],
+        },
+    }
+
+
 def _school_payload(uid: str | None = None) -> dict:
     return {
         "objectType": "container/ou",
         "dn": "ou=testschool,dc=test",
+        "position": "dc=test",
+        "id": "testschool",
         "properties": {
             "univentionObjectIdentifier": uid or _uid(),
             "name": "testschool",
@@ -266,3 +288,52 @@ async def test_handle_remove_unknown_type_logs_error(handler, sync_manager):
     sync_manager.handle_user_event.assert_not_called()
     sync_manager.handle_group_event.assert_not_called()
     sync_manager.handle_school_event.assert_not_called()
+
+
+# ── Host group events ─────────────────────────────────────────────────────────
+
+
+async def test_is_relevant_group_with_host_group_name_returns_true(handler):
+    event = {
+        "topic": "groups/group",
+        "body": {
+            "old": {"properties": {"ucsschoolRole": []}},
+            "new": {
+                "properties": {
+                    "ucsschoolRole": [],
+                    "name": "OUdemoschool-DC-Edukativnetz",
+                }
+            },
+        },
+    }
+    assert await handler.is_relevant(event) is True
+
+
+async def test_is_relevant_both_old_and_new_have_ucsschool_role(handler):
+    event = {
+        "topic": "groups/group",
+        "body": {
+            "old": {"properties": {"ucsschoolRole": ["school_class:school:demoschool"]}},
+            "new": {"properties": {"ucsschoolRole": ["school_class:school:demoschool"]}},
+        },
+    }
+    assert await handler.is_relevant(event) is True
+
+
+async def test_handle_create_host_group(handler, sync_manager):
+    await handler._handle_create(_meta(), _host_group_payload())
+    sync_manager.handle_host_group_create.assert_called_once()
+    sync_manager.handle_group_create.assert_not_called()
+
+
+async def test_handle_modify_host_group(handler, sync_manager):
+    p = _host_group_payload()
+    await handler._handle_modify(_meta(), p, p, has_moved=False)
+    sync_manager.handle_host_group_modify.assert_called_once()
+    sync_manager.handle_group_modify.assert_not_called()
+
+
+async def test_handle_remove_host_group(handler, sync_manager):
+    await handler._handle_remove(_meta(), _host_group_payload())
+    sync_manager.handle_host_group_delete.assert_called_once()
+    sync_manager.handle_group_delete.assert_not_called()

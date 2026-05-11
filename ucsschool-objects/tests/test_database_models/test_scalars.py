@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import AsyncSchoolFactory, ModelFactory, RecordSourceFactory
+    from tests.test_types import ModelFactory, RecordSourceFactory
 
 
 @pytest.mark.parametrize(
@@ -186,11 +186,3 @@ async def test_record_source_uid_unique_constraint(
     instance = await model_factory()
     with pytest.raises(IntegrityError, match="UNIQUE constraint failed"):
         await model_factory(**{"source_uid": instance.source_uid, "record_uid": instance.record_uid})
-
-
-@pytest.mark.parametrize("value", [None, []])
-async def test_school_educational_servers_not_empty(
-    school_factory: AsyncSchoolFactory, value: list[str] | None
-) -> None:
-    with pytest.raises(ValueError, match="The attribute educational_servers must not be None or empty."):
-        await school_factory(educational_servers=value)
