@@ -25,7 +25,14 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemySchoolManager,
     SQLAlchemyUserManager,
 )
-from ucsschool_objects.core.domain import Group, NotFound, Role, School, SchoolMembership, User
+from ucsschool_objects.core.domain import (
+    Group,
+    NotFound,
+    Role,
+    School,
+    SchoolMembership,
+    User,
+)
 from ucsschool_objects.core.domain.models import UNLOADED, UNSET
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -110,7 +117,10 @@ def _build_user_reference(public_id: UUID, *, name: str = "user-ref") -> User:
                 "class_share_file_server": "classfs.example.com",
                 "home_share_file_server": "homefs.example.com",
             },
-            {"name": "school-explicit-id", "class_share_file_server": "classfs.example.com"},
+            {
+                "name": "school-explicit-id",
+                "class_share_file_server": "classfs.example.com",
+            },
             id="explicit-public-id",
         ),
         pytest.param(
@@ -161,18 +171,6 @@ async def test_school_manager_create_success(
 @pytest.mark.parametrize(
     "school_data,expected_exception",
     [
-        pytest.param(
-            {
-                "record_uid": "rec-s-fail-empty-edu",
-                "source_uid": "src-s-fail-empty-edu",
-                "name": "school-fail-empty-edu",
-                "display_name": "Fail",
-                "educational_servers": set(),
-                "administrative_servers": set({"adm.example.com"}),
-            },
-            ValueError,
-            id="empty-educational-servers",
-        ),
         pytest.param(
             {
                 "record_uid": UNLOADED,
@@ -1154,7 +1152,14 @@ async def _setup_user_create_membership_role_without_public_id(
     membership = SchoolMembership(
         school=_build_school_reference(school_model.public_id, name=school_model.name),
         is_primary=True,
-        roles=set({Role(name="role-without-public-id", display_name={"en": "Role Without Public Id"})}),
+        roles=set(
+            {
+                Role(
+                    name="role-without-public-id",
+                    display_name={"en": "Role Without Public Id"},
+                )
+            }
+        ),
         groups=set(),
     )
     return UserCreateFailureExpectation(
@@ -1227,7 +1232,10 @@ async def _setup_user_create_membership_group_without_public_id(
         pytest.param(_setup_user_create_full, id="full"),
         pytest.param(_setup_user_create_minimal, id="minimal-empty-relations"),
         pytest.param(_setup_user_create_multi_membership, id="multiple-memberships"),
-        pytest.param(_setup_user_create_unloaded_relations, id="unloaded-relations-auto-public-id"),
+        pytest.param(
+            _setup_user_create_unloaded_relations,
+            id="unloaded-relations-auto-public-id",
+        ),
     ],
 )
 async def test_user_manager_create_success(

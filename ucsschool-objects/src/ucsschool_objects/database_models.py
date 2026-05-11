@@ -26,7 +26,7 @@ from sqlalchemy import (
     UniqueConstraint,
     event,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlalchemy.engine import Connection
@@ -85,12 +85,6 @@ class School(Base):
     administrative_servers: Mapped[list[str]] = mapped_column(JSON(), nullable=False, default=list)
     class_share_file_server: Mapped[str | None] = mapped_column(String(255), nullable=True)
     home_share_file_server: Mapped[str | None] = mapped_column(String(255), nullable=True)
-
-    @validates("educational_servers")
-    def validate_educational_servers(self, _key: str, value: list[str]) -> list[str]:
-        if not value or len(value) == 0:
-            raise ValueError("The attribute educational_servers must not be None or empty.")
-        return value
 
 
 class Group(Base):
