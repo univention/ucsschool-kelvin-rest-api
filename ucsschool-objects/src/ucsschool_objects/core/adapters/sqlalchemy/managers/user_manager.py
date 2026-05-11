@@ -15,6 +15,8 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
+    PatchDict,
+    PublicIdInput,
     _apply_patch,
     _bulk_fetch_by_public_id,
     _compose_field_map,
@@ -55,39 +57,64 @@ __all__ = ["SQLAlchemyUserManager"]
 
 async def _apply_membership_relation_changes(
     model: UserModel,
-    current_memberships: dict[str, object],
-    patched_memberships: dict[str, object],
+    current_memberships: PatchDict,
+    patched_memberships: PatchDict,
     session: AsyncSession,
 ) -> None:
     memberships_by_school = {m.school.public_id: m for m in model.school_memberships}
     for school_uuid_str, patched_m in patched_memberships.items():
-        current_m = cast(dict[str, object], current_memberships.get(school_uuid_str, {}))
+        current_membership = cast(PatchDict, current_memberships.get(school_uuid_str, {}))
+        patched_membership = cast(PatchDict, patched_m)
         school_uuid = UUID(school_uuid_str)
         orm_membership = memberships_by_school.get(school_uuid)
         if orm_membership is None:  # pragma: no cover
             continue
 
-        for relation, model_class in [("groups", GroupModel), ("roles", RoleModel)]:
-            current_ids = _extract_public_ids(cast(list[object], current_m.get(relation, [])))
-            patched_ids = _extract_public_ids(
-                cast(list[object], cast(dict[str, object], patched_m).get(relation, []))
-            )
-            if current_ids == patched_ids:
-                continue
-
-            if patched_ids:
-                object_type = model_class.__name__
-                records = await _bulk_fetch_by_public_id(
-                    session, model_class, list(patched_ids), object_type
+        current_group_ids = _extract_public_ids(
+            cast(list[PublicIdInput], current_membership.get("groups", []))
+        )
+        patched_group_ids = _extract_public_ids(
+            cast(list[PublicIdInput], patched_membership.get("groups", []))
+        )
+        if current_group_ids != patched_group_ids:
+            if patched_group_ids:
+                group_records = await _bulk_fetch_by_public_id(
+                    session,
+                    GroupModel,
+                    list(patched_group_ids),
+                    GroupModel.__name__,
                 )
-                setattr(orm_membership, relation, list(records.values()))
+                orm_membership.groups = list(group_records.values())
             else:
-                setattr(orm_membership, relation, [])
+                orm_membership.groups = []
+
+        current_role_ids = _extract_public_ids(
+            cast(list[PublicIdInput], current_membership.get("roles", []))
+        )
+        patched_role_ids = _extract_public_ids(
+            cast(list[PublicIdInput], patched_membership.get("roles", []))
+        )
+        if current_role_ids != patched_role_ids:
+            if patched_role_ids:
+                role_records = await _bulk_fetch_by_public_id(
+                    session,
+                    RoleModel,
+                    list(patched_role_ids),
+                    RoleModel.__name__,
+                )
+                orm_membership.roles = list(role_records.values())
+            else:
+                orm_membership.roles = []
 
 
-def _apply_user_patch(model: UserModel, patched: dict[str, object]) -> None:
-    for field in ("record_uid", "source_uid", "name", "firstname", "lastname", "email", "active"):
-        setattr(model, field, patched[field])
+def _apply_user_patch(model: UserModel, patched: PatchDict) -> None:
+    model.record_uid = cast(str, patched["record_uid"])
+    model.source_uid = cast(str, patched["source_uid"])
+    model.name = cast(str, patched["name"])
+    model.firstname = cast(str, patched["firstname"])
+    model.lastname = cast(str, patched["lastname"])
+    model.email = cast(str | None, patched["email"])
+    model.active = cast(bool, patched["active"])
     birthday_val = patched["birthday"]
     model.birthday = date.fromisoformat(cast(str, birthday_val)) if birthday_val is not None else None
     exp_val = patched["expiration_date"]
@@ -359,32 +386,30 @@ class SQLAlchemyUserManager(Manager[User]):
         _apply_user_patch(result, patched)
 
         if m_memberships:
-            current_dict = cast(dict[str, object], normalise(asdict(current_domain)))
+            current_dict = cast(PatchDict, normalise(asdict(current_domain)))
             await _apply_membership_relation_changes(
                 result,
-                cast(dict[str, object], current_dict.get("school_memberships", {})),
-                cast(dict[str, object], patched.get("school_memberships", {})),
+                cast(PatchDict, current_dict.get("school_memberships", {})),
+                cast(PatchDict, patched.get("school_memberships", {})),
                 self._session,
             )
         if m_guardians:
-            current_dict = cast(dict[str, object], normalise(asdict(current_domain)))
+            current_dict = cast(PatchDict, normalise(asdict(current_domain)))
             await _sync_collection(
                 self._session,
-                result,
-                "legal_guardians",
-                cast(list[object], patched.get("legal_guardians", [])),
-                cast(list[object], current_dict.get("legal_guardians", [])),
+                cast(list[PublicIdInput], patched.get("legal_guardians", [])),
+                cast(list[PublicIdInput], current_dict.get("legal_guardians", [])),
                 UserModel,
+                lambda values: setattr(result, "legal_guardians", values),
             )
         if m_wards:
-            current_dict = cast(dict[str, object], normalise(asdict(current_domain)))
+            current_dict = cast(PatchDict, normalise(asdict(current_domain)))
             await _sync_collection(
                 self._session,
-                result,
-                "legal_wards",
-                cast(list[object], patched.get("legal_wards", [])),
-                cast(list[object], current_dict.get("legal_wards", [])),
+                cast(list[PublicIdInput], patched.get("legal_wards", [])),
+                cast(list[PublicIdInput], current_dict.get("legal_wards", [])),
                 UserModel,
+                lambda values: setattr(result, "legal_wards", values),
             )
 
     async def delete(self, public_id: UUID) -> None:
