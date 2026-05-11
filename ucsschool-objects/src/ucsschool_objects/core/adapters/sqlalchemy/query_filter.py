@@ -114,6 +114,8 @@ def apply_nested_joins(
     if registry is None or not required_joins:
         return stmt
 
+    applied_join = False
+
     for join_name in required_joins:
         if join_name not in registry:
             continue
@@ -124,9 +126,10 @@ def apply_nested_joins(
         # Apply each model in the join path
         for join_model in spec.join_path:
             stmt = stmt.join(join_model, isouter=isouter)
+            applied_join = True
 
-    # Apply DISTINCT if multiple joins (prevents duplicates from N:M relationships)
-    if len(required_joins) > 1:
+    # Apply DISTINCT when at least one nested join was applied.
+    if applied_join:
         stmt = stmt.distinct()
 
     return stmt
