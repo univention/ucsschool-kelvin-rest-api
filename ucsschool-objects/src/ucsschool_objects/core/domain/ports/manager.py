@@ -6,12 +6,14 @@ to provide read/write access to domain objects.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
-from typing import Literal, Protocol, Required, TypeAlias, TypedDict, TypeVar
-from uuid import UUID
+from typing import TYPE_CHECKING, Literal, Protocol, Required, TypeAlias, TypedDict, TypeVar
 
-from ucsschool_objects.core.domain.load_spec import LoadSpec
-from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+    from uuid import UUID
+
+    from ucsschool_objects.core.domain.load_spec import LoadSpec
+    from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
 
 ManagerT = TypeVar("ManagerT")
 
