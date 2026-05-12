@@ -17,7 +17,7 @@ def test_build_expression_supports_column_element_range_types() -> None:
     field maps can be added later without breaking range operator validation.
     """
     field_map: dict[str, FieldColumn] = {
-        "name_length": cast(FieldColumn, func.length(UserModel.name, type_=Integer()))
+        "name_length": cast("FieldColumn", func.length(UserModel.name, type_=Integer()))
     }
 
     expression = build_expression(

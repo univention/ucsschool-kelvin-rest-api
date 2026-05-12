@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import pathlib
 import uuid
-from collections.abc import AsyncGenerator
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import func, make_url, select
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from ucsschool_objects.core.adapters.sqlalchemy.session import (
     DatabaseSettings,
     KelvinSqlAlchemySessionFactory,
@@ -18,6 +16,11 @@ from ucsschool_objects.core.adapters.sqlalchemy.session import (
     build_session_factory,
 )
 from ucsschool_objects.database_models import Base, School
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 
 def _make_school(name: str) -> School:
@@ -48,7 +51,7 @@ async def sqlite_engine() -> AsyncGenerator[AsyncEngine, None]:
 
 @pytest.fixture
 def wired_storage_factory(sqlite_engine: AsyncEngine) -> KelvinSqlAlchemySessionFactory:
-    return cast(KelvinSqlAlchemySessionFactory, build_kelvin_storage_session_factory(sqlite_engine))
+    return cast("KelvinSqlAlchemySessionFactory", build_kelvin_storage_session_factory(sqlite_engine))
 
 
 @pytest.mark.asyncio

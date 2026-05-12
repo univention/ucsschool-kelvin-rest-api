@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
-from uuid import UUID
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from datetime import date
+    from uuid import UUID
 
 
 @dataclass(frozen=True)
@@ -162,8 +165,8 @@ class User:
     lastname: str | UnloadedType
     active: bool | UnloadedType
     school_memberships: dict[UUID, SchoolMembership] | UnloadedType
-    legal_wards: set["User"] | UnloadedType = field(default_factory=set)
-    legal_guardians: set["User"] | UnloadedType = field(default_factory=set)
+    legal_wards: set[User] | UnloadedType = field(default_factory=set)
+    legal_guardians: set[User] | UnloadedType = field(default_factory=set)
     public_id: UUID | UnsetType = UNSET
     email: str | None | UnloadedType = None
     birthday: date | None | UnloadedType = None

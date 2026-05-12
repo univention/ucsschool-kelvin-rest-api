@@ -3,13 +3,12 @@ from __future__ import annotations
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from tests.test_types import (
     AsyncGroupFactory,
@@ -41,6 +40,9 @@ from ucsschool_objects.database_models import (
     SchoolMembership as SchoolMembershipModel,
     User as UserModel,
 )
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Domain builders: concrete defaults, references by public_id only
