@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import fields
 from datetime import date
 from typing import TYPE_CHECKING, Literal, TypeVar
-from uuid import UUID
 
 import pytest
 from ucsschool_objects.core.adapters.sqlalchemy import (
@@ -23,9 +22,10 @@ from ucsschool_objects.core.domain import (
     UnloadedType,
     User,
 )
-from ucsschool_objects.core.domain.ports.manager import Manager
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from sqlalchemy.ext.asyncio import AsyncSession
     from tests.test_types import (
         AsyncGroupFactory as GroupFactory,
@@ -35,6 +35,7 @@ if TYPE_CHECKING:
         AsyncSchoolMembershipFactory as SchoolMembershipFactory,
         AsyncUserFactory as UserFactory,
     )
+    from ucsschool_objects.core.domain.ports.manager import Manager
 
 
 SCHOOL_LOAD_ATTRS = (

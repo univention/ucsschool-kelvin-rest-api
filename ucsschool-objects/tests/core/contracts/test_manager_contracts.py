@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import TYPE_CHECKING, cast
 
 import pytest
@@ -22,9 +21,10 @@ from ucsschool_objects.core.domain import (
     SearchQuery,
     SortSpec,
 )
-from ucsschool_objects.core.domain.ports.manager import Manager
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from sqlalchemy.ext.asyncio import AsyncSession
     from tests.test_types import (
         AsyncGroupFactory as GroupFactory,
@@ -33,6 +33,7 @@ if TYPE_CHECKING:
         AsyncSchoolFactory as SchoolFactory,
         AsyncUserFactory as UserFactory,
     )
+    from ucsschool_objects.core.domain.ports.manager import Manager
 
 
 async def _setup_school_manager_case(factories: ManagerContractFactories) -> ManagerSearchExpectation:
@@ -125,7 +126,7 @@ async def test_manager_get_and_search_contract(
         user_factory=user_factory,
     )
     expectation = await setup_case(factories)
-    manager = cast(Manager[NamedRecord], manager_cls(db_session))
+    manager = cast("Manager[NamedRecord]", manager_cls(db_session))
 
     fetched = await manager.get(expectation.public_id)
     assert fetched.name == expectation.expected_name
