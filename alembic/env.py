@@ -3,6 +3,9 @@ import logging
 import time
 from contextlib import contextmanager
 
+# We need to import kelvin_connector, this will register the
+# Kelvin connector SQL models with the Base
+from kelvin_connector import database_models  # noqa: F401
 from sqlalchemy import engine_from_config, pool, text
 from ucsschool_objects.database_models import Base
 
