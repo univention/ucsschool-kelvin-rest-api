@@ -39,11 +39,11 @@
      - ✓
      -
    * - ``display_name``
-     - ``JSON``
+     - ``VARCHAR(255)``
      -
      -
      -
-     - ``dict()``
+     - ``''``
    * - ``educational_servers``
      - ``JSON``
      -
