@@ -3,11 +3,12 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol, TypeAlias
-from uuid import UUID
 
 from ucsschool_objects.core.domain import SearchQuery, SortSpec
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from tests.test_types import (
         AsyncGroupFactory,
         AsyncGroupTypeFactory,
