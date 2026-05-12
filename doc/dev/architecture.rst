@@ -104,17 +104,6 @@ Group
 .. include:: architecture/group-relations.rst
 
 
-
-GroupType
-"""""""""
-
-   Classifies a group (e.g. school class, workgroup)
-
-.. include:: architecture/grouptype-attributes.rst
-
-.. include:: architecture/grouptype-relations.rst
-
-
 UserUDMProperties
 """""""""""""""""
 
