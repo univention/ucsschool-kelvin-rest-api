@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Collection, Iterable
+from collections.abc import Collection, Iterable
 from datetime import date, datetime
-from typing import TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar, cast
 from uuid import UUID
 
 from sqlalchemy import inspect
@@ -15,13 +15,17 @@ from ucsschool_objects.core.domain import (
     UnloadedType,
     User,
 )
-from ucsschool_objects.database_models import (
-    Group as GroupModel,
-    Role as RoleModel,
-    School as SchoolModel,
-    SchoolMembership as SchoolMembershipModel,
-    User as UserModel,
-)
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from ucsschool_objects.database_models import (
+        Group as GroupModel,
+        Role as RoleModel,
+        School as SchoolModel,
+        SchoolMembership as SchoolMembershipModel,
+        User as UserModel,
+    )
 
 TModel = TypeVar("TModel")
 TConverted = TypeVar("TConverted")

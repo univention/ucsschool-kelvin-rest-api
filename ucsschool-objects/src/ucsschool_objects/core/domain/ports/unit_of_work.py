@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from types import TracebackType
-from typing import Protocol, Self
+from typing import TYPE_CHECKING, Protocol, Self
 
-from ucsschool_objects.core.domain.models import Group, Role, School, User
+if TYPE_CHECKING:
+    from types import TracebackType
 
-from .manager import Manager
+    from ucsschool_objects.core.domain.models import Group, Role, School, User
+
+    from .manager import Manager
 
 
 class KelvinStorageSession(Protocol):

@@ -2,7 +2,7 @@ import copy
 from collections.abc import Sequence
 from dataclasses import asdict
 from datetime import date
-from typing import Generic, TypeVar, cast
+from typing import Generic, Self, TypeVar, cast
 from uuid import UUID
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
@@ -119,11 +119,12 @@ class track_changes(Generic[_T]):
 
     def __init__(self, obj: _T, replace_fields: frozenset[str] = frozenset()) -> None:
         self._obj: _T = obj
+        self._original: _T = obj
         self._replace_fields = replace_fields
         self.patch: Sequence[JSONPathOperation] | None = None
 
-    def __enter__(self) -> "track_changes[_T]":
-        self._original: _T = copy.copy(self._obj)
+    def __enter__(self) -> Self:
+        self._original = copy.copy(self._obj)
         return self
 
     def __exit__(self, *_: object) -> None:

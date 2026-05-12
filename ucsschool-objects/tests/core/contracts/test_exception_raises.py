@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
@@ -29,6 +28,8 @@ from ucsschool_objects.core.domain import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from sqlalchemy.ext.asyncio import AsyncSession
     from tests.test_types import (
         AsyncGroupFactory as GroupFactory,
@@ -118,7 +119,7 @@ async def test_group_manager_raises_invalid_filter(
 
     with pytest.raises(expected_exc_type, match=expected_exc_message) as exc_info:
         await manager.search(**search_args)
-    error = cast(FieldInvalidFilter, exc_info.value)
+    error = cast("FieldInvalidFilter", exc_info.value)
     assert error.field == expected_exc_field
     if expected_exc_value is not None:
         assert isinstance(error, (InvalidInFilter, InvalidLikeFilter))

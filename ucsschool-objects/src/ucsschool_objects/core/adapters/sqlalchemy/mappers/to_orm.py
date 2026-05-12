@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     PublicIdCarrier,
     _bulk_fetch_by_public_id,
@@ -16,7 +14,6 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     generate_public_id,
 )
 from ucsschool_objects.core.domain import UNSET, Group, NotFound, Role, School, UnloadedType, User
-from ucsschool_objects.core.domain.models import SchoolMembership as DomainSchoolMembership
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     Role as RoleModel,
@@ -24,6 +21,12 @@ from ucsschool_objects.database_models import (
     SchoolMembership as SchoolMembershipModel,
     User as UserModel,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from ucsschool_objects.core.domain.models import SchoolMembership as DomainSchoolMembership
 
 
 @dataclass(frozen=True)

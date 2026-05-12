@@ -48,21 +48,21 @@ class Filter:
 class And:
     """Logical conjunction over all child clauses."""
 
-    clauses: tuple["QueryExpr", ...]
+    clauses: tuple[QueryExpr, ...]
 
 
 @dataclass(frozen=True)
 class Or:
     """Logical disjunction over child clauses."""
 
-    clauses: tuple["QueryExpr", ...]
+    clauses: tuple[QueryExpr, ...]
 
 
 @dataclass(frozen=True)
 class Not:
     """Logical negation of a single clause."""
 
-    clause: "QueryExpr"
+    clause: QueryExpr
 
 
 QueryExpr: TypeAlias = Filter | And | Or | Not

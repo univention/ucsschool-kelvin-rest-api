@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Any, Callable, ClassVar, Protocol, TypeAlias, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Protocol, TypeAlias, TypeVar, cast
 from uuid import UUID, uuid4
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
 from sqlalchemy import Select, inspect, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import load_only
 from sqlalchemy.orm.attributes import InstrumentedAttribute
-from ucsschool_objects.core.adapters.sqlalchemy.query_filter import FieldColumn
+from sqlalchemy.sql.elements import ColumnElement
 from ucsschool_objects.core.domain import (
     And,
     Filter,
@@ -21,14 +19,19 @@ from ucsschool_objects.core.domain import (
     Or,
     UnloadedType,
 )
-from ucsschool_objects.core.domain.models import UnsetType
 from ucsschool_objects.core.domain.patch import normalise
-from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 from ucsschool_objects.database_models import (
     Base,
     Role as RoleModel,
     School as SchoolModel,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from ucsschool_objects.core.domain.models import UnsetType
+    from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 
 __all__ = [
     "JoinType",
@@ -50,6 +53,7 @@ QueryExpr: TypeAlias = Filter | And | Or | Not
 ModelClass: TypeAlias = type[Base]
 TSelect = TypeVar("TSelect", bound=Select[Any])
 TRequired = TypeVar("TRequired")
+FieldColumn: TypeAlias = InstrumentedAttribute[object] | ColumnElement[object]
 
 
 class PublicIdCarrier(Protocol):

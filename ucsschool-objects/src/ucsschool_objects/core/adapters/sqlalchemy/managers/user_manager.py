@@ -1,31 +1,46 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
 from dataclasses import asdict
 from datetime import date
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID
 
 from sqlalchemy import Select, delete, select
 from sqlalchemy.engine import CursorResult
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import InstrumentedAttribute
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _apply_patch,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _bulk_fetch_by_public_id,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _compose_field_map,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _extract_public_ids,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _get_exposed_fields,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _load_requested_scalar_attributes,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _role_scalar_columns,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _school_scalar_columns,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _sync_collection,  # pyright: ignore[reportPrivateUsage]
+)
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
     PatchDict,
     PublicIdInput,
-    _apply_patch,
-    _bulk_fetch_by_public_id,
-    _compose_field_map,
-    _extract_public_ids,
-    _get_exposed_fields,
-    _load_requested_scalar_attributes,
-    _role_scalar_columns,
-    _school_scalar_columns,
-    _sync_collection,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_user, user_from_patch
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
@@ -51,6 +66,13 @@ from ucsschool_objects.database_models import (
     SchoolMembership,
     User as UserModel,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.orm.attributes import InstrumentedAttribute
+
 
 __all__ = ["SQLAlchemyUserManager"]
 

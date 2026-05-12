@@ -1,9 +1,11 @@
 """Tests for nested field detection and join injection in query_filter module."""
 from __future__ import annotations
 
-from typing import cast
+from collections.abc import Iterator, Mapping as MappingABC
+from typing import TYPE_CHECKING, cast
 
 import pytest
+from sqlalchemy import select
 from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec, JoinType
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
     _get_filter_column,
@@ -17,11 +19,21 @@ from ucsschool_objects.core.domain import (
     SortSpec,
     UnsupportedNestedField,
 )
+from ucsschool_objects.database_models import (
+    Base,
+    Group as GroupModel,
+    Role as RoleModel,
+    SchoolMembership,
+    User as UserModel,
+)
+
+if TYPE_CHECKING:
+    from ucsschool_objects.core.adapters.sqlalchemy.query_filter import FieldColumn
 
 
 def _r(*names: str) -> dict[str, JoinSpec]:
     """Create a stub registry dict for testing (values are not used by _get_required_joins)."""
-    return cast(dict[str, JoinSpec], {name: None for name in names})
+    return cast("dict[str, JoinSpec]", {name: None for name in names})
 
 
 def test_get_required_joins_detects_single_nested_field() -> None:
@@ -116,14 +128,6 @@ def test_get_required_joins_deduplicates() -> None:
 @pytest.mark.asyncio
 async def test_apply_nested_joins_applies_left_outer_by_default() -> None:
     """Test that apply_nested_joins applies left outer joins and DISTINCT."""
-    from sqlalchemy import select
-    from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec
-    from ucsschool_objects.database_models import (
-        Group as GroupModel,
-        SchoolMembership,
-        User as UserModel,
-    )
-
     registry = {
         "groups": JoinSpec(
             relation_name="groups",
@@ -145,15 +149,6 @@ async def test_apply_nested_joins_applies_left_outer_by_default() -> None:
 @pytest.mark.asyncio
 async def test_apply_nested_joins_applies_distinct_for_multiple_joins() -> None:
     """Test that DISTINCT is applied when multiple joins are present."""
-    from sqlalchemy import select
-    from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec
-    from ucsschool_objects.database_models import (
-        Group as GroupModel,
-        Role as RoleModel,
-        SchoolMembership,
-        User as UserModel,
-    )
-
     registry = {
         "groups": JoinSpec(
             relation_name="groups",
@@ -181,9 +176,6 @@ async def test_apply_nested_joins_applies_distinct_for_multiple_joins() -> None:
 @pytest.mark.asyncio
 async def test_apply_nested_joins_with_empty_registry_returns_unchanged() -> None:
     """Test that no joins are applied when registry is None or empty."""
-    from sqlalchemy import select
-    from ucsschool_objects.database_models import User as UserModel
-
     stmt = select(UserModel)
     result = apply_nested_joins(stmt, set(), None)
 
@@ -222,12 +214,6 @@ def test_unsupported_nested_field_error_message_includes_supported_fields() -> N
 
 def test_get_filter_column_resolves_nested_field_without_field_map_entry() -> None:
     """_get_filter_column resolves a valid nested field even when not pre-populated in field_map."""
-    from ucsschool_objects.database_models import (
-        Group as GroupModel,
-        SchoolMembership,
-        User as UserModel,
-    )
-
     filter_expr = Filter("groups.public_id", Operator.EQ, "test-id")
     # field_map contains only scalar fields — nested key deliberately absent
     field_map = {"public_id": UserModel.public_id, "name": UserModel.name}
@@ -248,12 +234,6 @@ def test_get_filter_column_resolves_nested_field_without_field_map_entry() -> No
 def test_get_filter_column_raises_when_exposed_field_has_no_mapped_column() -> None:
     """_get_filter_column raises UnsupportedNestedField when the field is in exposed_fields but
     has no corresponding mapped column attribute on the target model."""
-    from ucsschool_objects.database_models import (
-        Group as GroupModel,
-        SchoolMembership,
-        User as UserModel,
-    )
-
     filter_expr = Filter("groups.nonexistent_attr", Operator.EQ, "value")
     field_map = {"public_id": UserModel.public_id}
     registry = {
@@ -274,16 +254,8 @@ def test_get_filter_column_raises_when_exposed_field_has_no_mapped_column() -> N
 def test_get_filter_column_returns_column_from_field_map_via_get() -> None:
     """_get_filter_column returns the column from field_map.get() (line 209) when the dotted
     key is present in the mapping but hidden from __contains__, bypassing the fast-path."""
-    from collections.abc import Iterator, Mapping as MappingABC
 
-    from ucsschool_objects.core.adapters.sqlalchemy.query_filter import FieldColumn
-    from ucsschool_objects.database_models import (
-        Group as GroupModel,
-        SchoolMembership,
-        User as UserModel,
-    )
-
-    class _HideDottedKeys(MappingABC[str, FieldColumn]):
+    class _HideDottedKeys(MappingABC[str, "FieldColumn"]):
         """A Mapping whose __contains__ never reports dotted keys, forcing the nested branch."""
 
         def __init__(self, data: dict[str, FieldColumn]) -> None:
@@ -327,9 +299,6 @@ def test_get_filter_column_returns_column_from_field_map_via_get() -> None:
 def test_get_filter_column_raises_when_target_model_is_not_mapped() -> None:
     """_get_filter_column raises UnsupportedNestedField when inspect() returns None
     (target_model is not a SQLAlchemy-instrumented class), covering the inspection is None branch."""
-    from typing import cast
-
-    from ucsschool_objects.database_models import Base, User as UserModel
 
     class PlainClass:  # not a SQLAlchemy model
         pass
@@ -339,7 +308,7 @@ def test_get_filter_column_raises_when_target_model_is_not_mapped() -> None:
     registry = {
         "plain": JoinSpec(
             relation_name="plain",
-            target_model=cast(type[Base], PlainClass),
+            target_model=cast("type[Base]", PlainClass),
             join_path=(),
             join_type=JoinType.LEFT_OUTER,
             exposed_fields=frozenset(["some_field"]),

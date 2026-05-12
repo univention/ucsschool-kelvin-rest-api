@@ -3,21 +3,12 @@ from __future__ import annotations
 import copy
 import uuid
 from datetime import date
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 import pytest
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from tests.test_types import (
-    AsyncGroupFactory,
-    AsyncGroupTypeFactory,
-    AsyncRoleFactory,
-    AsyncSchoolFactory,
-    AsyncSchoolMembershipFactory,
-    AsyncUserFactory,
-)
 from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyGroupManager,
     SQLAlchemySchoolManager,
@@ -37,13 +28,24 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
 )
 from ucsschool_objects.core.domain import NotFound, UnsupportedOperation
 from ucsschool_objects.core.domain.patch import _create_patch
-from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     School as SchoolModel,
     SchoolMembership as SchoolMembershipModel,
     User as UserModel,
 )
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from tests.test_types import (
+        AsyncGroupFactory,
+        AsyncGroupTypeFactory,
+        AsyncRoleFactory,
+        AsyncSchoolFactory,
+        AsyncSchoolMembershipFactory,
+        AsyncUserFactory,
+    )
+    from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -212,7 +214,7 @@ async def test_sync_scalar_relation_clears_optional(db_session: AsyncSession) ->
         school: SchoolModel | None = None
 
     model = Dummy()
-    model.school = cast(SchoolModel, object())
+    model.school = cast("SchoolModel", object())
 
     def set_school(value: SchoolModel | None) -> None:
         model.school = value
@@ -805,7 +807,7 @@ async def test_user_manager_modify_roles_in_school_membership(
 
     ops: list[JSONPathOperation] = [
         cast(
-            JSONPathOperation,
+            "JSONPathOperation",
             {
                 "op": "replace",
                 "path": f"/school_memberships/{school.public_id}/roles",

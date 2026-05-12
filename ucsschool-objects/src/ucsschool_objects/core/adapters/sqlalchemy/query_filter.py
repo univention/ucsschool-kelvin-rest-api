@@ -42,7 +42,7 @@ from ucsschool_objects.core.domain import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec
+    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import JoinSpec
 
 RANGE_CAPABLE_TYPES = (Date, DateTime, Float, Integer, Numeric)
 RANGE_OPERATORS = frozenset({Operator.GT, Operator.GTE, Operator.LT, Operator.LTE})

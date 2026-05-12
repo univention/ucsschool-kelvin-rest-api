@@ -120,7 +120,7 @@ async def test_unsupported_filter_operator_raises_domain_error(
 ) -> None:
     await school_factory(name="school-a")
     manager = SQLAlchemySchoolManager(db_session)
-    invalid_filter = Filter(field="name", op=cast(Operator, "NOPE"), value="school-a")
+    invalid_filter = Filter(field="name", op=cast("Operator", "NOPE"), value="school-a")
 
     with pytest.raises(UnsupportedFilterOperator, match="Unsupported operator") as exc_info:
         await manager.search(SearchQuery(where=invalid_filter))

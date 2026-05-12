@@ -11,5 +11,5 @@ class LoadSpec:
         return attribute in self.includes_set
 
     @classmethod
-    def from_attributes(cls, *attributes: str) -> "LoadSpec":
+    def from_attributes(cls, *attributes: str) -> LoadSpec:
         return cls(includes_set=frozenset(attributes))

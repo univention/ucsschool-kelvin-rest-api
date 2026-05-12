@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers import (
+    JoinSpec,
     JoinType,
     SQLAlchemyGroupManager,
     SQLAlchemyRoleManager,
@@ -18,6 +19,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _get_exposed_fields,
     _iter_filters,
 )
+from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import _is_loaded, _loaded_value
 from ucsschool_objects.core.domain import (
     UNLOADED,
@@ -33,6 +35,10 @@ from ucsschool_objects.core.domain import (
     SortSpec,
     UnsupportedNestedField,
 )
+from ucsschool_objects.database_models import School as SchoolModel
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
@@ -246,9 +252,6 @@ def test_role_manager_field_map_includes_nested_fields_when_registry_populated(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """RoleManager _FIELD_MAP only includes nested dot-notation keys for real columns."""
-    from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec
-    from ucsschool_objects.database_models import School as SchoolModel
-
     fake_spec = JoinSpec(
         relation_name="schools",
         target_model=SchoolModel,
@@ -294,8 +297,6 @@ def test_is_loaded_returns_true_when_sqlalchemy_state_missing(monkeypatch: pytes
     class _Model:
         value = "x"
 
-    from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
-
     monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: None)
 
     assert _is_loaded(_Model(), "value") is True
@@ -308,8 +309,6 @@ def test_is_loaded_returns_true_when_state_has_no_unloaded(monkeypatch: pytest.M
     class _Model:
         value = "x"
 
-    from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
-
     monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: _State())
 
     assert _is_loaded(_Model(), "value") is True
@@ -319,8 +318,6 @@ def test_loaded_value_without_transform_returns_raw_value(monkeypatch: pytest.Mo
     class _Model:
         value = "raw-value"
 
-    from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
-
     monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: None)
 
     model = _Model()
@@ -328,8 +325,6 @@ def test_loaded_value_without_transform_returns_raw_value(monkeypatch: pytest.Mo
 
 
 def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPatch) -> None:
-    from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
-
     class _State:
         unloaded = {"school", "roles"}
 
@@ -358,8 +353,6 @@ def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPa
 def test_to_user_raises_when_membership_school_has_no_uuid(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
-
     model = SimpleNamespace(
         public_id=uuid4(),
         record_uid="record-uid",

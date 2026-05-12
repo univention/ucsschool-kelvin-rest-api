@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
-from uuid import UUID
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
@@ -23,6 +21,12 @@ from ucsschool_objects.core.domain import (
 )
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import Role as RoleModel
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+    from uuid import UUID
+
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 __all__ = ["SQLAlchemyRoleManager"]
 

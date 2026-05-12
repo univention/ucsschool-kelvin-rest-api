@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
-from typing import Any, cast
-from uuid import UUID
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
-from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
@@ -28,6 +25,12 @@ from ucsschool_objects.core.domain import (
 )
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import School as SchoolModel
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+    from uuid import UUID
+
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 __all__ = ["SQLAlchemySchoolManager"]
 
