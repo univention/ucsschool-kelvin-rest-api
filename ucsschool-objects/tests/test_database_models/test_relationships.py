@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from ucsschool_objects.database_models import (
     GroupGroupEmailSendersAssociation,
     GroupMemberAssociation,
-    GroupRoleAssociation,
+    GroupMemberRoleAssociation,
     GroupUserEmailSendersAssociation,
     LegalGuardianAssociation,
     SchoolMembership,
@@ -126,7 +126,7 @@ async def test_many_to_many_fk_delete_cascade(
         ("user_factory", "user_factory", "legal_guardians", LegalGuardianAssociation),
         ("school_membership_factory", "user_factory", "school_memberships", SchoolMembership),
         ("role_factory", "school_membership_factory", "roles", SchoolMembershipRoleAssociation),
-        ("role_factory", "group_factory", "member_roles", GroupRoleAssociation),
+        ("role_factory", "group_factory", "member_roles", GroupMemberRoleAssociation),
     ],
     indirect=["model_factory", "model_factory2"],
 )
