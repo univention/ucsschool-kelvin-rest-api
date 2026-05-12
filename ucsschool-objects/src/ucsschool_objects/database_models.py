@@ -128,9 +128,7 @@ class Group(Base):
         String(255), nullable=True, unique=True, info={"udm_attr": "mailAddress"}
     )
 
-    roles: Mapped[list["Role"]] = relationship(
-        "Role", secondary="group_type_role_association", lazy="raise"
-    )
+    roles: Mapped[list["Role"]] = relationship("Role", secondary="group_role_association", lazy="raise")
 
     school_id: Mapped[int] = mapped_column(ForeignKey("school.id", ondelete="NO ACTION"), nullable=False)
     school: Mapped["School"] = relationship("School", lazy="selectin")
@@ -152,7 +150,7 @@ class Group(Base):
     )
 
     member_roles: Mapped[list["Role"]] = relationship(
-        "Role", secondary="group_role_association", lazy="raise"
+        "Role", secondary="group_member_role_association", lazy="raise"
     )
 
 
@@ -302,8 +300,8 @@ class GroupMemberAssociation(Base):
     )
 
 
-class GroupRoleAssociation(Base):
-    __tablename__ = "group_role_association"
+class GroupMemberRoleAssociation(Base):
+    __tablename__ = "group_member_role_association"
 
     group_id: Mapped[int] = mapped_column(
         ForeignKey("group.id", ondelete="CASCADE"), nullable=False, primary_key=True
@@ -313,8 +311,8 @@ class GroupRoleAssociation(Base):
     )
 
 
-class GroupTypeRoleAssociation(Base):
-    __tablename__ = "group_type_role_association"
+class GroupRoleAssociation(Base):
+    __tablename__ = "group_role_association"
 
     group_id: Mapped[int] = mapped_column(
         ForeignKey("group.id", ondelete="CASCADE"), nullable=False, primary_key=True
