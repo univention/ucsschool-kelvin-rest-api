@@ -3,7 +3,7 @@ classDiagram
     *INTEGER id NOT NULL
     JSON administrative_servers NOT NULL
     VARCHAR<255> class_share_file_server
-    JSON display_name NOT NULL
+    VARCHAR<255> display_name NOT NULL
     JSON educational_servers NOT NULL
     VARCHAR<255> home_share_file_server
     VARCHAR<255> name NOT NULL
@@ -13,9 +13,8 @@ classDiagram
   }
   class group{
     *INTEGER id NOT NULL
-    JSON display_name NOT NULL
+    VARCHAR<255> display_name NOT NULL
     VARCHAR<255> email
-    INTEGER group_type_id NOT NULL
     BOOLEAN has_share NOT NULL
     VARCHAR<255> name NOT NULL
     UUID public_id NOT NULL
@@ -49,14 +48,13 @@ classDiagram
     INTEGER school_id NOT NULL
     INTEGER user_id NOT NULL
   }
-  class group_type{
-    *INTEGER id NOT NULL
-    JSON display_name NOT NULL
-    VARCHAR<255> name NOT NULL
-  }
   class group_member_association{
     *INTEGER group_id NOT NULL
     *INTEGER school_membership_id NOT NULL
+  }
+  class group_member_role_association{
+    *INTEGER group_id NOT NULL
+    *INTEGER role_id NOT NULL
   }
   class group_role_association{
     *INTEGER group_id NOT NULL
@@ -79,17 +77,18 @@ classDiagram
     *INTEGER legal_ward_id NOT NULL
   }
   school "1" -- "0..n" group
-  group_type "1" -- "0..n" group
   user "1" -- "0..n" school_membership
   school "1" -- "0..n" school_membership
   school_membership "1" -- "0..n" group_member_association
   group "1" -- "0..n" group_member_association
-  group "1" -- "0..n" group_role_association
+  group "1" -- "0..n" group_member_role_association
+  role "1" -- "0..n" group_member_role_association
   role "1" -- "0..n" group_role_association
-  school_membership "1" -- "0..n" school_membership_role_association
+  group "1" -- "0..n" group_role_association
   role "1" -- "0..n" school_membership_role_association
-  group "1" -- "0..n" group_user_email_senders_association
+  school_membership "1" -- "0..n" school_membership_role_association
   user "1" -- "0..n" group_user_email_senders_association
+  group "1" -- "0..n" group_user_email_senders_association
   group "1" -- "1" group_group_email_senders_association
   group "1" -- "1" group_group_email_senders_association
   user "1" -- "1" legal_guardian_association

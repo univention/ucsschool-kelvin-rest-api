@@ -7,10 +7,10 @@
      - Direction
      - Collection
      - Back-ref
-   * - ``group_type``
-     - ``GroupType``
-     - Many → One
-     -
+   * - ``roles``
+     - ``Role``
+     - Many ↔ Many
+     - ✓
      -
    * - ``school``
      - ``School``
