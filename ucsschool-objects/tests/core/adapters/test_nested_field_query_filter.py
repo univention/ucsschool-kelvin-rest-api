@@ -243,3 +243,108 @@ def test_get_filter_column_resolves_nested_field_without_field_map_entry() -> No
 
     column = _get_filter_column(filter_expr, field_map, registry)
     assert column is GroupModel.public_id
+
+
+def test_get_filter_column_raises_when_exposed_field_has_no_mapped_column() -> None:
+    """_get_filter_column raises UnsupportedNestedField when the field is in exposed_fields but
+    has no corresponding mapped column attribute on the target model."""
+    from ucsschool_objects.database_models import (
+        Group as GroupModel,
+        SchoolMembership,
+        User as UserModel,
+    )
+
+    filter_expr = Filter("groups.nonexistent_attr", Operator.EQ, "value")
+    field_map = {"public_id": UserModel.public_id}
+    registry = {
+        "groups": JoinSpec(
+            relation_name="groups",
+            target_model=GroupModel,
+            join_path=(SchoolMembership, GroupModel),
+            join_type=JoinType.LEFT_OUTER,
+            # Declare the field as exposed even though it has no mapped column on GroupModel.
+            exposed_fields=frozenset(["nonexistent_attr"]),
+        ),
+    }
+
+    with pytest.raises(UnsupportedNestedField):
+        _get_filter_column(filter_expr, field_map, registry)
+
+
+def test_get_filter_column_returns_column_from_field_map_via_get() -> None:
+    """_get_filter_column returns the column from field_map.get() (line 209) when the dotted
+    key is present in the mapping but hidden from __contains__, bypassing the fast-path."""
+    from collections.abc import Iterator, Mapping as MappingABC
+
+    from ucsschool_objects.core.adapters.sqlalchemy.query_filter import FieldColumn
+    from ucsschool_objects.database_models import (
+        Group as GroupModel,
+        SchoolMembership,
+        User as UserModel,
+    )
+
+    class _HideDottedKeys(MappingABC[str, FieldColumn]):
+        """A Mapping whose __contains__ never reports dotted keys, forcing the nested branch."""
+
+        def __init__(self, data: dict[str, FieldColumn]) -> None:
+            self._data = data
+
+        def __getitem__(self, key: str) -> FieldColumn:
+            return self._data[key]
+
+        def __iter__(self) -> Iterator[str]:
+            return iter(self._data)
+
+        def __len__(self) -> int:
+            return len(self._data)
+
+        def __contains__(self, key: object) -> bool:
+            if isinstance(key, str) and "." in key:
+                return False
+            return key in self._data
+
+    filter_expr = Filter("groups.public_id", Operator.EQ, "test-id")
+    field_map: MappingABC[str, FieldColumn] = _HideDottedKeys(
+        {
+            "public_id": UserModel.public_id,
+            "groups.public_id": GroupModel.public_id,
+        }
+    )
+    registry = {
+        "groups": JoinSpec(
+            relation_name="groups",
+            target_model=GroupModel,
+            join_path=(SchoolMembership, GroupModel),
+            join_type=JoinType.LEFT_OUTER,
+            exposed_fields=frozenset(["public_id"]),
+        ),
+    }
+
+    column = _get_filter_column(filter_expr, field_map, registry)
+    assert column is GroupModel.public_id
+
+
+def test_get_filter_column_raises_when_target_model_is_not_mapped() -> None:
+    """_get_filter_column raises UnsupportedNestedField when inspect() returns None
+    (target_model is not a SQLAlchemy-instrumented class), covering the inspection is None branch."""
+    from typing import cast
+
+    from ucsschool_objects.database_models import Base, User as UserModel
+
+    class PlainClass:  # not a SQLAlchemy model
+        pass
+
+    filter_expr = Filter("plain.some_field", Operator.EQ, "value")
+    field_map = {"public_id": UserModel.public_id}
+    registry = {
+        "plain": JoinSpec(
+            relation_name="plain",
+            target_model=cast(type[Base], PlainClass),
+            join_path=(),
+            join_type=JoinType.LEFT_OUTER,
+            exposed_fields=frozenset(["some_field"]),
+        ),
+    }
+
+    with pytest.raises(UnsupportedNestedField):
+        _get_filter_column(filter_expr, field_map, registry)

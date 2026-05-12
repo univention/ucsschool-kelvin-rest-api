@@ -245,7 +245,7 @@ def test_get_exposed_fields_returns_empty_for_non_sqlalchemy_model() -> None:
 def test_role_manager_field_map_includes_nested_fields_when_registry_populated(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """RoleManager _FIELD_MAP includes dot-notation keys for populated registry."""
+    """RoleManager _FIELD_MAP only includes nested dot-notation keys for real columns."""
     from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec
     from ucsschool_objects.database_models import School as SchoolModel
 
@@ -254,7 +254,7 @@ def test_role_manager_field_map_includes_nested_fields_when_registry_populated(
         target_model=SchoolModel,
         join_path=(SchoolModel,),
         join_type=JoinType.LEFT_OUTER,
-        exposed_fields=frozenset(["name"]),
+        exposed_fields=frozenset(["name", "not_a_column"]),
     )
     monkeypatch.setattr(SQLAlchemyRoleManager, "_NESTED_FIELD_REGISTRY", {"schools": fake_spec})
     monkeypatch.setattr(
@@ -266,6 +266,7 @@ def test_role_manager_field_map_includes_nested_fields_when_registry_populated(
     )
     manager = SQLAlchemyRoleManager(None)  # type: ignore[arg-type]  # session unused in this assertion
     assert "schools.name" in manager._FIELD_MAP
+    assert "schools.not_a_column" not in manager._FIELD_MAP
 
 
 def test_iter_filters_handles_filter_and_and_or_and_not() -> None:

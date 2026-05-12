@@ -21,6 +21,7 @@ from ucsschool_objects.core.domain import (
     Or,
     UnloadedType,
 )
+from ucsschool_objects.core.domain.models import UnsetType
 from ucsschool_objects.core.domain.patch import normalise
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 from ucsschool_objects.database_models import (
@@ -53,7 +54,7 @@ TRequired = TypeVar("TRequired")
 
 class PublicIdCarrier(Protocol):
     @property
-    def public_id(self) -> UUID:
+    def public_id(self) -> UUID | UnsetType:  # pragma: no cover
         ...
 
 
@@ -124,7 +125,9 @@ def _apply_patch(
 def _public_id_column(model_class: type[TModel]) -> InstrumentedAttribute[Any]:
     inspection: Any = inspect(model_class, raiseerr=False)
     if inspection is None:
-        raise ValueError(f"Model class {model_class.__name__} is not SQLAlchemy-inspectable.")
+        raise ValueError(
+            f"Model class {model_class.__name__} is not SQLAlchemy-inspectable."
+        )  # pragma: no cover
     mapper: Any = inspection.mapper
     return cast(InstrumentedAttribute[Any], mapper.column_attrs["public_id"].class_attribute)
 
