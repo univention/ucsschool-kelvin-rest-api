@@ -778,25 +778,40 @@ async def test_user_manager_modify_groups_in_school_membership(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("clear_roles", [False, True], ids=["replace-role", "clear-roles"])
 async def test_user_manager_modify_roles_in_school_membership(
     db_session: AsyncSession,
     user_factory: AsyncUserFactory,
     school_factory: AsyncSchoolFactory,
     role_factory: AsyncRoleFactory,
     school_membership_factory: AsyncSchoolMembershipFactory,
+    clear_roles: bool,
 ) -> None:
     user = await user_factory()
     school = await school_factory()
     role_a = await role_factory()
-    role_b = await role_factory()
+    role_b = await role_factory() if not clear_roles else None
     await school_membership_factory(user=user, school=school, roles=[role_a])
 
+    replacement_roles: list[dict[str, str]]
+    expected_public_ids: set[UUID]
+    if clear_roles:
+        replacement_roles = []
+        expected_public_ids = set()
+    else:
+        assert role_b is not None
+        replacement_roles = [{"public_id": str(role_b.public_id)}]
+        expected_public_ids = {role_b.public_id}
+
     ops: list[JSONPathOperation] = [
-        {
-            "op": "replace",
-            "path": f"/school_memberships/{school.public_id}/roles",
-            "value": [{"public_id": str(role_b.public_id)}],
-        }
+        cast(
+            JSONPathOperation,
+            {
+                "op": "replace",
+                "path": f"/school_memberships/{school.public_id}/roles",
+                "value": replacement_roles,
+            },
+        )
     ]
     await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
 
@@ -810,7 +825,7 @@ async def test_user_manager_modify_roles_in_school_membership(
             )
         )
     ).scalar_one()
-    assert {r.public_id for r in updated.roles} == {role_b.public_id}
+    assert {r.public_id for r in updated.roles} == expected_public_ids
 
 
 @pytest.mark.asyncio
