@@ -39,11 +39,11 @@
      - ✓
      -
    * - ``display_name``
-     - ``JSON``
+     - ``VARCHAR(255)``
      -
      -
      -
-     - ``dict()``
+     - ``''``
    * - ``has_share``
      - ``BOOLEAN``
      -
@@ -55,12 +55,6 @@
      -
      - ✓
      - ✓
-     -
-   * - ``group_type_id``
-     - ``INTEGER``
-     -
-     -
-     -
      -
    * - ``school_id``
      - ``INTEGER``
