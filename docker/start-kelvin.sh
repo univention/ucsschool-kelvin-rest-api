@@ -16,12 +16,12 @@ while [[ ! -f "/etc/machine.secret" ]]; do
     ((APPCENTER_TIMEOUT++))
 done
 
-num_workers="$(ucr get ucsschool/kelvin/processes)"
+NUM_WORKERS="${NUM_WORKERS:-$(ucr get ucsschool/kelvin/processes)}"
 
-if [[ -z "$num_workers" ]]; then
-    num_workers="2"
-elif [[ "$num_workers" -lt  "1" ]]; then
-    num_workers="$(nproc)"
+if [[ -z "$NUM_WORKERS" ]]; then
+    NUM_WORKERS="2"
+elif [[ "$NUM_WORKERS" -lt  "1" ]]; then
+    NUM_WORKERS="$(nproc)"
 fi
 
 python -c "import openapi_client_udm"
@@ -47,7 +47,7 @@ if [[ "$SKIP_UCSSCHOOL_KELVIN_DB_MIGRATION" != "true" ]]; then
 fi
 
 exec gunicorn \
-    --workers "$num_workers" \
+    --workers "$NUM_WORKERS" \
     --worker-class uvicorn.workers.UvicornWorker \
     ${TRUSTED_PROXY_IPS:+--forwarded-allow-ips="$TRUSTED_PROXY_IPS"} \
     --bind 0.0.0.0:8911 \
