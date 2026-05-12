@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from enum import Enum
+
 
 class CorelibError(Exception):
     """Base exception for core library domain errors."""
@@ -12,6 +14,8 @@ class InvalidFilter(CorelibError):
 class UnsupportedFilterField(InvalidFilter):
     """Raised when a filter references a field that the manager does not support."""
 
+    field: str
+
     def __init__(self, field: str) -> None:
         self.field = field
         super().__init__(f"Unsupported field: {field!r}")
@@ -20,6 +24,8 @@ class UnsupportedFilterField(InvalidFilter):
 class UnsupportedSortField(InvalidFilter):
     """Raised when sorting is requested on an unsupported field."""
 
+    field: str
+
     def __init__(self, field: str) -> None:
         self.field = field
         super().__init__(f"Unsupported sort field: {field!r}")
@@ -27,6 +33,9 @@ class UnsupportedSortField(InvalidFilter):
 
 class InvalidInFilter(InvalidFilter):
     """Raised when an IN filter receives a non-iterable value."""
+
+    field: str
+    value: object
 
     def __init__(self, field: str, value: object) -> None:
         self.field = field
@@ -37,6 +46,9 @@ class InvalidInFilter(InvalidFilter):
 class InvalidLikeFilter(InvalidFilter):
     """Raised when a LIKE filter receives a non-string value."""
 
+    field: str
+    value: object
+
     def __init__(self, field: str, value: object) -> None:
         self.field = field
         self.value = value
@@ -46,21 +58,26 @@ class InvalidLikeFilter(InvalidFilter):
 class InvalidRangeFilter(InvalidFilter):
     """Raised when a range operator is used with an unsupported field or value."""
 
-    def __init__(self, field: str, operator: object, value: object) -> None:
+    field: str
+    operator: Enum
+    value: object
+
+    def __init__(self, field: str, operator: Enum, value: object) -> None:
         self.field = field
         self.operator = operator
         self.value = value
-        operator_name = str(operator)
-        if hasattr(operator, "name"):
-            operator_name = str(operator.name)
+        operator_name = operator.name
         super().__init__(
-            f"{operator_name} operator requires a numeric or date-like field and non-null value "
-            f"for field {field!r}; got {value!r}"
+            f"{operator_name} operator requires a numeric or date-like field and "
+            f"non-null value for field {field!r}; got {value!r}"
         )
 
 
 class UnsupportedFilterOperator(InvalidFilter):
     """Raised when a filter uses an operator the backend does not support."""
+
+    field: str
+    operator: object
 
     def __init__(self, field: str, operator: object) -> None:
         self.field = field
@@ -70,6 +87,12 @@ class UnsupportedFilterOperator(InvalidFilter):
 
 class UnsupportedNestedField(InvalidFilter):
     """Raised when a nested field query references an unsupported relationship or field."""
+
+    nested_field: str
+    root_relation: str
+    allowed_relations: list[str]
+    reason: str
+    supported_fields: list[str]
 
     def __init__(
         self,
@@ -118,6 +141,9 @@ class UnsupportedOperation(CorelibError):
 
 class NotFound(CorelibError):
     """Raised when a requested object is not found."""
+
+    object_type: str
+    public_id: str
 
     def __init__(self, object_type: str, public_id: str) -> None:
         self.object_type = object_type
