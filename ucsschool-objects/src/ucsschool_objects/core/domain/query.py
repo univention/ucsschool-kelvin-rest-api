@@ -21,6 +21,7 @@ class Operator(str, Enum):
     NE = "ne"
     IN = "in"
     LIKE = "like"
+    ILIKE = "ilike"
     GT = "gt"
     GTE = "gte"
     LT = "lt"
