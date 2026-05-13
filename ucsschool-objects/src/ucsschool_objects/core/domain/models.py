@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -165,8 +165,8 @@ class User:
     lastname: str | UnloadedType
     active: bool | UnloadedType
     school_memberships: dict[UUID, SchoolMembership] | UnloadedType
-    legal_wards: set[User] | UnloadedType = field(default_factory=set)
-    legal_guardians: set[User] | UnloadedType = field(default_factory=set)
+    legal_wards: set[User] | UnloadedType
+    legal_guardians: set[User] | UnloadedType
     public_id: UUID | UnsetType = UNSET
     email: str | None | UnloadedType = None
     birthday: date | None | UnloadedType = None
