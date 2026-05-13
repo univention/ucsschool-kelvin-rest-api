@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import date
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 from sqlalchemy import Select, delete, select
@@ -150,7 +150,7 @@ def _includes_user_memberships(load: LoadSpec) -> bool:
     )
 
 
-def _group_scalar_columns() -> tuple[InstrumentedAttribute[Any], ...]:
+def _group_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
     return (
         GroupModel.record_uid,
         GroupModel.source_uid,
@@ -161,7 +161,7 @@ def _group_scalar_columns() -> tuple[InstrumentedAttribute[Any], ...]:
     )
 
 
-def _user_scalar_columns() -> tuple[InstrumentedAttribute[Any], ...]:
+def _user_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
     return (
         UserModel.record_uid,
         UserModel.source_uid,
@@ -440,6 +440,6 @@ class SQLAlchemyUserManager(Manager[User]):
 
     async def delete(self, public_id: UUID) -> None:
         stmt = delete(UserModel).where(UserModel.public_id == public_id)
-        result = cast(CursorResult[Any], await self._session.execute(stmt))
+        result = cast(CursorResult[None], await self._session.execute(stmt))
         if result.rowcount == 0:
             raise NotFound(object_type="User", public_id=str(public_id))
