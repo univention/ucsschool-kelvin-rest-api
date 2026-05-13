@@ -97,6 +97,14 @@ def build_exception_case(
             expected_exc_field="name",
             expected_exc_value=42,
         ),
+        build_exception_case(
+            id="invalid-ilike-filter-value",
+            search_args={"query": SearchQuery(where=Filter(field="name", op=Operator.ILIKE, value=42))},
+            expected_exc_type=InvalidLikeFilter,
+            expected_exc_message="LIKE operator requires a string value",
+            expected_exc_field="name",
+            expected_exc_value=42,
+        ),
     ],
 )
 async def test_group_manager_raises_invalid_filter(
