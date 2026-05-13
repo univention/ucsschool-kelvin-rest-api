@@ -1,5 +1,5 @@
 import copy
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import asdict
 from datetime import date
 from typing import Generic, Self, TypeVar, cast
@@ -11,6 +11,8 @@ from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 
 _T = TypeVar("_T", School, Group, User)
 
+_EMPTY_FROZENSET: frozenset[str] = frozenset()
+
 
 def normalise(obj: object) -> object:
     # asdict leaves set/frozenset, UUID, and date as Python objects; convert them to
@@ -18,9 +20,10 @@ def normalise(obj: object) -> object:
     # Dict keys are also normalised so UUID-keyed dicts (e.g. school_memberships)
     # serialise correctly.
     if isinstance(obj, dict):
-        return {normalise(k): normalise(v) for k, v in obj.items()}
+        d = cast(dict[object, object], obj)
+        return {normalise(k): normalise(v) for k, v in d.items()}
     if isinstance(obj, (list, set, frozenset)):
-        return sorted((normalise(item) for item in obj), key=str)
+        return sorted((normalise(item) for item in cast(Iterable[object], obj)), key=str)
     if isinstance(obj, UUID):
         return str(obj)
     if isinstance(obj, date):
@@ -31,7 +34,7 @@ def normalise(obj: object) -> object:
 def _patch_ops(
     src_dict: dict[str, object],
     dst_dict: dict[str, object],
-    replace_fields: frozenset[str] = frozenset(),
+    replace_fields: frozenset[str] = _EMPTY_FROZENSET,
 ) -> Sequence[JSONPathOperation]:
     operations: list[dict[str, object]] = []
     for field in replace_fields:
@@ -39,12 +42,15 @@ def _patch_ops(
         dst_val = dst_dict.pop(field, None)
         if src_val != dst_val:
             operations.append({"op": "replace", "path": f"/{field}", "value": dst_val})
-    operations.extend(JsonPatch.from_diff(src_dict, dst_dict).patch)
+    # NOTE lib jsonpatch is untyped
+    operations.extend(
+        JsonPatch.from_diff(src_dict, dst_dict).patch  # pyright: ignore[reportUnknownMemberType]
+    )
     return cast(Sequence[JSONPathOperation], JsonPatch(operations).patch)
 
 
 def _create_patch(
-    src: _T, dst: _T, replace_fields: frozenset[str] = frozenset()
+    src: _T, dst: _T, replace_fields: frozenset[str] = _EMPTY_FROZENSET
 ) -> Sequence[JSONPathOperation]:
     src_dict = cast(dict[str, object], normalise(asdict(src)))
     dst_dict = cast(dict[str, object], normalise(asdict(dst)))
@@ -52,7 +58,7 @@ def _create_patch(
 
 
 def create_school_patch(
-    src: School, dst: School, replace_fields: frozenset[str] = frozenset()
+    src: School, dst: School, replace_fields: frozenset[str] = _EMPTY_FROZENSET
 ) -> Sequence[JSONPathOperation]:
     """Return a JSON Patch describing the changes needed to transform src into dst.
 
@@ -67,7 +73,7 @@ def create_school_patch(
 
 
 def create_group_patch(
-    src: Group, dst: Group, replace_fields: frozenset[str] = frozenset()
+    src: Group, dst: Group, replace_fields: frozenset[str] = _EMPTY_FROZENSET
 ) -> Sequence[JSONPathOperation]:
     """Return a JSON Patch describing the changes needed to transform src into dst.
 
@@ -82,7 +88,7 @@ def create_group_patch(
 
 
 def create_user_patch(
-    src: User, dst: User, replace_fields: frozenset[str] = frozenset()
+    src: User, dst: User, replace_fields: frozenset[str] = _EMPTY_FROZENSET
 ) -> Sequence[JSONPathOperation]:
     """Return a JSON Patch describing the changes needed to transform src into dst.
 
@@ -117,7 +123,7 @@ class track_changes(Generic[_T]):
             ``create_school_patch`` for semantics.
     """
 
-    def __init__(self, obj: _T, replace_fields: frozenset[str] = frozenset()) -> None:
+    def __init__(self, obj: _T, replace_fields: frozenset[str] = _EMPTY_FROZENSET) -> None:
         self._obj: _T = obj
         self._original: _T = obj
         self._replace_fields = replace_fields
