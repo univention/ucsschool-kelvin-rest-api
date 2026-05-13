@@ -213,12 +213,16 @@ def _with_user_related_load_options(
     return stmt
 
 
-def _with_user_load_options(stmt: Select[tuple[UserModel]], load: LoadSpec) -> Select[tuple[UserModel]]:
+def _with_user_load_options(
+    stmt: Select[tuple[UserModel]],
+    load: LoadSpec,
+    attribute_map: dict[str, FieldColumn],
+) -> Select[tuple[UserModel]]:
     stmt = _load_requested_scalar_attributes(
         stmt,
         UserModel.public_id,
         load,
-        SQLAlchemyUserManager._LOAD_ATTRIBUTE_MAP,
+        attribute_map,
     )
     return _with_user_related_load_options(stmt, load)
 
@@ -324,7 +328,7 @@ class SQLAlchemyUserManager(Manager[User]):
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> User:
         stmt = select(UserModel).where(UserModel.public_id == public_id)
         if load is not None:
-            stmt = _with_user_load_options(stmt, load)
+            stmt = _with_user_load_options(stmt, load, self._LOAD_ATTRIBUTE_MAP)
         result = (await self._session.execute(stmt)).scalar_one_or_none()
         if result is None:
             raise NotFound(object_type="User", public_id=str(public_id))
@@ -347,7 +351,7 @@ class SQLAlchemyUserManager(Manager[User]):
     ) -> Iterable[User]:
         stmt = select(UserModel)
         if load is not None:
-            stmt = _with_user_load_options(stmt, load)
+            stmt = _with_user_load_options(stmt, load, self._LOAD_ATTRIBUTE_MAP)
         stmt = apply_search_query(stmt, query, self._FIELD_MAP, self._NESTED_FIELD_REGISTRY)
         stmt = apply_sort(
             stmt,

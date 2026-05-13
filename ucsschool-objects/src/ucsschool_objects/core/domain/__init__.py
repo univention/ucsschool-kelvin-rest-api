@@ -24,6 +24,7 @@ from .models import (
     UnloadedType,
     User,
 )
+from .patch import track_changes
 from .ports import (
     KelvinStorageSession,
     KelvinStorageSessionFactory,
@@ -73,6 +74,7 @@ __all__ = [
     "SchoolValidator",
     "SearchQuery",
     "SortSpec",
+    "track_changes",
     "UNLOADED",
     "UNSET",
     "KelvinStorageSession",
