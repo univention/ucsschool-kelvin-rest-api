@@ -20,7 +20,6 @@ from ucsschool_objects.core.domain import (
     UnsupportedNestedField,
 )
 from ucsschool_objects.database_models import (
-    Base,
     Group as GroupModel,
     Role as RoleModel,
     SchoolMembership,
@@ -212,8 +211,9 @@ def test_unsupported_nested_field_error_message_includes_supported_fields() -> N
     assert "name" in msg
 
 
-def test_get_filter_column_resolves_nested_field_without_field_map_entry() -> None:
-    """_get_filter_column resolves a valid nested field even when not pre-populated in field_map."""
+def test_get_filter_column_raises_when_nested_field_missing_from_field_map() -> None:
+    """_get_filter_column raises UnsupportedNestedField when a declared nested field is
+    not present in pre-composed field_map."""
     filter_expr = Filter("groups.public_id", Operator.EQ, "test-id")
     # field_map contains only scalar fields — nested key deliberately absent
     field_map = {"public_id": UserModel.public_id, "name": UserModel.name}
@@ -227,8 +227,8 @@ def test_get_filter_column_resolves_nested_field_without_field_map_entry() -> No
         ),
     }
 
-    column = _get_filter_column(filter_expr, field_map, registry)
-    assert column is GroupModel.public_id
+    with pytest.raises(UnsupportedNestedField):
+        _get_filter_column(filter_expr, field_map, registry)
 
 
 def test_get_filter_column_raises_when_exposed_field_has_no_mapped_column() -> None:
@@ -294,26 +294,3 @@ def test_get_filter_column_returns_column_from_field_map_via_get() -> None:
 
     column = _get_filter_column(filter_expr, field_map, registry)
     assert column is GroupModel.public_id
-
-
-def test_get_filter_column_raises_when_target_model_is_not_mapped() -> None:
-    """_get_filter_column raises UnsupportedNestedField when inspect() returns None
-    (target_model is not a SQLAlchemy-instrumented class), covering the inspection is None branch."""
-
-    class PlainClass:  # not a SQLAlchemy model
-        pass
-
-    filter_expr = Filter("plain.some_field", Operator.EQ, "value")
-    field_map = {"public_id": UserModel.public_id}
-    registry = {
-        "plain": JoinSpec(
-            relation_name="plain",
-            target_model=cast("type[Base]", PlainClass),
-            join_path=(),
-            join_type=JoinType.LEFT_OUTER,
-            exposed_fields=frozenset(["some_field"]),
-        ),
-    }
-
-    with pytest.raises(UnsupportedNestedField):
-        _get_filter_column(filter_expr, field_map, registry)
