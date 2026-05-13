@@ -147,17 +147,12 @@ def apply_nested_joins(
     return stmt
 
 
-def _get_column_type(column: FieldColumn) -> TypeEngine[object] | None:
-    if isinstance(column, InstrumentedAttribute):
-        return cast(TypeEngine[object], column.property.columns[0].type)
-    # Keep fallback for expression-backed field maps (ColumnElement), e.g. computed
-    # search/sort fields that may be introduced by future manager implementations.
-    return column.type
+def _get_column_type(column: FieldColumn) -> TypeEngine[object]:
+    return cast(TypeEngine[object], column.type)
 
 
 def _supports_range_filters(column: FieldColumn) -> bool:
-    column_type = _get_column_type(column)
-    return column_type is not None and isinstance(column_type, RANGE_CAPABLE_TYPES)
+    return isinstance(_get_column_type(column), RANGE_CAPABLE_TYPES)
 
 
 def _get_filter_column(
