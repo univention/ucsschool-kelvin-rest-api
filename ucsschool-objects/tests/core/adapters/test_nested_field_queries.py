@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import inspect
 from ucsschool_objects.core.adapters.sqlalchemy.managers import (
     JoinSpec,
     JoinType,
@@ -270,6 +271,28 @@ def test_role_manager_field_map_includes_nested_fields_when_registry_populated(
     manager = SQLAlchemyRoleManager(None)  # type: ignore[arg-type]  # session unused in this assertion
     assert "schools.name" in manager._FIELD_MAP
     assert "schools.not_a_column" not in manager._FIELD_MAP
+
+
+@pytest.mark.parametrize(
+    "manager_cls",
+    [
+        pytest.param(SQLAlchemySchoolManager, id="school"),
+        pytest.param(SQLAlchemyRoleManager, id="role"),
+        pytest.param(SQLAlchemyGroupManager, id="group"),
+        pytest.param(SQLAlchemyUserManager, id="user"),
+    ],
+)
+def test_manager_field_map_fully_covers_exposed_nested_fields(manager_cls: type[Any]) -> None:
+    """All managers' _FIELD_MAP entries must cover every exposed nested relation field."""
+    for relation_name, spec in manager_cls._NESTED_FIELD_REGISTRY.items():
+        mapper = inspect(spec.target_model).mapper
+        target_columns = {column.key: column.class_attribute for column in mapper.column_attrs}
+
+        for field_name in spec.exposed_fields:
+            if field_name in target_columns:
+                nested_field = f"{relation_name}.{field_name}"
+                assert nested_field in manager_cls._FIELD_MAP
+                assert manager_cls._FIELD_MAP[nested_field] is target_columns[field_name]
 
 
 def test_iter_filters_handles_filter_and_and_or_and_not() -> None:

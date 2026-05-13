@@ -13,7 +13,6 @@ from sqlalchemy import (
     and_,
     asc,
     desc,
-    inspect,
     not_,
     or_,
 )
@@ -207,13 +206,6 @@ def _get_filter_column(
         column = field_map.get(filter_expr.field)
         if column is not None:
             return column
-
-        inspection = inspect(spec.target_model, raiseerr=False)
-        if inspection is not None:
-            mapper = inspection.mapper
-            for mapped_attr in mapper.column_attrs:
-                if mapped_attr.key == field_part:
-                    return cast(FieldColumn, mapped_attr.class_attribute)
 
         raise UnsupportedNestedField(
             nested_field=filter_expr.field,
