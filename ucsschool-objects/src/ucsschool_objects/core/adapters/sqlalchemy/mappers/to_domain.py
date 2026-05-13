@@ -60,7 +60,7 @@ def _as_set_str(value: object) -> set[str]:
     return set(cast(Iterable[str], value))
 
 
-def _is_loaded(model: TModel, attribute: str) -> bool:
+def _is_loaded(model: object, attribute: str) -> bool:
     state = inspect(model, raiseerr=False)
     if state is None:
         return True
@@ -71,7 +71,7 @@ def _is_loaded(model: TModel, attribute: str) -> bool:
 
 
 def _loaded_value(
-    model: TModel,
+    model: object,
     attribute: str,
 ) -> object | UnloadedType:
     if not _is_loaded(model, attribute):
@@ -89,7 +89,7 @@ def _convert_loaded(
 
 
 def _convert_unloadable(
-    model: TModel,
+    model: object,
     attribute: str,
     converter: Callable[[object], TConverted],
 ) -> TConverted | UnloadedType:
