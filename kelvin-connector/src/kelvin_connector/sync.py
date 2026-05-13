@@ -589,7 +589,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         school_name = m.group(1)
 
         schools = await storage.schools.search(
-            SearchQuery(Filter(field="name", op=Operator.LIKE, value=school_name))
+            SearchQuery(Filter(field="name", op=Operator.ILIKE, value=school_name))
         )
         try:
             school = next(iter(schools))

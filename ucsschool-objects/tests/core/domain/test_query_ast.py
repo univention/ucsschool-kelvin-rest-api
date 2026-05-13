@@ -1,10 +1,12 @@
+import pytest
 from ucsschool_objects.core.domain import And, Filter, Not, Operator, Or, SearchQuery, SortSpec
 
 
-def test_query_ast_structures() -> None:
+@pytest.mark.parametrize("operator", [Operator.LIKE, Operator.ILIKE])
+def test_query_ast_structures(operator: Operator) -> None:
     expr = And(
         clauses=(
-            Filter(field="name", op=Operator.LIKE, value="alice%"),
+            Filter(field="name", op=operator, value="alice%"),
             Not(clause=Or(clauses=(Filter(field="active", op=Operator.EQ, value=False),))),
         )
     )

@@ -101,12 +101,15 @@ async def test_in_filter_with_non_iterable_raises_domain_error(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("operator", [Operator.LIKE, Operator.ILIKE])
 async def test_like_filter_with_non_string_raises_domain_error(
-    db_session: AsyncSession, school_factory: SchoolFactory
+    db_session: AsyncSession,
+    school_factory: SchoolFactory,
+    operator: Operator,
 ) -> None:
     await school_factory(name="school-a")
     manager = SQLAlchemySchoolManager(db_session)
-    invalid_filter = Filter(field="name", op=Operator.LIKE, value=123)
+    invalid_filter = Filter(field="name", op=operator, value=123)
 
     with pytest.raises(InvalidLikeFilter, match="LIKE operator requires a string value") as exc_info:
         await manager.search(SearchQuery(where=invalid_filter))
