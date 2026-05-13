@@ -171,20 +171,6 @@ async def test_nested_field_in_sort_spec(db_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_nested_field_with_like_operator(db_session: AsyncSession) -> None:
-    """Test nested field filter with LIKE operator."""
-    manager = SQLAlchemyUserManager(db_session)
-
-    try:
-        list(
-            await manager.search(query=SearchQuery(where=Filter("groups.name", Operator.LIKE, "test%")))
-        )
-    except Exception as e:
-        if "Unsupported" in str(type(e).__name__):
-            raise
-
-
-@pytest.mark.asyncio
 async def test_group_manager_by_school_name(db_session: AsyncSession) -> None:
     """Test querying groups by school.name."""
     manager = SQLAlchemyGroupManager(db_session)
@@ -192,7 +178,7 @@ async def test_group_manager_by_school_name(db_session: AsyncSession) -> None:
     # Should not raise on field resolution
     try:
         list(
-            await manager.search(query=SearchQuery(where=Filter("school.name", Operator.LIKE, "test%")))
+            await manager.search(query=SearchQuery(where=Filter("school.name", Operator.ILIKE, "test%")))
         )
     except Exception as e:
         if "Unsupported" in str(type(e).__name__):

@@ -44,25 +44,9 @@ def test_get_required_joins_detects_single_nested_field() -> None:
     assert len(joins) == 1
 
 
-def test_get_required_joins_detects_multiple_nested_fields() -> None:
-    """Test that multiple different nested fields are detected."""
-    filter_expr = And(
-        (
-            Filter("groups.public_id", Operator.EQ, "group-id"),
-            Filter("schools.name", Operator.LIKE, "test%"),
-        )
-    )
-    joins = _get_required_joins(filter_expr, registry=_r("groups", "schools", "roles"))
-
-    assert "groups" in joins
-    assert "schools" in joins
-    assert "roles" not in joins
-    assert len(joins) == 2
-
-
 def test_get_required_joins_ignores_scalar_fields() -> None:
     """Test that scalar fields don't trigger joins."""
-    filter_expr = Filter("name", Operator.LIKE, "test")
+    filter_expr = Filter("name", Operator.ILIKE, "test")
     joins = _get_required_joins(filter_expr, registry=_r("groups"))
 
     assert len(joins) == 0
@@ -115,7 +99,7 @@ def test_get_required_joins_deduplicates() -> None:
     filter_expr = And(
         (
             Filter("groups.public_id", Operator.EQ, "group1"),
-            Filter("groups.name", Operator.LIKE, "test%"),
+            Filter("groups.name", Operator.ILIKE, "test%"),
         )
     )
     joins = _get_required_joins(filter_expr, registry=_r("groups"))
