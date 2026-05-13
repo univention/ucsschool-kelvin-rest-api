@@ -29,6 +29,8 @@ def make_user(name="testuser", uid=None, school_memberships=None) -> User:
         lastname="User",
         active=True,
         school_memberships=school_memberships if school_memberships is not None else {},
+        legal_wards=set(),
+        legal_guardians=set(),
     )
 
 
