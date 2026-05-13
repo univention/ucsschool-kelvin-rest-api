@@ -260,7 +260,7 @@ async def _resolve_group_member_memberships(
     by_user_id: dict[int, SchoolMembershipModel] = {
         membership.user_id: membership for membership in memberships
     }
-    result = []
+    result: list[SchoolMembershipModel] = []
     for user in users_by_public_id.values():
         if user.id not in by_user_id:
             raise NotFound(

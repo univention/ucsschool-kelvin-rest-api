@@ -5,13 +5,14 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Protocol, TypeAlias, TypeVar, cast
+from typing import TYPE_CHECKING, Callable, Protocol, Self, TypeAlias, TypeVar, cast
 from uuid import UUID, uuid4
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
-from sqlalchemy import Select, inspect, select
-from sqlalchemy.orm import load_only
+from sqlalchemy import inspect, select
+from sqlalchemy.orm import Mapper, load_only
 from sqlalchemy.orm.attributes import InstrumentedAttribute
+from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.sql.elements import ColumnElement
 from ucsschool_objects.core.domain import (
     And,
@@ -32,9 +33,12 @@ from ucsschool_objects.database_models import (
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
+    from _typeshed import DataclassInstance
     from sqlalchemy.ext.asyncio import AsyncSession
     from ucsschool_objects.core.domain.models import UnsetType
     from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
+else:
+    DataclassInstance = object
 
 __all__ = [
     "JoinType",
@@ -52,9 +56,13 @@ __all__ = [
 
 QueryExpr: TypeAlias = Filter | And | Or | Not
 ModelClass: TypeAlias = type[Base]
-TSelect = TypeVar("TSelect", bound=Select[Any])
 TRequired = TypeVar("TRequired")
 FieldColumn: TypeAlias = InstrumentedAttribute[object] | ColumnElement[object]
+
+
+class SupportsLoadOptions(Protocol):
+    def options(self, *options: ExecutableOption) -> Self:  # pragma: no cover
+        ...
 
 
 class PublicIdCarrier(Protocol):
@@ -63,6 +71,7 @@ class PublicIdCarrier(Protocol):
         ...
 
 
+TSelect = TypeVar("TSelect", bound=SupportsLoadOptions)
 TModel = TypeVar("TModel", bound=Base)
 PublicIdCarrierDict: TypeAlias = dict[str, object]
 PublicIdInput: TypeAlias = PublicIdCarrier | PublicIdCarrierDict
@@ -93,12 +102,6 @@ class JoinSpec:
     exposed_fields: frozenset[str] = frozenset()
 
 
-class DataclassInstance(Protocol):
-    """Protocol for types decorated with @dataclass."""
-
-    __dataclass_fields__: ClassVar[dict[str, Any]]
-
-
 def generate_public_id() -> UUID:
     """Generate a new UUID (version 4) for public_id."""
     return uuid4()
@@ -124,17 +127,17 @@ def _apply_patch(
 ) -> dict[str, object]:
     """Apply JSON Patch operations to a domain object and return the patched dict."""
     current_dict = cast(PatchDict, normalise(asdict(current_domain_obj)))
-    return cast(PatchDict, JsonPatch(list(operations)).apply(current_dict))
+    # NOTE lib jsonpatch is untyped
+    return cast(
+        PatchDict,
+        JsonPatch(list(operations)).apply(current_dict),  # pyright: ignore[reportUnknownMemberType]
+    )
 
 
-def _public_id_column(model_class: type[TModel]) -> InstrumentedAttribute[Any]:
-    inspection: Any = inspect(model_class, raiseerr=False)
-    if inspection is None:
-        raise ValueError(
-            f"Model class {model_class.__name__} is not SQLAlchemy-inspectable."
-        )  # pragma: no cover
-    mapper: Any = inspection.mapper
-    return cast(InstrumentedAttribute[Any], mapper.column_attrs["public_id"].class_attribute)
+def _public_id_column(model_class: type[TModel]) -> InstrumentedAttribute[UUID]:
+    mapper = inspect(model_class, raiseerr=False)
+    assert mapper is not None, f"Model class {model_class.__name__} is not SQLAlchemy-inspectable."
+    return cast(InstrumentedAttribute[UUID], mapper.column_attrs["public_id"].class_attribute)
 
 
 async def _sync_collection(
@@ -222,11 +225,15 @@ async def _bulk_fetch_by_public_id(
     unique_ids = list(dict.fromkeys(public_ids))
     public_id_column = _public_id_column(model_class)
     rows = (
-        await session.execute(
-            select(model_class, public_id_column).where(public_id_column.in_(unique_ids))
+        (
+            await session.execute(
+                select(model_class, public_id_column).where(public_id_column.in_(unique_ids))
+            )
         )
-    ).all()
-    by_id: dict[UUID, TModel] = {UUID(str(public_id)): model for model, public_id in rows}
+        .tuples()
+        .all()
+    )
+    by_id: dict[UUID, TModel] = {public_id: model for model, public_id in rows}
     missing = set(unique_ids) - by_id.keys()
     if missing:
         raise NotFound(object_type=object_type, public_id=str(next(iter(missing))))
@@ -238,10 +245,9 @@ def _get_exposed_fields(model: type) -> frozenset[str]:
 
     Only includes actual database columns, skipping relationships and other attributes.
     """
-    inspection: Any = inspect(model, raiseerr=False)
-    if inspection is None:
-        return frozenset()
-    mapper: Any = inspection.mapper
+    mapper: Mapper[Base] | None = inspect(model, raiseerr=False)
+    if mapper is None:  # pyright: ignore[reportUnnecessaryComparison]
+        return frozenset()  # pyright: ignore[reportUnreachable]
     return frozenset(column.key for column in mapper.column_attrs)
 
 
@@ -263,7 +269,7 @@ def _compose_field_map(
     """Build a field map from base fields and nested registry dot-path fields."""
     field_map = dict(base_field_map)
     for relation_name, spec in nested_field_registry.items():
-        mapper: Any = inspect(spec.target_model).mapper
+        mapper = inspect(spec.target_model)
         target_columns: dict[str, FieldColumn] = {
             column.key: cast(FieldColumn, column.class_attribute) for column in mapper.column_attrs
         }
@@ -276,7 +282,7 @@ def _compose_field_map(
 
 def _load_requested_scalar_attributes(
     stmt: TSelect,
-    public_id_column: InstrumentedAttribute[Any],
+    public_id_column: InstrumentedAttribute[UUID],
     load: LoadSpec | None,
     attribute_map: dict[str, FieldColumn],
 ) -> TSelect:
@@ -284,14 +290,14 @@ def _load_requested_scalar_attributes(
         return stmt
 
     requested_columns = [
-        cast(InstrumentedAttribute[Any], column)
+        cast(InstrumentedAttribute[object], column)
         for name, column in attribute_map.items()
         if load.includes(name)
     ]
     return stmt.options(load_only(public_id_column, *requested_columns))
 
 
-def _school_scalar_columns() -> tuple[InstrumentedAttribute[Any], ...]:
+def _school_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
     return (
         SchoolModel.record_uid,
         SchoolModel.source_uid,
@@ -304,7 +310,7 @@ def _school_scalar_columns() -> tuple[InstrumentedAttribute[Any], ...]:
     )
 
 
-def _role_scalar_columns() -> tuple[InstrumentedAttribute[Any], ...]:
+def _role_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
     return (RoleModel.name, RoleModel.display_name)
 
 

@@ -2,6 +2,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
+from typing import Self
 
 from sqlalchemy import make_url
 from sqlalchemy.engine.url import URL
@@ -140,11 +141,11 @@ class KelvinSqlAlchemySession(KelvinStorageSession):
         self._groups: SQLAlchemyGroupManager | None = None
         self._users: SQLAlchemyUserManager | None = None
 
-    async def __aenter__(self) -> "KelvinSqlAlchemySession":
+    async def __aenter__(self) -> Self:
         self._session = self._session_factory()
         if self._transactional:
             self._transaction = self._session.begin()
-            await self._transaction.__aenter__()
+            _ = await self._transaction.__aenter__()
         return self
 
     async def __aexit__(

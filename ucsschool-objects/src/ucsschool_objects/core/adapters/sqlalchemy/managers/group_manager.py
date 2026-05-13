@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Select, delete, select
 from sqlalchemy.engine import CursorResult
@@ -361,6 +361,6 @@ class SQLAlchemyGroupManager(Manager[Group]):
 
     async def delete(self, public_id: UUID) -> None:
         stmt = delete(GroupModel).where(GroupModel.public_id == public_id)
-        result = cast(CursorResult[Any], await self._session.execute(stmt))
+        result = cast(CursorResult[None], await self._session.execute(stmt))
         if result.rowcount == 0:
             raise NotFound(object_type="Group", public_id=str(public_id))

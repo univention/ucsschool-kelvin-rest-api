@@ -52,7 +52,7 @@ FilterExpressionBuilder: TypeAlias = Callable[[FieldColumn, FilterValue], Filter
 
 
 def _collect_sort_fields(expr: Sequence[SortSpec]) -> set[str]:
-    return {spec.field for spec in expr if isinstance(spec, SortSpec) and "." in spec.field}
+    return {spec.field for spec in expr if "." in spec.field}
 
 
 def _collect_query_fields(expr: Filter | And | Or | Not) -> set[str]:
