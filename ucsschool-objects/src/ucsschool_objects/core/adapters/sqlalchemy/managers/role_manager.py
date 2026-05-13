@@ -4,10 +4,13 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    FieldColumn,
+    _compose_field_map,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _load_requested_scalar_attributes,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
-    _compose_field_map,
-    _load_requested_scalar_attributes,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_role
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import to_role_model
@@ -27,6 +30,7 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
+    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import FieldColumn
 
 __all__ = ["SQLAlchemyRoleManager"]
 

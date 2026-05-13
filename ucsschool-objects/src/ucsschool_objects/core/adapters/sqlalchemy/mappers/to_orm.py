@@ -6,11 +6,18 @@ from uuid import UUID
 
 from sqlalchemy import select
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    PublicIdCarrier,
-    _bulk_fetch_by_public_id,
-    _check_nullable_value_presence,
-    _check_value_presence,
-    _fetch_one_by_public_id,
+    _bulk_fetch_by_public_id,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _check_nullable_value_presence,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _check_value_presence,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    _fetch_one_by_public_id,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     generate_public_id,
 )
 from ucsschool_objects.core.domain import UNSET, Group, NotFound, Role, School, UnloadedType, User
@@ -26,6 +33,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from sqlalchemy.ext.asyncio import AsyncSession
+    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import PublicIdCarrier
     from ucsschool_objects.core.domain.models import SchoolMembership as DomainSchoolMembership
 
 

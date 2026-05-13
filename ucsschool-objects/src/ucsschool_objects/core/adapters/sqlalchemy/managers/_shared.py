@@ -1,3 +1,6 @@
+# pyright: reportUnusedFunction=false
+# Private helpers are imported by sibling modules, so they can look unused here.
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -40,13 +43,11 @@ __all__ = [
     "ModelClass",
     "TSelect",
     "FieldColumn",
-    "_check_value_presence",
+    "PublicIdCarrier",
+    "PublicIdInput",
+    "PatchDict",
     "generate_public_id",
-    "_extract_public_ids",
-    "_apply_patch",
     "DataclassInstance",
-    "_sync_collection",
-    "_sync_scalar_relation",
 ]
 
 QueryExpr: TypeAlias = Filter | And | Or | Not
