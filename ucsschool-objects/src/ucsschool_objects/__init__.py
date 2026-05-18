@@ -49,6 +49,7 @@ from ucsschool_objects.core.domain import (  # Domain entities; Query DSL; Excep
     UnsupportedOperation,
     UnsupportedSortField,
     User,
+    domain_asdict,
 )
 from ucsschool_objects.core.domain.ports.dn_mapper import DNIDMapper, ObjectType
 
@@ -61,6 +62,7 @@ __all__ = [
     "UNLOADED",
     "UnloadedType",
     "User",
+    "domain_asdict",
     # Query DSL
     "And",
     "Filter",

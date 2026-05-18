@@ -10,7 +10,21 @@ from tests.core.domain.helpers.model_builders import (
     user as build_user,
     workgroup as build_workgroup,
 )
-from ucsschool_objects.core.domain import UNLOADED, Group, Role, School, SchoolMembership, User
+from ucsschool_objects.core.domain import (
+    UNLOADED,
+    Group,
+    Role,
+    School,
+    SchoolMembership,
+    User,
+    domain_asdict,
+)
+
+
+def _assert_public_reads_raise(entity: object, *field_names: str) -> None:
+    for field_name in field_names:
+        with pytest.raises(ValueError, match=rf"{type(entity).__name__}\.{field_name} is not loaded"):
+            getattr(entity, field_name)
 
 
 def test_user_is_hashable() -> None:
@@ -81,14 +95,20 @@ def test_school_minimal_only_loads_public_id() -> None:
     school = School.minimal(public_id)
 
     assert school.public_id == public_id
-    assert isinstance(school.record_uid, type(UNLOADED))
-    assert isinstance(school.source_uid, type(UNLOADED))
-    assert isinstance(school.name, type(UNLOADED))
-    assert isinstance(school.display_name, type(UNLOADED))
-    assert isinstance(school.educational_servers, type(UNLOADED))
-    assert isinstance(school.administrative_servers, type(UNLOADED))
-    assert isinstance(school.class_share_file_server, type(UNLOADED))
-    assert isinstance(school.home_share_file_server, type(UNLOADED))
+    raw = domain_asdict(school)
+    assert raw["record_uid"] is UNLOADED
+    assert raw["source_uid"] is UNLOADED
+    _assert_public_reads_raise(
+        school,
+        "record_uid",
+        "source_uid",
+        "name",
+        "display_name",
+        "educational_servers",
+        "administrative_servers",
+        "class_share_file_server",
+        "home_share_file_server",
+    )
 
 
 def test_role_minimal_only_loads_public_id() -> None:
@@ -97,8 +117,10 @@ def test_role_minimal_only_loads_public_id() -> None:
     role = Role.minimal(public_id)
 
     assert role.public_id == public_id
-    assert isinstance(role.name, type(UNLOADED))
-    assert isinstance(role.display_name, type(UNLOADED))
+    raw = domain_asdict(role)
+    assert raw["name"] is UNLOADED
+    assert raw["display_name"] is UNLOADED
+    _assert_public_reads_raise(role, "name", "display_name")
 
 
 def test_group_minimal_only_loads_public_id() -> None:
@@ -107,18 +129,24 @@ def test_group_minimal_only_loads_public_id() -> None:
     group = Group.minimal(public_id)
 
     assert group.public_id == public_id
-    assert isinstance(group.record_uid, type(UNLOADED))
-    assert isinstance(group.source_uid, type(UNLOADED))
-    assert isinstance(group.name, type(UNLOADED))
-    assert isinstance(group.display_name, type(UNLOADED))
-    assert isinstance(group.create_share, type(UNLOADED))
-    assert isinstance(group.roles, type(UNLOADED))
-    assert isinstance(group.allowed_email_senders_users, type(UNLOADED))
-    assert isinstance(group.allowed_email_senders_groups, type(UNLOADED))
-    assert isinstance(group.members, type(UNLOADED))
-    assert isinstance(group.member_roles, type(UNLOADED))
-    assert isinstance(group.school, type(UNLOADED))
-    assert isinstance(group.email, type(UNLOADED))
+    raw = domain_asdict(group)
+    assert raw["record_uid"] is UNLOADED
+    assert raw["school"] is UNLOADED
+    _assert_public_reads_raise(
+        group,
+        "record_uid",
+        "source_uid",
+        "name",
+        "display_name",
+        "create_share",
+        "roles",
+        "allowed_email_senders_users",
+        "allowed_email_senders_groups",
+        "members",
+        "member_roles",
+        "school",
+        "email",
+    )
 
 
 def test_user_minimal_only_loads_public_id() -> None:
@@ -127,15 +155,21 @@ def test_user_minimal_only_loads_public_id() -> None:
     user = User.minimal(public_id)
 
     assert user.public_id == public_id
-    assert isinstance(user.record_uid, type(UNLOADED))
-    assert isinstance(user.source_uid, type(UNLOADED))
-    assert isinstance(user.name, type(UNLOADED))
-    assert isinstance(user.firstname, type(UNLOADED))
-    assert isinstance(user.lastname, type(UNLOADED))
-    assert isinstance(user.active, type(UNLOADED))
-    assert isinstance(user.school_memberships, type(UNLOADED))
-    assert isinstance(user.legal_wards, type(UNLOADED))
-    assert isinstance(user.legal_guardians, type(UNLOADED))
+    raw = domain_asdict(user)
+    assert raw["record_uid"] is UNLOADED
+    assert raw["school_memberships"] is UNLOADED
+    _assert_public_reads_raise(
+        user,
+        "record_uid",
+        "source_uid",
+        "name",
+        "firstname",
+        "lastname",
+        "active",
+        "school_memberships",
+        "legal_wards",
+        "legal_guardians",
+    )
 
 
 def test_role_equality_by_public_id() -> None:
