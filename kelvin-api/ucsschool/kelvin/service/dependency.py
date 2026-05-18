@@ -47,9 +47,13 @@ def check_db_compatibility() -> bool:
     head_revision = _get_alembic_head_revision()
     database_url = get_database_url()
     engine = create_engine(database_url)
-    with engine.connect() as connection:
-        context = MigrationContext.configure(connection)
-        current_revision = context.get_current_revision()
+    try:
+        with engine.connect() as connection:
+            context = MigrationContext.configure(connection)
+            current_revision = context.get_current_revision()
+            connection.commit()
+    finally:
+        engine.dispose()
     if current_revision != head_revision:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
