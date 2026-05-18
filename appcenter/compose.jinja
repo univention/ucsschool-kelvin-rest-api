@@ -24,6 +24,9 @@ print(hostname)
     environment:
       REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      UCSSCHOOL_KELVIN_DB_URI_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.uri
+      UCSSCHOOL_KELVIN_DB_USERNAME_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.username
+      UCSSCHOOL_KELVIN_DB_PASSWORD_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.secret
   provisioning:
     image: {{ IMAGE_TAG_CONNECTOR }}
     security_opt:
