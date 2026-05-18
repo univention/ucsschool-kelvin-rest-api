@@ -44,7 +44,7 @@ from .constants import (
     URL_TOKEN_BASE,
 )
 from .ldap import check_auth_and_get_user
-from .routers import doc, role, school, school_class, user, workgroup
+from .routers import v1, v2
 from .service.dependency import check_db_compatibility
 from .service.exception_handler import add_exception_handlers
 from .service.lifespan import build_app_lifespan
@@ -113,67 +113,67 @@ async def swagger_ui_redirect():
     return get_swagger_ui_oauth2_redirect_html()
 
 
-v1 = APIRouter(prefix=URL_API_V1_PREFIX)
-v2 = APIRouter(prefix=URL_API_V2_PREFIX, dependencies=[Depends(check_db_compatibility)])
+v1_router = APIRouter(prefix=URL_API_V1_PREFIX)
+v2_router = APIRouter(prefix=URL_API_V2_PREFIX, dependencies=[Depends(check_db_compatibility)])
 
-v1.include_router(
-    school_class.router,
+v1_router.include_router(
+    v1.school_class.router,
     prefix="/classes",
     tags=["classes"],
 )
-v1.include_router(
-    workgroup.router,
+v1_router.include_router(
+    v1.workgroup.router,
     prefix="/workgroups",
     tags=["workgroups"],
 )
-v1.include_router(
-    role.router,
+v1_router.include_router(
+    v1.role.router,
     prefix="/roles",
     tags=["roles"],
 )
-v1.include_router(
-    school.router,
+v1_router.include_router(
+    v1.school.router,
     prefix="/schools",
     tags=["schools"],
 )
-v1.include_router(
-    user.router,
+v1_router.include_router(
+    v1.user.router,
     prefix="/users",
     tags=["users"],
 )
-v1.include_router(doc.router)
+v1_router.include_router(v1.doc.router)
 
-v2.include_router(
-    school_class.router,
+v2_router.include_router(
+    v2.school_class.router,
     prefix="/classes",
     tags=["classes"],
 )
-v2.include_router(
-    workgroup.router,
+v2_router.include_router(
+    v2.workgroup.router,
     prefix="/workgroups",
     tags=["workgroups"],
 )
-v2.include_router(
-    role.router,
+v2_router.include_router(
+    v2.role.router,
     prefix="/roles",
     tags=["roles"],
 )
-v2.include_router(
-    school.router,
+v2_router.include_router(
+    v2.school.router,
     prefix="/schools",
     tags=["schools"],
 )
-v2.include_router(
-    user.router,
+v2_router.include_router(
+    v2.user.router,
     prefix="/users",
     tags=["users"],
 )
-v2.include_router(doc.router)
+v2_router.include_router(v1.doc.router)
 
 
-app.include_router(v1)
-app.include_router(v2)
-app.include_router(doc.service_router)
+app.include_router(v1_router)
+app.include_router(v2_router)
+app.include_router(v1.doc.service_router)
 app.mount(
     f"{URL_API_V1_PREFIX}/static",
     StaticFiles(directory=str(STATIC_FILES_PATH)),

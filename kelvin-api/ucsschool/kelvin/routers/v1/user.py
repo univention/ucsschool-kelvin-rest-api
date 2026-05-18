@@ -84,11 +84,11 @@ from ucsschool.lib.roles import (
 from udm_rest_client import UDM, CreateError, ModifyError, MoveError
 from univention.admin.filter import conjunction, expression
 
-from ..config import UDM_MAPPING_CONFIG
-from ..import_config import get_import_config, init_ucs_school_import_framework
-from ..ldap import LdapUser, get_dn_of_user
-from ..token_auth import get_kelvin_admin, get_kelvin_reader
-from ..urls import cached_url_for, url_to_name
+from ...config import UDM_MAPPING_CONFIG
+from ...import_config import get_import_config, init_ucs_school_import_framework
+from ...ldap import LdapUser, get_dn_of_user
+from ...token_auth import get_kelvin_admin, get_kelvin_reader
+from ...urls import cached_url_for, url_to_name
 from .base import (
     APIAttributesMixin,
     UcsSchoolBaseModel,

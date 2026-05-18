@@ -46,10 +46,10 @@ from ucsschool.lib.roles import (
     role_teacher,
 )
 
-from ..import_config import init_ucs_school_import_framework
-from ..ldap import LdapUser
-from ..token_auth import get_kelvin_reader
-from ..urls import cached_url_for
+from ...import_config import init_ucs_school_import_framework
+from ...ldap import LdapUser
+from ...token_auth import get_kelvin_reader
+from ...urls import cached_url_for
 
 router = APIRouter()
 _roles_to_class = {}

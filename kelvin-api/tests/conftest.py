@@ -58,8 +58,8 @@ from ucsschool.importer.configuration import Configuration, ReadOnlyDict
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.kelvin.constants import UDM_MAPPED_PROPERTIES_CONFIG_FILE
 from ucsschool.kelvin.import_config import get_import_config
-from ucsschool.kelvin.routers.school import SchoolCreateModel
-from ucsschool.kelvin.routers.user import PasswordsHashes, UserCreateModel
+from ucsschool.kelvin.routers.v1.school import SchoolCreateModel
+from ucsschool.kelvin.routers.v1.user import PasswordsHashes, UserCreateModel
 from ucsschool.kelvin.token_auth import create_access_token
 from ucsschool.lib.models.user import User
 from ucsschool.lib.models.utils import env_or_ucr, uldap_admin_read_local, uldap_admin_read_primary
