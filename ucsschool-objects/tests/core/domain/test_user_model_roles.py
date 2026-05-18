@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import cast
 from uuid import UUID
 
+import pytest
 from tests.core.domain.helpers.model_builders import (
     role as build_role,
     school as build_school,
@@ -11,13 +12,13 @@ from tests.core.domain.helpers.model_builders import (
 from ucsschool_objects.core.domain import (
     UNLOADED,
     SchoolMembership,
-    UnloadedType,
 )
 
 
-def test_roles_returns_unloaded_when_memberships_unloaded() -> None:
+def test_roles_raises_when_memberships_unloaded() -> None:
     user = build_user(school_memberships=UNLOADED)
-    assert isinstance(user.roles, UnloadedType)
+    with pytest.raises(ValueError, match="User.school_memberships is not loaded"):
+        _ = user.roles
 
 
 def test_roles_returns_empty_tuple_when_no_roles() -> None:

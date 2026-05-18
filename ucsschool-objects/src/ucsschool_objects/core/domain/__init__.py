@@ -23,6 +23,7 @@ from .models import (
     SchoolMembership,
     UnloadedType,
     User,
+    domain_asdict,
 )
 from .patch import track_changes
 from .ports import (
@@ -87,4 +88,5 @@ __all__ = [
     "UnsupportedSortField",
     "User",
     "UserValidator",
+    "domain_asdict",
 ]
