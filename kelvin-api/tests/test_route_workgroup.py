@@ -32,7 +32,7 @@ import requests
 from faker import Faker
 
 import ucsschool.kelvin.constants
-from ucsschool.kelvin.routers.workgroup import WorkGroupModel
+from ucsschool.kelvin.routers.v1.workgroup import WorkGroupModel
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.group import WorkGroup
 from ucsschool.lib.models.share import WorkGroupShare
