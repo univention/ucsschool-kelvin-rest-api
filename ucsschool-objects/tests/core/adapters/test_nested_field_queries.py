@@ -35,6 +35,7 @@ from ucsschool_objects.core.domain import (
     SearchQuery,
     SortSpec,
     UnsupportedNestedField,
+    domain_asdict,
 )
 from ucsschool_objects.database_models import School as SchoolModel
 
@@ -355,8 +356,13 @@ def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPa
 
     group = to_domain.to_group(model)  # type: ignore[arg-type]
 
-    assert group.school is UNLOADED
-    assert group.roles is UNLOADED
+    raw = domain_asdict(group)
+    assert raw["school"] is UNLOADED
+    assert raw["roles"] is UNLOADED
+    with pytest.raises(ValueError, match="Group.school is not loaded"):
+        _ = group.school
+    with pytest.raises(ValueError, match="Group.roles is not loaded"):
+        _ = group.roles
 
 
 def test_to_user_raises_when_membership_school_has_no_uuid(

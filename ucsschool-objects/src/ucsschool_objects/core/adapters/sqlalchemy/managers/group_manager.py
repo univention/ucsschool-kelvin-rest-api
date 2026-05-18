@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Select, delete, select
@@ -55,6 +54,7 @@ from ucsschool_objects.core.domain import (
     SortSpec,
     UnsupportedOperation,
 )
+from ucsschool_objects.core.domain.models import domain_asdict
 from ucsschool_objects.core.domain.patch import normalise
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import (
@@ -356,7 +356,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         patched = _apply_patch(operations=operations, current_domain_obj=current_domain)
         GroupValidator.validate(group_from_patch(patched, result.public_id))
 
-        current_dict = cast(PatchDict, normalise(asdict(current_domain)))
+        current_dict = cast(PatchDict, normalise(domain_asdict(current_domain)))
         await _apply_group_patch(result, patched, current_dict, self._session)
 
     async def delete(self, public_id: UUID) -> None:

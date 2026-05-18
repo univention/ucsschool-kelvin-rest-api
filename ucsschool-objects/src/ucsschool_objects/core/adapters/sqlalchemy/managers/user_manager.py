@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import date
 from typing import TYPE_CHECKING, cast
 from uuid import UUID
@@ -57,6 +56,7 @@ from ucsschool_objects.core.domain import (
     User,
     UserValidator,
 )
+from ucsschool_objects.core.domain.models import domain_asdict
 from ucsschool_objects.core.domain.patch import normalise
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import (
@@ -412,7 +412,7 @@ class SQLAlchemyUserManager(Manager[User]):
         _apply_user_patch(result, patched)
 
         if m_memberships:
-            current_dict = cast(PatchDict, normalise(asdict(current_domain)))
+            current_dict = cast(PatchDict, normalise(domain_asdict(current_domain)))
             await _apply_membership_relation_changes(
                 result,
                 cast(PatchDict, current_dict.get("school_memberships", {})),
@@ -420,7 +420,7 @@ class SQLAlchemyUserManager(Manager[User]):
                 self._session,
             )
         if m_guardians:
-            current_dict = cast(PatchDict, normalise(asdict(current_domain)))
+            current_dict = cast(PatchDict, normalise(domain_asdict(current_domain)))
             await _sync_collection(
                 self._session,
                 cast(list[PublicIdInput], patched.get("legal_guardians", [])),
@@ -429,7 +429,7 @@ class SQLAlchemyUserManager(Manager[User]):
                 lambda values: setattr(result, "legal_guardians", values),
             )
         if m_wards:
-            current_dict = cast(PatchDict, normalise(asdict(current_domain)))
+            current_dict = cast(PatchDict, normalise(domain_asdict(current_domain)))
             await _sync_collection(
                 self._session,
                 cast(list[PublicIdInput], patched.get("legal_wards", [])),

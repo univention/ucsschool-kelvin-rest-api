@@ -810,7 +810,8 @@ def test_apply_group_changes_school_not_found_leaves_school_unmodified(manager):
     )
 
     assert group.school is original_school
-    assert group.email is None
+    with pytest.raises(ValueError, match="email is not loaded"):
+        assert group.email is None
 
 
 def test_apply_group_changes_updates_name_and_email(manager):

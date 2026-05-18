@@ -12,15 +12,26 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _check_nullable_value_presence,  # pyright: ignore[reportPrivateUsage]
 )
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _check_value_presence,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     _fetch_one_by_public_id,  # pyright: ignore[reportPrivateUsage]
 )
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     generate_public_id,
 )
-from ucsschool_objects.core.domain import UNSET, Group, NotFound, Role, School, UnloadedType, User
+from ucsschool_objects.core.domain import (
+    UNLOADED,
+    UNSET,
+    Group,
+    NotFound,
+    Role,
+    School,
+    UnloadedType,
+    User,
+)
+from ucsschool_objects.core.domain.models import _require_loaded  # pyright: ignore[reportPrivateUsage]
+from ucsschool_objects.core.domain.models import (
+    SchoolMembership as DomainSchoolMembership,
+    is_loaded,
+)
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     Role as RoleModel,
@@ -34,7 +45,6 @@ if TYPE_CHECKING:
 
     from sqlalchemy.ext.asyncio import AsyncSession
     from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import PublicIdCarrier
-    from ucsschool_objects.core.domain.models import SchoolMembership as DomainSchoolMembership
 
 
 @dataclass(frozen=True)
@@ -56,21 +66,19 @@ class UserCreateRelations:
 
 def to_school_model(data: School) -> SchoolModel:
     school_model = SchoolModel(
-        record_uid=_check_value_presence(data.record_uid, object_type="School", field_name="record_uid"),
-        source_uid=_check_value_presence(data.source_uid, object_type="School", field_name="source_uid"),
-        name=_check_value_presence(data.name, object_type="School", field_name="name"),
-        display_name=_check_value_presence(
-            data.display_name, object_type="School", field_name="display_name"
-        ),
+        record_uid=_require_loaded(data.record_uid, object_type="School", field_name="record_uid"),
+        source_uid=_require_loaded(data.source_uid, object_type="School", field_name="source_uid"),
+        name=_require_loaded(data.name, object_type="School", field_name="name"),
+        display_name=_require_loaded(data.display_name, object_type="School", field_name="display_name"),
         educational_servers=list(
-            _check_value_presence(
+            _require_loaded(
                 data.educational_servers,
                 object_type="School",
                 field_name="educational_servers",
             ),
         ),
         administrative_servers=list(
-            _check_value_presence(
+            _require_loaded(
                 data.administrative_servers,
                 object_type="School",
                 field_name="administrative_servers",
@@ -94,10 +102,8 @@ def to_school_model(data: School) -> SchoolModel:
 
 def to_role_model(data: Role) -> RoleModel:
     role_model = RoleModel(
-        name=_check_value_presence(data.name, object_type="Role", field_name="name"),
-        display_name=_check_value_presence(
-            data.display_name, object_type="Role", field_name="display_name"
-        ),
+        name=_require_loaded(data.name, object_type="Role", field_name="name"),
+        display_name=_require_loaded(data.display_name, object_type="Role", field_name="display_name"),
     )
     if data.public_id == UNSET:
         role_model.public_id = generate_public_id()
@@ -108,15 +114,11 @@ def to_role_model(data: Role) -> RoleModel:
 
 def to_group_model(data: Group) -> GroupModel:
     group_model = GroupModel(
-        record_uid=_check_value_presence(data.record_uid, object_type="Group", field_name="record_uid"),
-        source_uid=_check_value_presence(data.source_uid, object_type="Group", field_name="source_uid"),
-        name=_check_value_presence(data.name, object_type="Group", field_name="name"),
-        display_name=_check_value_presence(
-            data.display_name, object_type="Group", field_name="display_name"
-        ),
-        has_share=_check_value_presence(
-            data.create_share, object_type="Group", field_name="create_share"
-        ),
+        record_uid=_require_loaded(data.record_uid, object_type="Group", field_name="record_uid"),
+        source_uid=_require_loaded(data.source_uid, object_type="Group", field_name="source_uid"),
+        name=_require_loaded(data.name, object_type="Group", field_name="name"),
+        display_name=_require_loaded(data.display_name, object_type="Group", field_name="display_name"),
+        has_share=_require_loaded(data.create_share, object_type="Group", field_name="create_share"),
         email=_check_nullable_value_presence(data.email, object_type="Group", field_name="email"),
     )
     if data.public_id == UNSET:
@@ -128,12 +130,12 @@ def to_group_model(data: Group) -> GroupModel:
 
 def to_user_model(data: User) -> UserModel:
     user_model = UserModel(
-        record_uid=_check_value_presence(data.record_uid, object_type="User", field_name="record_uid"),
-        source_uid=_check_value_presence(data.source_uid, object_type="User", field_name="source_uid"),
-        name=_check_value_presence(data.name, object_type="User", field_name="name"),
-        firstname=_check_value_presence(data.firstname, object_type="User", field_name="firstname"),
-        lastname=_check_value_presence(data.lastname, object_type="User", field_name="lastname"),
-        active=_check_value_presence(data.active, object_type="User", field_name="active"),
+        record_uid=_require_loaded(data.record_uid, object_type="User", field_name="record_uid"),
+        source_uid=_require_loaded(data.source_uid, object_type="User", field_name="source_uid"),
+        name=_require_loaded(data.name, object_type="User", field_name="name"),
+        firstname=_require_loaded(data.firstname, object_type="User", field_name="firstname"),
+        lastname=_require_loaded(data.lastname, object_type="User", field_name="lastname"),
+        active=_require_loaded(data.active, object_type="User", field_name="active"),
         email=_check_nullable_value_presence(data.email, object_type="User", field_name="email"),
         birthday=_check_nullable_value_presence(
             data.birthday, object_type="User", field_name="birthday"
@@ -157,7 +159,7 @@ def _extract_related_public_ids(
 ) -> list[UUID]:
     public_ids: list[UUID] = []
     for reference in references:
-        public_id = _check_value_presence(
+        public_id = _require_loaded(
             reference.public_id,
             object_type=related_type,
             field_name="public_id",
@@ -172,16 +174,16 @@ async def resolve_group_create_relations(
     session: AsyncSession,
     data: Group,
 ) -> GroupCreateRelations:
-    group_roles = _check_value_presence(data.roles, object_type="Group", field_name="roles")
+    group_roles = _require_loaded(data.roles, object_type="Group", field_name="roles")
     group_role_ids = [r.public_id for r in group_roles if isinstance(r.public_id, UUID)]
     group_roles_by_id = await _bulk_fetch_by_public_id(session, RoleModel, group_role_ids, "Role")
 
-    school = _check_value_presence(data.school, object_type="Group", field_name="school")
+    school = _require_loaded(data.school, object_type="Group", field_name="school")
     if not isinstance(school.public_id, UUID):
         raise ValueError("Group.school must have a public_id for create().")
     school_model = await _fetch_one_by_public_id(session, SchoolModel, school.public_id, "School")
 
-    members = _check_value_presence(data.members, object_type="Group", field_name="members")
+    members = _require_loaded(data.members, object_type="Group", field_name="members")
     member_user_public_ids = _extract_related_public_ids(
         members,
         owner_name="Group.members",
@@ -196,13 +198,11 @@ async def resolve_group_create_relations(
         school_model,
     )
 
-    member_roles = _check_value_presence(
-        data.member_roles, object_type="Group", field_name="member_roles"
-    )
+    member_roles = _require_loaded(data.member_roles, object_type="Group", field_name="member_roles")
     role_ids = [role.public_id for role in member_roles if isinstance(role.public_id, UUID)]
     roles_by_id = await _bulk_fetch_by_public_id(session, RoleModel, role_ids, "Role")
 
-    allowed_email_senders_users = _check_value_presence(
+    allowed_email_senders_users = _require_loaded(
         data.allowed_email_senders_users,
         object_type="Group",
         field_name="allowed_email_senders_users",
@@ -214,7 +214,7 @@ async def resolve_group_create_relations(
     )
     users_by_id = await _bulk_fetch_by_public_id(session, UserModel, sender_user_public_ids, "User")
 
-    allowed_email_senders_groups = _check_value_presence(
+    allowed_email_senders_groups = _require_loaded(
         data.allowed_email_senders_groups,
         object_type="Group",
         field_name="allowed_email_senders_groups",
@@ -275,10 +275,14 @@ async def resolve_user_create_relations(
     session: AsyncSession,
     data: User,
 ) -> UserCreateRelations:
+    school_memberships = data.school_memberships if is_loaded(data, "school_memberships") else UNLOADED
+    legal_wards = data.legal_wards if is_loaded(data, "legal_wards") else UNLOADED
+    legal_guardians = data.legal_guardians if is_loaded(data, "legal_guardians") else UNLOADED
+
     return UserCreateRelations(
-        school_memberships=await _build_memberships(session, data.school_memberships),
-        legal_wards=await _resolve_related_users(session, data.legal_wards),
-        legal_guardians=await _resolve_related_users(session, data.legal_guardians),
+        school_memberships=await _build_memberships(session, school_memberships),
+        legal_wards=await _resolve_related_users(session, legal_wards),
+        legal_guardians=await _resolve_related_users(session, legal_guardians),
     )
 
 

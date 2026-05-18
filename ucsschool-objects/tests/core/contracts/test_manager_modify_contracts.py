@@ -27,6 +27,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
     to_user,
 )
 from ucsschool_objects.core.domain import NotFound, UnsupportedOperation
+from ucsschool_objects.core.domain.models import User
 from ucsschool_objects.core.domain.patch import _create_patch
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -205,6 +206,11 @@ def test_apply_user_patch_toggles_active_flag() -> None:
 
 def test_extract_public_ids_ignores_items_without_public_id() -> None:
     assert _extract_public_ids([{}]) == set()
+
+
+def test_extract_public_ids_reads_public_id_from_objects() -> None:
+    public_id = uuid.uuid4()
+    assert _extract_public_ids([User.minimal(public_id)]) == {public_id}
 
 
 @pytest.mark.asyncio

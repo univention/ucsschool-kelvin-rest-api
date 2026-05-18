@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, Protocol, Self, TypeAlias, TypeVar, cast
 from uuid import UUID, uuid4
@@ -14,16 +14,13 @@ from sqlalchemy.orm import Mapper, load_only
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.sql.elements import ColumnElement
-from ucsschool_objects.core.domain import (
-    And,
-    Filter,
-    LoadSpec,
-    Not,
-    NotFound,
-    Or,
-    UnloadedType,
-)
+from ucsschool_objects.core.domain.errors import NotFound
+from ucsschool_objects.core.domain.models import domain_asdict
 from ucsschool_objects.core.domain.patch import normalise
+from ucsschool_objects.core.domain.load_spec import LoadSpec
+from ucsschool_objects.core.domain.models import UnloadedType
+from ucsschool_objects.core.domain.query import And, Filter, Not, Or
+from ucsschool_objects.core.domain.models import _require_loaded  # pyright: ignore[reportPrivateUsage]
 from ucsschool_objects.database_models import (
     Base,
     Role as RoleModel,
@@ -126,7 +123,8 @@ def _apply_patch(
     current_domain_obj: DataclassInstance,
 ) -> dict[str, object]:
     """Apply JSON Patch operations to a domain object and return the patched dict."""
-    current_dict = cast(PatchDict, normalise(asdict(current_domain_obj)))
+    # TODO simplify
+    current_dict = cast(PatchDict, normalise(domain_asdict(current_domain_obj)))
     # NOTE lib jsonpatch is untyped
     return cast(
         PatchDict,
@@ -314,17 +312,9 @@ def _role_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
     return (RoleModel.name, RoleModel.display_name)
 
 
-def _check_value_presence(
-    value: TRequired | UnloadedType, *, object_type: str, field_name: str
-) -> TRequired:
-    if isinstance(value, UnloadedType):
-        raise ValueError(f"{object_type}.{field_name} is required.")
-    return value
-
-
 def _check_nullable_value_presence(
     value: TRequired | UnloadedType | None, *, object_type: str, field_name: str
 ) -> TRequired | None:
     if value is None:
         return None
-    return _check_value_presence(value, object_type=object_type, field_name=field_name)
+    return _require_loaded(value, object_type=object_type, field_name=field_name)
