@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import fields
 from datetime import date
 from typing import TYPE_CHECKING, Literal, TypeVar
 
@@ -21,6 +20,7 @@ from ucsschool_objects.core.domain import (
     SearchQuery,
     UnloadedType,
     User,
+    domain_asdict,
 )
 
 if TYPE_CHECKING:
@@ -86,14 +86,17 @@ DomainRecord = TypeVar("DomainRecord", School, Role, Group, User)
 def _assert_only_expected_fields_loaded(
     record: School | Role | Group | User, expected_loaded: set[str]
 ) -> None:
-    for domain_field in fields(record):
-        if domain_field.name == "public_id":
+    for field_name, value in domain_asdict(record).items():
+        if field_name == "public_id":
             continue
-        value = getattr(record, domain_field.name)
-        if domain_field.name in expected_loaded:
-            assert not isinstance(value, UnloadedType), domain_field.name
+        if field_name in expected_loaded:
+            assert not isinstance(value, UnloadedType), field_name
         else:
-            assert isinstance(value, UnloadedType), domain_field.name
+            assert isinstance(value, UnloadedType), field_name
+            with pytest.raises(
+                ValueError, match=rf"{type(record).__name__}\.{field_name} is not loaded"
+            ):
+                getattr(record, field_name)
 
 
 def _expected_user_loaded_fields(load_attr: str) -> set[str]:
