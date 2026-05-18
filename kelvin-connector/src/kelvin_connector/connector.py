@@ -40,7 +40,7 @@ def main():
         mapper_factory=sqlalchemy_mapper_factory,
     )
 
-    CONFIG_DIR = Path("/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/")
+    CONFIG_DIR = Path("/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/")
 
     event_handler = KelvinConnectorEventHandler(synchronization_manager, logger=logger)
     consumer = ConsumerModule(
