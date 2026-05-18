@@ -13,7 +13,8 @@ class PrintTimings(TimingClient):
         self._logger = logger
 
     def timing(self, metric_name: str, timing: float, tags: Dict[str, Any]) -> None:
-        self._logger.warning(f"{metric_name} - {timing:.3f} s - {tags}")
+        log = self._logger.debug if metric_name.endswith(".health") else self._logger.warning
+        log(f"{metric_name} - {timing:.3f} s - {tags}")
 
 
 class StarletteScopeToNamePatched(StarletteScopeToName):
