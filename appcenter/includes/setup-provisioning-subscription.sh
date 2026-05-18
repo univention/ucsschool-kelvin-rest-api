@@ -7,12 +7,12 @@ setup_provisioning_subscriptions() {
 
     mkdir --parent "$(dirname "$app_provisioning_config_file")"
 
-    if [ "$(ucr get "server/role")" != "domaincontroller_master" ]; then
+    if [[ "$(ucr get "server/role")" != "domaincontroller_master" ]]; then
         echo "Not running on primary, skipping provisioning setup."
         return 0
     fi
 
-    if [[ "$force" != "true" ]] && [ -f "$app_provisioning_config_file" ]; then
+    if [[ "$force" != "true" ]] && [[ -f "$app_provisioning_config_file" ]]; then
         echo "$app_provisioning_config_file already exists, skipping provisioning setup."
         return 0
     fi
