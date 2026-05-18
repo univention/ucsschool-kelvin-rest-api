@@ -8,13 +8,13 @@ from tests.core.domain.helpers.model_builders import school as build_school, use
 from ucsschool_objects.core.domain import (
     UNLOADED,
     SchoolMembership,
-    UnloadedType,
 )
 
 
-def test_primary_school_returns_unloaded_when_memberships_unloaded() -> None:
+def test_primary_school_raises_when_memberships_unloaded() -> None:
     user = build_user(school_memberships=UNLOADED)
-    assert isinstance(user.primary_school, UnloadedType)
+    with pytest.raises(ValueError, match="User.school_memberships is not loaded"):
+        _ = user.primary_school
 
 
 def test_primary_school_raises_when_no_primary_membership() -> None:
