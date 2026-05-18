@@ -47,8 +47,8 @@ import ucsschool.kelvin.constants
 import univention.admin.uldap
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.kelvin.ldap import get_dn_of_user
-from ucsschool.kelvin.routers.role import SchoolUserRole
-from ucsschool.kelvin.routers.user import (
+from ucsschool.kelvin.routers.v1.role import SchoolUserRole
+from ucsschool.kelvin.routers.v1.user import (
     PasswordsHashes,
     UserCreateModel,
     UserModel,
