@@ -45,6 +45,7 @@ from ucsschool_objects.core.domain import (  # Domain entities; Query DSL; Excep
     UnsupportedOperation,
     UnsupportedSortField,
     User,
+    domain_asdict,
 )
 
 __all__ = [
@@ -56,6 +57,7 @@ __all__ = [
     "UNLOADED",
     "UnloadedType",
     "User",
+    "domain_asdict",
     # Query DSL
     "And",
     "Filter",
