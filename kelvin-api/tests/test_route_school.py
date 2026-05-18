@@ -33,7 +33,7 @@ from fastapi.testclient import TestClient
 import ucsschool.kelvin.constants
 from ucsschool.kelvin.ldap import uldap_admin_read_local
 from ucsschool.kelvin.main import app
-from ucsschool.kelvin.routers.school import SchoolCreateModel, SchoolModel
+from ucsschool.kelvin.routers.v1.school import SchoolCreateModel, SchoolModel
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.school import School
 from ucsschool.lib.schoolldap import name_from_dn

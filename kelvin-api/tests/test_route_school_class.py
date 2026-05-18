@@ -33,7 +33,7 @@ import requests
 from faker import Faker
 
 import ucsschool.kelvin.constants
-from ucsschool.kelvin.routers.school_class import SchoolClassModel
+from ucsschool.kelvin.routers.v1.school_class import SchoolClassModel
 from ucsschool.lib.models.base import NoObject
 from ucsschool.lib.models.group import SchoolClass
 from ucsschool.lib.models.share import ClassShare

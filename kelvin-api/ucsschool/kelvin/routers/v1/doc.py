@@ -8,7 +8,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.routing import APIRoute
 
-from ..constants import (
+from ...constants import (
     APP_VERSION,
     STATIC_FILE_CHANGELOG,
     STATIC_FILE_README,

@@ -34,7 +34,7 @@ import requests
 from faker import Faker
 
 import ucsschool.kelvin.constants
-from ucsschool.kelvin.routers.school_class import SchoolClass
+from ucsschool.kelvin.routers.v1.school_class import SchoolClass
 from udm_rest_client import UDM
 from udm_rest_client.exceptions import CreateError
 

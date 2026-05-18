@@ -2,7 +2,7 @@ import pytest
 from requests import Request
 
 from ucsschool.kelvin.constants import CN_ADMIN_PASSWORD_FILE
-from ucsschool.kelvin.routers.base import udm_ctx
+from ucsschool.kelvin.routers.v1.base import udm_ctx
 
 pytestmark = pytest.mark.skipif(
     not CN_ADMIN_PASSWORD_FILE.exists(),

@@ -41,7 +41,7 @@ import univention.admin.uldap_docker
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.importer.utils.format_pyhook import FormatPyHook
 from ucsschool.importer.utils.user_pyhook import KelvinUserHook, UserPyHook
-from ucsschool.kelvin.routers.user import UserModel
+from ucsschool.kelvin.routers.v1.user import UserModel
 from ucsschool.lib.models.hook import Hook
 from ucsschool.lib.models.user import (
     LegalGuardian,

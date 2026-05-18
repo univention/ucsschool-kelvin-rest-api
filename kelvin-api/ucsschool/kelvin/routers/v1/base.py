@@ -28,7 +28,7 @@
 import logging
 import re
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Self, Type
 from urllib.parse import ParseResult, quote, unquote, urlparse
 
 import orjson
@@ -39,10 +39,10 @@ from pydantic import BaseModel, HttpUrl, validator
 from ucsschool.lib.models.base import NoObject, UCSSchoolModel
 from udm_rest_client import UDM, UdmObject
 
-from ..config import UDM_MAPPING_CONFIG
-from ..exceptions import UnknownUDMProperty
-from ..ldap import udm_kwargs
-from ..urls import cached_url_for, url_to_name
+from ...config import UDM_MAPPING_CONFIG
+from ...exceptions import UnknownUDMProperty
+from ...ldap import udm_kwargs
+from ...urls import cached_url_for, url_to_name
 
 if TYPE_CHECKING:  # pragma: no cover
     from pydantic.main import Model
@@ -151,9 +151,7 @@ class LibModelHelperMixin(BaseModel):
         return {key: value for key, value in udm_properties.items() if key in property_list}
 
     @classmethod
-    async def from_lib_model(
-        cls, obj: UCSSchoolModel, request: Request, udm: UDM
-    ) -> "LibModelHelperMixin":
+    async def from_lib_model(cls, obj: UCSSchoolModel, request: Request, udm: UDM) -> Self:
         """
         Get the Kelvin object corresponding to the ucsschool.lib object `obj`.
         """
