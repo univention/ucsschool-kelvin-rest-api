@@ -36,7 +36,7 @@ from test_route_user import compare_ldap_json_obj
 
 import ucsschool.kelvin.constants
 from ucsschool.importer.models.import_user import ImportUser
-from ucsschool.kelvin.routers.user import UserModel
+from ucsschool.kelvin.routers.v1.user import UserModel
 from ucsschool.lib.models.user import User
 from ucsschool.lib.roles import role_student
 from udm_rest_client import UDM
