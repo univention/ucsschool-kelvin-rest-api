@@ -1,12 +1,11 @@
+#!/usr/bin/env bash
+
 setup_provisioning_subscriptions() {
     local SUBSCRIPTION_NAME="${SUBSCRIPTION_NAME:-kelvin-connector}"
-    local APP_PROVISIONING_CONFIG_FILE="${APP_PROVISIONING_CONFIG_FILE:-/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json}"
+    local APP_PROVISIONING_CONFIG_FILE="${APP_PROVISIONING_CONFIG_FILE:-/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/provisioning_config.json}"
     local FORCE="${FORCE:-false}"
 
-    if [[ -d "$APP_PROVISIONING_CONFIG_FILE" ]]; then
-        # docker creates a dir because the file doesn't exist yet
-        rmdir "$APP_PROVISIONING_CONFIG_FILE"
-    fi
+    mkdir --parent "$(dirname "$APP_PROVISIONING_CONFIG_FILE")"
 
     if [ "$(ucr get "server/role")" != "domaincontroller_master" ]; then
         echo "Not running on primary, skipping provisioning setup."

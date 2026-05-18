@@ -4,7 +4,7 @@ if [ "$LDAP_SERVER_TYPE" != "master" ]; then
     echo "Kelvin connector will only run on server type master (LDAP_SERVER_TYPE=\"$LDAP_SERVER_TYPE\")"
     sleep inf
 else
-    APP_PROVISIONING_CONFIG_FILE="/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json"
+    APP_PROVISIONING_CONFIG_FILE="/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/provisioning_config.json"
     TIMEOUT="${APPCENTER_WAIT_TIMEOUT:-120}"
     elapsed=0
     while [[ ! -f "$APP_PROVISIONING_CONFIG_FILE" ]]; do

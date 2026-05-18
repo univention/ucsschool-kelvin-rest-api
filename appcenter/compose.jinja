@@ -24,7 +24,7 @@ print(hostname)
     environment:
       REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
-  provisoning:
+  provisioning:
     image: {{ IMAGE_TAG_CONNECTOR }}
     security_opt:
       - seccomp:/etc/docker/seccomp-systemd.json
@@ -32,7 +32,7 @@ print(hostname)
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
       - /usr/share/ca-certificates:/usr/share/ca-certificates:ro
-      - /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf:ro
+      - /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/:ro
       - /usr/local/share/ca-certificates:/usr/local/share/ca-certificates:ro
       - /etc/ucsschool/kelvin:/etc/ucsschool/kelvin
     environment:
