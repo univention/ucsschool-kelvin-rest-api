@@ -33,7 +33,7 @@ services:
       target: connector-prod
     volumes:
       # Secrets and certificates
-      - ./_vm_config/provisioning_config.json:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json:ro
+      - ./_vm_config/provisioning/:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/:ro
       - ./_vm_config/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
       - ./_vm_config/postgresql-kelvin.secret:/etc/ucsschool/kelvin/postgresql-kelvin.secret:ro
     stdin_open: true
@@ -84,7 +84,6 @@ services:
       # Secrets and certificates
       - ./_vm_config/machine.secret:/etc/machine.secret:ro
       - ./_vm_config/ldap.secret:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/cn_admin.secret:ro
-      - ./_vm_config/provisioning_config.json:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json:ro
       - ./_vm_config/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
       - ./_vm_config/tokens.secret:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/tokens.secret:ro
       - ./_vm_config/postgresql-kelvin.secret:/etc/ucsschool/kelvin/postgresql-kelvin.secret:ro

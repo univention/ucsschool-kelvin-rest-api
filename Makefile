@@ -44,15 +44,22 @@ endif
 		exit 1; \
 	fi
 
+.env-configured:
+	@if [ ! -f $(VM_CONF_DIR)/env ]; then \
+		echo "Error: $(VM_CONF_DIR)/env not found. Run 'make fetch-vm-data TARGET=hostname' first."; \
+		exit 1; \
+	fi
+
+
 fetch-vm-data: .get-target ## Fetches necessary information from a UCS host, to use its UDM REST API for a local Kelvin instance
 	mkdir -p $(VM_CONF_DIR)
+	mkdir -p $(VM_CONF_DIR)/provisioning
 	echo "dev" > $(VM_CONF_DIR)/tokens.secret
 	echo "univention" > $(VM_CONF_DIR)/postgresql-kelvin.secret
 	scp $(TARGET):/etc/machine.secret $(VM_CONF_DIR)/
 	scp $(TARGET):/etc/ldap.secret $(VM_CONF_DIR)/
 	scp $(TARGET):/etc/ssl/certs/ca-certificates.crt $(VM_CONF_DIR)/
 	scp $(TARGET):/etc/univention/base.conf $(VM_CONF_DIR)/
-	scp $(TARGET):/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning_config.json $(VM_CONF_DIR)/provisioning_config.json
 	scp $(TARGET):/usr/share/ucs-school-import/configs/ucs-school-testuser-import.json $(VM_CONF_DIR)/user_import.json
 	echo "{}" > $(VM_CONF_DIR)/mapped_udm_properties.json
 	echo "LDAP_MASTER=$$(ssh $(TARGET) ucr get ldap/master)" > $(VM_CONF_DIR)/env
@@ -74,23 +81,19 @@ fetch-vm-data: .get-target ## Fetches necessary information from a UCS host, to 
 build-docker-image:  ## Builds the Kelvin docker image
 	@docker build --network host -t ucsschool-kelvin-rest-api:dev -f docker/Dockerfile .
 
-dev-server: build-docker-image ## Start local Kelvin development server
+dev-server: .env-configured build-docker-image setup-provisioning-subscription ## Start local Kelvin development server
 	@echo "Starting development server..."
 	@echo "Access via http://127.0.0.1:8911/ucsschool/kelvin/"
-	@if [ ! -f $(VM_CONF_DIR)/env ]; then \
-		echo "Error: $(VM_CONF_DIR)/env not found. Run 'make fetch-vm-data TARGET=hostname' first."; \
-		exit 1; \
-	fi
 	@set -a && source $(VM_CONF_DIR)/env && set +a && \
-	{ cat appcenter/includes/setup-provisioning-subscription.sh; echo 'setup_provisioning_subscriptions'; } | \
-		ssh $$TARGET "SUBSCRIPTION_NAME='kelvin-connector-dev' FORCE='true' APP_PROVISIONING_CONFIG_FILE='/tmp/kelvin-provisioning_config.json' bash -s" && \
-	scp $$TARGET:/tmp/kelvin-provisioning_config.json $(VM_CONF_DIR)/provisioning_config.json && \
 	trap 'docker compose -f dev/docker-compose.yaml down' EXIT && \
 		docker compose -f dev/docker-compose.yaml up --watch
 
 alembic-migration: .running-dev-server .get-alembic-message ## Creates a new alembic revison from kelvin-dev
 	uv run --env-file .env.alembic alembic revision --autogenerate -m "$(ALEMBIC_MESSAGE)"
 
-setup-provisioning-subscription: .get-target ## Create a provisioning subscription on TARGET (SUBSCRIPTION_NAME=kelvin-connector, FORCE=false)
+setup-provisioning-subscription: .env-configured ## Create a provisioning subscription on TARGET (SUBSCRIPTION_NAME=kelvin-connector, FORCE=false)
+	@set -a && source $(VM_CONF_DIR)/env && set +a && \
+	echo "$$TARGET" && \
 	{ cat appcenter/includes/setup-provisioning-subscription.sh; echo 'setup_provisioning_subscriptions'; } | \
-		ssh $(TARGET) "SUBSCRIPTION_NAME='$${SUBSCRIPTION_NAME:-kelvin-connector}' FORCE='$${FORCE:-false}' APP_PROVISIONING_CONFIG_FILE='dev/_vm_config/provisioning_config.json' bash -s"
+		ssh $$TARGET "SUBSCRIPTION_NAME='$${SUBSCRIPTION_NAME:-kelvin-connector}' FORCE='$${FORCE:-false}' APP_PROVISIONING_CONFIG_FILE='/tmp/provisioning_config.json' bash -s" && \
+	scp $$TARGET:/tmp/provisioning_config.json $(VM_CONF_DIR)/provisioning/provisioning_config.json
