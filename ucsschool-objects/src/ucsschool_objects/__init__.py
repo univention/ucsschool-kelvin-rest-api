@@ -10,6 +10,10 @@ models used by the adapters and is not part of the public API.  Its contents
 may change without notice.
 """
 
+from ucsschool_objects.core.adapters.sqlalchemy.dn_mapper import (
+    SQLAlchemyDNIDMapper,
+    sqlalchemy_mapper_factory,
+)
 from ucsschool_objects.core.domain import (  # Domain entities; Query DSL; Exceptions
     UNLOADED,
     And,
@@ -46,6 +50,7 @@ from ucsschool_objects.core.domain import (  # Domain entities; Query DSL; Excep
     UnsupportedSortField,
     User,
 )
+from ucsschool_objects.core.domain.ports.dn_mapper import DNIDMapper, ObjectType
 
 __all__ = [
     # Domain entities
@@ -83,7 +88,12 @@ __all__ = [
     "UnsupportedOperation",
     "UnsupportedSortField",
     # Ports
+    "DNIDMapper",
     "KelvinStorageSession",
     "KelvinStorageSessionFactory",
     "Manager",
+    "ObjectType",
+    # DN mapper adapter
+    "SQLAlchemyDNIDMapper",
+    "sqlalchemy_mapper_factory",
 ]
