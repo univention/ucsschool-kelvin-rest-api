@@ -1,5 +1,6 @@
 from typing import Callable, Protocol
 
+from ucsschool_objects import DNIDMapper
 from ucsschool_objects.core.domain.ports import KelvinStorageSession, KelvinStorageSessionFactory
 
 from .models import (
@@ -16,7 +17,6 @@ from .models import (
     UserDeleteEvent,
     UserModifyEvent,
 )
-from .nubus_compat import DNIDMapper
 
 DNIDMapperFactory = Callable[[KelvinStorageSession], DNIDMapper]
 
