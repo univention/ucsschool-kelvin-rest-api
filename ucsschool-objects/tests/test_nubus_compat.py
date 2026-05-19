@@ -4,7 +4,6 @@ from typing import Any
 
 import pytest
 import pytest_asyncio
-from kelvin_connector.nubus_compat import ObjectType, SQLAlchemyDNIDMapper, sqlalchemy_mapper_factory
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -13,6 +12,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.pool import StaticPool
+from ucsschool_objects import ObjectType, SQLAlchemyDNIDMapper, sqlalchemy_mapper_factory
 from ucsschool_objects.database_models import Base, Group, School, User
 
 

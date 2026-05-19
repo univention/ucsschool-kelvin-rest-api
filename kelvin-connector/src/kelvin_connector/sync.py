@@ -23,6 +23,7 @@ from kelvin_connector.models import (
 from kelvin_connector.ports import DNIDMapperFactory, SynchronizationManagerProtocol
 from loguru import logger
 from typing_extensions import override
+from ucsschool_objects import DNIDMapper, ObjectType
 from ucsschool_objects.core.domain import LoadSpec, SearchQuery
 from ucsschool_objects.core.domain.models import (
     UNLOADED,
@@ -41,8 +42,6 @@ from ucsschool_objects.core.domain.query import (
     Operator,
     Or,
 )
-
-from .nubus_compat import DNIDMapper, ObjectType
 
 DEFAULT_NUBUS_SOURCE_UID = "nubus"
 
