@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import uuid
-from datetime import date
 
 from tests.core.domain.helpers.model_builders import (
     role as build_role,
@@ -11,66 +10,7 @@ from tests.core.domain.helpers.model_builders import (
     user as build_user,
 )
 from ucsschool_objects.core.domain.models import SchoolMembership
-from ucsschool_objects.core.domain.patch import _create_patch, normalise, track_changes
-
-# --- normalise ---
-
-
-def testnormalise_sorts_flat_list() -> None:
-    assert normalise(["c", "a", "b"]) == ["a", "b", "c"]
-
-
-def testnormalise_empty_list() -> None:
-    assert normalise([]) == []
-
-
-def testnormalise_leaves_scalar_unchanged() -> None:
-    assert normalise("hello") == "hello"
-    assert normalise(42) == 42
-    assert normalise(None) is None
-
-
-def testnormalise_sorts_nested_list_in_dict() -> None:
-    result = normalise({"servers": ["z", "a", "m"]})
-    assert result == {"servers": ["a", "m", "z"]}
-
-
-def testnormalise_sorts_list_of_dicts_by_str() -> None:
-    items = [{"name": "z"}, {"name": "a"}]
-    result = normalise(items)
-    assert result == sorted(items, key=str)
-
-
-def testnormalise_converts_set_to_sorted_list() -> None:
-    result = normalise({"c", "a", "b"})
-    assert result == ["a", "b", "c"]
-
-
-def testnormalise_converts_frozenset_to_sorted_list() -> None:
-    result = normalise(frozenset({"c", "a", "b"}))
-    assert result == ["a", "b", "c"]
-
-
-def testnormalise_converts_uuid_to_str() -> None:
-    u = uuid.uuid4()
-    assert normalise(u) == str(u)
-
-
-def testnormalise_converts_uuid_dict_key_to_str() -> None:
-    u = uuid.uuid4()
-    result = normalise({u: "value"})
-    assert result == {str(u): "value"}
-
-
-def testnormalise_converts_date_to_isoformat() -> None:
-    d = date(2024, 1, 15)
-    assert normalise(d) == "2024-01-15"
-
-
-def testnormalise_recurses_into_nested_dicts() -> None:
-    result = normalise({"outer": {"inner": ["b", "a"]}})
-    assert result == {"outer": {"inner": ["a", "b"]}}
-
+from ucsschool_objects.core.domain.patch import _create_patch, track_changes
 
 # --- _create_patch ---
 

@@ -15,12 +15,11 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.sql.elements import ColumnElement
 from ucsschool_objects.core.domain.errors import NotFound
-from ucsschool_objects.core.domain.models import domain_asdict
-from ucsschool_objects.core.domain.patch import normalise
+from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
+from ucsschool_objects.core.domain.models import _require_loaded  # pyright: ignore[reportPrivateUsage]
 from ucsschool_objects.core.domain.models import UnloadedType
 from ucsschool_objects.core.domain.query import And, Filter, Not, Or
-from ucsschool_objects.core.domain.models import _require_loaded  # pyright: ignore[reportPrivateUsage]
 from ucsschool_objects.database_models import (
     Base,
     Role as RoleModel,
@@ -72,7 +71,6 @@ TSelect = TypeVar("TSelect", bound=SupportsLoadOptions)
 TModel = TypeVar("TModel", bound=Base)
 PublicIdCarrierDict: TypeAlias = dict[str, object]
 PublicIdInput: TypeAlias = PublicIdCarrier | PublicIdCarrierDict
-PatchDict: TypeAlias = dict[str, object]
 
 
 class JoinType(str, Enum):
@@ -123,8 +121,7 @@ def _apply_patch(
     current_domain_obj: DataclassInstance,
 ) -> dict[str, object]:
     """Apply JSON Patch operations to a domain object and return the patched dict."""
-    # TODO simplify
-    current_dict = cast(PatchDict, normalise(domain_asdict(current_domain_obj)))
+    current_dict = to_json(current_domain_obj)
     # NOTE lib jsonpatch is untyped
     return cast(
         PatchDict,

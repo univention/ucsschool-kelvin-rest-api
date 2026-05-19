@@ -38,7 +38,6 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
-    PatchDict,
     PublicIdInput,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_user, user_from_patch
@@ -56,8 +55,7 @@ from ucsschool_objects.core.domain import (
     User,
     UserValidator,
 )
-from ucsschool_objects.core.domain.models import domain_asdict
-from ucsschool_objects.core.domain.patch import normalise
+from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -412,7 +410,7 @@ class SQLAlchemyUserManager(Manager[User]):
         _apply_user_patch(result, patched)
 
         if m_memberships:
-            current_dict = cast(PatchDict, normalise(domain_asdict(current_domain)))
+            current_dict = to_json(current_domain)
             await _apply_membership_relation_changes(
                 result,
                 cast(PatchDict, current_dict.get("school_memberships", {})),
@@ -420,7 +418,7 @@ class SQLAlchemyUserManager(Manager[User]):
                 self._session,
             )
         if m_guardians:
-            current_dict = cast(PatchDict, normalise(domain_asdict(current_domain)))
+            current_dict = to_json(current_domain)
             await _sync_collection(
                 self._session,
                 cast(list[PublicIdInput], patched.get("legal_guardians", [])),
@@ -429,7 +427,7 @@ class SQLAlchemyUserManager(Manager[User]):
                 lambda values: setattr(result, "legal_guardians", values),
             )
         if m_wards:
-            current_dict = cast(PatchDict, normalise(domain_asdict(current_domain)))
+            current_dict = to_json(current_domain)
             await _sync_collection(
                 self._session,
                 cast(list[PublicIdInput], patched.get("legal_wards", [])),
