@@ -1,46 +1,27 @@
 import copy
-from collections.abc import Iterable, Sequence
-from datetime import date
+from collections.abc import Sequence
 from typing import Generic, Self, TypeVar, cast
-from uuid import UUID
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
+from ucsschool_objects.core.domain.json import normalise, to_json
 from ucsschool_objects.core.domain.models import (
     Group,
     School,
-    UnloadedType,
-    UnsetType,
     User,
-    domain_asdict,
 )
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
+
+__all__ = [
+    "normalise",
+    "create_school_patch",
+    "create_group_patch",
+    "create_user_patch",
+    "track_changes",
+]
 
 _T = TypeVar("_T", School, Group, User)
 
 _EMPTY_FROZENSET: frozenset[str] = frozenset()
-_UNLOADED_MARKER = {"__sentinel__": "UNLOADED"}
-_UNSET_MARKER = {"__sentinel__": "UNSET"}
-
-
-def normalise(obj: object) -> object:
-    # asdict leaves set/frozenset, UUID, and date as Python objects; convert them to
-    # JSON-serialisable types and sort collections so diffing is deterministic.
-    # Dict keys are also normalised so UUID-keyed dicts (e.g. school_memberships)
-    # serialise correctly.
-    if isinstance(obj, UnloadedType):
-        return dict(_UNLOADED_MARKER)
-    if isinstance(obj, UnsetType):
-        return dict(_UNSET_MARKER)
-    if isinstance(obj, dict):
-        d = cast(dict[object, object], obj)
-        return {normalise(k): normalise(v) for k, v in d.items()}
-    if isinstance(obj, (list, set, frozenset)):
-        return sorted((normalise(item) for item in cast(Iterable[object], obj)), key=str)
-    if isinstance(obj, UUID):
-        return str(obj)
-    if isinstance(obj, date):
-        return obj.isoformat()
-    return obj
 
 
 def _patch_ops(
@@ -64,8 +45,8 @@ def _patch_ops(
 def _create_patch(
     src: _T, dst: _T, replace_fields: frozenset[str] = _EMPTY_FROZENSET
 ) -> Sequence[JSONPathOperation]:
-    src_dict = cast(dict[str, object], normalise(domain_asdict(src)))
-    dst_dict = cast(dict[str, object], normalise(domain_asdict(dst)))
+    src_dict = to_json(src)
+    dst_dict = to_json(dst)
     return _patch_ops(src_dict, dst_dict, replace_fields)
 
 
