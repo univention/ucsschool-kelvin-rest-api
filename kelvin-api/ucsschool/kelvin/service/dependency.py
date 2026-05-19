@@ -27,9 +27,11 @@
 
 
 from functools import lru_cache
+from typing import AsyncGenerator
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from sqlalchemy import create_engine
+from ucsschool_objects import KelvinStorageSession
 
 from alembic.config import Config
 from alembic.migration import MigrationContext
@@ -59,3 +61,8 @@ def check_db_compatibility() -> bool:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="This instance is deprecated. Please upgrade.",
         )
+
+
+async def get_storage_session(request: Request) -> AsyncGenerator[KelvinStorageSession, None]:
+    async with request.app.state.storage_session_factory.session_scope() as session:
+        yield session

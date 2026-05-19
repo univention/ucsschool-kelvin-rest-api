@@ -14,19 +14,22 @@ from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 
 from ucsschool.kelvin.main import app
-from ucsschool.kelvin.service.dependency import check_db_compatibility
+from ucsschool.kelvin.service.dependency import check_db_compatibility, get_storage_session
+
+
+async def _mock_storage_session():
+    yield MagicMock()
 
 
 @pytest.fixture
 def client():
-    return TestClient(app)
+    app.dependency_overrides[get_storage_session] = _mock_storage_session
+    yield TestClient(app)
+    app.dependency_overrides.pop(get_storage_session, None)
 
 
 @patch("ucsschool.kelvin.main.check_db_compatibility")
 def test_v1_api_does_not_depend_on_db_compatibility(mock_check, client):
-    # Ensure dependency_overrides is clear
-    app.dependency_overrides = {}
-
     # Note: v1 does NOT have check_db_compatibility as a dependency.
     response = client.get("/ucsschool/kelvin/v1/roles/")
     # Status 401 means it proceeded past any non-existent DB check to authentication.
