@@ -139,10 +139,10 @@ def _with_user_related_load_options(
             )
         )
         stmt = stmt.options(
-            membership_loader.selectinload(SchoolMembership.groups).load_only(
-                GroupModel.public_id,
-                *_group_scalar_columns(),
-            )
+            membership_loader.selectinload(SchoolMembership.groups)
+            .load_only(GroupModel.public_id, *_group_scalar_columns())
+            .selectinload(GroupModel.roles)
+            .load_only(RoleModel.public_id, *_role_scalar_columns())
         )
         stmt = stmt.options(
             membership_loader.selectinload(SchoolMembership.roles).load_only(
