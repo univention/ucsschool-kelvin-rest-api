@@ -25,9 +25,9 @@ from kelvin_connector.models import (
     UserPayload,
     UserProperties,
 )
-from kelvin_connector.nubus_compat import ObjectType
 from kelvin_connector.sync import DEFAULT_NUBUS_SOURCE_UID, SynchronizationException
 from pydantic import UUID4
+from ucsschool_objects import ObjectType
 from ucsschool_objects.core.domain.models import UNLOADED, SchoolMembership
 
 _TS = "2024-01-01T00:00:00"
