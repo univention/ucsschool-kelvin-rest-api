@@ -2,6 +2,20 @@ include:
   - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/pre-commit@2
     inputs:
       commit_msg_hooks: "conventional-pre-commit issue-reference"
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage-basedpyright@juern/simplify_typing_template
+    inputs:
+      pipeline_stage: build
+      python_paths: .
+      baseline_file: basedpyright-baseline.json
+      job_rules:
+        - if: $CI_MERGE_REQUEST_ID
+          changes:
+            - "**/*.py"
+            - pyproject.toml
+            - uv.lock
+            - basedpyright-baseline.json
+        - if: $CI_COMMIT_REF_PROTECTED == "true"
+        - if: $CI_COMMIT_TAG
   - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/app-release@2
     inputs:
       app_id: "ucsschool-kelvin-rest-api"
