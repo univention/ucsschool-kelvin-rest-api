@@ -24,6 +24,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
+import asyncio
 import base64
 import datetime
 import inspect
@@ -952,6 +953,25 @@ def password_hash(check_password, create_ou_using_python, new_udm_user):
             krb5_key_version_number=ldap_result["krb5KeyVersionNumber"].value,
             samba_pwd_last_set=ldap_result["sambaPwdLastSet"].value,
         )
+
+    return _func
+
+
+@pytest.fixture(scope="session")
+def retry_until_synced():
+    async def _func(
+        request_method: Callable[..., requests.Response],
+        *args,
+        timeout: int = 50,
+        retry_statuses: tuple = (404, 502),
+        **kwargs,
+    ) -> requests.Response:
+        deadline = time.monotonic() + timeout
+        while True:
+            response = request_method(*args, **kwargs)
+            if response.status_code not in retry_statuses or time.monotonic() >= deadline:
+                return response
+            await asyncio.sleep(2)
 
     return _func
 
