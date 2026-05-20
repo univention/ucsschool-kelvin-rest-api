@@ -210,7 +210,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     )
                 )
             case ObjectType.GROUPS:
-                if HOST_GROUP_NAME_RE.match(old.get("name", "")):
+                if HOST_GROUP_NAME_RE.match(old["properties"].get("name", "")):
                     await self.synchronization_manager.handle_host_group_delete(
                         HostGroupDeleteEvent(
                             timestamp=metadata["ts"],
