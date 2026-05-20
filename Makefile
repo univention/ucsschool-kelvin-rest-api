@@ -67,6 +67,7 @@ fetch-vm-data: .get-target ## Fetches necessary information from a UCS host, to 
 	echo "LDAP_MASTER_PORT=$$(ssh $(TARGET) ucr get ldap/master/port)" >> $(VM_CONF_DIR)/env
 	echo "LDAP_HOSTDN=$$(ssh $(TARGET) ucr get ldap/hostdn)" >> $(VM_CONF_DIR)/env
 	echo "LDAP_SERVER_NAME=$$(ssh $(TARGET) ucr get ldap/server/name)" >> $(VM_CONF_DIR)/env
+	echo "LDAP_SERVER_PORT=$$(ssh $(TARGET) ucr get ldap/server/port)" >> $(VM_CONF_DIR)/env
 	echo "LDAP_SERVER_TYPE=$$(ssh $(TARGET) ucr get ldap/server/type)" >> $(VM_CONF_DIR)/env
 	echo "HOSTNAME=$$(ssh $(TARGET) ucr get hostname)" >> $(VM_CONF_DIR)/env
 	echo "DOCKER_HOST_NAME=$(TARGET)" >> $(VM_CONF_DIR)/env
