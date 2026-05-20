@@ -17,6 +17,22 @@ from .consumer import KelvinConnectorEventHandler
 
 
 def main():
+    KELVIN_CONNECTOR_LOG_LEVEL = os.environ.get("KELVIN_CONNECTOR_LOG_LEVEL", "DEBUG")
+    if KELVIN_CONNECTOR_LOG_LEVEL in (
+        "TRACE",
+        "DEBUG",
+        "INFO",
+        "SUCCESS",
+        "WARNING",
+        "ERROR",
+        "CRITICAL",
+    ):
+        logger.remove()
+        logger.add(sys.stderr, level=KELVIN_CONNECTOR_LOG_LEVEL)
+    else:
+        logger.critical("Invalid log level provided: {}", KELVIN_CONNECTOR_LOG_LEVEL)
+        sys.exit(1)
+
     LDAP_SERVER_TYPE = os.environ.get("LDAP_SERVER_TYPE", None)
     if LDAP_SERVER_TYPE is None or LDAP_SERVER_TYPE != "master":
         logger.critical(f"Connector cannot run on {LDAP_SERVER_TYPE=}.")
