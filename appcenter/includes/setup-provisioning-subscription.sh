@@ -37,8 +37,8 @@ EOF
   "name": "$subscription_name",
   "realms_topics": [
     {"realm": "udm", "topic": "container/ou"},
-    {"realm": "udm", "topic": "users/user"},
-    {"realm": "udm", "topic": "groups/group"}
+    {"realm": "udm", "topic": "groups/group"},
+    {"realm": "udm", "topic": "users/user"}
   ],
   "request_prefill": true,
   "password": "${subscription_password}"
