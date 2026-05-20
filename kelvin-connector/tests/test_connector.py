@@ -24,6 +24,13 @@ def test_main_exits_when_ldap_server_type_is_not_master(monkeypatch):
     assert exc_info.value.code == 1
 
 
+def test_main_exits_when_unknown_log_level_is_present(good_env, monkeypatch):
+    monkeypatch.setenv("KELVIN_CONNECTOR_LOG_LEVEL", "DOESNOTEXIST")
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+    assert exc_info.value.code == 1
+
+
 def test_main_exits_when_provisioning_fqdn_is_missing(good_env, monkeypatch):
     monkeypatch.delenv("PROVISIONING_FQDN")
     with pytest.raises(SystemExit) as exc_info:
