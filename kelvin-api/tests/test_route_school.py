@@ -31,6 +31,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import ucsschool.kelvin.constants
+from ucsschool.kelvin.constants import URL_KELVIN_BASE
 from ucsschool.kelvin.ldap import uldap_admin_read_local
 from ucsschool.kelvin.main import app
 from ucsschool.kelvin.routers.v1.school import SchoolCreateModel, SchoolModel
@@ -70,7 +71,7 @@ async def compare_lib_api_obj(lib_obj: School, api_obj: SchoolModel):
 
 
 @pytest.mark.asyncio
-async def test_search_no_filter(auth_header, udm_kwargs):
+async def test_search_no_filter(auth_header, udm_kwargs, api_version):
     uldap = uldap_admin_read_local()
     ldap_ous: Set[Tuple[str, str]] = {
         (ldap_result["ou"].value, ldap_result.entry_dn)
@@ -99,7 +100,7 @@ async def test_search_no_filter(auth_header, udm_kwargs):
     assert {s.name for s in lib_schools} == {ou[0] for ou in ldap_ous}
 
     client = TestClient(app, base_url="http://test.server")
-    response = client.get(app.url_path_for("school_search"), headers=auth_header)
+    response = client.get(f"{URL_KELVIN_BASE}/{api_version}/schools/", headers=auth_header)
     json_resp = response.json()
     assert response.status_code == 200
     api_schools: Dict[str, SchoolModel] = {data["name"]: SchoolModel(**data) for data in json_resp}
@@ -110,12 +111,14 @@ async def test_search_no_filter(auth_header, udm_kwargs):
         await compare_lib_api_obj(lib_obj, api_obj)
         assert (
             api_obj.unscheme_and_unquote(api_obj.url)
-            == f"{client.base_url}{app.url_path_for('school_get', school_name=lib_obj.name)}"
+            == f"{client.base_url}{URL_KELVIN_BASE}/{api_version}/schools/{lib_obj.name}"
         )
 
 
 @pytest.mark.asyncio
-async def test_search_with_filter(auth_header, create_ou_using_python, random_ou_name, udm_kwargs):
+async def test_search_with_filter(
+    auth_header, create_ou_using_python, random_ou_name, udm_kwargs, api_version
+):
     common_name = random_ou_name()[:8]
     await create_ou_using_python(ou_name=f"{common_name}abc12")
     await create_ou_using_python(ou_name=f"{common_name}34xyz")
@@ -132,7 +135,7 @@ async def test_search_with_filter(auth_header, create_ou_using_python, random_ou
 
     client = TestClient(app, base_url="http://test.server")
     response = client.get(
-        app.url_path_for("school_search"),
+        f"{URL_KELVIN_BASE}/{api_version}/schools/",
         headers=auth_header,
         params={"name": f"{common_name}*"},
         timeout=120,
@@ -146,19 +149,19 @@ async def test_search_with_filter(auth_header, create_ou_using_python, random_ou
         await compare_lib_api_obj(lib_obj, api_obj)
         assert (
             api_obj.unscheme_and_unquote(api_obj.url)
-            == f"{client.base_url}{app.url_path_for('school_get', school_name=lib_obj.name)}"
+            == f"{client.base_url}{URL_KELVIN_BASE}/{api_version}/schools/{lib_obj.name}"
         )
 
 
 @pytest.mark.asyncio
-async def test_get(auth_header, create_ou_using_python, ldap_base, udm_kwargs):
+async def test_get(auth_header, create_ou_using_python, ldap_base, udm_kwargs, api_version):
     ou_name = await create_ou_using_python()
     async with UDM(**udm_kwargs) as udm:
         lib_obj = await School.from_dn(f"ou={ou_name},{ldap_base}", ou_name, udm)
         lib_obj.udm_properties["description"] = f"{ou_name}-description"
         await lib_obj.modify(udm)
     client = TestClient(app, base_url="http://test.server")
-    response = client.get(app.url_path_for("school_get", school_name=ou_name), headers=auth_header)
+    response = client.get(f"{URL_KELVIN_BASE}/{api_version}/schools/{ou_name}", headers=auth_header)
     json_resp = response.json()
     assert response.status_code == 200
     api_obj = SchoolModel(**json_resp)
@@ -166,13 +169,13 @@ async def test_get(auth_header, create_ou_using_python, ldap_base, udm_kwargs):
     await compare_lib_api_obj(lib_obj, api_obj)
     assert (
         api_obj.unscheme_and_unquote(api_obj.url)
-        == f"{client.base_url}{app.url_path_for('school_get', school_name=lib_obj.name)}"
+        == f"{client.base_url}{URL_KELVIN_BASE}/{api_version}/schools/{lib_obj.name}"
     )
 
 
 @pytest.mark.asyncio
 async def test_get_without_administrative_group(
-    auth_header, create_ou_using_python, ldap_base, udm_kwargs
+    auth_header, create_ou_using_python, ldap_base, udm_kwargs, api_version
 ):
     ou_name = await create_ou_using_python()
     async with UDM(**udm_kwargs) as udm:
@@ -185,14 +188,14 @@ async def test_get_without_administrative_group(
         await adm_obj.delete()
         lib_obj.administrative_servers = []
     client = TestClient(app, base_url="http://test.server")
-    response = client.get(app.url_path_for("school_get", school_name=ou_name), headers=auth_header)
+    response = client.get(f"{URL_KELVIN_BASE}/{api_version}/schools/{ou_name}", headers=auth_header)
     json_resp = response.json()
     assert response.status_code == 200
     api_obj = SchoolModel(**json_resp)
     await compare_lib_api_obj(lib_obj, api_obj)
     assert (
         api_obj.unscheme_and_unquote(api_obj.url)
-        == f"{client.base_url}{app.url_path_for('school_get', school_name=lib_obj.name)}"
+        == f"{client.base_url}{URL_KELVIN_BASE}/{api_version}/schools/{lib_obj.name}"
     )
 
 
@@ -200,7 +203,7 @@ async def test_get_without_administrative_group(
 async def test_get_missing_fileserver(
     auth_header, create_ou_using_python, ldap_base, udm_kwargs, monkeypatch
 ):
-    _from_lib_model_kwargs = ucsschool.kelvin.routers.school.SchoolModel._from_lib_model_kwargs
+    _from_lib_model_kwargs = SchoolModel._from_lib_model_kwargs
 
     async def _from_lib_model_kwargs_mock(obj, request, udm) -> Dict[str, Any]:
         # This can happen if the school was cached in kelvin and the server has been deleted
@@ -210,7 +213,7 @@ async def test_get_missing_fileserver(
         return await _from_lib_model_kwargs(obj, request, udm)
 
     monkeypatch.setattr(
-        ucsschool.kelvin.routers.school.SchoolModel,
+        SchoolModel,
         "_from_lib_model_kwargs",
         _from_lib_model_kwargs_mock,
     )
@@ -221,7 +224,7 @@ async def test_get_missing_fileserver(
         lib_obj.home_share_file_server = f"cn=deleted-server,cn=dc,ou=deleted,{ldap_base}"
         await lib_obj.modify(udm)
     client = TestClient(app, base_url="http://test.server")
-    response = client.get(app.url_path_for("school_get", school_name=ou_name), headers=auth_header)
+    response = client.get(f"{URL_KELVIN_BASE}/v1/schools/{ou_name}", headers=auth_header)
     json_resp = response.json()
     assert response.status_code == 200
     api_obj = SchoolModel(**json_resp)
@@ -229,7 +232,7 @@ async def test_get_missing_fileserver(
     assert api_obj.home_share_file_server is None
     assert (
         api_obj.unscheme_and_unquote(api_obj.url)
-        == f"{client.base_url}{app.url_path_for('school_get', school_name=lib_obj.name)}"
+        == f"{client.base_url}{URL_KELVIN_BASE}/v1/schools/{lib_obj.name}"
     )
 
 
@@ -243,12 +246,13 @@ async def test_head(
     docker_host_name,
     delete_ou_using_ssh,
     delete_ou_cleanup,
+    api_version,
 ):
     ou_name = random_ou_name()
     if exists:
         await create_ou_using_python(ou_name=ou_name, cache=False)
     client = TestClient(app, base_url="http://test.server")
-    response = client.head(app.url_path_for("school_exists", school_name=ou_name), headers=auth_header)
+    response = client.head(f"{URL_KELVIN_BASE}/{api_version}/schools/{ou_name}", headers=auth_header)
     if exists:
         assert response.status_code == 200
         assert not response.text
@@ -260,7 +264,7 @@ async def test_head(
         await delete_ou_cleanup(ou_name)
     else:
         await create_ou_using_python(ou_name=ou_name, cache=False)
-    response = client.head(app.url_path_for("school_exists", school_name=ou_name), headers=auth_header)
+    response = client.head(f"{URL_KELVIN_BASE}/{api_version}/schools/{ou_name}", headers=auth_header)
     if exists:
         assert response.status_code == 404
         assert not response.text
@@ -276,6 +280,7 @@ async def test_create(
     ldap_base,
     random_school_create_model,
     schedule_delete_ou_using_ssh,
+    api_version,
 ):
     school_create_model: SchoolCreateModel = random_school_create_model()
     attrs = school_create_model.dict()
@@ -283,7 +288,7 @@ async def test_create(
     schedule_delete_ou_using_ssh(school_create_model.name, docker_host_name)
     client = TestClient(app, base_url="http://test.server")
     response = client.post(
-        app.url_path_for("school_create"),
+        f"{URL_KELVIN_BASE}/{api_version}/schools/",
         headers={"Content-Type": "application/json", **auth_header},
         json=attrs,
     )
@@ -301,7 +306,7 @@ async def test_create(
     await compare_lib_api_obj(lib_obj, api_obj)
     assert (
         api_obj.unscheme_and_unquote(api_obj.url)
-        == f"{client.base_url}{app.url_path_for('school_get', school_name=lib_obj.name)}"
+        == f"{client.base_url}{URL_KELVIN_BASE}/{api_version}/schools/{lib_obj.name}"
     )
 
 
@@ -311,6 +316,7 @@ async def test_create_unmapped_udm_prop(
     schedule_delete_ou_using_ssh,
     docker_host_name,
     auth_header,
+    api_version,
 ):
     school_create_model: SchoolCreateModel = random_school_create_model()
     attrs = school_create_model.dict()
@@ -318,7 +324,7 @@ async def test_create_unmapped_udm_prop(
     schedule_delete_ou_using_ssh(school_create_model.name, docker_host_name)
     client = TestClient(app, base_url="http://test.server")
     response = client.post(
-        app.url_path_for("school_create"),
+        f"{URL_KELVIN_BASE}/{api_version}/schools/",
         headers={"Content-Type": "application/json", **auth_header},
         json=attrs,
     )
@@ -342,6 +348,7 @@ async def test_create_udm_error_forwarding(
     docker_host_name,
     random_school_create_model,
     schedule_delete_ou_using_ssh,
+    api_version,
 ):
     school_create_model: SchoolCreateModel = random_school_create_model()
     attrs = school_create_model.dict()
@@ -349,7 +356,7 @@ async def test_create_udm_error_forwarding(
     schedule_delete_ou_using_ssh(school_create_model.name, docker_host_name)
     client = TestClient(app, base_url="http://test.server")
     response = client.post(
-        app.url_path_for("school_create"),
+        f"{URL_KELVIN_BASE}/{api_version}/schools/",
         headers={"Content-Type": "application/json", **auth_header},
         json=attrs,
     )
@@ -375,9 +382,7 @@ async def test_get_school_language(auth_header, monkeypatch, language):
         kwargs["display_name"] = udm.session.language
         return SchoolModel(**kwargs)
 
-    monkeypatch.setattr(
-        ucsschool.kelvin.routers.school.SchoolModel, "from_lib_model", from_lib_model_mock
-    )
+    monkeypatch.setattr(SchoolModel, "from_lib_model", from_lib_model_mock)
 
     client = TestClient(app, base_url="http://test.server")
     if language is not None:
