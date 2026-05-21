@@ -25,6 +25,7 @@ from loguru import logger
 from typing_extensions import override
 from ucsschool_objects import DNIDMapper, ObjectType
 from ucsschool_objects.core.domain import LoadSpec, SearchQuery
+from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.models import (
     UNLOADED,
     Group,
@@ -242,34 +243,61 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         )
 
         public_id = user_props.univentionObjectIdentifier
-        await storage.users.create(
-            User(
-                public_id=public_id,
-                name=user_props.username,
-                firstname=user_props.firstname,
-                lastname=user_props.lastname,
-                active=not user_props.disabled,
-                email=user_props.mailPrimaryAddress,
-                birthday=user_props.birthday,
-                expiration_date=user_props.userexpiry,
-                record_uid=user_props.ucsschoolRecordUID or user_props.username,
-                source_uid=user_props.ucsschoolSourceUID or DEFAULT_NUBUS_SOURCE_UID,
-                school_memberships=school_memberships,
-                legal_wards=legal_wards,
-                legal_guardians=legal_guardians,
+        try:
+            current_user = await storage.users.get(
+                public_id,
+                load=LoadSpec.from_attributes("school_memberships", "legal_wards", "legal_guardians"),
             )
-        )
-        await mapper.set_mapping(ObjectType.USER, event.new.dn, public_id)
+        except NotFound:
+            await storage.users.create(
+                User(
+                    public_id=public_id,
+                    name=user_props.username,
+                    firstname=user_props.firstname,
+                    lastname=user_props.lastname,
+                    active=not user_props.disabled,
+                    email=user_props.mailPrimaryAddress,
+                    birthday=user_props.birthday,
+                    expiration_date=user_props.userexpiry,
+                    record_uid=user_props.ucsschoolRecordUID or user_props.username,
+                    source_uid=user_props.ucsschoolSourceUID or DEFAULT_NUBUS_SOURCE_UID,
+                    school_memberships=school_memberships,
+                    legal_wards=legal_wards,
+                    legal_guardians=legal_guardians,
+                )
+            )
+            await mapper.set_mapping(ObjectType.USER, event.new.dn, public_id)
+            logger.info("User {!r} created (public_id={})", user_props.username, public_id)
+        else:
+            logger.info(
+                "User {!r} already exists on create event, updating (public_id={})",
+                user_props.username,
+                public_id,
+            )
+            with track_changes(
+                current_user, replace_fields=frozenset({"legal_wards", "legal_guardians"})
+            ) as tracker:
+                self._apply_user_changes(
+                    current_user,
+                    user_props,
+                    school_memberships,
+                    legal_wards,
+                    legal_guardians,
+                )
+            if tracker.patch:
+                await storage.users.modify(public_id, tracker.patch)
 
     async def _handle_user_delete(self, event: UserDeleteEvent, storage: KelvinStorageSession) -> None:
         public_id = event.old.properties.univentionObjectIdentifier
         await storage.users.delete(public_id)
+        logger.info("User {!r} deleted (public_id={})", event.old.properties.username, public_id)
 
     async def _handle_user_modify(
         self, event: UserModifyEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
         user_props = event.new.properties
         public_id = user_props.univentionObjectIdentifier
+        logger.debug("Updating user {!r} (public_id={})", user_props.username, public_id)
         current_user = await storage.users.get(
             public_id,
             load=LoadSpec.from_attributes("school_memberships", "legal_wards", "legal_guardians"),
@@ -397,36 +425,82 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         )
 
         public_id = group_props.univentionObjectIdentifier
-        logger.debug("Creating group {}", group_props.name)
-        await storage.groups.create(
-            Group(
-                public_id=public_id,
-                name=group_props.name,
-                display_name=group_props.name,
-                record_uid=group_props.name,
-                source_uid="kelvin-connector",
-                email=group_props.mailAddress,
-                school=school,
-                allowed_email_senders_users=allowed_email_senders_users,
-                allowed_email_senders_groups=allowed_email_senders_groups,
-                members=members,
-                create_share=False,
-                roles=group_roles,
-                member_roles=member_roles,
+        try:
+            current_group = await storage.groups.get(
+                public_id,
+                load=LoadSpec.from_attributes(
+                    "school",
+                    "roles",
+                    "allowed_email_senders_users",
+                    "allowed_email_senders_groups",
+                    "members",
+                    "member_roles",
+                ),
             )
-        )
-        logger.trace("Setting dn-id mapping {} -> {}", event.new.dn, public_id)
-        await mapper.set_mapping(ObjectType.GROUP, event.new.dn, public_id)
+        except NotFound:
+            logger.debug("Creating group {!r} (public_id={})", group_props.name, public_id)
+            await storage.groups.create(
+                Group(
+                    public_id=public_id,
+                    name=group_props.name,
+                    display_name=group_props.name,
+                    record_uid=group_props.name,
+                    source_uid="kelvin-connector",
+                    email=group_props.mailAddress,
+                    school=school,
+                    allowed_email_senders_users=allowed_email_senders_users,
+                    allowed_email_senders_groups=allowed_email_senders_groups,
+                    members=members,
+                    create_share=False,
+                    roles=group_roles,
+                    member_roles=member_roles,
+                )
+            )
+            await mapper.set_mapping(ObjectType.GROUP, event.new.dn, public_id)
+            logger.info("Group {!r} created (public_id={})", group_props.name, public_id)
+        else:
+            logger.info(
+                "Group {!r} already exists on create event, updating (public_id={})",
+                group_props.name,
+                public_id,
+            )
+            with track_changes(
+                current_group,
+                replace_fields=frozenset(
+                    {
+                        "school",
+                        "roles",
+                        "allowed_email_senders_users",
+                        "allowed_email_senders_groups",
+                        "members",
+                        "member_roles",
+                    }
+                ),
+            ) as tracker:
+                self._apply_group_changes(
+                    current_group,
+                    group_props,
+                    school,
+                    group_roles,
+                    allowed_email_senders_users,
+                    allowed_email_senders_groups,
+                    members,
+                    member_roles,
+                )
+            if tracker.patch:
+                await storage.groups.modify(public_id, tracker.patch)
 
     async def _handle_group_delete(self, event: GroupDeleteEvent, storage: KelvinStorageSession) -> None:
         public_id = event.old.properties.univentionObjectIdentifier
         await storage.groups.delete(public_id)
+        logger.info("Group {!r} deleted (public_id={})", event.old.properties.name, public_id)
 
     async def _handle_group_modify(
         self, event: GroupModifyEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
         group_props = event.new.properties
         public_id = group_props.univentionObjectIdentifier
+        logger.debug("Updating group {!r} (public_id={})", group_props.name, public_id)
         current_group = await storage.groups.get(
             public_id,
             load=LoadSpec.from_attributes(
@@ -545,21 +619,39 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             educational_servers=set(),
             administrative_servers=set(),
         )
-        await storage.schools.create(school)
-        await mapper.set_mapping(ObjectType.SCHOOL, event.new.dn, public_id)
-        logger.info("School {!r} created (public_id={})", school_props.name, public_id)
+        try:
+            current_school = await storage.schools.get(public_id)
+        except NotFound:
+            await storage.schools.create(school)
+            await mapper.set_mapping(ObjectType.SCHOOL, event.new.dn, public_id)
+            logger.info("School {!r} created (public_id={})", school_props.name, public_id)
+        else:
+            school_props = event.new.properties
+            public_id = school_props.univentionObjectIdentifier
+            logger.info(
+                "School {!r} already exists on create event, updating (public_id={})",
+                school_props.name,
+                public_id,
+            )
+            with track_changes(current_school) as tracker:
+                current_school.name = school_props.name
+                current_school.display_name = school_props.displayName
+            if tracker.patch:
+                await storage.schools.modify(public_id, tracker.patch)
 
     async def _handle_school_delete(
         self, event: SchoolDeleteEvent, storage: KelvinStorageSession
     ) -> None:
         public_id = event.old.properties.univentionObjectIdentifier
         await storage.schools.delete(public_id)
+        logger.info("School {!r} deleted (public_id={})", event.old.properties.name, public_id)
 
     async def _handle_school_modify(
         self, event: SchoolModifyEvent, storage: KelvinStorageSession
     ) -> None:
         school_props = event.new.properties
         public_id = school_props.univentionObjectIdentifier
+        logger.debug("Updating school {!r} (public_id={})", school_props.name, public_id)
         current_school = await storage.schools.get(public_id)
         with track_changes(current_school) as tracker:
             current_school.name = school_props.name
@@ -598,6 +690,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             raise SynchronizationException(f"Unable to find school with name={school_name} in database.")
 
         hosts = set(event.new.properties.hosts)
+        logger.debug(
+            "Updating {} servers for school {!r} from host group event",
+            "educational" if group_type == "Edukativnetz" else "administrative",
+            school_name,
+        )
 
         with track_changes(school) as tracker:
             match group_type:
