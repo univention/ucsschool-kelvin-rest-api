@@ -1,0 +1,54 @@
+# Copyright (C) 2026 Univention GmbH
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+ai-review:
+  stage: tests
+  needs: []
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/nikitafilonov/ai-review:latest
+  rules:
+    - if: '$CI_MERGE_REQUEST_IID'
+      when: "manual"
+  allow_failure: true
+  script:
+    - ai-review show-config
+    - ai-review run
+  variables:
+    # Configuration: https://github.com/Nikita-Filonov/ai-review/blob/main/docs/ci/gitlab.yaml
+    # Model names: https://litellm.knut.univention.de/ui/?page=models
+
+    # --- LLM configuration ---
+    LLM__PROVIDER: "OPENAI"  # LiteLLM's OpenAI interface also allows using non-OpenAI models.
+    LLM__META__MODEL: "anthropic/claude-opus-4-7"  # LiteLLM encodes the names differently to what some AIs expect. Ignore their warning.
+    LLM__META__MAX_TOKENS: "50000"
+    # LLM__META__TEMPERATURE: "0.3"  # Don't set temperature for Opus 4.7.
+    LLM__HTTP_CLIENT__API_URL: "https://litellm.knut.univention.de"
+    LLM__HTTP_CLIENT__API_TOKEN: "$OPENAI_API_KEY"  # Defined as a CI/CD group variable at /univention/dev.
+
+    # --- GitLab integration ---
+    VCS__PROVIDER: "GITLAB"
+    VCS__PIPELINE__PROJECT_ID: "$CI_PROJECT_ID"
+    VCS__PIPELINE__MERGE_REQUEST_ID: "$CI_MERGE_REQUEST_IID"
+    VCS__HTTP_CLIENT__API_URL: "$CI_SERVER_URL"
+    # Using "$GITLAB_TOKEN" because "$CI_JOB_TOKEN" lacks the permission to post comments.
+    # GITLAB_TOKEN is defined as a CI/CD group variable at /univention/dev.
+    VCS__HTTP_CLIENT__API_TOKEN: "$GITLAB_TOKEN"
+
+    AGENT__ENABLED: "true"
+    AGENT__COMMAND_TIMEOUT: "60"
+    PROMPT__CONTEXT__COMPANY_NAME: "Univention"
+    REVIEW__MODE: "ADDED_AND_REMOVED_WITH_CONTEXT"
+    REVIEW__CONTEXT_LINES: "20"
+    # ai-review adds markers to diffs. Maybe some models need that?
+    # Set REVIEW__REVIEW_*_MARKER to empty, when the agent complains about "added" or "removed" comments.
+    # The Anthropic models complain about them.
+    REVIEW__REVIEW_ADDED_MARKER: ""
+    REVIEW__REVIEW_REMOVED_MARKER: ""
+    # --- Debug ---
+    # LOGGER__LEVEL: "DEBUG"
+    # ARTIFACTS__LLM_ENABLED: "true"
+    # ARTIFACTS__VCS_ENABLED: "true"
+  # --- Debug ---
+  # artifacts:
+  #   paths:
+  #     - artifacts  # ai-review stores communication with GitLab and AI model here, when activated above.
