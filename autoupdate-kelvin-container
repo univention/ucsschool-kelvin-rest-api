@@ -56,6 +56,16 @@ else
 	}
 fi
 
+CONNECTOR_INSTANCE="$(ssh "root@$TARGET" docker ps | grep -E "artifacts.software-univention.de/ucsschool/ucsschool-kelvin-connector:|gitregistry.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api/ucsschool-kelvin-connector:|ucsschool-kelvin-connector:" | cut -d" " -f1)"
+CONNECTOR_TARGETDIR="$(ssh "root@$TARGET" docker inspect "$CONNECTOR_INSTANCE" | jq .[0].GraphDriver.Data.MergedDir -r)"
+echo "Connector container: $CONNECTOR_INSTANCE"
+echo "Connector container dir: $CONNECTOR_TARGETDIR"
+
+[ -z "$CONNECTOR_INSTANCE" -o -z "$CONNECTOR_TARGETDIR" ] && {
+  echo "ERROR: Cannot determine running connector docker container. Stopping here."
+  exit 1
+}
+
 UCS_TEST_DIR="/usr/share/ucs-test/94_ucsschool-kelvin/"
 if ! ssh "root@$TARGET" test -d "$UCS_TEST_DIR"; then
     echo "WARNING: $UCS_TEST_DIR does not exist, ucs-test-ucsschool-kelvin is not installed."
@@ -73,4 +83,13 @@ inotifycopy \
 	-a ucs-school-lib/modules/ucsschool/lib/models/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-lib/modules/ucsschool/lib/models/ \
 	-a ucs-school-lib/modules/ucsschool/lib/tests/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-lib/modules/ucsschool/lib/tests/ \
 	-a ucs-test-ucsschool-kelvin/94_ucsschool-kelvin/*.py:$TARGET:/usr/share/ucs-test/94_ucsschool-kelvin/ \
+	-a kelvin-connector/src/kelvin_connector/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/kelvin-connector/src/kelvin_connector/ \
+	-a ucsschool-objects/src/ucsschool_objects/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/ \
+	-a ucsschool-objects/src/ucsschool_objects/core/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/ \
+	-a ucsschool-objects/src/ucsschool_objects/core/adapters/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/adapters/ \
+	-a ucsschool-objects/src/ucsschool_objects/core/adapters/sqlalchemy/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/adapters/sqlalchemy/ \
+	-a ucsschool-objects/src/ucsschool_objects/core/adapters/sqlalchemy/managers/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/adapters/sqlalchemy/managers/ \
+	-a ucsschool-objects/src/ucsschool_objects/core/adapters/sqlalchemy/mappers/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/adapters/sqlalchemy/mappers/ \
+	-a ucsschool-objects/src/ucsschool_objects/core/domain/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/domain/ \
+	-a ucsschool-objects/src/ucsschool_objects/core/domain/ports/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/domain/ports/ \
 	-i
