@@ -28,6 +28,7 @@ from kelvin_connector.models import (
 from kelvin_connector.sync import DEFAULT_NUBUS_SOURCE_UID, SynchronizationException
 from pydantic import UUID4
 from ucsschool_objects import ObjectType
+from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.models import UNLOADED, SchoolMembership
 
 _TS = "2024-01-01T00:00:00"
@@ -483,6 +484,7 @@ async def test_handle_user_create_happy_path(manager, mock_storage, mock_mapper)
     uid = uuid.uuid4()
     school = make_school("testschool")
     mock_storage.schools.search.return_value = [school]
+    mock_storage.users.get.side_effect = NotFound("user", str(uid))
     event = _user_create_event(uid, extra_props={"ucsschoolLegalWard": ["uid=ward,dc=test"]})
 
     await manager.handle_user_create(event)
@@ -531,6 +533,7 @@ async def test_handle_user_create_generates_record_uid_and_source_uid(
         ),
     )
 
+    mock_storage.users.get.side_effect = NotFound("user", str(uid))
     await manager.handle_user_create(event)
 
     created = mock_storage.users.create.call_args[0][0]
@@ -698,6 +701,7 @@ async def test_handle_group_create_happy_path(manager, mock_storage, mock_mapper
     uid = uuid.uuid4()
     school = make_school("testschool")
     mock_storage.schools.search.return_value = [school]
+    mock_storage.groups.get.side_effect = NotFound("group", str(uid))
     event = _group_create_event(uid)
 
     await manager.handle_group_create(event)
@@ -848,6 +852,7 @@ def test_apply_group_changes_updates_name_and_email(manager):
 
 async def test_handle_school_create_happy_path(manager, mock_storage, mock_mapper):
     uid = uuid.uuid4()
+    mock_storage.schools.get.side_effect = NotFound("school", str(uid))
     event = _school_create_event(uid)
 
     await manager.handle_school_create(event)
@@ -934,6 +939,7 @@ async def test_handle_group_create_preserves_member_roles(manager, mock_storage,
     role = make_role("testschool")
     mock_storage.schools.search.return_value = [school]
     mock_storage.roles.search.return_value = [role]
+    mock_storage.groups.get.side_effect = NotFound("group", str(uid))
     event = _group_create_event(
         uid,
         extra_props={"guardianMemberRoles": ["teacher:school:testschool"]},
@@ -1033,3 +1039,119 @@ async def test_handle_host_group_change_unset_public_id_raises(manager, mock_sto
     event = _host_group_create_event(uid)
     with pytest.raises(ValueError, match="Unexpected UnsetType"):
         await manager.handle_host_group_create(event)
+
+
+# ── Already-exists-on-create paths ───────────────────────────────────────────
+
+
+async def test_handle_user_create_updates_when_already_exists(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    school = make_school("testschool")
+    current_user = make_user(uid=uid, school_memberships=UNLOADED)
+    current_user.firstname = "OldFirst"
+    mock_storage.schools.search.return_value = [school]
+    mock_storage.users.get.return_value = current_user
+
+    event = _user_create_event(uid)  # firstname="Test" differs from "OldFirst"
+    await manager.handle_user_create(event)
+
+    mock_storage.users.create.assert_not_called()
+    mock_storage.users.modify.assert_called_once()
+
+
+async def test_handle_group_create_updates_when_already_exists(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    school = make_school("testschool")
+    current_group = make_group("old-name", school, uid=uid)
+    mock_storage.schools.search.return_value = [school]
+    mock_storage.groups.get.return_value = current_group
+
+    event = _group_create_event(uid)  # name="testschool-group" differs from "old-name"
+    await manager.handle_group_create(event)
+
+    mock_storage.groups.create.assert_not_called()
+    mock_storage.groups.modify.assert_called_once()
+
+
+async def test_handle_school_create_updates_when_already_exists(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    current_school = make_school("oldschool", uid=uid)
+    mock_storage.schools.get.return_value = current_school
+
+    event = _school_create_event(uid)  # name="testschool" differs from "oldschool"
+    await manager.handle_school_create(event)
+
+    mock_storage.schools.create.assert_not_called()
+    mock_storage.schools.modify.assert_called_once()
+
+
+async def test_handle_user_create_already_exists_no_changes(manager, mock_storage, mock_mapper):
+    uid = UUID4(str(uuid.uuid4()))
+    school = make_school("testschool")
+    # Pre-build the exact SchoolMembership _build_school_memberships would produce
+    # (roles.search returns [] by default, so roles=set())
+    membership = SchoolMembership(school=school, groups=set(), is_primary=True, roles=set())
+    current_user = make_user(uid=uid)
+    current_user.email = "testuser@example.com"
+    current_user.school_memberships = {school.public_id: membership}
+    mock_storage.schools.search.return_value = [school]
+    mock_storage.users.get.return_value = current_user
+
+    event = _user_create_event(uid)  # identical data to current_user
+    await manager.handle_user_create(event)
+
+    mock_storage.users.create.assert_not_called()
+    mock_storage.users.modify.assert_not_called()
+
+
+async def test_handle_group_create_already_exists_no_changes(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    school = make_school("testschool")
+    current_group = make_group("testschool-group", school, uid=uid)
+    mock_storage.schools.search.return_value = [school]
+    mock_storage.groups.get.return_value = current_group
+
+    event = _group_create_event(uid)  # same name and defaults as current_group
+    await manager.handle_group_create(event)
+
+    mock_storage.groups.create.assert_not_called()
+    mock_storage.groups.modify.assert_not_called()
+
+
+async def test_handle_school_create_already_exists_no_changes(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    current_school = make_school("testschool", uid=uid)
+    mock_storage.schools.get.return_value = current_school
+
+    event = _school_create_event(uid)  # name="testschool", displayName="testschool Display"
+    await manager.handle_school_create(event)
+
+    mock_storage.schools.create.assert_not_called()
+    mock_storage.schools.modify.assert_not_called()
+
+
+# ── Delete-not-found paths ────────────────────────────────────────────────────
+
+
+async def test_handle_user_delete_ignores_not_found(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    mock_storage.users.delete.side_effect = NotFound("user", str(uid))
+    event = _user_delete_event(uid)
+    await manager.handle_user_delete(event)
+    mock_storage.users.delete.assert_called_once_with(uid)
+
+
+async def test_handle_group_delete_ignores_not_found(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    mock_storage.groups.delete.side_effect = NotFound("group", str(uid))
+    event = _group_delete_event(uid)
+    await manager.handle_group_delete(event)
+    mock_storage.groups.delete.assert_called_once_with(uid)
+
+
+async def test_handle_school_delete_ignores_not_found(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    mock_storage.schools.delete.side_effect = NotFound("school", str(uid))
+    event = _school_delete_event(uid)
+    await manager.handle_school_delete(event)
+    mock_storage.schools.delete.assert_called_once_with(uid)

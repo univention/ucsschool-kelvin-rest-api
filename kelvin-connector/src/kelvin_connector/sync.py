@@ -73,7 +73,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         dn_to_id = await mapper.dns_to_public_ids(object_type, dns)
         for dn in dns:
             if dn not in dn_to_id:
-                logger.info("{} DN {!r} not yet in mapper, skipping", log_label, dn)
+                logger.debug("{} DN {!r} not yet in mapper, skipping", log_label, dn)
         return [str(uid) for uid in dn_to_id.values()]
 
     async def _fetch_users_by_dns(
@@ -286,10 +286,27 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 )
             if tracker.patch:
                 await storage.users.modify(public_id, tracker.patch)
+                logger.info(
+                    "User {!r} modified from create event (public_id={})", user_props.username, public_id
+                )
+            else:
+                logger.debug(
+                    "No changes for user {!r} from create event (public_id={})",
+                    user_props.username,
+                    public_id,
+                )
 
     async def _handle_user_delete(self, event: UserDeleteEvent, storage: KelvinStorageSession) -> None:
         public_id = event.old.properties.univentionObjectIdentifier
-        await storage.users.delete(public_id)
+        try:
+            await storage.users.delete(public_id)
+        except NotFound:
+            logger.info(
+                "User {!r} not found on delete event, ignoring (public_id={})",
+                event.old.properties.username,
+                public_id,
+            )
+            return
         logger.info("User {!r} deleted (public_id={})", event.old.properties.username, public_id)
 
     async def _handle_user_modify(
@@ -345,6 +362,13 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             )
         if tracker.patch:
             await storage.users.modify(public_id, tracker.patch)
+            logger.info("User {!r} modified (public_id={})", user_props.username, public_id)
+        else:
+            logger.debug(
+                "No changes for user {!r} (public_id={}), skipping modify",
+                user_props.username,
+                public_id,
+            )
 
     def _apply_user_changes(
         self,
@@ -489,10 +513,27 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 )
             if tracker.patch:
                 await storage.groups.modify(public_id, tracker.patch)
+                logger.info(
+                    "Group {!r} modified from create event (public_id={})", group_props.name, public_id
+                )
+            else:
+                logger.debug(
+                    "No changes for group {!r} from create event (public_id={})",
+                    group_props.name,
+                    public_id,
+                )
 
     async def _handle_group_delete(self, event: GroupDeleteEvent, storage: KelvinStorageSession) -> None:
         public_id = event.old.properties.univentionObjectIdentifier
-        await storage.groups.delete(public_id)
+        try:
+            await storage.groups.delete(public_id)
+        except NotFound:
+            logger.info(
+                "Group {!r} not found on delete event, ignoring (public_id={})",
+                event.old.properties.name,
+                public_id,
+            )
+            return
         logger.info("Group {!r} deleted (public_id={})", event.old.properties.name, public_id)
 
     async def _handle_group_modify(
@@ -562,6 +603,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             )
         if tracker.patch:
             await storage.groups.modify(public_id, tracker.patch)
+            logger.info("Group {!r} modified (public_id={})", group_props.name, public_id)
+        else:
+            logger.debug(
+                "No changes for group {!r} (public_id={}), skipping modify", group_props.name, public_id
+            )
 
     def _apply_group_changes(
         self,
@@ -638,12 +684,29 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 current_school.display_name = school_props.displayName
             if tracker.patch:
                 await storage.schools.modify(public_id, tracker.patch)
+                logger.info(
+                    "School {!r} modified from create event (public_id={})", school_props.name, public_id
+                )
+            else:
+                logger.debug(
+                    "No changes for school {!r} from create event (public_id={})",
+                    school_props.name,
+                    public_id,
+                )
 
     async def _handle_school_delete(
         self, event: SchoolDeleteEvent, storage: KelvinStorageSession
     ) -> None:
         public_id = event.old.properties.univentionObjectIdentifier
-        await storage.schools.delete(public_id)
+        try:
+            await storage.schools.delete(public_id)
+        except NotFound:
+            logger.info(
+                "School {!r} not found on delete event, ignoring (public_id={})",
+                event.old.properties.name,
+                public_id,
+            )
+            return
         logger.info("School {!r} deleted (public_id={})", event.old.properties.name, public_id)
 
     async def _handle_school_modify(
@@ -658,6 +721,13 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             current_school.display_name = school_props.displayName
         if tracker.patch:
             await storage.schools.modify(public_id, tracker.patch)
+            logger.info("School {!r} modified (public_id={})", school_props.name, public_id)
+        else:
+            logger.debug(
+                "No changes for school {!r} (public_id={}), skipping modify",
+                school_props.name,
+                public_id,
+            )
 
     async def handle_host_group_create(self, event: HostGroupCreateEvent) -> None:
         async with self.storage_factory.transaction_scope() as storage:
@@ -707,6 +777,19 @@ class SynchronizationManager(SynchronizationManagerProtocol):
 
         if tracker.patch:
             await storage.schools.modify(school.public_id, tracker.patch)
+            logger.info(
+                "Updated {} servers for school {!r} (public_id={})",
+                "educational" if group_type == "Edukativnetz" else "administrative",
+                school_name,
+                school.public_id,
+            )
+        else:
+            logger.debug(
+                "No changes for {} servers of school {!r} (public_id={}), skipping modify",
+                "educational" if group_type == "Edukativnetz" else "administrative",
+                school_name,
+                school.public_id,
+            )
 
     async def handle_host_group_delete(self, event: HostGroupDeleteEvent) -> None:
         logger.debug("Ignoring host group delete event.")
