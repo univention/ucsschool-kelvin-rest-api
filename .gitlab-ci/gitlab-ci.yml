@@ -251,6 +251,34 @@ integration-tests:
     reports:
       junit: results/**/test-reports/**/*.xml
 
+performance-tests:
+  extends: .run_openstack_cfg
+  stage: tests
+  timeout: 240 minutes
+  needs:
+    - create_app_version
+    - update_appcenter
+  when: manual
+  allow_failure: true
+  variables:
+    TARGET_VERSION: "5.2-4"
+    OPENSTACK_CFG_FILE: ".gitlab-ci/branch_performance_tests.cfg"
+    TERMINATE_INSTANCE: "false"
+  script:
+    - mkdir results
+    - export APPVERSION_TO_INSTALL="$APP_VERSION"
+    - !reference [.run_openstack_cfg, script]
+    - .gitlab-ci/locust_to_prometheus.py
+    - mkdir -p locust-reports && find results/ -path "*/locust/*.html" -exec cp {} locust-reports/ \; || true
+    - .gitlab-ci/parse_junit.py
+  artifacts:
+    reports:
+      junit: results/**/test-reports/**/*.xml
+      metrics: metrics.txt
+    paths:
+      - locust-reports/
+    expose_as: "Locust performance reports"
+
 
 test ucs-school-lib:
   stage: tests
