@@ -98,18 +98,35 @@ dev = [
     "pyfakefs~=4.7.0",
     "tenacity>=9.1.2",
     "eralchemy[graphviz]>=1.6.0",
-    "mypy>=1.20.1",
 ]
 
 [tool.pytest.ini_options]
 addopts = "--verbose --showlocals -p no:warnings --asyncio-mode=auto"
 
-[tool.mypy]
-mypy_path = ["ucsschool-objects/src"]
-
-[[tool.mypy.overrides]]
-module = ["pytest_asyncio"]
-ignore_missing_imports = true
+[tool.basedpyright]
+include = [
+    ".",
+    "appcenter/tests/mocks/ucr",
+    "fix_nt_acl_on_shares",
+    "ucs-school-lib/modify_ucr_list",
+]
+exclude = [
+    # mirrors prek global exclude in .pre-commit-config.yaml
+    "**/.venv*",
+    "**/venv*",
+    "univention-lib-slim",
+    "univention-directory-manager-modules-slim",
+    "ucs-school-import/usr/share/ucs-school-import/scripts",
+    "kelvin-api/static",
+    # mirrors .gitignore
+    "**/__pycache__",
+    "**/.eggs",
+    "**/*.egg-info",
+    "**/build",
+    "**/dist",
+    # gitlab
+    ".cache",
+]
 
 [tool.alembic]
 script_location = "%(here)s/alembic"

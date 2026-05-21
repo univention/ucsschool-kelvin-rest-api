@@ -1,4 +1,4 @@
-exclude: ^venv/|^ucs-school-import/usr/share/ucs-school-import/scripts/ucs-school-import|^univention-lib-slim/|^univention-directory-manager-modules-slim/|^kelvin-api/static/
+exclude: ^venv/|^.venv/|^ucs-school-import/usr/share/ucs-school-import/scripts/|^univention-lib-slim/|^univention-directory-manager-modules-slim/|^kelvin-api/static/
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
