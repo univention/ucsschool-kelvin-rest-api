@@ -4,6 +4,7 @@
 ## exposure: dangerous
 ## packages: []
 ## bugs: []
+## timeout: 7200
 ## external-junit: /tmp/kelvin_api_in_container_integration_tests.xml
 ## timeout: 7200
 
