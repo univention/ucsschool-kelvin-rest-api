@@ -275,6 +275,7 @@ performance-tests:
     - ls results/singleserver/test-reports/locust
     - .gitlab-ci/parse_junit.py
   artifacts:
+    when: always
     reports:
       junit: results/**/test-reports/**/*.xml
       metrics: metrics.txt
