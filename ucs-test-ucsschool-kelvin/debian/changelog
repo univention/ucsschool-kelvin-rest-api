@@ -1,3 +1,9 @@
+ucs-test-ucsschool-kelvin (1.0.26) unstable; urgency=medium
+
+  * Issue univention/dev/education/ucsschool-kelvin-rest-api#241: Version Bump
+
+ -- Johannes Königer <koeniger@univention.de>  Thu, 27 May 2026 10:50:11 +0200
+
 ucs-test-ucsschool-kelvin (1.0.25) unstable; urgency=medium
 
   * Issue univention/dev/education/ucsschool-kelvin-rest-api#186: Add
