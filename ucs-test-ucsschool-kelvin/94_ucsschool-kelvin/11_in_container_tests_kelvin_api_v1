@@ -5,6 +5,7 @@
 ## packages: []
 ## bugs: []
 ## external-junit: /tmp/kelvin_api_in_container_integration_tests.xml
+## timeout: 7200
 
 APP="ucsschool-kelvin-rest-api"
 
