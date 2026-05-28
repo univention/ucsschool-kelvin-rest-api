@@ -141,6 +141,7 @@ def create_reader_user():
     res = users.lookup(None, lo, "uid=%s" % name)
     if res:
         user = res[0]
+        user.open()
     else:
         user = users.object(None, lo, position)
         user.open()
@@ -153,7 +154,11 @@ def create_reader_user():
 
     yield user.dn
 
-    user.remove()
+    res = users.lookup(None, lo, "uid=%s" % name)
+    if res:
+        user = res[0]
+        user.open()
+        user.remove()
 
 
 def get_access_token(username="Administrator", password="univention"):  # type: (str, str) -> str # nosec
