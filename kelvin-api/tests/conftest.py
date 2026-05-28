@@ -35,14 +35,16 @@ import shutil
 import socket
 import subprocess
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
 from tempfile import mkdtemp, mkstemp
-from typing import Any, Callable, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 from unittest.mock import patch
 
 import factory
+import jwt
 import pytest
 import requests
 from faker import Faker
@@ -252,21 +254,38 @@ def url_fragment_https():
     return f"https://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/v1"
 
 
-def get_access_token(username: str = "Administrator", password: str = "univention") -> str:
-    response = requests.post(
-        url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/token",
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        data=dict(username=username, password=password),
-    )
-    assert response.status_code == 200, f"{response.__dict__!r}"
-    response_json = response.json()
-    return response_json["access_token"]
+@pytest.fixture
+def auth_header(get_access_token):
+    token = get_access_token()
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture(scope="session")
-def auth_header():
-    token = get_access_token()
-    return {"Authorization": f"Bearer {token}"}
+def get_access_token(username: str = "Administrator", password: str = "univention") -> Callable[[], str]:
+    """
+    Returns a valid token for the ucsschool-id-connector HTTP-API.
+    """
+    access_token = None
+
+    def _func() -> str:
+        nonlocal access_token
+        if (
+            access_token
+            and (jwt.decode(access_token, options={"verify_signature": False})["exp"] - time.time())
+            > 100
+        ):
+            return access_token
+        response = requests.post(
+            url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/token",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data=dict(username=username, password=password),
+        )
+        assert response.status_code == 200, f"{response.__dict__!r}"
+        response_json = response.json()
+        access_token = response_json["access_token"]
+        return access_token
+
+    return _func
 
 
 @pytest.fixture
@@ -632,7 +651,7 @@ async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kw
             logger.debug("Deleted WorkGroup %r through UDM.", dn)
 
 
-def restart_kelvin_api_server() -> None:
+def restart_kelvin_api_server(get_access_token) -> None:
     logger.debug("Reloading Kelvin API server...")
     # Send HUP signal to gunicorn master process to reload workers
     subprocess.check_call(["kill", "-HUP", "1"])

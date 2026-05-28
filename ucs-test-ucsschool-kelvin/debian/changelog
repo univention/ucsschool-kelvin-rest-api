@@ -1,3 +1,10 @@
+ucs-test-ucsschool-kelvin (1.0.28) unstable; urgency=medium
+
+  * Issue univention/dev/education/ucsschool-kelvin-rest-api#241: Refresh
+    token when token nearly expired
+
+ -- Johannes Königer <koeniger@univention.de>  Wed, 28 May 2026 11:30:11 +0200
+
 ucs-test-ucsschool-kelvin (1.0.27) unstable; urgency=medium
 
   * Issue univention/dev/education/ucsschool-kelvin-rest-api#241: Increase
