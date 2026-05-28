@@ -183,7 +183,7 @@ def udm_kwargs() -> Dict[str, Any]:
 
 
 @contextmanager
-def set_ucr_base():
+def set_ucr_base(get_access_token):
     ucr_v_to_reset = []
 
     def _set_ucr(ucr_v, value):
@@ -192,7 +192,7 @@ def set_ucr_base():
         ucr_v_to_reset.append((ucr_v, old_value))
         ucr().update({ucr_v: value})
         ucr().save()
-        restart_kelvin_api_server()
+        restart_kelvin_api_server(get_access_token)
 
     yield _set_ucr
 
@@ -200,32 +200,32 @@ def set_ucr_base():
     for ucr_v, value in ucr_v_to_reset:
         ucr().update({ucr_v: value})
     ucr().save()
-    restart_kelvin_api_server()
+    restart_kelvin_api_server(get_access_token)
 
 
 @pytest.fixture
-def set_ucr():
-    with set_ucr_base() as _set_ucr:
+def set_ucr(get_access_token):
+    with set_ucr_base(get_access_token) as _set_ucr:
         yield _set_ucr
 
 
 @pytest.fixture(scope="module")
-def set_ucr_module():
-    with set_ucr_base() as _set_ucr:
+def set_ucr_module(get_access_token):
+    with set_ucr_base(get_access_token) as _set_ucr:
         yield _set_ucr
 
 
 @pytest.fixture
-def set_processes_to_one():
+def set_processes_to_one(get_access_token):
     """Set the number of worker processes to 1"""
     old_process_number = ucr().get("ucsschool/kelvin/processes")
     ucr().update({"ucsschool/kelvin/processes": "1"})
     ucr().save()
-    restart_kelvin_api_server()
+    restart_kelvin_api_server(get_access_token)
     yield
     ucr().update({"ucsschool/kelvin/processes": old_process_number})
     ucr().save()
-    restart_kelvin_api_server()
+    restart_kelvin_api_server(get_access_token)
 
 
 @pytest.fixture(scope="session")
@@ -668,13 +668,19 @@ def restart_kelvin_api_server(get_access_token) -> None:
 
 
 @pytest.fixture(scope="module")
-def restart_kelvin_api_server_module():
-    return restart_kelvin_api_server
+def restart_kelvin_api_server_module(get_access_token):
+    def _restart():
+        restart_kelvin_api_server(get_access_token)
+
+    return _restart
 
 
 @pytest.fixture(scope="session")
-def restart_kelvin_api_server_session():
-    return restart_kelvin_api_server
+def restart_kelvin_api_server_session(get_access_token):
+    def _restart():
+        restart_kelvin_api_server(get_access_token)
+
+    return _restart
 
 
 @pytest.fixture
