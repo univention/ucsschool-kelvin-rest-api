@@ -1,3 +1,10 @@
+ucs-test-ucsschool-kelvin (1.0.29) unstable; urgency=medium
+
+  * Issue univention/dev/education/ucsschool-kelvin-rest-api#241: Fix
+    get_access_token fixture usage
+
+ -- Johannes Königer <koeniger@univention.de>  Wed, 28 May 2026 14:00:11 +0200
+
 ucs-test-ucsschool-kelvin (1.0.28) unstable; urgency=medium
 
   * Issue univention/dev/education/ucsschool-kelvin-rest-api#241: Refresh
