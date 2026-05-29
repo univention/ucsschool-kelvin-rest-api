@@ -4,6 +4,92 @@ This repository contains the code for the UCS@school Kelvin REST API application
 The application provides HTTP endpoints to create and manage UCS@school domain objects like school users, school classes, schools (OUs) and computer rooms.
 See the [public documentation](https://docs.software-univention.de/ucsschool-kelvin-rest-api/) for its usage and configuration.
 
+## Versions
+
+### v2
+
+Version `2` of the Kelvin REST API keeps the endpoints and data representation of `v1`,
+but adds a read-cache and removes support for read-hooks.
+
+Kelvin `v2` keeps the write-path of `v1` — using the UCS@school (import) library to call the UDM REST API.
+Before returning the UDM→Kelvin transformed response to the HTTP client,
+it stores the data in an SQL database.
+Read-requests are served from this SQL database,
+massively improving read performance.
+
+Because the read-path doesn't use the UCS@school and UCS@school import libraries,
+their read-hooks aren't executed.
+Although the data representation is compatible with `v1`,
+this is a breaking behavioral change.
+
+The SQL database stores UCS@school objects in the representation planned for future (`v3+`) releases.
+For backwards-compatibility,
+`v2` transforms that representation to `v1`'s format before returning it.
+Kelvin `v2` uses the `ucsschool-objects` library to handle querying and manipulating UCS@school objects.
+See [ucsschool-objects/README.md](ucsschool-objects/README.md) for details.
+
+Data in OpenLDAP is not only written by the UDM REST API on Kelvin's behalf.
+Other UDM REST API clients also change LDAP data without Kelvin's knowledge.
+To keep the read cache in the SQL database _eventually consistent_ with data in LDAP,
+Kelvin has a companion service that is triggered by LDAP modifications.
+Changes to LDAP create events in the
+[Provisioning event system](https://docs.software-univention.de/manual/5.2/en/domain-ldap/nubus-provisioning-service.html#nubus-provisioning-service).
+A "Provisioning Consumer",
+running as a sidecar to the Kelvin REST API container,
+reads the event queue and updates data in the SQL database using the `ucsschool-objects` library.
+
+```text
+                                   HTTP clients
+                                        │
+                                        ▼
+                                  Kelvin REST API                          (kelvin-api/)
+                                 /          \    \
+                              write       cache   read
+                               /           write    \
+                              /         responses    \
+                             /                  \     \
+                            ▼                    ▼     ▼
+        UCS@school library & import             ucsschool-objects          (ucsschool-objects/)
+  (ucs-school-lib/,│       │                        ▲     │
+   ucs-school-import/)     │                        │     │
+                   │       │                        │     │
+                   ▼       │                        │     │
+  (Nubus)    UDM REST API  │                        │     │
+                   │       │                        │     │
+                   │       │ (sometimes             │     │
+                   │      /   direct LDAP)          │     │
+                   ▼     ▼                          │     ▼
+  (Nubus)         OpenLDAP                          │  SQL database        (PostgreSQL)
+                     │                              │
+                     ▼                              │
+        Provisioning event system  ────────►  Provisioning Consumer        (Nubus Provisioning)
+        (LDAP change events)                   (kelvin-api sidecar)
+```
+
+### v1
+
+Version `1` of the Kelvin REST API is a frontend for the UCS@school and UCS@school import libraries.
+Those read and write data from/to the UDM REST API, which handles persistence with OpenLDAP.
+Sometimes they connect to OpenLDAP directly to improve performance or because UDM doesn't expose a required attribute.
+
+```text
+      HTTP clients
+           │
+           ▼
+      Kelvin REST API          (kelvin-api/)
+           │
+           ▼
+UCS@school library & import    (ucs-school-import/, ucs-school-lib/)
+           │        │
+           ▼        │
+      UDM REST API  │          (Nubus)
+           │       /
+           │      /   (sometimes direct LDAP for performance
+           │     /     or missing UDM attributes)
+           ▼    ▼
+          OpenLDAP             (Nubus)
+```
+
 ## App release
 
 ### Checklist
