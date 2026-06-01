@@ -1,6 +1,7 @@
 import uuid
+from collections.abc import Iterable
 from enum import StrEnum
-from typing import Iterable, Protocol
+from typing import Protocol
 
 
 class ObjectType(StrEnum):
