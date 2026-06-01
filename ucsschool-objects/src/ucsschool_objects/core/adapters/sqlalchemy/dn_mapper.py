@@ -7,7 +7,7 @@ from ucsschool_objects.core.domain.ports.dn_mapper import DNIDMapper, ObjectType
 from ucsschool_objects.database_models import GroupDNMapping, SchoolDNMapping, UserDNMapping
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ucsschool_objects.core.domain.ports import KelvinStorageSession
+    from ucsschool_objects.core.domain.ports.unit_of_work import KelvinStorageSession
 
 
 _DNMappingModel = type[SchoolDNMapping] | type[GroupDNMapping] | type[UserDNMapping]

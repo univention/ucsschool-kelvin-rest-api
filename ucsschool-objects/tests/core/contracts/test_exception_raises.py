@@ -4,13 +4,7 @@ import uuid
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
-from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemyGroupManager,
-    SQLAlchemyRoleManager,
-    SQLAlchemySchoolManager,
-    SQLAlchemyUserManager,
-)
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
     And,
     EmptyAndClause,
     EmptyOrClause,
@@ -25,6 +19,12 @@ from ucsschool_objects.core.domain import (
     SortSpec,
     UnsupportedFilterField,
     UnsupportedSortField,
+)
+from ucsschool_objects.core.adapters.sqlalchemy import (
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
 )
 
 if TYPE_CHECKING:

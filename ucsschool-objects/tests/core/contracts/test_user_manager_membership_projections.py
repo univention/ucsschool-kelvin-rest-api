@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from ucsschool_objects import Filter, LoadSpec, Operator, SearchQuery
 from ucsschool_objects.core.adapters.sqlalchemy import SQLAlchemyUserManager
-from ucsschool_objects.core.domain import Filter, LoadSpec, Operator, SearchQuery
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

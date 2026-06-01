@@ -12,7 +12,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.pool import StaticPool
-from ucsschool_objects import ObjectType, SQLAlchemyDNIDMapper, sqlalchemy_mapper_factory
+from ucsschool_objects import ObjectType
+from ucsschool_objects.core.adapters.sqlalchemy.dn_mapper import (
+    SQLAlchemyDNIDMapper,
+    sqlalchemy_mapper_factory,
+)
 from ucsschool_objects.database_models import Base, Group, School, User
 
 

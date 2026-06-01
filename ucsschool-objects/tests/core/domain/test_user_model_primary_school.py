@@ -5,7 +5,7 @@ from uuid import UUID
 
 import pytest
 from tests.core.domain.helpers.model_builders import school as build_school, user as build_user
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
     UNLOADED,
     SchoolMembership,
 )

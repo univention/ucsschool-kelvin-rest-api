@@ -6,19 +6,19 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 from sqlalchemy import select
-from ucsschool_objects.core.adapters.sqlalchemy.managers import JoinSpec, JoinType
+from ucsschool_objects import (
+    And,
+    Filter,
+    Operator,
+    SortSpec,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import JoinSpec, JoinType
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
     _get_filter_column,
     _get_required_joins,
     apply_nested_joins,
 )
-from ucsschool_objects.core.domain import (
-    And,
-    Filter,
-    Operator,
-    SortSpec,
-    UnsupportedNestedField,
-)
+from ucsschool_objects.core.domain.errors import UnsupportedNestedField
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     Role as RoleModel,

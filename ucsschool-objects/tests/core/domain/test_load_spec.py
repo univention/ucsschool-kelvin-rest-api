@@ -1,4 +1,4 @@
-from ucsschool_objects.core.domain import LoadSpec
+from ucsschool_objects import LoadSpec
 
 
 def test_load_spec_includes() -> None:

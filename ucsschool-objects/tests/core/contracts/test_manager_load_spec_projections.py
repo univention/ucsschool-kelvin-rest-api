@@ -4,13 +4,7 @@ from datetime import date
 from typing import TYPE_CHECKING, Literal, TypeVar
 
 import pytest
-from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemyGroupManager,
-    SQLAlchemyRoleManager,
-    SQLAlchemySchoolManager,
-    SQLAlchemyUserManager,
-)
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
     Filter,
     Group,
     LoadSpec,
@@ -20,8 +14,14 @@ from ucsschool_objects.core.domain import (
     SearchQuery,
     UnloadedType,
     User,
-    domain_asdict,
 )
+from ucsschool_objects.core.adapters.sqlalchemy import (
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
+)
+from ucsschool_objects.core.domain.models import domain_asdict
 
 if TYPE_CHECKING:
     from uuid import UUID

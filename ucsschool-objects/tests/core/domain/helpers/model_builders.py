@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from uuid import UUID
 
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
     UNLOADED,
     Group,
     Role,

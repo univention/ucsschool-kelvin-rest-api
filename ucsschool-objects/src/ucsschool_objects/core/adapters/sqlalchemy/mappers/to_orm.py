@@ -6,30 +6,22 @@ from uuid import UUID
 
 from sqlalchemy import select
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _bulk_fetch_by_public_id,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _check_nullable_value_presence,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _fetch_one_by_public_id,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    bulk_fetch_by_public_id,
+    check_nullable_value_presence,
+    fetch_one_by_public_id,
     generate_public_id,
 )
-from ucsschool_objects.core.domain import (
+from ucsschool_objects.core.domain.errors import NotFound
+from ucsschool_objects.core.domain.models import (
     UNLOADED,
     UNSET,
     Group,
-    NotFound,
     Role,
     School,
+    SchoolMembership as DomainSchoolMembership,
     UnloadedType,
     User,
-)
-from ucsschool_objects.core.domain.models import _require_loaded  # pyright: ignore[reportPrivateUsage]
-from ucsschool_objects.core.domain.models import (
-    SchoolMembership as DomainSchoolMembership,
+    _require_loaded,
     is_loaded,
 )
 from ucsschool_objects.database_models import (
@@ -84,12 +76,12 @@ def to_school_model(data: School) -> SchoolModel:
                 field_name="administrative_servers",
             )
         ),
-        class_share_file_server=_check_nullable_value_presence(
+        class_share_file_server=check_nullable_value_presence(
             data.class_share_file_server,
             object_type="School",
             field_name="class_share_file_server",
         ),
-        home_share_file_server=_check_nullable_value_presence(
+        home_share_file_server=check_nullable_value_presence(
             data.home_share_file_server,
             object_type="School",
             field_name="home_share_file_server",
@@ -119,7 +111,7 @@ def to_group_model(data: Group) -> GroupModel:
         name=_require_loaded(data.name, object_type="Group", field_name="name"),
         display_name=_require_loaded(data.display_name, object_type="Group", field_name="display_name"),
         has_share=_require_loaded(data.create_share, object_type="Group", field_name="create_share"),
-        email=_check_nullable_value_presence(data.email, object_type="Group", field_name="email"),
+        email=check_nullable_value_presence(data.email, object_type="Group", field_name="email"),
     )
     if data.public_id == UNSET:
         group_model.public_id = generate_public_id()
@@ -136,11 +128,9 @@ def to_user_model(data: User) -> UserModel:
         firstname=_require_loaded(data.firstname, object_type="User", field_name="firstname"),
         lastname=_require_loaded(data.lastname, object_type="User", field_name="lastname"),
         active=_require_loaded(data.active, object_type="User", field_name="active"),
-        email=_check_nullable_value_presence(data.email, object_type="User", field_name="email"),
-        birthday=_check_nullable_value_presence(
-            data.birthday, object_type="User", field_name="birthday"
-        ),
-        expiration_date=_check_nullable_value_presence(
+        email=check_nullable_value_presence(data.email, object_type="User", field_name="email"),
+        birthday=check_nullable_value_presence(data.birthday, object_type="User", field_name="birthday"),
+        expiration_date=check_nullable_value_presence(
             data.expiration_date,
             object_type="User",
             field_name="expiration_date",
@@ -176,12 +166,12 @@ async def resolve_group_create_relations(
 ) -> GroupCreateRelations:
     group_roles = _require_loaded(data.roles, object_type="Group", field_name="roles")
     group_role_ids = [r.public_id for r in group_roles if isinstance(r.public_id, UUID)]
-    group_roles_by_id = await _bulk_fetch_by_public_id(session, RoleModel, group_role_ids, "Role")
+    group_roles_by_id = await bulk_fetch_by_public_id(session, RoleModel, group_role_ids, "Role")
 
     school = _require_loaded(data.school, object_type="Group", field_name="school")
     if not isinstance(school.public_id, UUID):
         raise ValueError("Group.school must have a public_id for create().")
-    school_model = await _fetch_one_by_public_id(session, SchoolModel, school.public_id, "School")
+    school_model = await fetch_one_by_public_id(session, SchoolModel, school.public_id, "School")
 
     members = _require_loaded(data.members, object_type="Group", field_name="members")
     member_user_public_ids = _extract_related_public_ids(
@@ -189,7 +179,7 @@ async def resolve_group_create_relations(
         owner_name="Group.members",
         related_type="User",
     )
-    member_users_by_id = await _bulk_fetch_by_public_id(
+    member_users_by_id = await bulk_fetch_by_public_id(
         session, UserModel, member_user_public_ids, "User"
     )
     membership_models = await _resolve_group_member_memberships(
@@ -200,7 +190,7 @@ async def resolve_group_create_relations(
 
     member_roles = _require_loaded(data.member_roles, object_type="Group", field_name="member_roles")
     role_ids = [role.public_id for role in member_roles if isinstance(role.public_id, UUID)]
-    roles_by_id = await _bulk_fetch_by_public_id(session, RoleModel, role_ids, "Role")
+    roles_by_id = await bulk_fetch_by_public_id(session, RoleModel, role_ids, "Role")
 
     allowed_email_senders_users = _require_loaded(
         data.allowed_email_senders_users,
@@ -212,7 +202,7 @@ async def resolve_group_create_relations(
         owner_name="Group.allowed_email_senders_users",
         related_type="User",
     )
-    users_by_id = await _bulk_fetch_by_public_id(session, UserModel, sender_user_public_ids, "User")
+    users_by_id = await bulk_fetch_by_public_id(session, UserModel, sender_user_public_ids, "User")
 
     allowed_email_senders_groups = _require_loaded(
         data.allowed_email_senders_groups,
@@ -224,7 +214,7 @@ async def resolve_group_create_relations(
         owner_name="Group.allowed_email_senders_groups",
         related_type="Group",
     )
-    groups_by_id = await _bulk_fetch_by_public_id(session, GroupModel, sender_group_public_ids, "Group")
+    groups_by_id = await bulk_fetch_by_public_id(session, GroupModel, sender_group_public_ids, "Group")
 
     return GroupCreateRelations(
         roles=list(group_roles_by_id.values()),
@@ -294,7 +284,7 @@ async def _resolve_related_users(
         return None
 
     public_ids = [user.public_id for user in users if isinstance(user.public_id, UUID)]
-    users_by_id = await _bulk_fetch_by_public_id(session, UserModel, public_ids, "User")
+    users_by_id = await bulk_fetch_by_public_id(session, UserModel, public_ids, "User")
     return list(users_by_id.values())
 
 
@@ -352,9 +342,9 @@ async def _build_memberships(
         all_role_ids.extend(role_ids)
         all_group_ids.extend(group_ids)
 
-    schools_by_id = await _bulk_fetch_by_public_id(session, SchoolModel, school_ids, "School")
-    roles_by_id = await _bulk_fetch_by_public_id(session, RoleModel, all_role_ids, "Role")
-    groups_by_id = await _bulk_fetch_by_public_id(session, GroupModel, all_group_ids, "Group")
+    schools_by_id = await bulk_fetch_by_public_id(session, SchoolModel, school_ids, "School")
+    roles_by_id = await bulk_fetch_by_public_id(session, RoleModel, all_role_ids, "Role")
+    groups_by_id = await bulk_fetch_by_public_id(session, GroupModel, all_group_ids, "Group")
 
     membership_models: list[SchoolMembershipModel] = []
     for membership, school_id, role_ids, group_ids in validated:

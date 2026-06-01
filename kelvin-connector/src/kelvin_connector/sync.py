@@ -23,25 +23,26 @@ from kelvin_connector.models import (
 from kelvin_connector.ports import DNIDMapperFactory, SynchronizationManagerProtocol
 from loguru import logger
 from typing_extensions import override
-from ucsschool_objects import DNIDMapper, ObjectType
-from ucsschool_objects.core.domain import LoadSpec, SearchQuery
-from ucsschool_objects.core.domain.errors import NotFound
-from ucsschool_objects.core.domain.models import (
+from ucsschool_objects import (
     UNLOADED,
+    DNIDMapper,
+    Filter,
     Group,
+    KelvinStorageSession,
+    KelvinStorageSessionFactory,
+    LoadSpec,
+    NotFound,
+    ObjectType,
+    Operator,
+    Or,
     Role,
     School,
     SchoolMembership,
+    SearchQuery,
     UnloadedType,
     UnsetType,
     User,
-)
-from ucsschool_objects.core.domain.patch import track_changes
-from ucsschool_objects.core.domain.ports import KelvinStorageSession, KelvinStorageSessionFactory
-from ucsschool_objects.core.domain.query import (
-    Filter,
-    Operator,
-    Or,
+    track_changes,
 )
 
 DEFAULT_NUBUS_SOURCE_UID = "nubus"

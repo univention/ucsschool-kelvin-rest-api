@@ -8,37 +8,19 @@ from sqlalchemy import Select, delete, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import selectinload
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _apply_patch,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _bulk_fetch_by_public_id,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _compose_field_map,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _extract_public_ids,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _get_exposed_fields,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _load_requested_scalar_attributes,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _role_scalar_columns,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _school_scalar_columns,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _sync_collection,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
     PublicIdInput,
+    apply_patch,
+    bulk_fetch_by_public_id,
+    compose_field_map,
+    extract_public_ids,
+    get_exposed_fields,
+    load_requested_scalar_attributes,
+    role_scalar_columns,
+    school_scalar_columns,
+    sync_collection,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_user, user_from_patch
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
@@ -46,17 +28,13 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
     to_user_model,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
-from ucsschool_objects.core.domain import (
-    LoadSpec,
-    NotFound,
-    SearchQuery,
-    SortSpec,
-    UnsupportedOperation,
-    User,
-    UserValidator,
-)
+from ucsschool_objects.core.domain.errors import NotFound, UnsupportedOperation
 from ucsschool_objects.core.domain.json import PatchDict, to_json
+from ucsschool_objects.core.domain.load_spec import LoadSpec
+from ucsschool_objects.core.domain.models import User
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
+from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
+from ucsschool_objects.core.domain.validators import UserValidator
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     Role as RoleModel,
@@ -70,9 +48,6 @@ if TYPE_CHECKING:
 
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm.attributes import InstrumentedAttribute
-
-
-__all__ = ["SQLAlchemyUserManager"]
 
 
 async def _apply_membership_relation_changes(
@@ -90,15 +65,15 @@ async def _apply_membership_relation_changes(
         if orm_membership is None:  # pragma: no cover
             continue
 
-        current_group_ids = _extract_public_ids(
+        current_group_ids = extract_public_ids(
             cast(list[PublicIdInput], current_membership.get("groups", []))
         )
-        patched_group_ids = _extract_public_ids(
+        patched_group_ids = extract_public_ids(
             cast(list[PublicIdInput], patched_membership.get("groups", []))
         )
         if current_group_ids != patched_group_ids:
             if patched_group_ids:
-                group_records = await _bulk_fetch_by_public_id(
+                group_records = await bulk_fetch_by_public_id(
                     session,
                     GroupModel,
                     list(patched_group_ids),
@@ -108,15 +83,15 @@ async def _apply_membership_relation_changes(
             else:
                 orm_membership.groups = []
 
-        current_role_ids = _extract_public_ids(
+        current_role_ids = extract_public_ids(
             cast(list[PublicIdInput], current_membership.get("roles", []))
         )
-        patched_role_ids = _extract_public_ids(
+        patched_role_ids = extract_public_ids(
             cast(list[PublicIdInput], patched_membership.get("roles", []))
         )
         if current_role_ids != patched_role_ids:
             if patched_role_ids:
-                role_records = await _bulk_fetch_by_public_id(
+                role_records = await bulk_fetch_by_public_id(
                     session,
                     RoleModel,
                     list(patched_role_ids),
@@ -182,19 +157,19 @@ def _with_user_related_load_options(
         stmt = stmt.options(
             membership_loader.selectinload(SchoolMembership.school).load_only(
                 SchoolModel.public_id,
-                *_school_scalar_columns(),
+                *school_scalar_columns(),
             )
         )
         stmt = stmt.options(
             membership_loader.selectinload(SchoolMembership.groups)
             .load_only(GroupModel.public_id, *_group_scalar_columns())
             .selectinload(GroupModel.roles)
-            .load_only(RoleModel.public_id, *_role_scalar_columns())
+            .load_only(RoleModel.public_id, *role_scalar_columns())
         )
         stmt = stmt.options(
             membership_loader.selectinload(SchoolMembership.roles).load_only(
                 RoleModel.public_id,
-                *_role_scalar_columns(),
+                *role_scalar_columns(),
             )
         )
     if load.includes("legal_wards"):
@@ -216,7 +191,7 @@ def _with_user_load_options(
     load: LoadSpec,
     attribute_map: dict[str, FieldColumn],
 ) -> Select[tuple[UserModel]]:
-    stmt = _load_requested_scalar_attributes(
+    stmt = load_requested_scalar_attributes(
         stmt,
         UserModel.public_id,
         load,
@@ -257,21 +232,21 @@ class SQLAlchemyUserManager(Manager[User]):
             target_model=GroupModel,
             join_path=(SchoolMembership, GroupModel),
             join_type=JoinType.LEFT_OUTER,
-            exposed_fields=_get_exposed_fields(GroupModel),
+            exposed_fields=get_exposed_fields(GroupModel),
         ),
         "roles": JoinSpec(
             relation_name="roles",
             target_model=RoleModel,
             join_path=(SchoolMembership, RoleModel),
             join_type=JoinType.LEFT_OUTER,
-            exposed_fields=_get_exposed_fields(RoleModel),
+            exposed_fields=get_exposed_fields(RoleModel),
         ),
         "schools": JoinSpec(
             relation_name="schools",
             target_model=SchoolModel,
             join_path=(SchoolMembership, SchoolModel),
             join_type=JoinType.LEFT_OUTER,
-            exposed_fields=_get_exposed_fields(SchoolModel),
+            exposed_fields=get_exposed_fields(SchoolModel),
         ),
     }
     _BASE_FIELD_MAP: dict[str, FieldColumn] = {
@@ -281,7 +256,7 @@ class SQLAlchemyUserManager(Manager[User]):
     _LOAD_ATTRIBUTE_MAP: dict[str, FieldColumn] = {
         **_SCALAR_FIELD_MAP,
     }
-    _FIELD_MAP: dict[str, FieldColumn] = _compose_field_map(
+    _FIELD_MAP: dict[str, FieldColumn] = compose_field_map(
         _BASE_FIELD_MAP,
         _NESTED_FIELD_REGISTRY,
     )
@@ -404,7 +379,7 @@ class SQLAlchemyUserManager(Manager[User]):
             include_legal_wards=m_wards,
             include_legal_guardians=m_guardians,
         )
-        patched = _apply_patch(operations=operations, current_domain_obj=current_domain)
+        patched = apply_patch(operations=operations, current_domain_obj=current_domain)
         UserValidator.validate(user_from_patch(patched, result.public_id))
 
         _apply_user_patch(result, patched)
@@ -419,7 +394,7 @@ class SQLAlchemyUserManager(Manager[User]):
             )
         if m_guardians:
             current_dict = to_json(current_domain)
-            await _sync_collection(
+            await sync_collection(
                 self._session,
                 cast(list[PublicIdInput], patched.get("legal_guardians", [])),
                 cast(list[PublicIdInput], current_dict.get("legal_guardians", [])),
@@ -428,7 +403,7 @@ class SQLAlchemyUserManager(Manager[User]):
             )
         if m_wards:
             current_dict = to_json(current_domain)
-            await _sync_collection(
+            await sync_collection(
                 self._session,
                 cast(list[PublicIdInput], patched.get("legal_wards", [])),
                 cast(list[PublicIdInput], current_dict.get("legal_wards", [])),

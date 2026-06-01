@@ -41,6 +41,8 @@ from ucsschool_objects import (
     Operator,
     SearchQuery,
     User,
+)
+from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
 )
 

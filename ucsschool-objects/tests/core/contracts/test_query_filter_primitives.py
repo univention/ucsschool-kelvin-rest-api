@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import cast
 
 from sqlalchemy import Integer, func
+from ucsschool_objects import Filter, Operator
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import FieldColumn, build_expression
-from ucsschool_objects.core.domain import Filter, Operator
 from ucsschool_objects.database_models import User as UserModel
 
 

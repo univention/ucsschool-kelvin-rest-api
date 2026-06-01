@@ -36,6 +36,8 @@ from ucsschool_objects import (
     Operator,
     School,
     SearchQuery,
+)
+from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
 )
 from ucsschool_objects.core.domain.ports.dn_mapper import ObjectType

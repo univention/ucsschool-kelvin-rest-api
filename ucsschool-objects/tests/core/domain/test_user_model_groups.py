@@ -9,7 +9,7 @@ from tests.core.domain.helpers.model_builders import (
     school_class as build_school_class,
     user as build_user,
 )
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
     UNLOADED,
     SchoolMembership,
 )
