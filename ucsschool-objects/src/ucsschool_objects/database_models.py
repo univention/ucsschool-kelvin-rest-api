@@ -31,6 +31,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 if TYPE_CHECKING:  # pragma: no cover
     from sqlalchemy.engine import Connection
     from sqlalchemy.orm import Mapper
+    from sqlalchemy.sql.schema import Constraint
 
 
 class Base(DeclarativeBase):
@@ -43,8 +44,10 @@ class Base(DeclarativeBase):
 
 
 class School(Base):
-    __tablename__ = "school"
-    __table_args__ = (UniqueConstraint("record_uid", "source_uid", name="uq_school_record_source_uid"),)
+    __tablename__: str = "school"
+    __table_args__: tuple[Constraint] = (
+        UniqueConstraint("record_uid", "source_uid", name="uq_school_record_source_uid"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     public_id: Mapped[uuid.UUID] = mapped_column(
@@ -88,8 +91,10 @@ class School(Base):
 
 
 class Group(Base):
-    __tablename__ = "group"
-    __table_args__ = (UniqueConstraint("record_uid", "source_uid", name="uq_group_record_source_uid"),)
+    __tablename__: str = "group"
+    __table_args__: tuple[Constraint] = (
+        UniqueConstraint("record_uid", "source_uid", name="uq_group_record_source_uid"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     public_id: Mapped[uuid.UUID] = mapped_column(
@@ -155,8 +160,10 @@ class Group(Base):
 
 
 class User(Base):
-    __tablename__ = "user"
-    __table_args__ = (UniqueConstraint("record_uid", "source_uid", name="uq_user_record_source_uid"),)
+    __tablename__: str = "user"
+    __table_args__: tuple[Constraint] = (
+        UniqueConstraint("record_uid", "source_uid", name="uq_user_record_source_uid"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     public_id: Mapped[uuid.UUID] = mapped_column(
@@ -226,7 +233,7 @@ class User(Base):
 
 
 class Role(Base):
-    __tablename__ = "role"
+    __tablename__: str = "role"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     public_id: Mapped[uuid.UUID] = mapped_column(
@@ -242,8 +249,8 @@ class Role(Base):
 
 
 class SchoolMembership(Base):
-    __tablename__ = "school_membership"
-    __table_args__ = (UniqueConstraint("user_id", "school_id"),)
+    __tablename__: str = "school_membership"
+    __table_args__: tuple[Constraint] = (UniqueConstraint("user_id", "school_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -290,7 +297,7 @@ def sync_primary_user_constraint(
 
 
 class GroupMemberAssociation(Base):
-    __tablename__ = "group_member_association"
+    __tablename__: str = "group_member_association"
 
     group_id: Mapped[int] = mapped_column(
         ForeignKey("group.id", ondelete="CASCADE"), nullable=False, primary_key=True
@@ -301,7 +308,7 @@ class GroupMemberAssociation(Base):
 
 
 class GroupMemberRoleAssociation(Base):
-    __tablename__ = "group_member_role_association"
+    __tablename__: str = "group_member_role_association"
 
     group_id: Mapped[int] = mapped_column(
         ForeignKey("group.id", ondelete="CASCADE"), nullable=False, primary_key=True
@@ -312,7 +319,7 @@ class GroupMemberRoleAssociation(Base):
 
 
 class GroupRoleAssociation(Base):
-    __tablename__ = "group_role_association"
+    __tablename__: str = "group_role_association"
 
     group_id: Mapped[int] = mapped_column(
         ForeignKey("group.id", ondelete="CASCADE"), nullable=False, primary_key=True
@@ -323,7 +330,7 @@ class GroupRoleAssociation(Base):
 
 
 class SchoolMembershipRoleAssociation(Base):
-    __tablename__ = "school_membership_role_association"
+    __tablename__: str = "school_membership_role_association"
 
     school_membership_id: Mapped[int] = mapped_column(
         ForeignKey("school_membership.id", ondelete="CASCADE"), nullable=False, primary_key=True
@@ -334,7 +341,7 @@ class SchoolMembershipRoleAssociation(Base):
 
 
 class GroupUserEmailSendersAssociation(Base):
-    __tablename__ = "group_user_email_senders_association"
+    __tablename__: str = "group_user_email_senders_association"
 
     group_id: Mapped[int] = mapped_column(
         ForeignKey("group.id", ondelete="CASCADE"), nullable=False, primary_key=True
@@ -345,7 +352,7 @@ class GroupUserEmailSendersAssociation(Base):
 
 
 class GroupGroupEmailSendersAssociation(Base):
-    __tablename__ = "group_group_email_senders_association"
+    __tablename__: str = "group_group_email_senders_association"
 
     parent_group_id: Mapped[int] = mapped_column(
         ForeignKey("group.id", ondelete="CASCADE"), primary_key=True, nullable=False
@@ -356,7 +363,7 @@ class GroupGroupEmailSendersAssociation(Base):
 
 
 class LegalGuardianAssociation(Base):
-    __tablename__ = "legal_guardian_association"
+    __tablename__: str = "legal_guardian_association"
 
     legal_guardian_id: Mapped[int] = mapped_column(
         ForeignKey("user.id", ondelete="cascade"), primary_key=True, nullable=False
@@ -372,7 +379,7 @@ class LegalGuardianAssociation(Base):
 
 
 class SchoolDNMapping(Base):
-    __tablename__ = "school_dn_public_id_mapping"
+    __tablename__: str = "school_dn_public_id_mapping"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     public_id: Mapped[uuid.UUID] = mapped_column(
@@ -382,7 +389,7 @@ class SchoolDNMapping(Base):
 
 
 class GroupDNMapping(Base):
-    __tablename__ = "group_dn_public_id_mapping"
+    __tablename__: str = "group_dn_public_id_mapping"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     public_id: Mapped[uuid.UUID] = mapped_column(
@@ -392,7 +399,7 @@ class GroupDNMapping(Base):
 
 
 class UserDNMapping(Base):
-    __tablename__ = "user_dn_public_id_mapping"
+    __tablename__: str = "user_dn_public_id_mapping"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     public_id: Mapped[uuid.UUID] = mapped_column(

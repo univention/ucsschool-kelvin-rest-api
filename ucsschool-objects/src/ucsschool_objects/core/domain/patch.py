@@ -29,7 +29,9 @@ def _patch_ops(
             operations.append({"op": "replace", "path": f"/{field}", "value": dst_val})
     # NOTE lib jsonpatch is untyped
     operations.extend(
-        JsonPatch.from_diff(src_dict, dst_dict).patch  # pyright: ignore[reportUnknownMemberType]
+        JsonPatch.from_diff(
+            src_dict, dst_dict
+        ).patch  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
     )
     return cast(Sequence[JSONPathOperation], JsonPatch(operations).patch)
 
@@ -111,7 +113,7 @@ class track_changes(Generic[_T]):
     def __init__(self, obj: _T, replace_fields: frozenset[str] = _EMPTY_FROZENSET) -> None:
         self._obj: _T = obj
         self._original: _T = obj
-        self._replace_fields = replace_fields
+        self._replace_fields: frozenset[str] = replace_fields
         self.patch: Sequence[JSONPathOperation] | None = None
 
     def __enter__(self) -> Self:

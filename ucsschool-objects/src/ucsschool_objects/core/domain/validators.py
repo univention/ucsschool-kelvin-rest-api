@@ -44,7 +44,7 @@ _WIN_RESERVED_NAMES = frozenset(
 class SchoolValidator:
     @staticmethod
     def validate(school: School) -> None:
-        if not isinstance(school.name, str) or not school.name:
+        if not school.name:
             raise ValueError("School.name must not be empty.")
         if not _SCHOOL_NAME_RE.match(school.name):
             raise ValueError(
@@ -92,7 +92,7 @@ class GroupValidator:
 class UserValidator:
     @staticmethod
     def validate(user: User) -> None:
-        if not isinstance(user.name, str) or not user.name:
+        if not user.name:
             raise ValueError("User.name must not be empty.")
         if _WIN_INVALID_CHARS_RE.search(user.name):
             raise ValueError(f"User.name {user.name!r} contains invalid characters.")
