@@ -36,20 +36,6 @@ if TYPE_CHECKING:
 else:
     DataclassInstance = object
 
-__all__ = [
-    "JoinType",
-    "JoinSpec",
-    "QueryExpr",
-    "ModelClass",
-    "TSelect",
-    "FieldColumn",
-    "PublicIdCarrier",
-    "PublicIdInput",
-    "PatchDict",
-    "generate_public_id",
-    "DataclassInstance",
-]
-
 QueryExpr: TypeAlias = Filter | And | Or | Not
 ModelClass: TypeAlias = type[Base]
 TRequired = TypeVar("TRequired")
@@ -102,7 +88,7 @@ def generate_public_id() -> UUID:
     return uuid4()
 
 
-def _extract_public_ids(items: Sequence[PublicIdInput]) -> set[UUID]:
+def extract_public_ids(items: Sequence[PublicIdInput]) -> set[UUID]:
     """Extract public_id UUIDs from a list of objects or dicts."""
     ids: set[UUID] = set()
     for item in items:
@@ -115,7 +101,7 @@ def _extract_public_ids(items: Sequence[PublicIdInput]) -> set[UUID]:
     return ids
 
 
-def _apply_patch(
+def apply_patch(
     *,
     operations: Sequence[JSONPathOperation],
     current_domain_obj: DataclassInstance,
@@ -135,7 +121,7 @@ def _public_id_column(model_class: type[TModel]) -> InstrumentedAttribute[UUID]:
     return cast(InstrumentedAttribute[UUID], mapper.column_attrs["public_id"].class_attribute)
 
 
-async def _sync_collection(
+async def sync_collection(
     session: AsyncSession,
     patched_list: Sequence[PublicIdInput],
     current_list: Sequence[PublicIdInput],
@@ -146,20 +132,20 @@ async def _sync_collection(
 
     Raises NotFound if any requested public_id has no matching row.
     """
-    current_ids = _extract_public_ids(current_list)
-    patched_ids = _extract_public_ids(patched_list)
+    current_ids = extract_public_ids(current_list)
+    patched_ids = extract_public_ids(patched_list)
     if current_ids == patched_ids:
         return
 
     if patched_ids:
         object_type = target_model.__name__
-        records = await _bulk_fetch_by_public_id(session, target_model, list(patched_ids), object_type)
+        records = await bulk_fetch_by_public_id(session, target_model, list(patched_ids), object_type)
         set_relation(list(records.values()))
     else:
         set_relation([])
 
 
-async def _sync_scalar_relation(
+async def sync_scalar_relation(
     session: AsyncSession,
     model_name: str,
     relation: str,
@@ -176,7 +162,7 @@ async def _sync_scalar_relation(
 
     # To domain objects, relations like 'school' are objects, so we extract its public_id.
     # We wrap it in a list to reuse our helper.
-    ids = _extract_public_ids([patched_val] if patched_val is not None else [])
+    ids = extract_public_ids([patched_val] if patched_val is not None else [])
     if not ids:
         if mandatory:
             raise ValueError(f"{model_name}.{relation} must not be null.")
@@ -189,7 +175,7 @@ async def _sync_scalar_relation(
     set_relation(result.scalar_one())
 
 
-async def _fetch_one_by_public_id(
+async def fetch_one_by_public_id(
     session: AsyncSession,
     model_class: type[TModel],
     public_id: UUID,
@@ -205,7 +191,7 @@ async def _fetch_one_by_public_id(
     return result
 
 
-async def _bulk_fetch_by_public_id(
+async def bulk_fetch_by_public_id(
     session: AsyncSession,
     model_class: type[TModel],
     public_ids: Sequence[UUID],
@@ -235,7 +221,7 @@ async def _bulk_fetch_by_public_id(
     return by_id
 
 
-def _get_exposed_fields(model: type) -> frozenset[str]:
+def get_exposed_fields(model: type) -> frozenset[str]:
     """Extract queryable first-level column names from a SQLAlchemy model.
 
     Only includes actual database columns, skipping relationships and other attributes.
@@ -246,18 +232,18 @@ def _get_exposed_fields(model: type) -> frozenset[str]:
     return frozenset(column.key for column in mapper.column_attrs)
 
 
-def _iter_filters(expr: QueryExpr) -> Iterable[Filter]:
+def iter_filters(expr: QueryExpr) -> Iterable[Filter]:
     if isinstance(expr, Filter):
         yield expr
         return
     if isinstance(expr, (And, Or)):
         for clause in expr.clauses:
-            yield from _iter_filters(clause)
+            yield from iter_filters(clause)
         return
-    yield from _iter_filters(expr.clause)
+    yield from iter_filters(expr.clause)
 
 
-def _compose_field_map(
+def compose_field_map(
     base_field_map: dict[str, FieldColumn],
     nested_field_registry: dict[str, JoinSpec],
 ) -> dict[str, FieldColumn]:
@@ -275,7 +261,7 @@ def _compose_field_map(
     return field_map
 
 
-def _load_requested_scalar_attributes(
+def load_requested_scalar_attributes(
     stmt: TSelect,
     public_id_column: InstrumentedAttribute[UUID],
     load: LoadSpec | None,
@@ -292,7 +278,7 @@ def _load_requested_scalar_attributes(
     return stmt.options(load_only(public_id_column, *requested_columns))
 
 
-def _school_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
+def school_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
     return (
         SchoolModel.record_uid,
         SchoolModel.source_uid,
@@ -305,11 +291,11 @@ def _school_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
     )
 
 
-def _role_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
+def role_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
     return (RoleModel.name, RoleModel.display_name)
 
 
-def _check_nullable_value_presence(
+def check_nullable_value_presence(
     value: TRequired | UnloadedType | None, *, object_type: str, field_name: str
 ) -> TRequired | None:
     if value is None:

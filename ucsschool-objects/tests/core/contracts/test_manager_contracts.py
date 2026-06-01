@@ -9,17 +9,17 @@ from tests.core.contracts.contract_test_support import (
     ManagerSetup,
     NamedRecord,
 )
+from ucsschool_objects import (
+    Filter,
+    Operator,
+    SearchQuery,
+    SortSpec,
+)
 from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyGroupManager,
     SQLAlchemyRoleManager,
     SQLAlchemySchoolManager,
     SQLAlchemyUserManager,
-)
-from ucsschool_objects.core.domain import (
-    Filter,
-    Operator,
-    SearchQuery,
-    SortSpec,
 )
 
 if TYPE_CHECKING:

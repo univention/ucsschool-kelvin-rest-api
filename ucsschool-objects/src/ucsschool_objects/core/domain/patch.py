@@ -3,21 +3,13 @@ from collections.abc import Sequence
 from typing import Generic, Self, TypeVar, cast
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
-from ucsschool_objects.core.domain.json import normalise, to_json
+from ucsschool_objects.core.domain.json import to_json
 from ucsschool_objects.core.domain.models import (
     Group,
     School,
     User,
 )
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
-
-__all__ = [
-    "normalise",
-    "create_school_patch",
-    "create_group_patch",
-    "create_user_patch",
-    "track_changes",
-]
 
 _T = TypeVar("_T", School, Group, User)
 

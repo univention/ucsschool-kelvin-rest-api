@@ -10,15 +10,15 @@ from tests.core.domain.helpers.model_builders import (
     user as build_user,
     workgroup as build_workgroup,
 )
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
     UNLOADED,
     Group,
     Role,
     School,
     SchoolMembership,
     User,
-    domain_asdict,
 )
+from ucsschool_objects.core.domain.models import domain_asdict
 
 
 def _assert_public_reads_raise(entity: object, *field_names: str) -> None:
