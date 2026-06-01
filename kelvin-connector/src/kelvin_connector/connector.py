@@ -6,11 +6,11 @@ from pathlib import Path
 from kelvin_connector.sync import SynchronizationManager
 from loguru import logger
 from provisioning_consumer_lib import ConsumerModule
-from ucsschool_objects import sqlalchemy_mapper_factory
-from ucsschool_objects.core.adapters.sqlalchemy.session import (
+from ucsschool_objects.core.adapters.sqlalchemy import (
     build_engine,
     build_kelvin_storage_session_factory,
     build_settings,
+    sqlalchemy_mapper_factory,
 )
 
 from .consumer import KelvinConnectorEventHandler

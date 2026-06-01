@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, TypeVar, cast
 from uuid import UUID
 
 from sqlalchemy import inspect
-from ucsschool_objects.core.domain import (
+from ucsschool_objects.core.domain.models import (
     UNLOADED,
     Group,
     Role,

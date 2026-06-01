@@ -1,57 +1,61 @@
 """ucsschool-objects — public API.
 
 Import domain objects, the query DSL, exceptions, and the Manager port from
-this top-level package.  The concrete SQLAlchemy adapter managers live one
+this top-level package. The concrete SQLAlchemy adapter managers live one
 level deeper at ``ucsschool_objects.core.adapters.sqlalchemy`` and are
 intentionally not promoted here — they are a wiring-time concern.
 
-The ``database_models`` module is *internal*.  It contains the SQLAlchemy ORM
-models used by the adapters and is not part of the public API.  Its contents
+The ``database_models`` module is *internal*. It contains the SQLAlchemy ORM
+models used by the adapters and is not part of the public API. Its contents
 may change without notice.
 """
 
-from ucsschool_objects.core.adapters.sqlalchemy.dn_mapper import (
-    SQLAlchemyDNIDMapper,
-    sqlalchemy_mapper_factory,
-)
-from ucsschool_objects.core.domain import (  # Domain entities; Query DSL; Exceptions
-    UNLOADED,
-    And,
+from ucsschool_objects.core.domain.errors import (
     CorelibError,
     EmptyAndClause,
     EmptyOrClause,
-    Filter,
-    FilterInValue,
-    FilterScalarValue,
-    FilterValue,
-    Group,
     InvalidFilter,
     InvalidInFilter,
     InvalidLikeFilter,
     InvalidRangeFilter,
-    KelvinStorageSession,
-    KelvinStorageSessionFactory,
-    LoadSpec,
-    Manager,
-    Not,
     NotFound,
-    Operator,
-    Or,
-    QueryExpr,
-    Role,
-    School,
-    SchoolMembership,
-    SearchQuery,
-    SortSpec,
-    UnloadedType,
     UnsupportedFilterField,
     UnsupportedFilterOperator,
     UnsupportedOperation,
     UnsupportedSortField,
-    User,
-    domain_asdict,
 )
+from ucsschool_objects.core.domain.load_spec import LoadSpec
+from ucsschool_objects.core.domain.models import (
+    UNLOADED,
+    UNSET,
+    Group,
+    Role,
+    School,
+    SchoolMembership,
+    UnloadedType,
+    UnsetType,
+    User,
+)
+from ucsschool_objects.core.domain.patch import track_changes
 from ucsschool_objects.core.domain.ports.dn_mapper import DNIDMapper, ObjectType
+from ucsschool_objects.core.domain.ports.manager import Manager
+from ucsschool_objects.core.domain.ports.unit_of_work import (
+    KelvinStorageSession,
+    KelvinStorageSessionFactory,
+)
+from ucsschool_objects.core.domain.query import (
+    And,
+    Filter,
+    FilterInValue,
+    FilterScalarValue,
+    FilterValue,
+    Not,
+    Operator,
+    Or,
+    QueryExpr,
+    SearchQuery,
+    SortSpec,
+)
 
 __all__ = [
     # Domain entities
@@ -59,10 +63,12 @@ __all__ = [
     "Role",
     "School",
     "SchoolMembership",
+    "track_changes",
     "UNLOADED",
     "UnloadedType",
+    "UNSET",
+    "UnsetType",
     "User",
-    "domain_asdict",
     # Query DSL
     "And",
     "Filter",
@@ -90,12 +96,10 @@ __all__ = [
     "UnsupportedOperation",
     "UnsupportedSortField",
     # Ports
-    "DNIDMapper",
     "KelvinStorageSession",
     "KelvinStorageSessionFactory",
     "Manager",
+    # DN Mapping
+    "DNIDMapper",
     "ObjectType",
-    # DN mapper adapter
-    "SQLAlchemyDNIDMapper",
-    "sqlalchemy_mapper_factory",
 ]

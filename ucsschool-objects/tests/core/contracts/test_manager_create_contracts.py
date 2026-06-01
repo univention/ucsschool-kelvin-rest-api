@@ -18,13 +18,9 @@ from tests.test_types import (
     AsyncSchoolMembershipFactory,
     AsyncUserFactory,
 )
-from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemyGroupManager,
-    SQLAlchemyRoleManager,
-    SQLAlchemySchoolManager,
-    SQLAlchemyUserManager,
-)
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
+    UNLOADED,
+    UNSET,
     Group,
     NotFound,
     Role,
@@ -32,7 +28,12 @@ from ucsschool_objects.core.domain import (
     SchoolMembership,
     User,
 )
-from ucsschool_objects.core.domain.models import UNLOADED, UNSET
+from ucsschool_objects.core.adapters.sqlalchemy import (
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
+)
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     Role as RoleModel,

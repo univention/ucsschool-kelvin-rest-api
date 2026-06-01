@@ -9,14 +9,15 @@ from uuid import UUID
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from ucsschool_objects import NotFound, UnsupportedOperation, User
 from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyGroupManager,
     SQLAlchemySchoolManager,
     SQLAlchemyUserManager,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _extract_public_ids,
-    _sync_scalar_relation,
+    extract_public_ids,
+    sync_scalar_relation,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.managers.school_manager import _apply_school_patch
 from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import _apply_user_patch
@@ -26,8 +27,6 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
     to_school,
     to_user,
 )
-from ucsschool_objects.core.domain import NotFound, UnsupportedOperation
-from ucsschool_objects.core.domain.models import User
 from ucsschool_objects.core.domain.patch import _create_patch
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -205,12 +204,12 @@ def test_apply_user_patch_toggles_active_flag() -> None:
 
 
 def test_extract_public_ids_ignores_items_without_public_id() -> None:
-    assert _extract_public_ids([{}]) == set()
+    assert extract_public_ids([{}]) == set()
 
 
 def test_extract_public_ids_reads_public_id_from_objects() -> None:
     public_id = uuid.uuid4()
-    assert _extract_public_ids([User.minimal(public_id)]) == {public_id}
+    assert extract_public_ids([User.minimal(public_id)]) == {public_id}
 
 
 @pytest.mark.asyncio
@@ -225,7 +224,7 @@ async def test_sync_scalar_relation_clears_optional(db_session: AsyncSession) ->
     def set_school(value: SchoolModel | None) -> None:
         model.school = value
 
-    await _sync_scalar_relation(
+    await sync_scalar_relation(
         db_session,
         "Dummy",
         "school",
