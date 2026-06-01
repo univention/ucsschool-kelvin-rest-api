@@ -4,11 +4,7 @@ from datetime import date
 from typing import TYPE_CHECKING, cast
 
 import pytest
-from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemySchoolManager,
-    SQLAlchemyUserManager,
-)
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
     Filter,
     InvalidInFilter,
     InvalidLikeFilter,
@@ -19,6 +15,10 @@ from ucsschool_objects.core.domain import (
     UnsupportedFilterField,
     UnsupportedFilterOperator,
     UnsupportedSortField,
+)
+from ucsschool_objects.core.adapters.sqlalchemy import (
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
 )
 
 if TYPE_CHECKING:

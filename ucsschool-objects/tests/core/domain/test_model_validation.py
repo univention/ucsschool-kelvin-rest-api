@@ -4,15 +4,17 @@ import uuid
 from typing import Any
 
 import pytest
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
     UNLOADED,
     Group,
-    GroupValidator,
     Role,
-    RoleValidator,
     School,
-    SchoolValidator,
     User,
+)
+from ucsschool_objects.core.domain.validators import (
+    GroupValidator,
+    RoleValidator,
+    SchoolValidator,
     UserValidator,
 )
 

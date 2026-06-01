@@ -19,25 +19,27 @@ from sqlalchemy import (
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.type_api import TypeEngine
-from ucsschool_objects.core.domain import (
-    And,
+from ucsschool_objects.core.domain.errors import (
     EmptyAndClause,
     EmptyOrClause,
-    Filter,
-    FilterInValue,
-    FilterValue,
     InvalidInFilter,
     InvalidLikeFilter,
     InvalidRangeFilter,
+    UnsupportedFilterField,
+    UnsupportedFilterOperator,
+    UnsupportedNestedField,
+    UnsupportedSortField,
+)
+from ucsschool_objects.core.domain.query import (
+    And,
+    Filter,
+    FilterInValue,
+    FilterValue,
     Not,
     Operator,
     Or,
     SearchQuery,
     SortSpec,
-    UnsupportedFilterField,
-    UnsupportedFilterOperator,
-    UnsupportedNestedField,
-    UnsupportedSortField,
 )
 
 if TYPE_CHECKING:  # pragma: no cover

@@ -6,38 +6,19 @@ from sqlalchemy import Select, delete, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import selectinload
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _apply_patch,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _compose_field_map,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _extract_public_ids,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _get_exposed_fields,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _load_requested_scalar_attributes,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _role_scalar_columns,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _school_scalar_columns,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _sync_collection,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _sync_scalar_relation,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     FieldColumn,
     JoinSpec,
     JoinType,
-    PatchDict,
     PublicIdInput,
+    apply_patch,
+    compose_field_map,
+    extract_public_ids,
+    get_exposed_fields,
+    load_requested_scalar_attributes,
+    role_scalar_columns,
+    school_scalar_columns,
+    sync_collection,
+    sync_scalar_relation,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import group_from_patch, to_group
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
@@ -45,17 +26,13 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
     to_group_model,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
-from ucsschool_objects.core.domain import (
-    Group,
-    GroupValidator,
-    LoadSpec,
-    NotFound,
-    SearchQuery,
-    SortSpec,
-    UnsupportedOperation,
-)
-from ucsschool_objects.core.domain.json import to_json
+from ucsschool_objects.core.domain.errors import NotFound, UnsupportedOperation
+from ucsschool_objects.core.domain.json import PatchDict, to_json
+from ucsschool_objects.core.domain.load_spec import LoadSpec
+from ucsschool_objects.core.domain.models import Group
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
+from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
+from ucsschool_objects.core.domain.validators import GroupValidator
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     Role as RoleModel,
@@ -71,17 +48,14 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-__all__ = ["SQLAlchemyGroupManager"]
-
-
 async def _sync_group_members(
     session: AsyncSession,
     model: GroupModel,
     patched_members: list[PublicIdInput],
     current_members: list[PublicIdInput],
 ) -> None:
-    current_ids = _extract_public_ids(current_members)
-    patched_ids = _extract_public_ids(patched_members)
+    current_ids = extract_public_ids(current_members)
+    patched_ids = extract_public_ids(patched_members)
     if current_ids == patched_ids:
         return
 
@@ -113,7 +87,7 @@ async def _apply_group_patch(
     model.email = cast(str | None, patched["email"])
     model.has_share = cast(bool, patched["create_share"])
 
-    await _sync_collection(
+    await sync_collection(
         session,
         cast(list[PublicIdInput], patched["member_roles"]),
         cast(list[PublicIdInput], current["member_roles"]),
@@ -126,28 +100,28 @@ async def _apply_group_patch(
         cast(list[PublicIdInput], patched["members"]),
         cast(list[PublicIdInput], current["members"]),
     )
-    await _sync_collection(
+    await sync_collection(
         session,
         cast(list[PublicIdInput], patched["allowed_email_senders_users"]),
         cast(list[PublicIdInput], current["allowed_email_senders_users"]),
         UserModel,
         lambda values: setattr(model, "allowed_email_senders_users", values),
     )
-    await _sync_collection(
+    await sync_collection(
         session,
         cast(list[PublicIdInput], patched["allowed_email_senders_groups"]),
         cast(list[PublicIdInput], current["allowed_email_senders_groups"]),
         GroupModel,
         lambda values: setattr(model, "allowed_email_senders_groups", values),
     )
-    await _sync_collection(
+    await sync_collection(
         session,
         cast(list[PublicIdInput], patched["roles"]),
         cast(list[PublicIdInput], current["roles"]),
         RoleModel,
         lambda values: setattr(model, "roles", values),
     )
-    await _sync_scalar_relation(
+    await sync_scalar_relation(
         session,
         "Group",
         "school",
@@ -171,7 +145,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
             target_model=SchoolModel,
             join_path=(SchoolModel,),
             join_type=JoinType.LEFT_OUTER,
-            exposed_fields=_get_exposed_fields(SchoolModel),
+            exposed_fields=get_exposed_fields(SchoolModel),
         ),
     }
     _BASE_FIELD_MAP: dict[str, FieldColumn] = {
@@ -183,7 +157,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         "display_name": GroupModel.display_name,
         "create_share": GroupModel.has_share,
     }
-    _FIELD_MAP: dict[str, FieldColumn] = _compose_field_map(
+    _FIELD_MAP: dict[str, FieldColumn] = compose_field_map(
         _BASE_FIELD_MAP,
         _NESTED_FIELD_REGISTRY,
     )
@@ -212,7 +186,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
             select(GroupModel)
             .where(GroupModel.public_id == public_id)
             .options(
-                selectinload(GroupModel.roles).load_only(RoleModel.public_id, *_role_scalar_columns()),
+                selectinload(GroupModel.roles).load_only(RoleModel.public_id, *role_scalar_columns()),
                 selectinload(GroupModel.school),
                 selectinload(GroupModel.member_roles),
                 selectinload(GroupModel.members).selectinload(SchoolMembershipModel.user),
@@ -223,7 +197,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
 
     def _base_stmt(self, load: LoadSpec | None) -> Select[tuple[GroupModel]]:
         stmt = select(GroupModel)
-        stmt = _load_requested_scalar_attributes(
+        stmt = load_requested_scalar_attributes(
             stmt,
             GroupModel.public_id,
             load,
@@ -231,7 +205,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         )
         if load is not None and load.includes("roles"):
             stmt = stmt.options(
-                selectinload(GroupModel.roles).load_only(RoleModel.public_id, *_role_scalar_columns())
+                selectinload(GroupModel.roles).load_only(RoleModel.public_id, *role_scalar_columns())
             )
         if load is not None and load.includes("allowed_email_senders_users"):
             stmt = stmt.options(
@@ -255,7 +229,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         if load is not None and load.includes("member_roles"):
             stmt = stmt.options(
                 selectinload(GroupModel.member_roles).load_only(
-                    RoleModel.public_id, *_role_scalar_columns()
+                    RoleModel.public_id, *role_scalar_columns()
                 )
             )
         return stmt
@@ -266,7 +240,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         if spec.includes("school"):
             stmt = stmt.options(
                 selectinload(GroupModel.school).load_only(
-                    SchoolModel.public_id, *_school_scalar_columns()
+                    SchoolModel.public_id, *school_scalar_columns()
                 )
             )
         result = (await self._session.execute(stmt)).scalar_one_or_none()
@@ -288,7 +262,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         if spec.includes("school"):
             stmt = stmt.options(
                 selectinload(GroupModel.school).load_only(
-                    SchoolModel.public_id, *_school_scalar_columns()
+                    SchoolModel.public_id, *school_scalar_columns()
                 )
             )
         stmt = apply_search_query(stmt, query, self._FIELD_MAP, self._NESTED_FIELD_REGISTRY)
@@ -352,7 +326,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
             raise NotFound(object_type="Group", public_id=str(public_id))
 
         current_domain = to_group(result)
-        patched = _apply_patch(operations=operations, current_domain_obj=current_domain)
+        patched = apply_patch(operations=operations, current_domain_obj=current_domain)
         GroupValidator.validate(group_from_patch(patched, result.public_id))
 
         current_dict = to_json(current_domain)

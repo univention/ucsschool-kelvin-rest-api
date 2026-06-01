@@ -1,7 +1,6 @@
 from typing import Callable, Protocol
 
-from ucsschool_objects import DNIDMapper
-from ucsschool_objects.core.domain.ports import KelvinStorageSession, KelvinStorageSessionFactory
+from ucsschool_objects import DNIDMapper, KelvinStorageSession, KelvinStorageSessionFactory
 
 from .models import (
     GroupCreateEvent,
