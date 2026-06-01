@@ -229,7 +229,7 @@ async def test_sync_scalar_relation_clears_optional(db_session: AsyncSession) ->
         "Dummy",
         "school",
         patched_val=None,
-        current_val=model.school,
+        current_val={"public_id": str(uuid.uuid4())},
         target_model=SchoolModel,
         set_relation=set_school,
         mandatory=False,
