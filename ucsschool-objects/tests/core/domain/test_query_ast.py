@@ -1,5 +1,5 @@
 import pytest
-from ucsschool_objects.core.domain import And, Filter, Not, Operator, Or, SearchQuery, SortSpec
+from ucsschool_objects import And, Filter, Not, Operator, Or, SearchQuery, SortSpec
 
 
 @pytest.mark.parametrize("operator", [Operator.LIKE, Operator.ILIKE])

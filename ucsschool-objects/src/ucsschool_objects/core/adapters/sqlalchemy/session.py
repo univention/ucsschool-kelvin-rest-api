@@ -14,20 +14,23 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.pool import StaticPool
-from ucsschool_objects.core.adapters.sqlalchemy.managers import (
+from ucsschool_objects.core.adapters.sqlalchemy.managers.group_manager import (
     SQLAlchemyGroupManager,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers.role_manager import (
     SQLAlchemyRoleManager,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers.school_manager import (
     SQLAlchemySchoolManager,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import (
     SQLAlchemyUserManager,
 )
-from ucsschool_objects.core.domain import (
-    Group,
+from ucsschool_objects.core.domain.models import Group, Role, School, User
+from ucsschool_objects.core.domain.ports.manager import Manager
+from ucsschool_objects.core.domain.ports.unit_of_work import (
     KelvinStorageSession,
     KelvinStorageSessionFactory,
-    Manager,
-    Role,
-    School,
-    User,
 )
 
 

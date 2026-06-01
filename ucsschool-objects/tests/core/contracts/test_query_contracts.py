@@ -17,13 +17,13 @@ from tests.core.contracts.contract_test_support import (
     UserQueryFactories,
     UserQuerySetup,
 )
+from ucsschool_objects import And, Filter, Not, Operator, Or, SearchQuery, SortSpec
 from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyGroupManager,
     SQLAlchemyRoleManager,
     SQLAlchemySchoolManager,
     SQLAlchemyUserManager,
 )
-from ucsschool_objects.core.domain import And, Filter, Not, Operator, Or, SearchQuery, SortSpec
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
