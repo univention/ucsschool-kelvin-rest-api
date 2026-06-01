@@ -5,29 +5,20 @@ from typing import TYPE_CHECKING, cast
 from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _apply_patch,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _compose_field_map,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _load_requested_scalar_attributes,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
+    apply_patch,
+    compose_field_map,
+    load_requested_scalar_attributes,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import school_from_patch, to_school
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import to_school_model
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
-from ucsschool_objects.core.domain import (
-    LoadSpec,
-    NotFound,
-    School,
-    SchoolValidator,
-    SearchQuery,
-    SortSpec,
-)
+from ucsschool_objects.core.domain.errors import NotFound
+from ucsschool_objects.core.domain.load_spec import LoadSpec
+from ucsschool_objects.core.domain.models import School
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
+from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
+from ucsschool_objects.core.domain.validators import SchoolValidator
 from ucsschool_objects.database_models import School as SchoolModel
 
 if TYPE_CHECKING:
@@ -35,9 +26,8 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
-    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import FieldColumn, PatchDict
-
-__all__ = ["SQLAlchemySchoolManager"]
+    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import FieldColumn
+    from ucsschool_objects.core.domain.json import PatchDict
 
 
 def _apply_school_patch(model: SchoolModel, patched: PatchDict) -> None:
@@ -67,7 +57,7 @@ class SQLAlchemySchoolManager(Manager[School]):
     _LOAD_ATTRIBUTE_MAP: dict[str, FieldColumn] = {
         **_SCALAR_FIELD_MAP,
     }
-    _FIELD_MAP: dict[str, FieldColumn] = _compose_field_map(
+    _FIELD_MAP: dict[str, FieldColumn] = compose_field_map(
         _BASE_FIELD_MAP,
         _NESTED_FIELD_REGISTRY,
     )
@@ -77,7 +67,7 @@ class SQLAlchemySchoolManager(Manager[School]):
 
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> School:
         stmt = select(SchoolModel).where(SchoolModel.public_id == public_id)
-        stmt = _load_requested_scalar_attributes(
+        stmt = load_requested_scalar_attributes(
             stmt,
             SchoolModel.public_id,
             load,
@@ -98,7 +88,7 @@ class SQLAlchemySchoolManager(Manager[School]):
         load: LoadSpec | None = None,
     ) -> Iterable[School]:
         stmt = select(SchoolModel)
-        stmt = _load_requested_scalar_attributes(
+        stmt = load_requested_scalar_attributes(
             stmt,
             SchoolModel.public_id,
             load,
@@ -134,7 +124,7 @@ class SQLAlchemySchoolManager(Manager[School]):
             raise NotFound(object_type="School", public_id=str(public_id))
 
         current_domain = to_school(result)
-        patched = _apply_patch(operations=operations, current_domain_obj=current_domain)
+        patched = apply_patch(operations=operations, current_domain_obj=current_domain)
         SchoolValidator.validate(school_from_patch(patched, result.public_id))
         _apply_school_patch(result, patched)
 

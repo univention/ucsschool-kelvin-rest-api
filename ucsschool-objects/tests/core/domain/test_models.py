@@ -11,16 +11,15 @@ from tests.core.domain.helpers.model_builders import (
     school_class as build_school_class,
     user as build_user,
 )
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
     UNLOADED,
     Group,
     Role,
     School,
     SchoolMembership,
     User,
-    domain_asdict,
 )
-from ucsschool_objects.core.domain.models import is_loaded
+from ucsschool_objects.core.domain.models import domain_asdict, is_loaded
 
 
 def test_domain_asdict_serializes_list_tuple_and_frozenset() -> None:

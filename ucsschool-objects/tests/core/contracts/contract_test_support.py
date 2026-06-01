@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol, TypeAlias
 
-from ucsschool_objects.core.domain import SearchQuery, SortSpec
+from ucsschool_objects import SearchQuery, SortSpec
 
 if TYPE_CHECKING:
     from uuid import UUID

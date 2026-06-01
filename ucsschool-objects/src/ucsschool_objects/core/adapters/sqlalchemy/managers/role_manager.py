@@ -4,25 +4,18 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _compose_field_map,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _load_requested_scalar_attributes,  # pyright: ignore[reportPrivateUsage]
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
+    compose_field_map,
+    load_requested_scalar_attributes,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_role
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import to_role_model
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
-from ucsschool_objects.core.domain import (
-    LoadSpec,
-    NotFound,
-    Role,
-    SearchQuery,
-    SortSpec,
-)
+from ucsschool_objects.core.domain.errors import NotFound
+from ucsschool_objects.core.domain.load_spec import LoadSpec
+from ucsschool_objects.core.domain.models import Role
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
+from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
 from ucsschool_objects.database_models import Role as RoleModel
 
 if TYPE_CHECKING:
@@ -31,8 +24,6 @@ if TYPE_CHECKING:
 
     from sqlalchemy.ext.asyncio import AsyncSession
     from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import FieldColumn
-
-__all__ = ["SQLAlchemyRoleManager"]
 
 
 class SQLAlchemyRoleManager(Manager[Role]):
@@ -48,7 +39,7 @@ class SQLAlchemyRoleManager(Manager[Role]):
         **_SCALAR_FIELD_MAP,
         "display_name": RoleModel.display_name,
     }
-    _FIELD_MAP: dict[str, FieldColumn] = _compose_field_map(
+    _FIELD_MAP: dict[str, FieldColumn] = compose_field_map(
         _BASE_FIELD_MAP,
         _NESTED_FIELD_REGISTRY,
     )
@@ -58,7 +49,7 @@ class SQLAlchemyRoleManager(Manager[Role]):
 
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> Role:
         stmt = select(RoleModel).where(RoleModel.public_id == public_id)
-        stmt = _load_requested_scalar_attributes(
+        stmt = load_requested_scalar_attributes(
             stmt,
             RoleModel.public_id,
             load,
@@ -79,7 +70,7 @@ class SQLAlchemyRoleManager(Manager[Role]):
         load: LoadSpec | None = None,
     ) -> Iterable[Role]:
         stmt = select(RoleModel)
-        stmt = _load_requested_scalar_attributes(
+        stmt = load_requested_scalar_attributes(
             stmt,
             RoleModel.public_id,
             load,

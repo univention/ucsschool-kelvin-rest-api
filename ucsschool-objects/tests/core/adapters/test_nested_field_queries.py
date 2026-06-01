@@ -7,22 +7,7 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import inspect
-from ucsschool_objects.core.adapters.sqlalchemy.managers import (
-    JoinSpec,
-    JoinType,
-    SQLAlchemyGroupManager,
-    SQLAlchemyRoleManager,
-    SQLAlchemySchoolManager,
-    SQLAlchemyUserManager,
-)
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    _compose_field_map,
-    _get_exposed_fields,
-    _iter_filters,
-)
-from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
-from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import _is_loaded, _loaded_value
-from ucsschool_objects.core.domain import (
+from ucsschool_objects import (
     UNLOADED,
     UNSET,
     And,
@@ -34,9 +19,30 @@ from ucsschool_objects.core.domain import (
     SchoolMembership,
     SearchQuery,
     SortSpec,
-    UnsupportedNestedField,
-    domain_asdict,
 )
+from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    JoinSpec,
+    JoinType,
+    compose_field_map,
+    get_exposed_fields,
+    iter_filters,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers.group_manager import (
+    SQLAlchemyGroupManager,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers.role_manager import (
+    SQLAlchemyRoleManager,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers.school_manager import (
+    SQLAlchemySchoolManager,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import (
+    SQLAlchemyUserManager,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import _is_loaded, _loaded_value
+from ucsschool_objects.core.domain.errors import UnsupportedNestedField
+from ucsschool_objects.core.domain.models import domain_asdict
 from ucsschool_objects.database_models import School as SchoolModel
 
 if TYPE_CHECKING:
@@ -228,12 +234,12 @@ async def test_group_manager_all_school_fields_exposed(db_session: AsyncSession)
 
 
 def test_get_exposed_fields_returns_empty_for_non_sqlalchemy_model() -> None:
-    """_get_exposed_fields returns no fields for non-SQLAlchemy models."""
+    """get_exposed_fields returns no fields for non-SQLAlchemy models."""
 
     class _FakeModel:
         value = "ignored"
 
-    assert _get_exposed_fields(_FakeModel) == frozenset()
+    assert get_exposed_fields(_FakeModel) == frozenset()
 
 
 def test_role_manager_field_map_includes_nested_fields_when_registry_populated(
@@ -251,7 +257,7 @@ def test_role_manager_field_map_includes_nested_fields_when_registry_populated(
     monkeypatch.setattr(
         SQLAlchemyRoleManager,
         "_FIELD_MAP",
-        _compose_field_map(
+        compose_field_map(
             SQLAlchemyRoleManager._BASE_FIELD_MAP, SQLAlchemyRoleManager._NESTED_FIELD_REGISTRY
         ),
     )
@@ -295,7 +301,7 @@ def test_iter_filters_handles_filter_and_and_or_and_not() -> None:
         )
     )
 
-    filters = list(_iter_filters(expr))
+    filters = list(iter_filters(expr))
 
     assert len(filters) == 3
     assert filters[0].field == "name"
