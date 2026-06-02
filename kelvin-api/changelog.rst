@@ -5,7 +5,7 @@
 Changelog
 =========
 
-v3.3.0 (TBD)
+v3.3.0 (2026-06-02)
 -------------------
 * Changed the application Docker base image from Alpine to the standard UCS base image (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#147`).
 * Added: Users who are members of the group ``ucsschool-kelvin-rest-api-readers`` are now able to access read endpoints of the Kelvin API.
