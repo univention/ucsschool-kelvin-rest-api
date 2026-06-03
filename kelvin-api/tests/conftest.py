@@ -65,7 +65,11 @@ from ucsschool.kelvin.routers.v1.school import SchoolCreateModel
 from ucsschool.kelvin.routers.v1.user import PasswordsHashes, UserCreateModel
 from ucsschool.kelvin.token_auth import create_access_token
 from ucsschool.lib.models.user import User
-from ucsschool.lib.models.utils import env_or_ucr, uldap_admin_read_local, uldap_admin_read_primary
+from ucsschool.lib.models.utils import (
+    env_or_ucr,
+    uldap_admin_read_local,
+    uldap_admin_read_primary,
+)
 from udm_rest_client import UDM, UdmObject
 from univention.config_registry import ConfigRegistry
 
@@ -245,7 +249,10 @@ def url_fragment(api_version):
 @pytest.fixture(scope="session")
 def url_fragment_ip(api_version):
     addrinfo = socket.getaddrinfo(
-        os.environ["DOCKER_HOST_NAME"], 80, family=socket.AF_INET, proto=socket.IPPROTO_TCP
+        os.environ["DOCKER_HOST_NAME"],
+        80,
+        family=socket.AF_INET,
+        proto=socket.IPPROTO_TCP,
     )
     ip = addrinfo[0][4][0]
     return _url_fragment_for(ip, api_version)
@@ -416,7 +423,11 @@ def random_school_create_model() -> Callable[[], SchoolCreateModel]:
 
 @pytest.fixture
 def random_user_create_model(
-    url_fragment, new_school_class_using_lib, new_workgroup_using_lib, udm_users_user_props, mail_domain
+    url_fragment,
+    new_school_class_using_lib,
+    new_workgroup_using_lib,
+    udm_users_user_props,
+    mail_domain,
 ):
     async def _create_random_user_data(ou_name: str, **kwargs) -> UserCreateModel:
         user_props = await udm_users_user_props(ou_name)
@@ -499,7 +510,10 @@ def create_random_users(
                 )
                 assert response.status_code == 201, f"{response.__dict__}"
                 logger.debug(
-                    "Created user %r (%r) with %r.", user_data.name, user_data.roles, user_data.dict()
+                    "Created user %r (%r) with %r.",
+                    user_data.name,
+                    user_data.roles,
+                    user_data.dict(),
                 )
                 users.append(user_data)
                 schedule_delete_user_name_using_udm(user_data.name)
@@ -537,7 +551,10 @@ def new_import_user(new_school_user, udm_kwargs):
     """Create a new import user using UDM."""
 
     async def _func(
-        school: str, role: str, udm_properties: Dict[str, Any] = None, **school_user_kwargs
+        school: str,
+        role: str,
+        udm_properties: Dict[str, Any] = None,
+        **school_user_kwargs,
     ) -> ImportUser:
         lib_user: User = await new_school_user(school, role, udm_properties, **school_user_kwargs)
         async with UDM(**udm_kwargs) as udm:
@@ -660,7 +677,7 @@ async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kw
             logger.debug("Deleted WorkGroup %r through UDM.", dn)
 
 
-def restart_kelvin_api_server(get_access_token) -> None:
+def restart_kelvin_api_server() -> None:
     logger.debug("Reloading Kelvin API server...")
     # Send HUP signal to gunicorn master process to reload workers
     subprocess.check_call(["kill", "-HUP", "1"])
@@ -668,26 +685,23 @@ def restart_kelvin_api_server(get_access_token) -> None:
     # Wait for the service to be ready
     while True:
         time.sleep(0.5)
-        try:
-            get_access_token()
+        response = requests.get(url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/docs")
+        if response.status_code == 200:
             break
-        except AssertionError:
-            # Kelvin API not ready -> 502 Proxy Error
-            pass
 
 
 @pytest.fixture(scope="module")
-def restart_kelvin_api_server_module(get_access_token):
+def restart_kelvin_api_server_module():
     def _restart():
-        restart_kelvin_api_server(get_access_token)
+        restart_kelvin_api_server()
 
     return _restart
 
 
 @pytest.fixture(scope="session")
-def restart_kelvin_api_server_session(get_access_token):
+def restart_kelvin_api_server_session():
     def _restart():
-        restart_kelvin_api_server(get_access_token)
+        restart_kelvin_api_server()
 
     return _restart
 
@@ -712,7 +726,10 @@ def mapped_udm_properties_test_config(restart_kelvin_api_server_session):
             # not in Docker container
             return
         if MAPPED_UDM_PROPERTIES_CONFIG["active"].exists():
-            shutil.move(MAPPED_UDM_PROPERTIES_CONFIG["active"], MAPPED_UDM_PROPERTIES_CONFIG["bak"])
+            shutil.move(
+                MAPPED_UDM_PROPERTIES_CONFIG["active"],
+                MAPPED_UDM_PROPERTIES_CONFIG["bak"],
+            )
 
         config = {
             "school": ["description", "userPath"],
@@ -853,7 +870,7 @@ async def setup_import_config_for_mail(
     """
     # create new random mail domain object
     domain_name = ucr().get("domainname", "ucs.test")
-    mail_domain = f'{"".join(fake.random_letters())}.{domain_name}'
+    mail_domain = f"{''.join(fake.random_letters())}.{domain_name}"
     async with UDM(**udm_kwargs) as udm:
         udm_domain: UdmObject = await udm.get("mail/domain").new()
         udm_domain.position = f"cn=domain,cn=mail,{ldap_base}"
@@ -944,7 +961,12 @@ def password_hash(check_password, create_ou_using_python, new_udm_user):
         password = password or fake.password(length=20)
         ou = await create_ou_using_python()
         user_dn, user = await new_udm_user(
-            ou, "student", disabled=False, password=password, school_classes={}, workgroups={}
+            ou,
+            "student",
+            disabled=False,
+            password=password,
+            school_classes={},
+            workgroups={},
         )
         on_primary = env_or_ucr("ldap/server/type") == "master"
         uldap = uldap_admin_read_primary() if not on_primary else uldap_admin_read_local()
@@ -1009,7 +1031,7 @@ def log_http_502():
     def _func(caller, func, args, kwargs):
         msg = (
             f"=> HTTP 502 in {caller}() by request.{func}({', '.join(repr(a) for a in args)}, "
-            f"{', '.join(f'{k!r}={v!r}'for k, v in kwargs.items())})"
+            f"{', '.join(f'{k!r}={v!r}' for k, v in kwargs.items())})"
         )
         logger.debug(msg)
         msgs.append(msg)
