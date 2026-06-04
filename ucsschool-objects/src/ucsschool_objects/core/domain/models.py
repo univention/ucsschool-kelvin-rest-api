@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields, is_dataclass
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypeVar, cast
 
 if TYPE_CHECKING:
@@ -42,12 +42,13 @@ def _serialize_domain_value(value: object) -> object:
     if isinstance(value, (UnloadedType, UnsetType)):
         return value
 
-    if is_dataclass(value):
+    serialize_fields = getattr(value, "__serialize_fields__", None)
+    if isinstance(serialize_fields, tuple):
         return {
-            (
-                field_info.name[1:] if field_info.name.startswith("_") else field_info.name
-            ): _serialize_domain_value(cast(object, getattr(value, field_info.name)))
-            for field_info in fields(value)
+            (field_name[1:] if field_name.startswith("_") else field_name): _serialize_domain_value(
+                cast(object, getattr(value, field_name))
+            )
+            for field_name in serialize_fields
         }
 
     if isinstance(value, dict):
@@ -86,17 +87,18 @@ def is_loaded(instance: object, field_name: str) -> bool:
     return not isinstance(field_value, UnloadedType)
 
 
-@dataclass(eq=False, init=False)
 class School:
-    public_id: UUID | UnsetType = UNSET
-    _record_uid: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _source_uid: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _name: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _display_name: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _educational_servers: set[str] | UnloadedType = field(default=UNLOADED, repr=False)
-    _administrative_servers: set[str] | UnloadedType = field(default=UNLOADED, repr=False)
-    _class_share_file_server: str | None | UnloadedType = field(default=UNLOADED, repr=False)
-    _home_share_file_server: str | None | UnloadedType = field(default=UNLOADED, repr=False)
+    __serialize_fields__ = (
+        "public_id",
+        "_record_uid",
+        "_source_uid",
+        "_name",
+        "_display_name",
+        "_educational_servers",
+        "_administrative_servers",
+        "_class_share_file_server",
+        "_home_share_file_server",
+    )
 
     def __init__(
         self,
@@ -215,11 +217,12 @@ class School:
         return self.public_id == other.public_id
 
 
-@dataclass(eq=False, init=False)
 class Role:
-    public_id: UUID | UnsetType = UNSET
-    _name: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _display_name: dict[str, str] | UnloadedType = field(default=UNLOADED, repr=False)
+    __serialize_fields__ = (
+        "public_id",
+        "_name",
+        "_display_name",
+    )
 
     def __init__(
         self,
@@ -254,21 +257,22 @@ class Role:
         return self.public_id == other.public_id
 
 
-@dataclass(eq=False, init=False)
 class Group:
-    public_id: UUID | UnsetType = UNSET
-    _record_uid: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _source_uid: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _name: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _display_name: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _create_share: bool | UnloadedType = field(default=UNLOADED, repr=False)
-    _roles: set[Role] | UnloadedType = field(default=UNLOADED, repr=False)
-    _allowed_email_senders_users: set[User] | UnloadedType = field(default=UNLOADED, repr=False)
-    _allowed_email_senders_groups: set[Group] | UnloadedType = field(default=UNLOADED, repr=False)
-    _members: set[User] | UnloadedType = field(default=UNLOADED, repr=False)
-    _member_roles: set[Role] | UnloadedType = field(default=UNLOADED, repr=False)
-    _school: School | UnloadedType = field(default=UNLOADED, repr=False)
-    _email: str | None | UnloadedType = field(default=UNLOADED, repr=False)
+    __serialize_fields__ = (
+        "public_id",
+        "_record_uid",
+        "_source_uid",
+        "_name",
+        "_display_name",
+        "_create_share",
+        "_roles",
+        "_allowed_email_senders_users",
+        "_allowed_email_senders_groups",
+        "_members",
+        "_member_roles",
+        "_school",
+        "_email",
+    )
 
     def __init__(
         self,
@@ -423,12 +427,25 @@ class Group:
         return self.public_id == other.public_id
 
 
-@dataclass(eq=False)
 class SchoolMembership:
-    school: School
-    is_primary: bool
-    roles: set[Role]
-    groups: set[Group]
+    __serialize_fields__ = (
+        "school",
+        "is_primary",
+        "roles",
+        "groups",
+    )
+
+    def __init__(
+        self,
+        school: School,
+        is_primary: bool,
+        roles: set[Role],
+        groups: set[Group],
+    ) -> None:
+        self.school = school
+        self.is_primary = is_primary
+        self.roles = roles
+        self.groups = groups
 
     def __hash__(self) -> int:
         # Roles/groups are mutable sets on the model, so normalize for hashing.
@@ -450,24 +467,22 @@ class SchoolMembership:
         )
 
 
-@dataclass(eq=False, init=False)
 class User:
-    public_id: UUID | UnsetType = UNSET
-    _record_uid: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _source_uid: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _name: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _firstname: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _lastname: str | UnloadedType = field(default=UNLOADED, repr=False)
-    _active: bool | UnloadedType = field(default=UNLOADED, repr=False)
-    _school_memberships: dict[UUID, SchoolMembership] | UnloadedType = field(
-        default=UNLOADED,
-        repr=False,
+    __serialize_fields__ = (
+        "public_id",
+        "_record_uid",
+        "_source_uid",
+        "_name",
+        "_firstname",
+        "_lastname",
+        "_active",
+        "_school_memberships",
+        "_legal_wards",
+        "_legal_guardians",
+        "_email",
+        "_birthday",
+        "_expiration_date",
     )
-    _legal_wards: set[User] | UnloadedType = field(default=UNLOADED, repr=False)
-    _legal_guardians: set[User] | UnloadedType = field(default=UNLOADED, repr=False)
-    _email: str | None | UnloadedType = field(default=UNLOADED, repr=False)
-    _birthday: date | None | UnloadedType = field(default=UNLOADED, repr=False)
-    _expiration_date: date | None | UnloadedType = field(default=UNLOADED, repr=False)
 
     def __init__(
         self,
