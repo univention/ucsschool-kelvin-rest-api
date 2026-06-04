@@ -114,10 +114,12 @@ class track_changes(Generic[_T]):
         self._obj: _T = obj
         self._original: _T = obj
         self._replace_fields: frozenset[str] = replace_fields
-        self.patch: Sequence[JSONPathOperation] | None = None
+        self.patch: Sequence[
+            JSONPathOperation
+        ] | None = None  # TODO: Do not return None, but empty Sequence in case of no changes?
 
     def __enter__(self) -> Self:
-        self._original = copy.copy(self._obj)
+        self._original = copy.deepcopy(self._obj)
         return self
 
     def __exit__(self, *_: object) -> None:
