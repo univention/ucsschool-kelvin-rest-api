@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import fields
 from datetime import date
 from typing import TYPE_CHECKING, Literal, TypeVar
 
@@ -429,3 +430,57 @@ async def test_user_manager_load_spec_projection_matrix(
     if load_attr == "legal_guardians":
         assert not isinstance(result.legal_guardians, UnloadedType)
         assert {related.name for related in result.legal_guardians} == {context["guardian_name"]}
+
+
+@pytest.mark.asyncio
+async def test_user_manager_get_from_model_loads_all_fields(
+    db_session: AsyncSession,
+    school_factory: SchoolFactory,
+    group_factory: GroupFactory,
+    roles_factory: GroupTypeFactory,
+    role_factory: RoleFactory,
+    user_factory: UserFactory,
+    school_membership_factory: SchoolMembershipFactory,
+) -> None:
+    """LoadSpec.from_model must leave no field unloaded — unloaded fields would
+    diff as changed when the object is used as a track_changes baseline."""
+    manager, public_id, _, context = await _setup_user_case(
+        db_session,
+        school_factory,
+        group_factory,
+        roles_factory,
+        role_factory,
+        user_factory,
+        school_membership_factory,
+    )
+    result = await manager.get(public_id, load=LoadSpec.from_model(User))
+
+    all_fields = {f.name.removeprefix("_") for f in fields(User)} - {"public_id"}
+    _assert_only_expected_fields_loaded(result, all_fields)
+    assert result.name == context["name"]
+
+
+@pytest.mark.asyncio
+async def test_group_manager_get_from_model_loads_all_fields(
+    db_session: AsyncSession,
+    school_factory: SchoolFactory,
+    group_factory: GroupFactory,
+    roles_factory: GroupTypeFactory,
+    user_factory: UserFactory,
+    role_factory: RoleFactory,
+    school_membership_factory: SchoolMembershipFactory,
+) -> None:
+    manager, public_id, _, context = await _setup_group_case(
+        db_session,
+        school_factory,
+        group_factory,
+        roles_factory,
+        user_factory,
+        role_factory,
+        school_membership_factory,
+    )
+    result = await manager.get(public_id, load=LoadSpec.from_model(Group))
+
+    all_fields = {f.name.removeprefix("_") for f in fields(Group)} - {"public_id"}
+    _assert_only_expected_fields_loaded(result, all_fields)
+    assert result.name == context["name"]
