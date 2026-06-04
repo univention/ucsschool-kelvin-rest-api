@@ -204,6 +204,8 @@ def _classify_patch_operation(parts: list[str]) -> str | None:
     top = parts[0]
     depth = len(parts)
     if top == "school_memberships":
+        if depth <= 2:
+            return top
         if depth >= 3 and parts[2] in ("groups", "roles") and depth <= 4:
             return top
         raise UnsupportedOperation(f"Modifying {top!r} via patch is not supported.")
