@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import uuid
 
+import pytest
 from tests.core.domain.helpers.model_builders import (
     role as build_role,
     school as build_school,
@@ -90,17 +91,26 @@ def test_create_patch_uuid_keyed_dict_change_produces_stable_op() -> None:
 # --- track_changes ---
 
 
-def test_track_changes_patch_is_none_before_enter() -> None:
+def test_track_changes_patch_before_enter_raises() -> None:
     school = build_school()
     tracker = track_changes(school)
-    assert tracker.patch is None
+    with pytest.raises(RuntimeError, match="baseline"):
+        tracker.patch
+
+
+def test_track_changes_patch_is_readable_inside_the_block() -> None:
+    school = build_school(name="before")
+    with track_changes(school) as tracker:
+        assert list(tracker.patch) == []
+        school.name = "after"
+        ops = list(tracker.patch)
+    assert any(o["op"] != "remove" and o["path"] == "/name" and o["value"] == "after" for o in ops)
 
 
 def test_track_changes_no_mutations_produces_empty_patch() -> None:
     school = build_school()
     with track_changes(school) as tracker:
         pass
-    assert tracker.patch is not None
     assert list(tracker.patch) == []
 
 
@@ -108,7 +118,6 @@ def test_track_changes_captures_scalar_mutation() -> None:
     school = build_school(name="before")
     with track_changes(school) as tracker:
         school.name = "after"
-    assert tracker.patch is not None
     ops = list(tracker.patch)
     assert any(o["op"] != "remove" and o["path"] == "/name" and o["value"] == "after" for o in ops)
 
@@ -117,7 +126,6 @@ def test_track_changes_dispatches_for_group() -> None:
     group = build_school_class(name="before")
     with track_changes(group) as tracker:
         group.name = "after"
-    assert tracker.patch is not None
     ops = list(tracker.patch)
     assert any(o["op"] != "remove" and o["path"] == "/name" and o["value"] == "after" for o in ops)
 
@@ -126,7 +134,6 @@ def test_track_changes_dispatches_for_user() -> None:
     user = build_user()
     with track_changes(user) as tracker:
         user.name = "changed"
-    assert tracker.patch is not None
     ops = list(tracker.patch)
     assert any(o["op"] != "remove" and o["path"] == "/name" and o["value"] == "changed" for o in ops)
 
@@ -135,7 +142,6 @@ def test_track_changes_does_not_mutate_original_on_copy() -> None:
     school = build_school(name="original")
     with track_changes(school) as tracker:
         school.name = "mutated"
-    assert tracker.patch is not None
     assert any(op["op"] != "remove" and op["value"] == "mutated" for op in tracker.patch)
 
 
@@ -143,7 +149,6 @@ def test_track_changes_replace_fields_forwarded() -> None:
     school = build_school()
     with track_changes(school, replace_fields=frozenset({"educational_servers"})) as tracker:
         school.educational_servers = {"new"}
-    assert tracker.patch is not None
     ops = list(tracker.patch)
     replace_ops = [o for o in ops if o["path"] == "/educational_servers"]
     assert len(replace_ops) == 1

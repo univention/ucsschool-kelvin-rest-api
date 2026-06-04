@@ -92,9 +92,11 @@ def create_user_patch(
 class track_changes(Generic[_T]):
     """Context manager that records all attribute changes made to an object.
 
-    On exit the accumulated changes are available as a JSON Patch via the
-    ``patch`` attribute. Dispatches to the appropriate ``create_*_patch``
-    function so that any type-specific logic is applied automatically.
+    The accumulated changes are available as a JSON Patch via the ``patch``
+    property — both inside the ``with`` block (as a live diff against the
+    baseline taken on enter) and after it. Dispatches to the appropriate
+    ``create_*_patch`` function so that any type-specific logic is applied
+    automatically.
 
     Example::
 
@@ -112,21 +114,37 @@ class track_changes(Generic[_T]):
 
     def __init__(self, obj: _T, replace_fields: frozenset[str] = _EMPTY_FROZENSET) -> None:
         self._obj: _T = obj
-        self._original: _T = obj
+        self._original: _T | None = None
         self._replace_fields: frozenset[str] = replace_fields
-        self.patch: Sequence[
-            JSONPathOperation
-        ] | None = None  # TODO: Do not return None, but empty Sequence in case of no changes?
 
     def __enter__(self) -> Self:
         self._original = copy.deepcopy(self._obj)
         return self
 
     def __exit__(self, *_: object) -> None:
+        pass  # the patch is computed on access — see the ``patch`` property
+
+    @property
+    def patch(self) -> Sequence[JSONPathOperation]:
+        """JSON Patch transforming the baseline into the object's current state.
+
+        Computed on access, so it can be read inside the ``with`` block as
+        well as after it. Empty if nothing changed.
+
+        Raises:
+            RuntimeError: If read before the ``with`` block was entered — no
+                baseline exists yet at that point.
+        """
+        if self._original is None:
+            raise RuntimeError(
+                "tracker.patch requires a baseline; enter the track_changes context first."
+            )
         if isinstance(self._obj, School) and isinstance(self._original, School):
-            self.patch = create_school_patch(self._original, self._obj, self._replace_fields)
-        elif isinstance(self._obj, Group) and isinstance(self._original, Group):
-            self.patch = create_group_patch(self._original, self._obj, self._replace_fields)
-        # pragma: no cover — unreachable: _T is constrained to School | Group | User
-        elif isinstance(self._obj, User) and isinstance(self._original, User):  # pragma: no cover
-            self.patch = create_user_patch(self._original, self._obj, self._replace_fields)
+            return create_school_patch(self._original, self._obj, self._replace_fields)
+        if isinstance(self._obj, Group) and isinstance(self._original, Group):
+            return create_group_patch(self._original, self._obj, self._replace_fields)
+        if isinstance(self._obj, User) and isinstance(self._original, User):
+            return create_user_patch(self._original, self._obj, self._replace_fields)
+        raise TypeError(  # pragma: no cover — unreachable: _T is constrained to School | Group | User
+            f"track_changes does not support {type(self._obj).__name__} objects."
+        )
