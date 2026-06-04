@@ -71,6 +71,11 @@ async def _apply_membership_relation_changes(
                 school=school_model,
                 is_primary=cast(bool, patched_membership.get("is_primary", False)),
             )
+            # Initialise the lazy="raise" collections while the object is still
+            # transient — once appended (and thus pending), assigning them would
+            # trigger a load of the current value and raise.
+            orm_membership.groups = []
+            orm_membership.roles = []
             model.school_memberships.append(orm_membership)
 
         current_group_ids = extract_public_ids(
