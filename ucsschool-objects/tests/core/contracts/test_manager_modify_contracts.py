@@ -9,7 +9,7 @@ from uuid import UUID
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from ucsschool_objects import NotFound, UnsupportedOperation, User
+from ucsschool_objects import Group, NotFound, Role, UnsupportedOperation, User
 from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyGroupManager,
     SQLAlchemySchoolManager,
@@ -791,6 +791,48 @@ async def test_user_manager_modify_add_school_membership(
     membership = result.school_memberships[db_school.public_id]
     assert membership.school.public_id == db_school.public_id
     assert membership.is_primary is True
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_add_school_membership_with_roles_and_groups(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    group_factory: AsyncGroupFactory,
+    role_factory: AsyncRoleFactory,
+) -> None:
+    """A newly added membership carries its roles and groups along."""
+    manager = SQLAlchemyUserManager(db_session)
+    db_user = await user_factory()
+    db_school = await school_factory()
+    db_group = await group_factory()
+    db_role = await role_factory()
+    school = await SQLAlchemySchoolManager(db_session).get(db_school.public_id)
+    user = await manager.get(db_user.public_id, load=LoadSpec.from_attributes("school_memberships"))
+    with track_changes(user) as tracker:
+        user.school_memberships[db_school.public_id] = SchoolMembership(
+            school=school,
+            is_primary=False,
+            roles={Role.minimal(db_role.public_id)},
+            groups={Group.minimal(db_group.public_id)},
+        )
+    assert tracker.patch
+    await manager.modify(db_user.public_id, tracker.patch)
+
+    updated = (
+        await db_session.execute(
+            select(SchoolMembershipModel)
+            .options(
+                selectinload(SchoolMembershipModel.groups),
+                selectinload(SchoolMembershipModel.roles),
+            )
+            .where(SchoolMembershipModel.user_id == db_user.id)
+        )
+    ).scalar_one()
+    assert updated.school_id == db_school.id
+    assert updated.is_primary is False
+    assert {g.public_id for g in updated.groups} == {db_group.public_id}
+    assert {r.public_id for r in updated.roles} == {db_role.public_id}
 
 
 @pytest.mark.asyncio
