@@ -908,6 +908,43 @@ async def test_user_manager_modify_groups_in_school_membership(
 
 
 @pytest.mark.asyncio
+async def test_user_manager_modify_links_single_group_in_school_membership(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    group_factory: AsyncGroupFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    """Element-level op on the groups list (depth 4): link one reference."""
+    user = await user_factory()
+    school = await school_factory()
+    group_a = await group_factory()
+    group_b = await group_factory()
+    await school_membership_factory(user=user, school=school, groups=[group_a])
+
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "add",
+            "path": f"/school_memberships/{school.public_id}/groups/-",
+            "value": {"public_id": str(group_b.public_id)},
+        }
+    ]
+    await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
+
+    updated = (
+        await db_session.execute(
+            select(SchoolMembershipModel)
+            .options(selectinload(SchoolMembershipModel.groups))
+            .where(
+                SchoolMembershipModel.user_id == user.id,
+                SchoolMembershipModel.school_id == school.id,
+            )
+        )
+    ).scalar_one()
+    assert {g.public_id for g in updated.groups} == {group_a.public_id, group_b.public_id}
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("clear_roles", [False, True], ids=["replace-role", "clear-roles"])
 async def test_user_manager_modify_roles_in_school_membership(
     db_session: AsyncSession,
