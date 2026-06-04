@@ -245,10 +245,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
 
         public_id = user_props.univentionObjectIdentifier
         try:
-            current_user = await storage.users.get(
-                public_id,
-                load=LoadSpec.from_attributes("school_memberships", "legal_wards", "legal_guardians"),
-            )
+            # Load all fields: the object is the change-detection baseline, and
+            # unloaded fields would diff as changed against the event values.
+            current_user = await storage.users.get(public_id, load=LoadSpec.from_model(User))
         except NotFound:
             await storage.users.create(
                 User(
@@ -316,10 +315,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         user_props = event.new.properties
         public_id = user_props.univentionObjectIdentifier
         logger.debug("Updating user {!r} (public_id={})", user_props.username, public_id)
-        current_user = await storage.users.get(
-            public_id,
-            load=LoadSpec.from_attributes("school_memberships", "legal_wards", "legal_guardians"),
-        )
+        current_user = await storage.users.get(public_id, load=LoadSpec.from_model(User))
 
         raw_schools = user_props.school
         if raw_schools:
@@ -451,17 +447,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
 
         public_id = group_props.univentionObjectIdentifier
         try:
-            current_group = await storage.groups.get(
-                public_id,
-                load=LoadSpec.from_attributes(
-                    "school",
-                    "roles",
-                    "allowed_email_senders_users",
-                    "allowed_email_senders_groups",
-                    "members",
-                    "member_roles",
-                ),
-            )
+            current_group = await storage.groups.get(public_id, load=LoadSpec.from_model(Group))
         except NotFound:
             logger.debug("Creating group {!r} (public_id={})", group_props.name, public_id)
             await storage.groups.create(
@@ -543,17 +529,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         group_props = event.new.properties
         public_id = group_props.univentionObjectIdentifier
         logger.debug("Updating group {!r} (public_id={})", group_props.name, public_id)
-        current_group = await storage.groups.get(
-            public_id,
-            load=LoadSpec.from_attributes(
-                "school",
-                "roles",
-                "allowed_email_senders_users",
-                "allowed_email_senders_groups",
-                "members",
-                "member_roles",
-            ),
-        )
+        current_group = await storage.groups.get(public_id, load=LoadSpec.from_model(Group))
 
         school_name = (
             group_props.ucsschoolRole[0].school
