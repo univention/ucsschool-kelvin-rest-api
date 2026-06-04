@@ -16,6 +16,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     bulk_fetch_by_public_id,
     compose_field_map,
     extract_public_ids,
+    fetch_one_by_public_id,
     get_exposed_fields,
     load_requested_scalar_attributes,
     role_scalar_columns,
@@ -62,8 +63,15 @@ async def _apply_membership_relation_changes(
         patched_membership = cast(PatchDict, patched_m)
         school_uuid = UUID(school_uuid_str)
         orm_membership = memberships_by_school.get(school_uuid)
-        if orm_membership is None:  # pragma: no cover
-            continue
+        if orm_membership is None:
+            school_model = await fetch_one_by_public_id(
+                session, SchoolModel, school_uuid, SchoolModel.__name__
+            )
+            orm_membership = SchoolMembership(
+                school=school_model,
+                is_primary=cast(bool, patched_membership.get("is_primary", False)),
+            )
+            model.school_memberships.append(orm_membership)
 
         current_group_ids = extract_public_ids(
             cast(list[PublicIdInput], current_membership.get("groups", []))
@@ -100,6 +108,14 @@ async def _apply_membership_relation_changes(
                 orm_membership.roles = list(role_records.values())
             else:
                 orm_membership.roles = []
+
+    removed_school_uuids = {UUID(key) for key in current_memberships} - {
+        UUID(key) for key in patched_memberships
+    }
+    for school_uuid in removed_school_uuids:
+        orm_membership = memberships_by_school[school_uuid]
+        model.school_memberships.remove(orm_membership)
+        await session.delete(orm_membership)
 
 
 def _apply_user_patch(model: UserModel, patched: PatchDict) -> None:
