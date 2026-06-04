@@ -784,7 +784,6 @@ async def test_user_manager_modify_add_school_membership(
         user.school_memberships[db_school.public_id] = SchoolMembership(
             school=school, is_primary=True, roles=set(), groups=set()
         )
-    # tracker.patch is only computed on __exit__, so modify must happen outside the block.
     assert tracker.patch
     await manager.modify(db_user.public_id, tracker.patch)
     result = await manager.get(db_user.public_id, load=LoadSpec.from_attributes("school_memberships"))
