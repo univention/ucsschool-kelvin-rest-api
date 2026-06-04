@@ -13,9 +13,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinType,
     PublicIdInput,
     apply_patch,
-    bulk_fetch_by_public_id,
     compose_field_map,
-    extract_public_ids,
     fetch_one_by_public_id,
     get_exposed_fields,
     load_requested_scalar_attributes,
@@ -51,6 +49,48 @@ if TYPE_CHECKING:
     from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 
+async def _create_membership(
+    session: AsyncSession,
+    model: UserModel,
+    school_uuid: UUID,
+    patched_membership: PatchDict,
+) -> SchoolMembership:
+    school_model = await fetch_one_by_public_id(session, SchoolModel, school_uuid, SchoolModel.__name__)
+    orm_membership = SchoolMembership(
+        school=school_model,
+        is_primary=cast(bool, patched_membership.get("is_primary", False)),
+    )
+    # Initialise the lazy="raise" collections while the object is still
+    # transient — once appended (and thus pending), assigning them would
+    # trigger a load of the current value and raise.
+    orm_membership.groups = []
+    orm_membership.roles = []
+    model.school_memberships.append(orm_membership)
+    return orm_membership
+
+
+async def _sync_membership_links(
+    session: AsyncSession,
+    orm_membership: SchoolMembership,
+    current_membership: PatchDict,
+    patched_membership: PatchDict,
+) -> None:
+    await sync_collection(
+        session,
+        cast(list[PublicIdInput], patched_membership.get("groups", [])),
+        cast(list[PublicIdInput], current_membership.get("groups", [])),
+        GroupModel,
+        lambda values: setattr(orm_membership, "groups", values),
+    )
+    await sync_collection(
+        session,
+        cast(list[PublicIdInput], patched_membership.get("roles", [])),
+        cast(list[PublicIdInput], current_membership.get("roles", [])),
+        RoleModel,
+        lambda values: setattr(orm_membership, "roles", values),
+    )
+
+
 async def _apply_membership_relation_changes(
     model: UserModel,
     current_memberships: PatchDict,
@@ -58,61 +98,19 @@ async def _apply_membership_relation_changes(
     session: AsyncSession,
 ) -> None:
     memberships_by_school = {m.school.public_id: m for m in model.school_memberships}
+
     for school_uuid_str, patched_m in patched_memberships.items():
-        current_membership = cast(PatchDict, current_memberships.get(school_uuid_str, {}))
         patched_membership = cast(PatchDict, patched_m)
         school_uuid = UUID(school_uuid_str)
         orm_membership = memberships_by_school.get(school_uuid)
         if orm_membership is None:
-            school_model = await fetch_one_by_public_id(
-                session, SchoolModel, school_uuid, SchoolModel.__name__
-            )
-            orm_membership = SchoolMembership(
-                school=school_model,
-                is_primary=cast(bool, patched_membership.get("is_primary", False)),
-            )
-            # Initialise the lazy="raise" collections while the object is still
-            # transient — once appended (and thus pending), assigning them would
-            # trigger a load of the current value and raise.
-            orm_membership.groups = []
-            orm_membership.roles = []
-            model.school_memberships.append(orm_membership)
-
-        current_group_ids = extract_public_ids(
-            cast(list[PublicIdInput], current_membership.get("groups", []))
+            orm_membership = await _create_membership(session, model, school_uuid, patched_membership)
+        await _sync_membership_links(
+            session,
+            orm_membership,
+            cast(PatchDict, current_memberships.get(school_uuid_str, {})),
+            patched_membership,
         )
-        patched_group_ids = extract_public_ids(
-            cast(list[PublicIdInput], patched_membership.get("groups", []))
-        )
-        if current_group_ids != patched_group_ids:
-            if patched_group_ids:
-                group_records = await bulk_fetch_by_public_id(
-                    session,
-                    GroupModel,
-                    list(patched_group_ids),
-                    GroupModel.__name__,
-                )
-                orm_membership.groups = list(group_records.values())
-            else:
-                orm_membership.groups = []
-
-        current_role_ids = extract_public_ids(
-            cast(list[PublicIdInput], current_membership.get("roles", []))
-        )
-        patched_role_ids = extract_public_ids(
-            cast(list[PublicIdInput], patched_membership.get("roles", []))
-        )
-        if current_role_ids != patched_role_ids:
-            if patched_role_ids:
-                role_records = await bulk_fetch_by_public_id(
-                    session,
-                    RoleModel,
-                    list(patched_role_ids),
-                    RoleModel.__name__,
-                )
-                orm_membership.roles = list(role_records.values())
-            else:
-                orm_membership.roles = []
 
     removed_school_uuids = {UUID(key) for key in current_memberships} - {
         UUID(key) for key in patched_memberships
