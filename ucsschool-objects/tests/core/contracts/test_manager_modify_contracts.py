@@ -784,10 +784,50 @@ async def test_user_manager_modify_add_school_membership(
         user.school_memberships[db_school.public_id] = SchoolMembership(
             school=school, is_primary=True, roles=set(), groups=set()
         )
-        ops = [] if tracker.patch is None else tracker.patch
-        await manager.modify(db_user.public_id, ops)
+    # tracker.patch is only computed on __exit__, so modify must happen outside the block.
+    assert tracker.patch
+    await manager.modify(db_user.public_id, tracker.patch)
     result = await manager.get(db_user.public_id, load=LoadSpec.from_attributes("school_memberships"))
     assert len(result.school_memberships) == 1
+    membership = result.school_memberships[db_school.public_id]
+    assert membership.school.public_id == db_school.public_id
+    assert membership.is_primary is True
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_remove_school_membership(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    group_factory: AsyncGroupFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    user = await user_factory()
+    school = await school_factory()
+    group = await group_factory()
+    await school_membership_factory(user=user, school=school, groups=[group])
+
+    manager = SQLAlchemyUserManager(db_session)
+    ops: list[JSONPathOperation] = [{"op": "remove", "path": f"/school_memberships/{school.public_id}"}]
+    await manager.modify(user.public_id, ops)
+
+    remaining = (
+        (
+            await db_session.execute(
+                select(SchoolMembershipModel).where(SchoolMembershipModel.user_id == user.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert remaining == []
+    # Only the membership is removed; user, school and group survive.
+    result = await manager.get(user.public_id, load=LoadSpec.from_attributes("school_memberships"))
+    assert result.school_memberships == {}
+    assert (
+        await db_session.execute(select(SchoolModel).where(SchoolModel.id == school.id))
+    ).scalar_one()
+    assert (await db_session.execute(select(GroupModel).where(GroupModel.id == group.id))).scalar_one()
 
 
 @pytest.mark.asyncio
@@ -1001,6 +1041,26 @@ async def test_user_manager_modify_legal_wards(
         )
     ).scalar_one()
     assert {w.public_id for w in updated.legal_wards} == {ward_b.public_id}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("relation", ["legal_guardians", "legal_wards"])
+async def test_user_manager_modify_add_legal_relation_via_track_changes(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    relation: str,
+) -> None:
+    """Adding a guardian/ward to a user that has none, via the track_changes flow."""
+    manager = SQLAlchemyUserManager(db_session)
+    db_user = await user_factory()
+    db_related = await user_factory()
+    user = await manager.get(db_user.public_id, load=LoadSpec.from_attributes(relation))
+    with track_changes(user) as tracker:
+        getattr(user, relation).add(User.minimal(db_related.public_id))
+    assert tracker.patch
+    await manager.modify(db_user.public_id, tracker.patch)
+    result = await manager.get(db_user.public_id, load=LoadSpec.from_attributes(relation))
+    assert {u.public_id for u in getattr(result, relation)} == {db_related.public_id}
 
 
 @pytest.mark.asyncio
