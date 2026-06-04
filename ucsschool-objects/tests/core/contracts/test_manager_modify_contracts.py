@@ -19,15 +19,21 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     extract_public_ids,
     sync_scalar_relation,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.managers.school_manager import _apply_school_patch
-from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import _apply_user_patch
+from ucsschool_objects.core.adapters.sqlalchemy.managers.school_manager import (
+    _apply_school_patch,
+)
+from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import (
+    _apply_user_patch,
+)
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
     to_group,
     to_role,
     to_school,
     to_user,
 )
-from ucsschool_objects.core.domain.patch import _create_patch
+from ucsschool_objects.core.domain.load_spec import LoadSpec
+from ucsschool_objects.core.domain.models import SchoolMembership
+from ucsschool_objects.core.domain.patch import _create_patch, track_changes
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     School as SchoolModel,
@@ -240,7 +246,10 @@ async def test_sync_scalar_relation_clears_optional(db_session: AsyncSession) ->
 def test_to_user_returns_none_for_null_birthday() -> None:
     model = _bare_user()  # birthday=None by default
     user = to_user(
-        model, include_memberships=False, include_legal_wards=False, include_legal_guardians=False
+        model,
+        include_memberships=False,
+        include_legal_wards=False,
+        include_legal_guardians=False,
     )
     assert user.birthday is None
 
@@ -373,7 +382,10 @@ async def test_group_manager_modify_members(
     dst = copy.copy(group_domain)
     dst.members = {
         to_user(
-            user, include_memberships=False, include_legal_wards=False, include_legal_guardians=False
+            user,
+            include_memberships=False,
+            include_legal_wards=False,
+            include_legal_guardians=False,
         )
     }
     ops = _create_patch(group_domain, dst)
@@ -397,7 +409,10 @@ async def test_group_manager_modify_allowed_email_senders_users(
     dst = copy.copy(group_domain)
     dst.allowed_email_senders_users = {
         to_user(
-            user, include_memberships=False, include_legal_wards=False, include_legal_guardians=False
+            user,
+            include_memberships=False,
+            include_legal_wards=False,
+            include_legal_guardians=False,
         )
     }
     ops = _create_patch(group_domain, dst)
@@ -672,7 +687,13 @@ async def test_user_manager_modify_unsupported_path_raises(
     with pytest.raises(UnsupportedOperation):
         await SQLAlchemyUserManager(db_session).modify(
             user.public_id,
-            [{"op": "replace", "path": "/school_memberships/some-id/is_primary", "value": True}],
+            [
+                {
+                    "op": "replace",
+                    "path": "/school_memberships/some-id/is_primary",
+                    "value": True,
+                }
+            ],
         )
 
 
@@ -746,6 +767,27 @@ async def test_user_manager_modify_empty_name_raises_and_does_not_persist(
 # ---------------------------------------------------------------------------
 # SQLAlchemyUserManager.modify — group and legal relation tests
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_add_school_membership(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+) -> None:
+    manager = SQLAlchemyUserManager(db_session)
+    db_user = await user_factory()
+    db_school = await school_factory()
+    school = await SQLAlchemySchoolManager(db_session).get(db_school.public_id)
+    user = await manager.get(db_user.public_id, load=LoadSpec.from_attributes("school_memberships"))
+    with track_changes(user) as tracker:
+        user.school_memberships[db_school.public_id] = SchoolMembership(
+            school=school, is_primary=True, roles=set(), groups=set()
+        )
+        ops = [] if tracker.patch is None else tracker.patch
+        await manager.modify(db_user.public_id, ops)
+    result = await manager.get(db_user.public_id, load=LoadSpec.from_attributes("school_memberships"))
+    assert len(result.school_memberships) == 1
 
 
 @pytest.mark.asyncio
