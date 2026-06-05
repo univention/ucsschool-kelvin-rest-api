@@ -62,7 +62,7 @@ def test_main_happy_path(good_env):
         ) as p_storage,
         patch("kelvin_connector.connector.SynchronizationManager"),
         patch("kelvin_connector.connector.KelvinConnectorEventHandler"),
-        patch("kelvin_connector.connector.ConsumerModule", mock_consumer_cls),
+        patch("kelvin_connector.connector.KelvinConsumerModule", mock_consumer_cls),
         patch("kelvin_connector.connector.asyncio.run", mock_asyncio_run),
     ):
         main()
