@@ -2,9 +2,10 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from kelvin_connector.consumer import KelvinConnectorEventHandler
+from kelvin_connector.consumer import KelvinConnectorEventHandler, KelvinConsumerModule
 from kelvin_connector.models import UserProperties
 from provisioning_consumer_lib import UDMEventHandler
+from pydantic import ValidationError
 
 _TS = "2024-01-01T00:00:00"
 
@@ -190,23 +191,37 @@ async def test_is_relevant_group_with_unmatched_role_returns_false(handler):
 # ── handle_event ──────────────────────────────────────────────────────────────
 
 
+def _queue_event(num_delivered: int = 1, body: dict | None = None) -> dict:
+    return {
+        "publisher_name": "udm-listener",
+        "ts": _TS,
+        "realm": "udm",
+        "topic": "users/user",
+        "sequence_number": 42,
+        "num_delivered": num_delivered,
+        "body": body if body is not None else {"old": None, "new": _user_payload()},
+    }
+
+
 async def test_handle_event_delegates_to_super(handler):
     event = {"topic": "users/user", "body": {}}
     with patch.object(UDMEventHandler, "handle_event", new_callable=AsyncMock, return_value=True):
         assert await handler.handle_event(event) is True
 
 
-async def test_handle_event_catches_validation_error_and_returns_true(handler):
-    from pydantic import ValidationError
+async def test_handle_event_propagates_validation_error(handler):
+    """Malformed events are no longer swallowed — what happens to a failed
+    event is decided by KelvinConsumerModule."""
+    payload = _user_payload()
+    payload["properties"]["univentionObjectIdentifier"] = "not-a-uuid"
+    with pytest.raises(ValidationError):
+        await handler.handle_event(_queue_event(body={"old": None, "new": payload}))
 
-    async def _raise(*_args, **_kwargs):
-        try:
-            UserProperties.parse_obj({"univentionObjectIdentifier": "not-a-uuid"})
-        except ValidationError as exc:
-            raise exc
 
-    with patch.object(UDMEventHandler, "handle_event", new=_raise):
-        assert await handler.handle_event({"body": {}}) is True
+async def test_handle_event_propagates_handler_error_without_duplicate_logging(handler, sync_manager):
+    sync_manager.handle_user_create.side_effect = RuntimeError("boom")
+    with pytest.raises(RuntimeError, match="boom"):
+        await handler.handle_event(_queue_event())
 
 
 # ── _handle_create ────────────────────────────────────────────────────────────
@@ -337,3 +352,95 @@ async def test_handle_remove_host_group(handler, sync_manager):
     await handler._handle_remove(_meta(), _host_group_payload())
     sync_manager.handle_host_group_delete.assert_called_once()
     sync_manager.handle_group_delete.assert_not_called()
+
+
+# ── KelvinConsumerModule delivery policy ──────────────────────────────────────
+
+
+def _validation_error() -> ValidationError:
+    try:
+        UserProperties.parse_obj({"univentionObjectIdentifier": "not-a-uuid"})
+    except ValidationError as exc:
+        return exc
+    raise AssertionError("expected a ValidationError")
+
+
+@pytest.fixture
+def event_handler():
+    h = AsyncMock()
+    h.is_relevant.return_value = True
+    h.handle_event.return_value = True
+    return h
+
+
+@pytest.fixture
+def consumer(event_handler, tmp_path):
+    consumer = KelvinConsumerModule(
+        event_handler,
+        session=MagicMock(),
+        name="test-consumer",
+        provisioning_url="https://provisioning.test",
+        config_dir=str(tmp_path),
+    )
+    consumer._fetch_event = AsyncMock(return_value=_queue_event())
+    consumer._acknowledge_event = AsyncMock()
+    return consumer
+
+
+async def test_consumer_acknowledges_successful_event(consumer):
+    await consumer.process_one_event()
+    consumer._acknowledge_event.assert_called_once()
+
+
+async def test_consumer_acknowledges_irrelevant_event_without_handling(consumer, event_handler):
+    event_handler.is_relevant.return_value = False
+    await consumer.process_one_event()
+    consumer._acknowledge_event.assert_called_once()
+    event_handler.handle_event.assert_not_called()
+
+
+async def test_consumer_does_nothing_on_long_polling_timeout(consumer, event_handler):
+    consumer._fetch_event.return_value = None
+    await consumer.process_one_event()
+    event_handler.handle_event.assert_not_called()
+    consumer._acknowledge_event.assert_not_called()
+
+
+async def test_consumer_does_not_acknowledge_unhandled_event(consumer, event_handler):
+    event_handler.handle_event.return_value = False
+    await consumer.process_one_event()
+    consumer._acknowledge_event.assert_not_called()
+
+
+async def test_consumer_crashes_without_ack_while_deliveries_left(consumer, event_handler):
+    """Transient failures get retried: the event is redelivered after restart."""
+    event_handler.handle_event.side_effect = RuntimeError("boom")
+    consumer._fetch_event.return_value = _queue_event(num_delivered=1)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await consumer.process_one_event()
+
+    consumer._acknowledge_event.assert_not_called()
+
+
+async def test_consumer_drops_event_after_delivery_budget_is_exhausted(consumer, event_handler):
+    """A poison event is ejected: acknowledged so it is not redelivered, but
+    the process still crashes to restart with a clean state."""
+    event_handler.handle_event.side_effect = RuntimeError("boom")
+    consumer._fetch_event.return_value = _queue_event(num_delivered=3)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await consumer.process_one_event()
+
+    consumer._acknowledge_event.assert_called_once()
+
+
+async def test_consumer_drops_malformed_event_immediately(consumer, event_handler):
+    """Retrying cannot fix a malformed event — no delivery budget."""
+    event_handler.handle_event.side_effect = _validation_error()
+    consumer._fetch_event.return_value = _queue_event(num_delivered=1)
+
+    with pytest.raises(ValidationError):
+        await consumer.process_one_event()
+
+    consumer._acknowledge_event.assert_called_once()

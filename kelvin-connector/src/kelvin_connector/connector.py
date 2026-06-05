@@ -5,7 +5,6 @@ from pathlib import Path
 
 from kelvin_connector.sync import SynchronizationManager
 from loguru import logger
-from provisioning_consumer_lib import ConsumerModule
 from ucsschool_objects.core.adapters.sqlalchemy import (
     build_engine,
     build_kelvin_storage_session_factory,
@@ -13,7 +12,7 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
 )
 
-from .consumer import KelvinConnectorEventHandler
+from .consumer import KelvinConnectorEventHandler, KelvinConsumerModule
 
 
 def main():
@@ -59,7 +58,7 @@ def main():
     CONFIG_DIR = Path("/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/")
 
     event_handler = KelvinConnectorEventHandler(synchronization_manager, logger=logger)
-    consumer = ConsumerModule(
+    consumer = KelvinConsumerModule(
         event_handler,
         name="kelvin-connector",
         provisioning_url=f"https://{PROVISIONING_API_FQDN}/univention/provisioning",
