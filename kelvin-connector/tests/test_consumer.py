@@ -435,12 +435,12 @@ async def test_consumer_drops_event_after_delivery_budget_is_exhausted(consumer,
     consumer._acknowledge_event.assert_called_once()
 
 
-async def test_consumer_drops_malformed_event_immediately(consumer, event_handler):
-    """Retrying cannot fix a malformed event — no delivery budget."""
+async def test_consumer_drops_malformed_event_without_crashing(consumer, event_handler):
+    """Retrying cannot fix a malformed event and the handler never touched
+    any state — acknowledge it and continue with the next event."""
     event_handler.handle_event.side_effect = _validation_error()
     consumer._fetch_event.return_value = _queue_event(num_delivered=1)
 
-    with pytest.raises(ValidationError):
-        await consumer.process_one_event()
+    await consumer.process_one_event()
 
     consumer._acknowledge_event.assert_called_once()

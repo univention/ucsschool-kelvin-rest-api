@@ -431,10 +431,35 @@ def test_ucsschool_role_validator_keeps_colons_in_context():
     ]
 
 
-def test_ucsschool_role_validator_rejects_two_part_role_string():
+def test_ucsschool_role_validator_skips_malformed_role_strings():
+    """One garbage role entry must not make an otherwise valid user invisible
+    to the cache — it is skipped with a warning."""
+    props = UserProperties.parse_obj(
+        dict(
+            univentionObjectIdentifier=uuid.uuid4(),
+            username="testuser",
+            firstname="Test",
+            lastname="User",
+            disabled=False,
+            school=["testschool"],
+            ucsschoolRole=["123", "school_admin:school:testschool"],
+            ucsschoolRecordUID="testuser",
+            ucsschoolSourceUID="src",
+            groups=[],
+            ucsschoolLegalWard=[],
+            ucsschoolLegalGuardian=[],
+            mailPrimaryAddress="",
+        )
+    )
+    assert props.ucsschoolRole == [
+        UcsschoolRole(role="school_admin", context="school", school="testschool")
+    ]
+
+
+def test_ucsschool_role_validator_rejects_user_without_any_parseable_role():
     from pydantic import ValidationError
 
-    with pytest.raises(ValidationError, match="not enough values"):
+    with pytest.raises(ValidationError, match="at least 1 item"):
         UserProperties.parse_obj(
             dict(
                 univentionObjectIdentifier=uuid.uuid4(),
@@ -443,7 +468,7 @@ def test_ucsschool_role_validator_rejects_two_part_role_string():
                 lastname="User",
                 disabled=False,
                 school=["testschool"],
-                ucsschoolRole=["teacher:school"],
+                ucsschoolRole=["123", "teacher:school"],
                 ucsschoolRecordUID="testuser",
                 ucsschoolSourceUID="src",
                 groups=[],

@@ -272,8 +272,9 @@ class KelvinConsumerModule(ConsumerModule):
       restarts with a clean state and continues with the next event. Since
       modify events create missing objects, the next event touching the
       same object repairs the dropped state.
-    - Malformed events (ValidationError) are dropped immediately — retrying
-      cannot fix them.
+    - Malformed events (ValidationError) are dropped immediately and without
+      crashing: retrying cannot fix them, and the handler never touched any
+      state, so there is nothing a restart would clean up.
 
     Every event is handled in its own database transaction that rolls back
     on failure, so a crashed event never leaves partial state behind.
@@ -305,7 +306,7 @@ class KelvinConsumerModule(ConsumerModule):
         except ValidationError:
             self.logger.critical(f"Dropping malformed event {seq_num}: {event!r}")
             await self._acknowledge_event(event)
-            raise
+            return
         except Exception:
             num_delivered = event["num_delivered"]
             if num_delivered < self.max_deliveries:
