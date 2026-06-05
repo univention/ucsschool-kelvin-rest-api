@@ -358,6 +358,39 @@ async def _setup_user_like_schools_case(factories: UserQueryFactories) -> QueryE
     )
 
 
+async def _setup_user_ids_in_school_case(factories: UserQueryFactories) -> QueryExpectation:
+    """The kelvin-connector's group member filter: id list narrowed to the
+    users that hold a membership for the group's school."""
+    school = await factories.school_factory(name="member-school")
+    other_school = await factories.school_factory(name="elsewhere")
+
+    member = await factories.user_factory(name="member")
+    outsider = await factories.user_factory(name="outsider")
+
+    await factories.school_membership_factory(user=member, school=school, is_primary=True)
+    await factories.school_membership_factory(user=outsider, school=other_school, is_primary=True)
+
+    return QueryExpectation(
+        query=SearchQuery(
+            where=And(
+                clauses=(
+                    Filter(
+                        field="public_id",
+                        op=Operator.IN,
+                        value=[str(member.public_id), str(outsider.public_id)],
+                    ),
+                    Filter(
+                        field="schools.public_id",
+                        op=Operator.EQ,
+                        value=str(school.public_id),
+                    ),
+                )
+            )
+        ),
+        expected_names=("member",),
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "setup_case",
@@ -453,6 +486,7 @@ async def test_role_query_operators(
         pytest.param(_setup_user_lt_case, id="user-lt"),
         pytest.param(_setup_user_lte_case, id="user-lte"),
         pytest.param(_setup_user_like_schools_case, id="user-like-schools"),
+        pytest.param(_setup_user_ids_in_school_case, id="user-ids-in-school"),
     ],
 )
 async def test_user_query_operators(

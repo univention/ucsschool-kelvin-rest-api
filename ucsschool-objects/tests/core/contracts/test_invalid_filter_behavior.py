@@ -9,6 +9,7 @@ from ucsschool_objects import (
     InvalidInFilter,
     InvalidLikeFilter,
     InvalidRangeFilter,
+    InvalidUuidFilter,
     Operator,
     SearchQuery,
     SortSpec,
@@ -115,6 +116,36 @@ async def test_like_filter_with_non_string_raises_domain_error(
         await manager.search(SearchQuery(where=invalid_filter))
     assert exc_info.value.field == "name"
     assert exc_info.value.value == 123
+
+
+@pytest.mark.asyncio
+async def test_uuid_filter_with_malformed_string_raises_domain_error(
+    db_session: AsyncSession, school_factory: SchoolFactory
+) -> None:
+    await school_factory(name="school-a")
+    manager = SQLAlchemySchoolManager(db_session)
+    invalid_filter = Filter(field="public_id", op=Operator.EQ, value="not-a-uuid")
+
+    with pytest.raises(InvalidUuidFilter, match="requires a UUID value") as exc_info:
+        await manager.search(SearchQuery(where=invalid_filter))
+    assert exc_info.value.field == "public_id"
+    assert exc_info.value.value == "not-a-uuid"
+
+
+@pytest.mark.asyncio
+async def test_uuid_filter_accepts_uuid_objects(
+    db_session: AsyncSession, school_factory: SchoolFactory
+) -> None:
+    school = await school_factory(name="school-a")
+    await school_factory(name="school-b")
+    manager = SQLAlchemySchoolManager(db_session)
+
+    results = list(
+        await manager.search(
+            SearchQuery(where=Filter(field="public_id", op=Operator.EQ, value=school.public_id))
+        )
+    )
+    assert [item.name for item in results] == ["school-a"]
 
 
 @pytest.mark.asyncio
