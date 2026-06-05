@@ -98,10 +98,16 @@ The only way to request loading is `LoadSpec` passed to a manager method.
 **Never** add unconditional `joinedload` / `selectinload` to a query.
 
 ### Domain models
-- Dataclasses with `eq=False`. Equality and hashing are by `public_id` only —
+- Plain classes. Fields are stored privately (`_name`) behind
+  public properties whose getters raise via `_require_loaded` when the value is `UNLOADED`.
+- Each model declares `__serialize_fields__`, the single source of truth for
+  introspection — `get_properties()` and `domain_object_properties()` derive the
+  public names from it.
+- Adding a field means updating `__init__`, the property pair, and `__serialize_fields__`.
+- Equality and hashing are by `public_id` only —
   implement custom `__eq__` / `__hash__` on every model.
-- `Role` is fully frozen (`@dataclass(frozen=True, eq=False)`);
-  the others use `@dataclass(eq=False)` because adapters mutate their collection fields.
+- `Role` is read-only (properties without setters);
+  the others have setters because adapters mutate their fields.
 - Relationship collections are `set[T]` (or `dict[UUID, SchoolMembership]` for `User.school_memberships`),
   never `list`.
 

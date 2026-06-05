@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+from ucsschool_objects.core.domain.models import get_properties
+
+if TYPE_CHECKING:
+    from ucsschool_objects.core.domain.models import SerializableDomainObject
 
 
 @dataclass(frozen=True)
@@ -15,13 +21,13 @@ class LoadSpec:
         return cls(includes_set=frozenset(attributes))
 
     @classmethod
-    def from_model(cls, model: type) -> "LoadSpec":
+    def from_model(cls, model: type[SerializableDomainObject]) -> "LoadSpec":
         """Return a LoadSpec covering every field of the given domain model.
 
         Use this when the loaded object serves as a change-detection baseline
         (e.g. with ``track_changes``): unloaded fields would otherwise diff as
         changed against their newly assigned values.
         """
-        # Domain models store their fields privately (``_name``) behind public
-        # properties; LoadSpec attributes use the public names (see domain_asdict).
-        return cls(includes_set=frozenset(f.name.removeprefix("_") for f in fields(model)))
+        # get_properties already maps private field names (``_name``) to the
+        # public property names that LoadSpec attributes use.
+        return cls(includes_set=frozenset(get_properties(model)))

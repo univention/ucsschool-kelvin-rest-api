@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import fields
 from datetime import date
 from typing import TYPE_CHECKING, Literal, TypeVar
 
@@ -23,6 +22,7 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyUserManager,
 )
 from ucsschool_objects.core.domain.json import _UNLOADED_MARKER, to_json
+from ucsschool_objects.core.domain.models import get_properties
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -455,7 +455,7 @@ async def test_user_manager_get_from_model_loads_all_fields(
     )
     result = await manager.get(public_id, load=LoadSpec.from_model(User))
 
-    all_fields = {f.name.removeprefix("_") for f in fields(User)} - {"public_id"}
+    all_fields = get_properties(User) - {"public_id"}
     _assert_only_expected_fields_loaded(result, all_fields)
     assert result.name == context["name"]
 
@@ -481,6 +481,6 @@ async def test_group_manager_get_from_model_loads_all_fields(
     )
     result = await manager.get(public_id, load=LoadSpec.from_model(Group))
 
-    all_fields = {f.name.removeprefix("_") for f in fields(Group)} - {"public_id"}
+    all_fields = get_properties(Group) - {"public_id"}
     _assert_only_expected_fields_loaded(result, all_fields)
     assert result.name == context["name"]
