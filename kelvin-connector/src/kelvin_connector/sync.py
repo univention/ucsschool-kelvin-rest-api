@@ -47,6 +47,19 @@ from ucsschool_objects import (
 
 DEFAULT_NUBUS_SOURCE_UID = "nubus"
 
+# Replace reference collections atomically instead of diffing them
+# element-wise: element-wise diffs can produce operations inside the
+# referenced objects (e.g. /school_memberships/<id>/groups/0/roles),
+# which the user manager rejects.
+_USER_REPLACE_FIELDS = frozenset(
+    {
+        "legal_wards",
+        "legal_guardians",
+        "school_memberships/*/groups",
+        "school_memberships/*/roles",
+    }
+)
+
 
 class SynchronizationException(Exception):
     pass
@@ -274,9 +287,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 user_props.username,
                 public_id,
             )
-            with track_changes(
-                current_user, replace_fields=frozenset({"legal_wards", "legal_guardians"})
-            ) as tracker:
+            with track_changes(current_user, replace_fields=_USER_REPLACE_FIELDS) as tracker:
                 self._apply_user_changes(
                     current_user,
                     user_props,
@@ -347,9 +358,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             user_props.ucsschoolLegalGuardian, "Legal guardian", mapper, storage
         )
 
-        with track_changes(
-            current_user, replace_fields=frozenset({"legal_wards", "legal_guardians"})
-        ) as tracker:
+        with track_changes(current_user, replace_fields=_USER_REPLACE_FIELDS) as tracker:
             self._apply_user_changes(
                 current_user,
                 user_props,

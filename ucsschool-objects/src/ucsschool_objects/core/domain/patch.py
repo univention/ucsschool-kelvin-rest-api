@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from typing import Generic, Self, TypeVar, cast
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
-from ucsschool_objects.core.domain.json import to_json
+from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.models import (
     Group,
     School,
@@ -16,17 +16,84 @@ _T = TypeVar("_T", School, Group, User)
 _EMPTY_FROZENSET: frozenset[str] = frozenset()
 
 
+def _reference_key(value: object) -> object:
+    """Reduce serialized domain references to their identity for comparison.
+
+    Managers resolve patch values by public_id alone, so two serialisations
+    of the same link set must compare equal even when the referenced objects
+    were loaded to different depths. A list of reference dicts compares as
+    the set of public_ids, a single reference dict as its public_id, and
+    anything else verbatim.
+    """
+    if isinstance(value, list):
+        items = cast("list[object]", value)
+        keys = [cast(PatchDict, item).get("public_id") for item in items if isinstance(item, dict)]
+        # Only str public_ids: an UNSET public_id serialises to a sentinel
+        # dict, which has no usable identity.
+        if len(keys) == len(items) and all(isinstance(key, str) for key in keys):
+            return frozenset(cast("list[str]", keys))
+    if isinstance(value, dict):
+        dict_value = cast(PatchDict, value)
+        if "public_id" in dict_value:
+            return dict_value["public_id"]
+    return value
+
+
+def _pop_replace_op(
+    src: PatchDict,
+    dst: PatchDict,
+    field: str,
+    path: str,
+    operations: list[dict[str, object]],
+) -> None:
+    src_val = src.pop(field, None)
+    dst_val = dst.pop(field, None)
+    if _reference_key(src_val) != _reference_key(dst_val):
+        operations.append({"op": "replace", "path": path, "value": dst_val})
+
+
+def _collect_replace_ops(
+    src: PatchDict,
+    dst: PatchDict,
+    parts: list[str],
+    prefix: str,
+    operations: list[dict[str, object]],
+) -> None:
+    head = parts[0]
+    if len(parts) == 1:
+        _pop_replace_op(src, dst, head, f"{prefix}/{head}", operations)
+        return
+    if head == "*":
+        # Only keys present on both sides: a key only in dst belongs to a
+        # whole-entry add (which must keep its collections inline), a key
+        # only in src to a whole-entry remove.
+        for key in sorted(src.keys() & dst.keys()):
+            _descend_replace_ops(src[key], dst[key], parts[1:], f"{prefix}/{key}", operations)
+        return
+    _descend_replace_ops(src.get(head), dst.get(head), parts[1:], f"{prefix}/{head}", operations)
+
+
+def _descend_replace_ops(
+    src_child: object,
+    dst_child: object,
+    parts: list[str],
+    prefix: str,
+    operations: list[dict[str, object]],
+) -> None:
+    if isinstance(src_child, dict) and isinstance(dst_child, dict):
+        _collect_replace_ops(
+            cast(PatchDict, src_child), cast(PatchDict, dst_child), parts, prefix, operations
+        )
+
+
 def _patch_ops(
     src_dict: dict[str, object],
     dst_dict: dict[str, object],
     replace_fields: frozenset[str] = _EMPTY_FROZENSET,
 ) -> Sequence[JSONPathOperation]:
     operations: list[dict[str, object]] = []
-    for field in replace_fields:
-        src_val = src_dict.pop(field, None)
-        dst_val = dst_dict.pop(field, None)
-        if src_val != dst_val:
-            operations.append({"op": "replace", "path": f"/{field}", "value": dst_val})
+    for field_path in sorted(replace_fields):
+        _collect_replace_ops(src_dict, dst_dict, field_path.split("/"), "", operations)
     # NOTE lib jsonpatch is untyped
     operations.extend(
         JsonPatch.from_diff(
@@ -52,9 +119,15 @@ def create_school_patch(
     Args:
         src: The school in its current state (the baseline).
         dst: The school in its desired state (the target).
-        replace_fields: Field names whose collection value should be replaced atomically
+        replace_fields: Fields whose collection value should be replaced atomically
             rather than diffed element-wise. Use this when the intent is to overwrite
-            the whole collection, not add or remove individual members.
+            the whole collection, not add or remove individual members — element-wise
+            diffs of reference collections can otherwise produce nested operations
+            inside the referenced objects, which managers reject. Entries are
+            slash-separated paths; ``*`` matches every dict key present on both
+            sides (e.g. ``school_memberships/*/groups``). Reference collections are
+            compared by public_id, so loading the referenced objects to different
+            depths does not count as a change.
     """
     return _create_patch(src, dst, replace_fields)
 
@@ -67,9 +140,8 @@ def create_group_patch(
     Args:
         src: The group in its current state (the baseline).
         dst: The group in its desired state (the target).
-        replace_fields: Field names whose collection value should be replaced atomically
-            rather than diffed element-wise. Use this when the intent is to overwrite
-            the whole collection, not add or remove individual members.
+        replace_fields: Fields whose collection value should be replaced atomically
+            rather than diffed element-wise — see ``create_school_patch``.
     """
     return _create_patch(src, dst, replace_fields)
 
@@ -82,9 +154,8 @@ def create_user_patch(
     Args:
         src: The user in its current state (the baseline).
         dst: The user in its desired state (the target).
-        replace_fields: Field names whose collection value should be replaced atomically
-            rather than diffed element-wise. Use this when the intent is to overwrite
-            the whole collection, not add or remove individual members.
+        replace_fields: Fields whose collection value should be replaced atomically
+            rather than diffed element-wise — see ``create_school_patch``.
     """
     return _create_patch(src, dst, replace_fields)
 
