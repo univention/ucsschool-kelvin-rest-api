@@ -132,6 +132,27 @@ class SchoolPayload(EventPayload):
     properties: SchoolProperties
 
 
+class DeletedObjectProperties(BaseModel):
+    """Properties of a deleted object — only the identifier is required.
+
+    The rest of a deleted object's state may be malformed (it may even be the
+    reason it was deleted) and must not prevent removing it from the cache:
+    a dropped delete event leaves a stale row that no future event can ever
+    repair.
+    """
+
+    univentionObjectIdentifier: UUID4
+    username: str = ""
+    name: str = ""
+
+    class Config:
+        extra = Extra.allow
+
+
+class DeletePayload(EventPayload):
+    properties: DeletedObjectProperties
+
+
 # ── Per-operation event models ────────────────────────────────────────────────
 
 
@@ -149,7 +170,7 @@ class UserModifyEvent(EventBase):
 
 
 class UserDeleteEvent(EventBase):
-    old: UserPayload
+    old: DeletePayload
 
 
 class GroupCreateEvent(EventBase):
@@ -161,7 +182,7 @@ class GroupModifyEvent(EventBase):
 
 
 class GroupDeleteEvent(EventBase):
-    old: GroupPayload
+    old: DeletePayload
 
 
 class SchoolCreateEvent(EventBase):
@@ -173,7 +194,7 @@ class SchoolModifyEvent(EventBase):
 
 
 class SchoolDeleteEvent(EventBase):
-    old: SchoolPayload
+    old: DeletePayload
 
 
 class HostGroupProperties(BaseModel):

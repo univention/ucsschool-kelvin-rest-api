@@ -7,6 +7,7 @@ import re
 from typing import TYPE_CHECKING
 
 from kelvin_connector.models import (
+    DeletePayload,
     GroupCreateEvent,
     GroupDeleteEvent,
     GroupModifyEvent,
@@ -219,13 +220,16 @@ class KelvinConnectorEventHandler(UDMEventHandler):
 
     @override
     async def _handle_remove(self, metadata: Metadata, old: AttributeMapping) -> None:
+        # Deletion only needs the identifier: the rest of a deleted object's
+        # state may be malformed and must not prevent removing it from the
+        # cache — see DeletePayload.
         match old["objectType"]:
             case ObjectType.USERS:
                 await self.synchronization_manager.handle_user_delete(
                     UserDeleteEvent(
                         timestamp=metadata["ts"],
                         sequence_number=metadata["sequence_number"],
-                        old=UserPayload.validate(old),
+                        old=DeletePayload.validate(old),
                     )
                 )
             case ObjectType.GROUPS:
@@ -242,7 +246,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                         GroupDeleteEvent(
                             timestamp=metadata["ts"],
                             sequence_number=metadata["sequence_number"],
-                            old=GroupPayload.validate(old),
+                            old=DeletePayload.validate(old),
                         )
                     )
             case ObjectType.OUS:
@@ -250,7 +254,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     SchoolDeleteEvent(
                         timestamp=metadata["ts"],
                         sequence_number=metadata["sequence_number"],
-                        old=SchoolPayload.validate(old),
+                        old=DeletePayload.validate(old),
                     )
                 )
             case _:
