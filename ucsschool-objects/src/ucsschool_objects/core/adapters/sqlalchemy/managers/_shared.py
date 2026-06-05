@@ -18,7 +18,7 @@ from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import _require_loaded  # pyright: ignore[reportPrivateUsage]
-from ucsschool_objects.core.domain.models import UnloadedType
+from ucsschool_objects.core.domain.models import SerializableDomainObject, UnloadedType
 from ucsschool_objects.core.domain.query import And, Filter, Not, Or
 from ucsschool_objects.database_models import (
     Base,
@@ -47,12 +47,6 @@ class SupportsLoadOptions(Protocol):
 class PublicIdCarrier(Protocol):
     @property
     def public_id(self) -> UUID | UnsetType:  # pragma: no cover
-        ...
-
-
-class SerializableDomainObject(Protocol):
-    @property
-    def __serialize_fields__(self) -> tuple[str, ...]:  # pragma: no cover
         ...
 
 

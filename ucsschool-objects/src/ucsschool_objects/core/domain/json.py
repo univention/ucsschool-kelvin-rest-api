@@ -5,7 +5,12 @@ from datetime import date
 from typing import TypeAlias, cast
 from uuid import UUID
 
-from ucsschool_objects.core.domain.models import UnloadedType, UnsetType
+from ucsschool_objects.core.domain.models import (
+    SerializableDomainObject,
+    UnloadedType,
+    UnsetType,
+    domain_object_properties,
+)
 
 PatchDict: TypeAlias = dict[str, object]
 _UNLOADED_MARKER = {"__sentinel__": "UNLOADED"}
@@ -36,14 +41,8 @@ def _serialize_value(value: object) -> object:
     if isinstance(value, (UnloadedType, UnsetType)):
         return value
 
-    serialize_fields = getattr(value, "__serialize_fields__", None)
-    if isinstance(serialize_fields, tuple):
-        return {
-            (field_name[1:] if field_name.startswith("_") else field_name): _serialize_value(
-                cast(object, getattr(value, field_name))
-            )
-            for field_name in serialize_fields
-        }
+    if isinstance(value, SerializableDomainObject):
+        return domain_object_properties(value, _serialize_value)
 
     if isinstance(value, dict):
         dict_value = cast(dict[object, object], value)

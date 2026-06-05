@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, Callable, TypeAlias, TypeVar, cast
 
 if TYPE_CHECKING:
     from datetime import date
@@ -625,3 +625,24 @@ class User:
         for membership in self.school_memberships.values():
             result.update(membership.roles)
         return result
+
+
+SerializableDomainObject: TypeAlias = School | Role | Group | SchoolMembership | User
+
+
+def serialized_domain_field_name(field_name: str) -> str:
+    """Map an internal domain field name to the public serialized field name."""
+    return field_name[1:] if field_name.startswith("_") else field_name
+
+
+def domain_object_properties(
+    domain_obj: SerializableDomainObject,
+    serialize_value: Callable[[object], object],
+) -> dict[str, object]:
+    """Return serialized properties for a domain object using __serialize_fields__."""
+    return {
+        serialized_domain_field_name(field_name): serialize_value(
+            cast(object, getattr(domain_obj, field_name))
+        )
+        for field_name in domain_obj.__serialize_fields__
+    }
