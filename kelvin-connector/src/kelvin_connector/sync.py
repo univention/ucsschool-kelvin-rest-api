@@ -641,6 +641,10 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             source_uid="kelvin-connector",
             educational_servers=set(),
             administrative_servers=set(),
+            # Not carried by the UDM ou event; create() requires every field,
+            # so nullable ones must be explicitly None instead of UNLOADED.
+            class_share_file_server=None,
+            home_share_file_server=None,
         )
         try:
             current_school = await storage.schools.get(public_id)
