@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Callable, TypeAlias, TypeVar, cast
+from uuid import UUID
 
 from sqlalchemy import (
     Date,
@@ -10,6 +11,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     Select,
+    Uuid,
     and_,
     asc,
     desc,
@@ -25,6 +27,7 @@ from ucsschool_objects.core.domain.errors import (
     InvalidInFilter,
     InvalidLikeFilter,
     InvalidRangeFilter,
+    InvalidUuidFilter,
     UnsupportedFilterField,
     UnsupportedFilterOperator,
     UnsupportedNestedField,
@@ -229,6 +232,32 @@ def _validate_filter_value(filter_expr: Filter, column: FieldColumn) -> None:
         raise InvalidRangeFilter(filter_expr.field, filter_expr.op, filter_expr.value)
 
 
+_UUID_COERCED_OPERATORS = frozenset({Operator.EQ, Operator.NE, Operator.IN})
+
+
+def _coerce_uuid(field: str, value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise InvalidUuidFilter(field, value) from exc
+
+
+def _coerce_filter_value(filter_expr: Filter, column: FieldColumn) -> FilterValue:
+    """Coerce string values for UUID columns to UUID objects.
+
+    Drivers differ here: psycopg accepts strings for uuid columns, SQLite's
+    Uuid type does not. Coercing makes public_id filters backend-agnostic.
+    """
+    if filter_expr.op not in _UUID_COERCED_OPERATORS or not isinstance(_get_column_type(column), Uuid):
+        return filter_expr.value
+    if filter_expr.op is Operator.IN:
+        values = cast(FilterInValue, filter_expr.value)
+        return cast(FilterValue, tuple(_coerce_uuid(filter_expr.field, value) for value in values))
+    return cast(FilterValue, _coerce_uuid(filter_expr.field, filter_expr.value))
+
+
 FILTER_OPERATOR_BUILDERS: dict[Operator, FilterExpressionBuilder] = {
     Operator.EQ: lambda column, value: column == value,
     Operator.NE: lambda column, value: column != value,
@@ -253,7 +282,7 @@ def _build_filter_expression(
     builder = FILTER_OPERATOR_BUILDERS.get(filter_expr.op)
     if builder is None:
         raise UnsupportedFilterOperator(filter_expr.field, filter_expr.op)
-    return builder(column, filter_expr.value)
+    return builder(column, _coerce_filter_value(filter_expr, column))
 
 
 def build_expression(

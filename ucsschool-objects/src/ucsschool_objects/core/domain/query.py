@@ -12,6 +12,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import TypeAlias
+from uuid import UUID
 
 
 class Operator(str, Enum):
@@ -28,7 +29,7 @@ class Operator(str, Enum):
     LTE = "lte"
 
 
-FilterScalarValue: TypeAlias = str | int | float | bool | date | datetime | Decimal | None
+FilterScalarValue: TypeAlias = str | int | float | bool | date | datetime | Decimal | UUID | None
 FilterInValue: TypeAlias = Iterable[FilterScalarValue]
 FilterValue: TypeAlias = FilterScalarValue | FilterInValue
 
