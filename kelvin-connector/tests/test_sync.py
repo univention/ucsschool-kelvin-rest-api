@@ -406,6 +406,54 @@ def test_guardian_role_validator_accepts_pre_parsed_object():
     assert group_props.guardianMemberRoles == [guardian]
 
 
+def test_ucsschool_role_validator_keeps_colons_in_context():
+    """Split like ucs-school-lib's get_role_info: the context part may itself
+    contain colons (additional-context role strings)."""
+    props = UserProperties.parse_obj(
+        dict(
+            univentionObjectIdentifier=uuid.uuid4(),
+            username="testuser",
+            firstname="Test",
+            lastname="User",
+            disabled=False,
+            school=["testschool"],
+            ucsschoolRole=["myrole:myapp:context:with:colons"],
+            ucsschoolRecordUID="testuser",
+            ucsschoolSourceUID="src",
+            groups=[],
+            ucsschoolLegalWard=[],
+            ucsschoolLegalGuardian=[],
+            mailPrimaryAddress="",
+        )
+    )
+    assert props.ucsschoolRole == [
+        UcsschoolRole(role="myrole", context="myapp", school="context:with:colons")
+    ]
+
+
+def test_ucsschool_role_validator_rejects_two_part_role_string():
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="not enough values"):
+        UserProperties.parse_obj(
+            dict(
+                univentionObjectIdentifier=uuid.uuid4(),
+                username="testuser",
+                firstname="Test",
+                lastname="User",
+                disabled=False,
+                school=["testschool"],
+                ucsschoolRole=["teacher:school"],
+                ucsschoolRecordUID="testuser",
+                ucsschoolSourceUID="src",
+                groups=[],
+                ucsschoolLegalWard=[],
+                ucsschoolLegalGuardian=[],
+                mailPrimaryAddress="",
+            )
+        )
+
+
 def test_ucsschool_role_validator_accepts_pre_parsed_object():
     role = UcsschoolRole(role="teacher", context="school", school="testschool")
     user_props = UserProperties(

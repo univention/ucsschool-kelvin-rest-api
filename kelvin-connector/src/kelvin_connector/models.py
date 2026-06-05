@@ -19,7 +19,9 @@ class GuardianRole(BaseModel):
 
 def _parse_ucsschool_role_item(v):
     if isinstance(v, str):
-        role, context, school = v.split(":")
+        # Split like ucs-school-lib's get_role_info: the context (third part)
+        # may itself contain colons, e.g. in additional-context role strings.
+        role, context, school = v.split(":", 2)
         return {"role": role, "context": context, "school": school}
     return v
 
