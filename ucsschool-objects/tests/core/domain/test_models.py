@@ -19,10 +19,11 @@ from ucsschool_objects import (
     SchoolMembership,
     User,
 )
-from ucsschool_objects.core.domain.models import domain_asdict, is_loaded
+from ucsschool_objects.core.domain.json import _UNLOADED_MARKER, to_json
+from ucsschool_objects.core.domain.models import is_loaded
 
 
-def test_domain_asdict_serializes_list_tuple_and_frozenset() -> None:
+def test_to_json_serializes_list_tuple_and_frozenset() -> None:
     payload = {
         "items": [
             ("alpha", frozenset({"beta", "gamma"})),
@@ -30,7 +31,7 @@ def test_domain_asdict_serializes_list_tuple_and_frozenset() -> None:
         ]
     }
 
-    serialized = domain_asdict(payload)
+    serialized = to_json(payload)
 
     items = cast(list[object], serialized["items"])
     first_tuple = cast(tuple[object, object], items[0])
@@ -42,14 +43,15 @@ def test_domain_asdict_serializes_list_tuple_and_frozenset() -> None:
     assert second_list == ["delta", "epsilon"]
 
 
-def test_domain_asdict_strips_private_field_prefix_for_dataclasses() -> None:
+def test_to_json_strips_private_field_prefix_for_domain_models() -> None:
     school = build_school("alpha")
 
-    serialized = domain_asdict(school)
+    serialized = to_json(school)
 
     assert "name" in serialized
     assert "_name" not in serialized
     assert serialized["name"] == "alpha"
+    assert serialized["public_id"] == str(school.public_id)
 
 
 def test_is_loaded_reports_state_and_missing_field() -> None:
@@ -163,7 +165,7 @@ def test_user_groups_union_across_memberships() -> None:
     assert user.groups == {shared_group, only_first, only_second}
 
 
-def test_domain_asdict_handles_nested_model_collections() -> None:
+def test_to_json_handles_nested_model_collections() -> None:
     school = build_school("school-c")
     user = build_user()
     group = build_school_class("class-c")
@@ -176,8 +178,8 @@ def test_domain_asdict_handles_nested_model_collections() -> None:
         "maybe": UNLOADED,
     }
 
-    serialized = domain_asdict(payload)
+    serialized = to_json(payload)
 
     assert "school_memberships" in serialized
     assert "users" in serialized
-    assert serialized["maybe"] is UNLOADED
+    assert serialized["maybe"] == _UNLOADED_MARKER
