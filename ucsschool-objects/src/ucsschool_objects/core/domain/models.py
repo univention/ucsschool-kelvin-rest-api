@@ -38,46 +38,6 @@ def _require_loaded(
     return value
 
 
-def _serialize_domain_value(value: object) -> object:
-    if isinstance(value, (UnloadedType, UnsetType)):
-        return value
-
-    serialize_fields = getattr(value, "__serialize_fields__", None)
-    if isinstance(serialize_fields, tuple):
-        return {
-            (field_name[1:] if field_name.startswith("_") else field_name): _serialize_domain_value(
-                cast(object, getattr(value, field_name))
-            )
-            for field_name in serialize_fields
-        }
-
-    if isinstance(value, dict):
-        dict_value = cast(dict[object, object], value)
-        return {
-            _serialize_domain_value(key): _serialize_domain_value(item)
-            for key, item in dict_value.items()
-        }
-    if isinstance(value, list):
-        list_value = cast(list[object], value)
-        return [_serialize_domain_value(item) for item in list_value]
-    if isinstance(value, tuple):
-        tuple_value = cast(tuple[object, ...], value)
-        return tuple(_serialize_domain_value(item) for item in tuple_value)
-    if isinstance(value, set):
-        set_value = cast(set[object], value)
-        return [_serialize_domain_value(item) for item in set_value]
-    if isinstance(value, frozenset):
-        frozenset_value = cast(frozenset[object], value)
-        return [_serialize_domain_value(item) for item in frozenset_value]
-
-    return value
-
-
-def domain_asdict(instance: object) -> dict[str, object]:
-    serialized = _serialize_domain_value(instance)
-    return cast(dict[str, object], serialized)
-
-
 def is_loaded(instance: object, field_name: str) -> bool:
     private_field_name = f"_{field_name}"
     if not hasattr(instance, private_field_name):

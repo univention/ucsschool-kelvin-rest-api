@@ -5,7 +5,7 @@ from datetime import date
 from typing import TypeAlias, cast
 from uuid import UUID
 
-from ucsschool_objects.core.domain.models import UnloadedType, UnsetType, domain_asdict
+from ucsschool_objects.core.domain.models import UnloadedType, UnsetType
 
 PatchDict: TypeAlias = dict[str, object]
 _UNLOADED_MARKER = {"__sentinel__": "UNLOADED"}
@@ -13,10 +13,9 @@ _UNSET_MARKER = {"__sentinel__": "UNSET"}
 
 
 def normalise(obj: object) -> object:
-    # asdict leaves set/frozenset, UUID, and date as Python objects; convert them to
-    # JSON-serialisable types and sort collections so diffing is deterministic.
-    # Dict keys are also normalised so UUID-keyed dicts (e.g. school_memberships)
-    # serialise correctly.
+    # Convert values to JSON-serialisable types and sort collections so diffing is
+    # deterministic. Dict keys are also normalised so UUID-keyed dicts (e.g.
+    # school_memberships) serialise correctly.
     if isinstance(obj, UnloadedType):
         return dict(_UNLOADED_MARKER)
     if isinstance(obj, UnsetType):
@@ -33,5 +32,37 @@ def normalise(obj: object) -> object:
     return obj
 
 
+def _serialize_value(value: object) -> object:
+    if isinstance(value, (UnloadedType, UnsetType)):
+        return value
+
+    serialize_fields = getattr(value, "__serialize_fields__", None)
+    if isinstance(serialize_fields, tuple):
+        return {
+            (field_name[1:] if field_name.startswith("_") else field_name): _serialize_value(
+                cast(object, getattr(value, field_name))
+            )
+            for field_name in serialize_fields
+        }
+
+    if isinstance(value, dict):
+        dict_value = cast(dict[object, object], value)
+        return {_serialize_value(key): _serialize_value(item) for key, item in dict_value.items()}
+    if isinstance(value, list):
+        list_value = cast(list[object], value)
+        return [_serialize_value(item) for item in list_value]
+    if isinstance(value, tuple):
+        tuple_value = cast(tuple[object, ...], value)
+        return tuple(_serialize_value(item) for item in tuple_value)
+    if isinstance(value, set):
+        set_value = cast(set[object], value)
+        return [_serialize_value(item) for item in set_value]
+    if isinstance(value, frozenset):
+        frozenset_value = cast(frozenset[object], value)
+        return [_serialize_value(item) for item in frozenset_value]
+
+    return value
+
+
 def to_json(obj: object) -> PatchDict:
-    return cast(PatchDict, normalise(domain_asdict(obj)))
+    return cast(PatchDict, normalise(_serialize_value(obj)))

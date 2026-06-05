@@ -29,12 +29,9 @@ from ucsschool_objects.database_models import (
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-    from _typeshed import DataclassInstance
     from sqlalchemy.ext.asyncio import AsyncSession
     from ucsschool_objects.core.domain.models import UnsetType
     from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
-else:
-    DataclassInstance = object
 
 QueryExpr: TypeAlias = Filter | And | Or | Not
 ModelClass: TypeAlias = type[Base]
@@ -50,6 +47,12 @@ class SupportsLoadOptions(Protocol):
 class PublicIdCarrier(Protocol):
     @property
     def public_id(self) -> UUID | UnsetType:  # pragma: no cover
+        ...
+
+
+class SerializableDomainObject(Protocol):
+    @property
+    def __serialize_fields__(self) -> tuple[str, ...]:  # pragma: no cover
         ...
 
 
@@ -104,7 +107,7 @@ def extract_public_ids(items: Sequence[PublicIdInput]) -> set[UUID]:
 def apply_patch(
     *,
     operations: Sequence[JSONPathOperation],
-    current_domain_obj: DataclassInstance,
+    current_domain_obj: SerializableDomainObject,
 ) -> dict[str, object]:
     """Apply JSON Patch operations to a domain object and return the patched dict."""
     current_dict = to_json(current_domain_obj)
