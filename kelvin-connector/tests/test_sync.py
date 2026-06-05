@@ -1,5 +1,4 @@
 import uuid
-from dataclasses import fields
 
 import pytest
 from conftest import make_group, make_role, make_school, make_user
@@ -30,7 +29,7 @@ from kelvin_connector.sync import DEFAULT_NUBUS_SOURCE_UID, SynchronizationExcep
 from pydantic import UUID4
 from ucsschool_objects import ObjectType
 from ucsschool_objects.core.domain.errors import NotFound
-from ucsschool_objects.core.domain.models import UNLOADED, SchoolMembership, is_loaded
+from ucsschool_objects.core.domain.models import UNLOADED, SchoolMembership, get_properties, is_loaded
 
 _TS = "2024-01-01T00:00:00"
 
@@ -41,8 +40,7 @@ def _assert_fully_loaded(created):
     The mock storage hides the ORM mappers, which raise on unloaded fields;
     this assertion catches constructor calls that omit a field.
     """
-    for f in fields(type(created)):
-        field_name = f.name.removeprefix("_")
+    for field_name in get_properties(type(created)):
         if field_name == "public_id":
             continue
         assert is_loaded(created, field_name), f"{type(created).__name__}.{field_name} is not loaded"

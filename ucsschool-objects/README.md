@@ -6,7 +6,7 @@
 
 This is an internal library for querying and manipulating UCS@school objects.
 
-The library provides domain models implemented as dataclasses,
+The library provides plain-Python domain models,
 an async API for querying and mutating them,
 and SQL-backed persistence.
 
@@ -234,7 +234,7 @@ The following example creates a role and a user inside a single transaction.
 If either `create` call raises, the whole block rolls back
 and neither object is persisted.
 
-`Role` is a frozen dataclass and `create()` does not write the generated identifier
+`Role` is read-only after construction and `create()` does not write the generated identifier
 back onto the input object,
 so the caller assigns `public_id` up front
 and reuses the same value when constructing the membership.
@@ -326,9 +326,13 @@ Dependencies point inward only: adapters know about the domain, never the revers
 Pure, persistence-agnostic business types.
 No framework or persistence imports; stdlib only.
 
-- **`models.py`** — dataclasses for `School`, `Role`, `Group`, `SchoolMembership`, and `User`.
-  Only `Role` is fully frozen (`@dataclass(frozen=True, eq=False)`);
-  the others use `@dataclass(eq=False)` because adapters mutate their collection fields
+- **`models.py`** — plain classes for `School`, `Role`, `Group`, `SchoolMembership`, and `User`.
+  Fields are stored privately (`_name`) behind public properties whose getters raise
+  when the value was not loaded.
+  Each model declares `__serialize_fields__`; `get_properties()` and
+  `domain_object_properties()` derive the public field names from it.
+  Only `Role` is read-only (properties without setters);
+  the others have setters because adapters mutate their fields
   (e.g. populating `set`/`dict` relationship fields after construction).
   Equality and hashing are by `public_id` only.
   Partially-loaded objects are represented with an explicit `UNLOADED` sentinel rather than `None`,
@@ -342,7 +346,7 @@ No framework or persistence imports; stdlib only.
 - **`errors.py`** — domain exception hierarchy rooted at `CorelibError`
   (`NotFound`, `InvalidFilter`, `UnsupportedFilterField`, …).
   Raised by adapters, caught by callers.
-- **`validators.py`** — domain-level invariant checks for the dataclasses.
+- **`validators.py`** — domain-level invariant checks for the domain models.
 
 ### Ports — `core.domain.ports`
 
@@ -379,7 +383,7 @@ Today the only backend is **`core.adapters.sqlalchemy`**:
 - **`query_filter.py`** — translates the domain `SearchQuery` AST into SQLAlchemy `Select` expressions,
   applies sort specs,
   and raises the domain's `InvalidFilter*` exceptions on unsupported fields or operators.
-- **`mappers/to_domain.py`** and **`mappers/to_orm.py`** — project ORM rows to domain dataclasses
+- **`mappers/to_domain.py`** and **`mappers/to_orm.py`** — project ORM rows to domain objects
   and the reverse direction for writes,
   preserving the `UNLOADED` sentinel for relationships that were not eagerly loaded
   (ORM relationships default to `lazy="raise"` to catch unintended fetches).
@@ -502,9 +506,14 @@ Bug #123456
 
 #### Domain models
 
-- Domain models are **dataclasses** with `eq=False`.
-  `Role` is fully frozen (`@dataclass(frozen=True, eq=False)`);
-  the other models use `@dataclass(eq=False)` because their collection fields are mutated
+- Domain models are **plain classes**.
+  Fields are stored privately (`_name`) behind public properties whose getters raise
+  via `_require_loaded` when the value is `UNLOADED`.
+- Each model declares `__serialize_fields__`, the single source of truth for introspection —
+  use `get_properties()` / `domain_object_properties()`.
+  Adding a field means updating `__init__`, the property pair, and `__serialize_fields__`.
+- `Role` is read-only (properties without setters);
+  the other models have setters because their collection fields are mutated
   by the SQLAlchemy adapter after construction.
 - Equality and hashing are by `public_id` only — implement custom `__eq__` and `__hash__` on every model.
 - Relationship collections are typed as `set[T]` (and `dict[UUID, SchoolMembership]` for `User.school_memberships`)
