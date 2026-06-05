@@ -1,5 +1,6 @@
 from datetime import date
 
+from loguru import logger
 from pydantic import UUID4, BaseModel, Extra, Field, validator
 
 # ── Per-type properties models ────────────────────────────────────────────────
@@ -26,6 +27,20 @@ def _parse_ucsschool_role_item(v):
     return v
 
 
+def _parse_ucsschool_roles(values):
+    # Skip malformed role strings instead of rejecting the whole object: one
+    # garbage entry must not make an otherwise valid user or group invisible
+    # to the cache. An object with no parseable role at all still fails
+    # validation through min_items.
+    roles = []
+    for item in values:
+        try:
+            roles.append(_parse_ucsschool_role_item(item))
+        except ValueError:
+            logger.warning("Ignoring malformed ucsschool role string {!r}", item)
+    return roles
+
+
 def _parse_guardian_role_item(v):
     if isinstance(v, str):
         app, namespace, role_name = v.split(":")
@@ -50,10 +65,10 @@ class UserProperties(BaseModel):
     birthday: date | None
     userexpiry: date | None
 
-    @validator("ucsschoolRole", pre=True, each_item=True)
+    @validator("ucsschoolRole", pre=True)
     @classmethod
     def parse_ucsschool_roles(cls, v):
-        return _parse_ucsschool_role_item(v)
+        return _parse_ucsschool_roles(v)
 
     class Config:
         extra = Extra.allow
@@ -69,10 +84,10 @@ class GroupProperties(BaseModel):
     mailAddress: str | None
     guardianMemberRoles: list[GuardianRole]
 
-    @validator("ucsschoolRole", pre=True, each_item=True)
+    @validator("ucsschoolRole", pre=True)
     @classmethod
     def parse_ucsschool_roles(cls, v):
-        return _parse_ucsschool_role_item(v)
+        return _parse_ucsschool_roles(v)
 
     @validator("guardianMemberRoles", pre=True, each_item=True)
     @classmethod
