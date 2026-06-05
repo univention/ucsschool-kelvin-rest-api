@@ -29,7 +29,13 @@ from kelvin_connector.sync import DEFAULT_NUBUS_SOURCE_UID, SynchronizationExcep
 from pydantic import UUID4
 from ucsschool_objects import ObjectType
 from ucsschool_objects.core.domain.errors import NotFound
-from ucsschool_objects.core.domain.models import UNLOADED, SchoolMembership, get_properties, is_loaded
+from ucsschool_objects.core.domain.models import (
+    UNLOADED,
+    Group,
+    SchoolMembership,
+    get_properties,
+    is_loaded,
+)
 
 _TS = "2024-01-01T00:00:00"
 
@@ -617,6 +623,100 @@ async def test_handle_user_modify_skips_modify_when_patch_is_empty(manager, mock
     await manager.handle_user_modify(event)
 
     mock_storage.users.modify.assert_not_called()
+
+
+def _half_loaded_group(name: str, school, uid) -> Group:
+    """A group as a plain search returns it: scalars loaded, roles UNLOADED."""
+    return Group(
+        public_id=uid,
+        record_uid=name,
+        source_uid="kelvin-connector",
+        name=name,
+        display_name=name,
+        create_share=False,
+        roles=UNLOADED,
+        allowed_email_senders_users=UNLOADED,
+        allowed_email_senders_groups=UNLOADED,
+        members=UNLOADED,
+        member_roles=UNLOADED,
+        school=school,
+    )
+
+
+async def test_handle_user_modify_same_group_at_different_load_depth_is_no_change(
+    manager, mock_storage, mock_mapper
+):
+    """Regression: the baseline loads membership groups with their roles, the
+    freshly searched groups come without them. jsonpatch used to diff inside
+    the group objects (/school_memberships/<id>/groups/0/roles) — paths the
+    user manager rejects with UnsupportedOperation. The same link set at a
+    different load depth is not a change."""
+    uid = uuid.uuid4()
+    group_uid = uuid.uuid4()
+    group_dn = "cn=testschool-group,cn=groups,dc=test"
+    school = make_school("testschool")
+    teacher_role = make_role("teacher")
+    baseline_group = make_group("testschool-group", school, uid=group_uid)  # roles loaded
+    fresh_group = _half_loaded_group("testschool-group", school, uid=group_uid)
+
+    current_user = make_user(
+        uid=uid,
+        school_memberships={
+            school.public_id: SchoolMembership(
+                school=school, is_primary=True, roles={teacher_role}, groups={baseline_group}
+            )
+        },
+    )
+    current_user.email = "testuser@example.com"
+    mock_storage.users.get.return_value = current_user
+    mock_storage.schools.search.return_value = [school]
+    mock_storage.roles.search.return_value = [teacher_role]
+    mock_mapper.dns_to_public_ids.return_value = {group_dn: group_uid}
+    mock_storage.groups.search.return_value = [fresh_group]
+
+    event = _user_modify_event(uid, extra_props={"groups": [group_dn]})
+    await manager.handle_user_modify(event)
+
+    mock_storage.users.modify.assert_not_called()
+
+
+async def test_handle_user_modify_group_change_replaces_membership_groups_atomically(
+    manager, mock_storage, mock_mapper
+):
+    uid = uuid.uuid4()
+    new_group_uid = uuid.uuid4()
+    group_dn = "cn=testschool-newgroup,cn=groups,dc=test"
+    school = make_school("testschool")
+    teacher_role = make_role("teacher")
+    baseline_group = make_group("testschool-oldgroup", school)
+    fresh_group = _half_loaded_group("testschool-newgroup", school, uid=new_group_uid)
+
+    current_user = make_user(
+        uid=uid,
+        school_memberships={
+            school.public_id: SchoolMembership(
+                school=school, is_primary=True, roles={teacher_role}, groups={baseline_group}
+            )
+        },
+    )
+    current_user.email = "testuser@example.com"
+    mock_storage.users.get.return_value = current_user
+    mock_storage.schools.search.return_value = [school]
+    mock_storage.roles.search.return_value = [teacher_role]
+    mock_mapper.dns_to_public_ids.return_value = {group_dn: new_group_uid}
+    mock_storage.groups.search.return_value = [fresh_group]
+
+    event = _user_modify_event(uid, extra_props={"groups": [group_dn]})
+    await manager.handle_user_modify(event)
+
+    mock_storage.users.modify.assert_called_once()
+    ops = mock_storage.users.modify.call_args[0][1]
+    groups_path = f"/school_memberships/{school.public_id}/groups"
+    (groups_op,) = [op for op in ops if op["path"] == groups_path]
+    assert groups_op["op"] == "replace"
+    assert [g["public_id"] for g in groups_op["value"]] == [str(new_group_uid)]
+    # no operation reaches inside a referenced group or role
+    assert not any(op["path"].startswith(f"{groups_path}/") for op in ops)
 
 
 async def test_handle_user_modify_generates_record_uid_and_source_uid(

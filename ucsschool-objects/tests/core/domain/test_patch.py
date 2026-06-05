@@ -10,8 +10,8 @@ from tests.core.domain.helpers.model_builders import (
     school_class as build_school_class,
     user as build_user,
 )
-from ucsschool_objects.core.domain.models import SchoolMembership
-from ucsschool_objects.core.domain.patch import _create_patch, track_changes
+from ucsschool_objects.core.domain.models import SchoolMembership, User
+from ucsschool_objects.core.domain.patch import _create_patch, _patch_ops, track_changes
 
 # --- _create_patch ---
 
@@ -86,6 +86,124 @@ def test_create_patch_uuid_keyed_dict_change_produces_stable_op() -> None:
     paths = [op["path"] for op in patch]
     # operations are scoped under the school's UUID key, not a positional index
     assert any(p.startswith(f"/school_memberships/{school.public_id}/") for p in paths)
+
+
+def _membership_user_pair() -> tuple[User, User, uuid.UUID]:
+    """A user with one membership carrying a group, plus a deep copy to mutate."""
+    school = build_school()
+    group = build_school_class()
+    membership = SchoolMembership(school=school, is_primary=True, roles=set(), groups={group})
+    assert isinstance(school.public_id, uuid.UUID)
+    src = build_user(school_memberships={school.public_id: membership})
+    dst = copy.deepcopy(src)
+    return src, dst, school.public_id
+
+
+_MEMBERSHIP_REPLACE_FIELDS = frozenset({"school_memberships/*/groups", "school_memberships/*/roles"})
+
+
+def test_create_patch_deep_replace_field_produces_atomic_replace_op() -> None:
+    src, dst, school_id = _membership_user_pair()
+    dst.school_memberships[school_id].groups = {build_school_class(name="other")}
+    patch = _create_patch(src, dst, replace_fields=_MEMBERSHIP_REPLACE_FIELDS)
+    ops = list(patch)
+    assert len(ops) == 1
+    assert ops[0]["op"] == "replace"
+    assert ops[0]["path"] == f"/school_memberships/{school_id}/groups"
+    # no operation reaches inside a referenced group
+    assert not any(op["path"].count("/") > 3 for op in ops)
+
+
+def test_create_patch_deep_replace_field_ignores_reference_load_depth() -> None:
+    # The same group link serialized at different load depths (roles loaded
+    # vs UNLOADED) is not a change: references compare by public_id only.
+    src, dst, school_id = _membership_user_pair()
+    (group,) = dst.school_memberships[school_id].groups
+    group.roles = {build_role()}
+    patch = _create_patch(src, dst, replace_fields=_MEMBERSHIP_REPLACE_FIELDS)
+    assert list(patch) == []
+
+
+def test_create_patch_deep_replace_field_keeps_collections_on_added_membership() -> None:
+    src, dst, _ = _membership_user_pair()
+    new_school = build_school(name="otherschool")
+    assert isinstance(new_school.public_id, uuid.UUID)
+    dst.school_memberships[new_school.public_id] = SchoolMembership(
+        school=new_school, is_primary=False, roles={build_role()}, groups={build_school_class()}
+    )
+    patch = _create_patch(src, dst, replace_fields=_MEMBERSHIP_REPLACE_FIELDS)
+    add_ops = [op for op in patch if op["op"] == "add"]
+    assert len(add_ops) == 1
+    assert add_ops[0]["path"] == f"/school_memberships/{new_school.public_id}"
+    # the whole-membership add still carries its groups and roles
+    added = add_ops[0]["value"]
+    assert isinstance(added, dict)
+    groups, roles = added["groups"], added["roles"]
+    assert isinstance(groups, list) and len(groups) == 1
+    assert isinstance(roles, list) and len(roles) == 1
+
+
+def test_create_patch_top_level_reference_field_compares_by_public_id() -> None:
+    ward = build_user()
+    src = build_user(legal_wards={ward})
+    dst = copy.deepcopy(src)
+    (dst_ward,) = dst.legal_wards
+    dst_ward.name = "renamed"
+    patch = _create_patch(src, dst, replace_fields=frozenset({"legal_wards"}))
+    assert list(patch) == []
+
+
+def test_patch_ops_deep_replace_skips_non_dict_children() -> None:
+    ops = _patch_ops(
+        {"memberships": "not-a-dict"},
+        {"memberships": {"k": {"groups": []}}},
+        replace_fields=frozenset({"memberships/*/groups"}),
+    )
+    # the deep path cannot descend, so jsonpatch handles the difference
+    assert [op["path"] for op in ops] == ["/memberships"]
+
+
+def test_patch_ops_wildcard_skips_non_dict_entries() -> None:
+    ops = _patch_ops(
+        {"memberships": {"k": "not-a-dict"}},
+        {"memberships": {"k": {"groups": ["x"]}}},
+        replace_fields=frozenset({"memberships/*/groups"}),
+    )
+    assert [op["path"] for op in ops] == ["/memberships/k"]
+
+
+def test_patch_ops_reference_key_mixed_list_compares_verbatim() -> None:
+    # lists that are not pure reference collections compare by value
+    ops = _patch_ops(
+        {"items": [{"public_id": "1"}, "plain"]},
+        {"items": ["plain", {"public_id": "1"}]},
+        replace_fields=frozenset({"items"}),
+    )
+    assert [op["path"] for op in ops] == ["/items"]
+
+
+def test_patch_ops_reference_key_unset_public_id_compares_verbatim() -> None:
+    # an UNSET public_id serialises to a sentinel dict — no usable identity,
+    # so such lists compare by value instead of by public_id
+    unset_ref = {"public_id": {"__sentinel__": "UNSET"}, "name": "a"}
+    changed_ref = {"public_id": {"__sentinel__": "UNSET"}, "name": "b"}
+    ops = _patch_ops(
+        {"items": [unset_ref]},
+        {"items": [changed_ref]},
+        replace_fields=frozenset({"items"}),
+    )
+    assert [op["path"] for op in ops] == ["/items"]
+
+
+def test_patch_ops_single_reference_dict_compares_by_public_id() -> None:
+    ops = _patch_ops(
+        {"school": {"public_id": "1", "name": "loaded"}, "other": {"no_id": 1}},
+        {"school": {"public_id": "1"}, "other": {"no_id": 2}},
+        replace_fields=frozenset({"school", "other"}),
+    )
+    # same school reference despite different load depth; "other" is not a
+    # reference dict and compares by value
+    assert [op["path"] for op in ops] == ["/other"]
 
 
 # --- track_changes ---
