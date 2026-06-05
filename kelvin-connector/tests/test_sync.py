@@ -873,6 +873,63 @@ async def test_handle_group_create_happy_path(manager, mock_storage, mock_mapper
     )
 
 
+async def test_handle_group_create_skips_members_without_school_membership(
+    manager, mock_storage, mock_mapper
+):
+    """A member whose (user, school) membership row does not exist yet must
+    not fail the whole group creation — the member is dropped with a warning
+    and linked later by its own event, which carries the group DN."""
+    uid = uuid.uuid4()
+    school = make_school("testschool")
+    member = make_user(name="present", uid=uuid.uuid4())
+    missing_uid = uuid.uuid4()
+    dns = ["uid=present,dc=test", "uid=missing,dc=test"]
+    mapping = {dns[0]: member.public_id, dns[1]: missing_uid}
+    mock_storage.schools.search.return_value = [school]
+    mock_storage.groups.get.side_effect = NotFound("group", str(uid))
+    mock_mapper.dns_to_public_ids.side_effect = lambda _type, ds: {
+        d: mapping[d] for d in ds if d in mapping
+    }
+    # the storage-side query filters out the member without a membership row
+    mock_storage.users.search.return_value = [member]
+
+    event = _group_create_event(uid, extra_props={"users": dns})
+    await manager.handle_group_create(event)
+
+    mock_storage.groups.create.assert_called_once()
+    created = mock_storage.groups.create.call_args[0][0]
+    assert created.members == {member}
+    # members are searched with the school membership filter applied
+    query = mock_storage.users.search.call_args[0][0]
+    _, school_filter = query.where.clauses
+    assert school_filter.field == "schools.public_id"
+    assert school_filter.value == str(school.public_id)
+
+
+async def test_handle_group_modify_filters_members_against_stored_school_when_school_unknown(
+    manager, mock_storage, mock_mapper
+):
+    """If the event's school is not in the cache the group keeps its stored
+    school, so members are filtered against that one."""
+    uid = uuid.uuid4()
+    school = make_school("someschool")
+    current_group = make_group("someschool-group", school, uid=uid)
+    member = make_user(uid=uuid.uuid4())
+    dn = "uid=member,dc=test"
+    mock_storage.groups.get.return_value = current_group
+    mock_storage.schools.search.return_value = []  # event school not in cache
+    mock_mapper.dns_to_public_ids.return_value = {dn: member.public_id}
+    mock_storage.users.search.return_value = [member]
+
+    event = _group_modify_event(uid, name="someschool-group", extra_props={"users": [dn]})
+    await manager.handle_group_modify(event)
+
+    query = mock_storage.users.search.call_args[0][0]
+    _, school_filter = query.where.clauses
+    assert school_filter.field == "schools.public_id"
+    assert school_filter.value == str(school.public_id)
+
+
 async def test_handle_group_delete_happy_path(manager, mock_storage, mock_mapper):
     uid = uuid.uuid4()
     event = _group_delete_event(uid)

@@ -25,6 +25,7 @@ from loguru import logger
 from typing_extensions import override
 from ucsschool_objects import (
     UNLOADED,
+    And,
     DNIDMapper,
     Filter,
     Group,
@@ -121,6 +122,52 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 SearchQuery(Filter(field="public_id", op=Operator.IN, value=known_ids))
             )
         )
+
+    async def _fetch_members_by_dns(
+        self,
+        dns: list[str],
+        school: School,
+        mapper: DNIDMapper,
+        storage: KelvinStorageSession,
+    ) -> set[User]:
+        """Fetch member users that hold a membership for the given school.
+
+        A (user, school) membership row is created only by the user's own
+        events, and a group event can reference a member before that row
+        exists — through event ordering, or because the user's event was
+        lost. Linking such a member would fail the whole group sync with
+        NotFound, so drop the member with a warning instead: the link is
+        established by the member's own event, which carries the group DN.
+        """
+        known_ids = await self._dns_to_known_ids(mapper, ObjectType.USER, dns, "Member")
+        if not known_ids:
+            return set()
+        members = set(
+            await storage.users.search(
+                SearchQuery(
+                    And(
+                        clauses=(
+                            Filter(field="public_id", op=Operator.IN, value=known_ids),
+                            Filter(
+                                field="schools.public_id",
+                                op=Operator.EQ,
+                                value=str(school.public_id),
+                            ),
+                        )
+                    )
+                ),
+                limit=len(known_ids),
+            )
+        )
+        found_ids = {str(member.public_id) for member in members}
+        for missing_id in sorted(set(known_ids) - found_ids):
+            logger.warning(
+                "Member {} has no membership for school {!r} (yet), skipping; "
+                "the link is established when the member's own event arrives",
+                missing_id,
+                school.name,
+            )
+        return members
 
     async def _fetch_roles_by_names(
         self, role_names: set[str], storage: KelvinStorageSession
@@ -448,7 +495,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         allowed_email_senders_groups = await self._fetch_groups_by_dns(
             group_props.allowedEmailGroups, "Email sender group", mapper, storage
         )
-        members = await self._fetch_users_by_dns(group_props.users, "Member", mapper, storage)
+        members = await self._fetch_members_by_dns(group_props.users, school, mapper, storage)
         group_roles = await self._fetch_roles_by_entries(group_props.ucsschoolRole, storage)
         member_roles = await self._fetch_roles_by_guardian_entries(
             group_props.guardianMemberRoles, storage
@@ -558,7 +605,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         allowed_email_senders_groups = await self._fetch_groups_by_dns(
             group_props.allowedEmailGroups, "Email sender group", mapper, storage
         )
-        members = await self._fetch_users_by_dns(group_props.users, "Member", mapper, storage)
+        # When the event's school is not in the cache the group keeps its
+        # stored school (see _apply_group_changes) — filter members against
+        # the school the group will actually have.
+        target_school = school if not isinstance(school, UnloadedType) else current_group.school
+        members = await self._fetch_members_by_dns(group_props.users, target_school, mapper, storage)
         group_roles = await self._fetch_roles_by_entries(group_props.ucsschoolRole, storage)
         member_roles = await self._fetch_roles_by_guardian_entries(
             group_props.guardianMemberRoles, storage
