@@ -635,6 +635,11 @@ def serialized_domain_field_name(field_name: str) -> str:
     return field_name[1:] if field_name.startswith("_") else field_name
 
 
+def get_properties(domain_obj: SerializableDomainObject) -> set[str]:
+    """Return all public property names for a domain object."""
+    return {serialized_domain_field_name(field_name) for field_name in domain_obj.__serialize_fields__}
+
+
 def domain_object_properties(
     domain_obj: SerializableDomainObject,
     serialize_value: Callable[[object], object],
