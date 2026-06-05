@@ -1010,6 +1010,78 @@ async def test_user_manager_modify_moves_primary_flag_between_memberships(
 
 
 @pytest.mark.asyncio
+async def test_user_manager_modify_promotes_kept_membership_when_primary_is_removed(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    """The one-primary-per-user constraint is checked per statement, and a
+    flush emits deletes after updates — the old primary's removal must be
+    flushed before another membership is promoted."""
+    user = await user_factory()
+    school_a = await school_factory()
+    school_b = await school_factory()
+    await school_membership_factory(user=user, school=school_a, is_primary=True)
+    await school_membership_factory(user=user, school=school_b, is_primary=False)
+
+    manager = SQLAlchemyUserManager(db_session)
+    user_obj = await manager.get(user.public_id, load=LoadSpec.from_attributes("school_memberships"))
+    with track_changes(user_obj) as tracker:
+        del user_obj.school_memberships[school_a.public_id]
+        user_obj.school_memberships[school_b.public_id].is_primary = True
+    await manager.modify(user.public_id, tracker.patch)
+
+    memberships = (
+        (
+            await db_session.execute(
+                select(SchoolMembershipModel).where(SchoolMembershipModel.user_id == user.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert [(m.school_id, m.is_primary) for m in memberships] == [(school_b.id, True)]
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_moves_user_to_new_primary_school(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    """Replacing the primary membership with one for a new school inserts the
+    new membership before the old one's delete is emitted — the removal must
+    be flushed first or the primary constraint is violated."""
+    user = await user_factory()
+    school_a = await school_factory()
+    school_b = await school_factory()
+    await school_membership_factory(user=user, school=school_a, is_primary=True)
+
+    manager = SQLAlchemyUserManager(db_session)
+    school_b_obj = await SQLAlchemySchoolManager(db_session).get(school_b.public_id)
+    user_obj = await manager.get(user.public_id, load=LoadSpec.from_attributes("school_memberships"))
+    with track_changes(user_obj) as tracker:
+        del user_obj.school_memberships[school_a.public_id]
+        user_obj.school_memberships[school_b.public_id] = SchoolMembership(
+            school=school_b_obj, is_primary=True, roles=set(), groups=set()
+        )
+    await manager.modify(user.public_id, tracker.patch)
+
+    memberships = (
+        (
+            await db_session.execute(
+                select(SchoolMembershipModel).where(SchoolMembershipModel.user_id == user.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert [(m.school_id, m.is_primary) for m in memberships] == [(school_b.id, True)]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("clear_roles", [False, True], ids=["replace-role", "clear-roles"])
 async def test_user_manager_modify_roles_in_school_membership(
     db_session: AsyncSession,

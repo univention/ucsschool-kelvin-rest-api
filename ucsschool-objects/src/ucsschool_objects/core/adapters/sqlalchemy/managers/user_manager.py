@@ -99,6 +99,34 @@ async def _apply_membership_relation_changes(
 ) -> None:
     memberships_by_school = {m.school.public_id: m for m in model.school_memberships}
 
+    # Release the primary slot first: the unique primary_user_constraint is
+    # checked per statement, and within one flush the unit of work emits
+    # inserts and updates before deletes. Promoting a membership while the
+    # old holder is only demoted or deleted later in the same flush would
+    # violate the constraint, so apply removals and demotions and flush
+    # before creating or promoting memberships.
+    removed_school_uuids = {UUID(key) for key in current_memberships} - {
+        UUID(key) for key in patched_memberships
+    }
+    for removed_school_uuid in removed_school_uuids:
+        removed_membership = memberships_by_school.pop(removed_school_uuid)
+        model.school_memberships.remove(removed_membership)
+        await session.delete(removed_membership)
+
+    demoted = False
+    for school_uuid_str, patched_m in patched_memberships.items():
+        patched_membership = cast(PatchDict, patched_m)
+        kept_membership = memberships_by_school.get(UUID(school_uuid_str))
+        if (
+            kept_membership is not None
+            and kept_membership.is_primary
+            and not cast(bool, patched_membership.get("is_primary", True))
+        ):
+            kept_membership.is_primary = False
+            demoted = True
+    if removed_school_uuids or demoted:
+        await session.flush()
+
     for school_uuid_str, patched_m in patched_memberships.items():
         patched_membership = cast(PatchDict, patched_m)
         school_uuid = UUID(school_uuid_str)
@@ -115,14 +143,6 @@ async def _apply_membership_relation_changes(
             cast(PatchDict, current_memberships.get(school_uuid_str, {})),
             patched_membership,
         )
-
-    removed_school_uuids = {UUID(key) for key in current_memberships} - {
-        UUID(key) for key in patched_memberships
-    }
-    for school_uuid in removed_school_uuids:
-        orm_membership = memberships_by_school[school_uuid]
-        model.school_memberships.remove(orm_membership)
-        await session.delete(orm_membership)
 
 
 def _apply_user_patch(model: UserModel, patched: PatchDict) -> None:
