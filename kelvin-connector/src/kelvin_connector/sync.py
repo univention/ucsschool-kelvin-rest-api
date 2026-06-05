@@ -373,7 +373,26 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         user_props = event.new.properties
         public_id = user_props.univentionObjectIdentifier
         logger.debug("Updating user {!r} (public_id={})", user_props.username, public_id)
-        current_user = await storage.users.get(public_id, load=LoadSpec.from_model(User))
+        try:
+            current_user = await storage.users.get(public_id, load=LoadSpec.from_model(User))
+        except NotFound:
+            # The user's create event was lost or dropped — the modify event
+            # carries the full desired state, so repair the gap by creating.
+            logger.warning(
+                "User {!r} not found on modify event, creating (public_id={})",
+                user_props.username,
+                public_id,
+            )
+            await self._handle_user_create(
+                UserCreateEvent(
+                    timestamp=event.timestamp,
+                    sequence_number=event.sequence_number,
+                    new=event.new,
+                ),
+                storage,
+                mapper,
+            )
+            return
 
         raw_schools = user_props.school
         if raw_schools:
@@ -585,7 +604,26 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         group_props = event.new.properties
         public_id = group_props.univentionObjectIdentifier
         logger.debug("Updating group {!r} (public_id={})", group_props.name, public_id)
-        current_group = await storage.groups.get(public_id, load=LoadSpec.from_model(Group))
+        try:
+            current_group = await storage.groups.get(public_id, load=LoadSpec.from_model(Group))
+        except NotFound:
+            # The group's create event was lost or dropped — the modify event
+            # carries the full desired state, so repair the gap by creating.
+            logger.warning(
+                "Group {!r} not found on modify event, creating (public_id={})",
+                group_props.name,
+                public_id,
+            )
+            await self._handle_group_create(
+                GroupCreateEvent(
+                    timestamp=event.timestamp,
+                    sequence_number=event.sequence_number,
+                    new=event.new,
+                ),
+                storage,
+                mapper,
+            )
+            return
 
         school_name = (
             group_props.ucsschoolRole[0].school
@@ -681,7 +719,8 @@ class SynchronizationManager(SynchronizationManagerProtocol):
     @override
     async def handle_school_modify(self, event: SchoolModifyEvent) -> None:
         async with self.storage_factory.transaction_scope() as storage:
-            await self._handle_school_modify(event, storage)
+            mapper = self._mapper_factory(storage)
+            await self._handle_school_modify(event, storage, mapper)
 
     @override
     async def handle_school_delete(self, event: SchoolDeleteEvent) -> None:
@@ -751,12 +790,31 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         logger.info("School {!r} deleted (public_id={})", event.old.properties.name, public_id)
 
     async def _handle_school_modify(
-        self, event: SchoolModifyEvent, storage: KelvinStorageSession
+        self, event: SchoolModifyEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
         school_props = event.new.properties
         public_id = school_props.univentionObjectIdentifier
         logger.debug("Updating school {!r} (public_id={})", school_props.name, public_id)
-        current_school = await storage.schools.get(public_id)
+        try:
+            current_school = await storage.schools.get(public_id)
+        except NotFound:
+            # The school's create event was lost or dropped — the modify event
+            # carries the full desired state, so repair the gap by creating.
+            logger.warning(
+                "School {!r} not found on modify event, creating (public_id={})",
+                school_props.name,
+                public_id,
+            )
+            await self._handle_school_create(
+                SchoolCreateEvent(
+                    timestamp=event.timestamp,
+                    sequence_number=event.sequence_number,
+                    new=event.new,
+                ),
+                storage,
+                mapper,
+            )
+            return
         with track_changes(current_school) as tracker:
             current_school.name = school_props.name
             current_school.display_name = school_props.displayName
