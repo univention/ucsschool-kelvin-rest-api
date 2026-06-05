@@ -3,6 +3,8 @@ import uuid
 import pytest
 from conftest import make_group, make_role, make_school, make_user
 from kelvin_connector.models import (
+    DeletedObjectProperties,
+    DeletePayload,
     GroupCreateEvent,
     GroupDeleteEvent,
     GroupModifyEvent,
@@ -117,31 +119,18 @@ def _user_modify_event(uid, extra_props=None):
 
 
 def _user_delete_event(uid):
-    dn = "uid=testuser,cn=users,dc=test"
-    id = "testuser"
-    position = "cn=users,dc=test"
-    objectType = "users/user"
-    props = UserProperties.parse_obj(
-        dict(
-            univentionObjectIdentifier=UUID4(str(uid)),
-            username="testuser",
-            firstname="Test",
-            lastname="User",
-            disabled=False,
-            school=[],
-            ucsschoolRole=[UcsschoolRole(role="teacher", context="school", school="testschool")],
-            ucsschoolRecordUID="testuser",
-            ucsschoolSourceUID="src",
-            groups=[],
-            ucsschoolLegalWard=[],
-            ucsschoolLegalGuardian=[],
-            mailPrimaryAddress="",
-        )
-    )
     return UserDeleteEvent(
         timestamp=_TS,
         sequence_number=1,
-        old=UserPayload(dn=dn, id=id, objectType=objectType, position=position, properties=props),
+        old=DeletePayload(
+            dn="uid=testuser,cn=users,dc=test",
+            id="testuser",
+            objectType="users/user",
+            position="cn=users,dc=test",
+            properties=DeletedObjectProperties(
+                univentionObjectIdentifier=UUID4(str(uid)), username="testuser"
+            ),
+        ),
     )
 
 
@@ -195,20 +184,14 @@ def _group_modify_event(uid, name="testschool-group", extra_props=None):
 
 def _group_delete_event(uid, name="testschool-group"):
     dn = f"cn={name},cn=klassen,dc=test"
-    props = GroupProperties(
+    props = DeletedObjectProperties(
         univentionObjectIdentifier=UUID4(str(uid)),
         name=name,
-        ucsschoolRole=[UcsschoolRole(role="school_class", context="school", school="testschool")],
-        allowedEmailUsers=[],
-        allowedEmailGroups=[],
-        users=[],
-        mailAddress=None,
-        guardianMemberRoles=[],
     )
     return GroupDeleteEvent(
         timestamp=_TS,
         sequence_number=1,
-        old=GroupPayload(
+        old=DeletePayload(
             dn=dn, id=name, objectType="groups/group", position="cn=klassen,dc=test", properties=props
         ),
     )
@@ -252,15 +235,14 @@ def _school_modify_event(uid, name="testschool", extra_props=None):
 
 def _school_delete_event(uid, name="testschool"):
     dn = f"ou={name},dc=test"
-    props = SchoolProperties(
+    props = DeletedObjectProperties(
         univentionObjectIdentifier=UUID4(str(uid)),
         name=name,
-        displayName=f"{name} Display",
     )
     return SchoolDeleteEvent(
         timestamp=_TS,
         sequence_number=1,
-        old=SchoolPayload(
+        old=DeletePayload(
             dn=dn, id=name, objectType="container/ou", position="dc=test", properties=props
         ),
     )

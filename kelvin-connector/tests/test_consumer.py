@@ -297,6 +297,35 @@ async def test_handle_remove_school(handler, sync_manager):
     sync_manager.handle_school_delete.assert_called_once()
 
 
+async def test_handle_remove_user_with_malformed_state_still_dispatches(handler, sync_manager):
+    """Deletion only needs the identifier: a user whose remaining LDAP state
+    is malformed must still be removable from the cache — a dropped delete
+    event leaves a stale row no future event can repair (e.g. one that holds
+    a unique email forever)."""
+    uid = _uid()
+    payload = _user_payload(uid)
+    payload["properties"]["firstname"] = None
+    payload["properties"]["ucsschoolRole"] = ["123"]
+
+    await handler._handle_remove(_meta(), payload)
+
+    sync_manager.handle_user_delete.assert_called_once()
+    event = sync_manager.handle_user_delete.call_args[0][0]
+    assert str(event.old.properties.univentionObjectIdentifier) == uid
+    assert event.old.properties.username == "testuser"
+
+
+async def test_handle_remove_group_with_malformed_state_still_dispatches(handler, sync_manager):
+    payload = _group_payload()
+    payload["properties"]["ucsschoolRole"] = ["123"]
+
+    await handler._handle_remove(_meta(), payload)
+
+    sync_manager.handle_group_delete.assert_called_once()
+    event = sync_manager.handle_group_delete.call_args[0][0]
+    assert event.old.properties.name == "testgroup"
+
+
 async def test_handle_remove_unknown_type_logs_error(handler, sync_manager):
     payload = {"objectType": "unknown/type", "dn": "cn=x,dc=test", "properties": {}}
     await handler._handle_remove(_meta(), payload)
