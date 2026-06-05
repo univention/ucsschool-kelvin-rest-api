@@ -20,7 +20,11 @@ from ucsschool_objects import (
     User,
 )
 from ucsschool_objects.core.domain.json import _UNLOADED_MARKER, to_json
-from ucsschool_objects.core.domain.models import domain_object_properties, is_loaded
+from ucsschool_objects.core.domain.models import (
+    domain_object_properties,
+    get_properties,
+    is_loaded,
+)
 
 
 def test_to_json_serializes_list_tuple_and_frozenset() -> None:
@@ -63,6 +67,17 @@ def test_domain_object_properties_strips_private_field_prefix() -> None:
     assert "_name" not in serialized
     assert serialized["name"] == "alpha"
     assert serialized["public_id"] == school.public_id
+
+
+def test_domain_object_all_properties_returns_set_of_public_property_names() -> None:
+    school = build_school("alpha")
+
+    properties = get_properties(school)
+
+    assert isinstance(properties, set)
+    assert "name" in properties
+    assert "_name" not in properties
+    assert "public_id" in properties
 
 
 def test_is_loaded_reports_state_and_missing_field() -> None:
