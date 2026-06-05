@@ -719,6 +719,50 @@ async def test_handle_user_modify_group_change_replaces_membership_groups_atomic
     assert not any(op["path"].startswith(f"{groups_path}/") for op in ops)
 
 
+async def test_handle_user_modify_school_reorder_moves_primary_flag(manager, mock_storage, mock_mapper):
+    """Reordering the schools in the event flips is_primary on the kept
+    memberships — emitted as per-membership is_primary replace ops."""
+    uid = uuid.uuid4()
+    school_a = make_school("schoola")
+    school_b = make_school("schoolb")
+    teacher_role = make_role("teacher")
+
+    current_user = make_user(
+        uid=uid,
+        school_memberships={
+            school_a.public_id: SchoolMembership(
+                school=school_a, is_primary=True, roles={teacher_role}, groups=set()
+            ),
+            school_b.public_id: SchoolMembership(
+                school=school_b, is_primary=False, roles={teacher_role}, groups=set()
+            ),
+        },
+    )
+    current_user.email = "testuser@example.com"
+    mock_storage.users.get.return_value = current_user
+    mock_storage.schools.search.return_value = [school_a, school_b]
+    mock_storage.roles.search.return_value = [teacher_role]
+
+    event = _user_modify_event(
+        uid,
+        extra_props={
+            "school": ["schoolb", "schoola"],
+            "ucsschoolRole": [
+                UcsschoolRole(role="teacher", context="school", school="schoola"),
+                UcsschoolRole(role="teacher", context="school", school="schoolb"),
+            ],
+        },
+    )
+    await manager.handle_user_modify(event)
+
+    mock_storage.users.modify.assert_called_once()
+    ops = mock_storage.users.modify.call_args[0][1]
+    assert {(op["path"], op["value"]) for op in ops} == {
+        (f"/school_memberships/{school_a.public_id}/is_primary", False),
+        (f"/school_memberships/{school_b.public_id}/is_primary", True),
+    }
+
+
 async def test_handle_user_modify_generates_record_uid_and_source_uid(
     manager, mock_storage, mock_mapper
 ):

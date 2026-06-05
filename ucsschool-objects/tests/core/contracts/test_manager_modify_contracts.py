@@ -690,8 +690,8 @@ async def test_user_manager_modify_unsupported_path_raises(
             [
                 {
                     "op": "replace",
-                    "path": "/school_memberships/some-id/is_primary",
-                    "value": True,
+                    "path": "/school_memberships/some-id/school",
+                    "value": "x",
                 }
             ],
         )
@@ -945,6 +945,71 @@ async def test_user_manager_modify_links_single_group_in_school_membership(
 
 
 @pytest.mark.asyncio
+async def test_user_manager_modify_membership_is_primary(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    """is_primary lives on the membership itself and is patchable (depth 3)."""
+    user = await user_factory()
+    school = await school_factory()
+    await school_membership_factory(user=user, school=school, is_primary=False)
+
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": f"/school_memberships/{school.public_id}/is_primary",
+            "value": True,
+        }
+    ]
+    await SQLAlchemyUserManager(db_session).modify(user.public_id, ops)
+
+    updated = (
+        await db_session.execute(
+            select(SchoolMembershipModel).where(
+                SchoolMembershipModel.user_id == user.id,
+                SchoolMembershipModel.school_id == school.id,
+            )
+        )
+    ).scalar_one()
+    assert updated.is_primary is True
+
+
+@pytest.mark.asyncio
+async def test_user_manager_modify_moves_primary_flag_between_memberships(
+    db_session: AsyncSession,
+    user_factory: AsyncUserFactory,
+    school_factory: AsyncSchoolFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    """Flipping the primary school via track_changes emits one is_primary
+    replace per kept membership; both are applied."""
+    user = await user_factory()
+    school_a = await school_factory()
+    school_b = await school_factory()
+    await school_membership_factory(user=user, school=school_a, is_primary=True)
+    await school_membership_factory(user=user, school=school_b, is_primary=False)
+
+    manager = SQLAlchemyUserManager(db_session)
+    user_obj = await manager.get(user.public_id, load=LoadSpec.from_attributes("school_memberships"))
+    with track_changes(user_obj) as tracker:
+        user_obj.school_memberships[school_a.public_id].is_primary = False
+        user_obj.school_memberships[school_b.public_id].is_primary = True
+    await manager.modify(user.public_id, tracker.patch)
+
+    flags = {
+        m.school_id: m.is_primary
+        for m in (
+            await db_session.execute(
+                select(SchoolMembershipModel).where(SchoolMembershipModel.user_id == user.id)
+            )
+        ).scalars()
+    }
+    assert flags == {school_a.id: False, school_b.id: True}
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("clear_roles", [False, True], ids=["replace-role", "clear-roles"])
 async def test_user_manager_modify_roles_in_school_membership(
     db_session: AsyncSession,
@@ -1045,8 +1110,8 @@ async def test_user_manager_modify_school_membership_unsupported_field_path_rais
             [
                 {
                     "op": "replace",
-                    "path": f"/school_memberships/{uuid.uuid4()}/is_primary",
-                    "value": True,
+                    "path": f"/school_memberships/{uuid.uuid4()}/school/name",
+                    "value": "x",
                 }
             ],
         )
