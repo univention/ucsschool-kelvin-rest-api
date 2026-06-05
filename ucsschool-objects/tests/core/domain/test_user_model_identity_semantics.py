@@ -18,7 +18,7 @@ from ucsschool_objects import (
     SchoolMembership,
     User,
 )
-from ucsschool_objects.core.domain.models import domain_asdict
+from ucsschool_objects.core.domain.models import is_loaded
 
 
 def _assert_public_reads_raise(entity: object, *field_names: str) -> None:
@@ -95,9 +95,8 @@ def test_school_minimal_only_loads_public_id() -> None:
     school = School.minimal(public_id)
 
     assert school.public_id == public_id
-    raw = domain_asdict(school)
-    assert raw["record_uid"] is UNLOADED
-    assert raw["source_uid"] is UNLOADED
+    assert not is_loaded(school, "record_uid")
+    assert not is_loaded(school, "source_uid")
     _assert_public_reads_raise(
         school,
         "record_uid",
@@ -117,9 +116,8 @@ def test_role_minimal_only_loads_public_id() -> None:
     role = Role.minimal(public_id)
 
     assert role.public_id == public_id
-    raw = domain_asdict(role)
-    assert raw["name"] is UNLOADED
-    assert raw["display_name"] is UNLOADED
+    assert not is_loaded(role, "name")
+    assert not is_loaded(role, "display_name")
     _assert_public_reads_raise(role, "name", "display_name")
 
 
@@ -129,9 +127,8 @@ def test_group_minimal_only_loads_public_id() -> None:
     group = Group.minimal(public_id)
 
     assert group.public_id == public_id
-    raw = domain_asdict(group)
-    assert raw["record_uid"] is UNLOADED
-    assert raw["school"] is UNLOADED
+    assert not is_loaded(group, "record_uid")
+    assert not is_loaded(group, "school")
     _assert_public_reads_raise(
         group,
         "record_uid",
@@ -155,9 +152,8 @@ def test_user_minimal_only_loads_public_id() -> None:
     user = User.minimal(public_id)
 
     assert user.public_id == public_id
-    raw = domain_asdict(user)
-    assert raw["record_uid"] is UNLOADED
-    assert raw["school_memberships"] is UNLOADED
+    assert not is_loaded(user, "record_uid")
+    assert not is_loaded(user, "school_memberships")
     _assert_public_reads_raise(
         user,
         "record_uid",

@@ -8,7 +8,6 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import inspect
 from ucsschool_objects import (
-    UNLOADED,
     UNSET,
     And,
     Filter,
@@ -42,7 +41,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import (
 from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import _is_loaded, _loaded_value
 from ucsschool_objects.core.domain.errors import UnsupportedNestedField
-from ucsschool_objects.core.domain.models import domain_asdict
+from ucsschool_objects.core.domain.models import is_loaded
 from ucsschool_objects.database_models import School as SchoolModel
 
 if TYPE_CHECKING:
@@ -362,9 +361,8 @@ def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPa
 
     group = to_domain.to_group(model)  # type: ignore[arg-type]
 
-    raw = domain_asdict(group)
-    assert raw["school"] is UNLOADED
-    assert raw["roles"] is UNLOADED
+    assert not is_loaded(group, "school")
+    assert not is_loaded(group, "roles")
     with pytest.raises(ValueError, match="Group.school is not loaded"):
         _ = group.school
     with pytest.raises(ValueError, match="Group.roles is not loaded"):

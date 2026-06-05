@@ -21,7 +21,7 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemySchoolManager,
     SQLAlchemyUserManager,
 )
-from ucsschool_objects.core.domain.models import domain_asdict
+from ucsschool_objects.core.domain.json import _UNLOADED_MARKER, to_json
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -86,13 +86,13 @@ DomainRecord = TypeVar("DomainRecord", School, Role, Group, User)
 def _assert_only_expected_fields_loaded(
     record: School | Role | Group | User, expected_loaded: set[str]
 ) -> None:
-    for field_name, value in domain_asdict(record).items():
+    for field_name, value in to_json(record).items():
         if field_name == "public_id":
             continue
         if field_name in expected_loaded:
-            assert not isinstance(value, UnloadedType), field_name
+            assert value != _UNLOADED_MARKER, field_name
         else:
-            assert isinstance(value, UnloadedType), field_name
+            assert value == _UNLOADED_MARKER, field_name
             with pytest.raises(
                 ValueError, match=rf"{type(record).__name__}\.{field_name} is not loaded"
             ):
