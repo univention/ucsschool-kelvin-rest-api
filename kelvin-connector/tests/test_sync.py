@@ -763,6 +763,24 @@ async def test_handle_user_modify_school_reorder_moves_primary_flag(manager, moc
     }
 
 
+async def test_handle_user_modify_creates_missing_user(manager, mock_storage, mock_mapper):
+    """A modify event carries the full desired state — if the user's create
+    event was lost, the modify event repairs the gap by creating."""
+    uid = uuid.uuid4()
+    school = make_school("testschool")
+    mock_storage.users.get.side_effect = NotFound("User", str(uid))
+    mock_storage.schools.search.return_value = [school]
+
+    event = _user_modify_event(uid)
+    await manager.handle_user_modify(event)
+
+    mock_storage.users.modify.assert_not_called()
+    mock_storage.users.create.assert_called_once()
+    created = mock_storage.users.create.call_args[0][0]
+    assert created.public_id == uid
+    mock_mapper.set_mapping.assert_called_once_with(ObjectType.USER, event.new.dn, uid)
+
+
 async def test_handle_user_modify_generates_record_uid_and_source_uid(
     manager, mock_storage, mock_mapper
 ):
@@ -928,6 +946,24 @@ async def test_handle_group_modify_filters_members_against_stored_school_when_sc
     _, school_filter = query.where.clauses
     assert school_filter.field == "schools.public_id"
     assert school_filter.value == str(school.public_id)
+
+
+async def test_handle_group_modify_creates_missing_group(manager, mock_storage, mock_mapper):
+    """A modify event carries the full desired state — if the group's create
+    event was lost, the modify event repairs the gap by creating."""
+    uid = uuid.uuid4()
+    school = make_school("testschool")
+    mock_storage.groups.get.side_effect = NotFound("Group", str(uid))
+    mock_storage.schools.search.return_value = [school]
+
+    event = _group_modify_event(uid)
+    await manager.handle_group_modify(event)
+
+    mock_storage.groups.modify.assert_not_called()
+    mock_storage.groups.create.assert_called_once()
+    created = mock_storage.groups.create.call_args[0][0]
+    assert created.public_id == uid
+    mock_mapper.set_mapping.assert_called_once_with(ObjectType.GROUP, event.new.dn, uid)
 
 
 async def test_handle_group_delete_happy_path(manager, mock_storage, mock_mapper):
@@ -1100,6 +1136,23 @@ async def test_handle_school_modify_calls_modify_when_patch_is_non_empty(
     await manager.handle_school_modify(event)
 
     mock_storage.schools.modify.assert_called_once()
+
+
+async def test_handle_school_modify_creates_missing_school(manager, mock_storage, mock_mapper):
+    """A modify event carries the full desired state — if the school's create
+    event was lost, the modify event repairs the gap by creating."""
+    uid = uuid.uuid4()
+    mock_storage.schools.get.side_effect = NotFound("School", str(uid))
+
+    event = _school_modify_event(uid)
+    await manager.handle_school_modify(event)
+
+    mock_storage.schools.modify.assert_not_called()
+    mock_storage.schools.create.assert_called_once()
+    created = mock_storage.schools.create.call_args[0][0]
+    assert created.public_id == uid
+    assert created.name == "testschool"
+    mock_mapper.set_mapping.assert_called_once_with(ObjectType.SCHOOL, event.new.dn, uid)
 
 
 async def test_handle_school_modify_updates_name(manager, mock_storage, mock_mapper):
