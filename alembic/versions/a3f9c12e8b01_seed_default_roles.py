@@ -26,6 +26,7 @@ _DEFAULT_ROLES = [
     "workgroup",
     "staff",
     "school",
+    "school_admin",
 ]
 
 
