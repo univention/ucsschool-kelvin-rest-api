@@ -46,7 +46,7 @@ from ucsschool_objects.core.domain.ports.dn_mapper import ObjectType
 
 from ...ldap import LdapUser
 from ...service.dependency import get_storage_session
-from ...token_auth import get_kelvin_admin
+from ...token_auth import get_kelvin_reader
 from ...urls import cached_url_for
 from ..v1.workgroup import (
     WorkGroupModel,
@@ -167,7 +167,7 @@ async def search(
     ),
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
 ) -> List[WorkGroupModel]:
     clauses = [Filter(field="school.name", op=Operator.EQ, value=school)]
     if workgroup_name:
@@ -188,7 +188,7 @@ async def get(
     school: str = Path(..., description="Name of the school (OU)."),
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
 ) -> WorkGroupModel:
     full_name = f"{school}-{workgroup_name}"
     results = [
