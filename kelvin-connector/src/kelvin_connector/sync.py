@@ -393,6 +393,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 mapper,
             )
             return
+        # A move/rename changes the dn but keeps the public_id — refresh the
+        # mapping unconditionally so later events resolve the new dn.
+        await mapper.set_mapping(ObjectType.USER, event.new.dn, public_id)
 
         raw_schools = user_props.school
         if raw_schools:
@@ -624,6 +627,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 mapper,
             )
             return
+        # A move/rename changes the dn but keeps the public_id — refresh the
+        # mapping unconditionally so later events resolve the new dn.
+        await mapper.set_mapping(ObjectType.GROUP, event.new.dn, public_id)
 
         school_name = (
             group_props.ucsschoolRole[0].school
@@ -815,6 +821,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 mapper,
             )
             return
+        # A move/rename changes the dn but keeps the public_id — refresh the
+        # mapping unconditionally so later events resolve the new dn.
+        await mapper.set_mapping(ObjectType.SCHOOL, event.new.dn, public_id)
         with track_changes(current_school) as tracker:
             current_school.name = school_props.name
             current_school.display_name = school_props.displayName

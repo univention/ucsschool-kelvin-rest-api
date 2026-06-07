@@ -818,6 +818,22 @@ async def test_handle_user_modify_school_reorder_moves_primary_flag(manager, moc
     }
 
 
+async def test_handle_user_modify_refreshes_dn_mapping(manager, mock_storage, mock_mapper):
+    """A move/rename changes the dn but keeps the public_id; the mapping is
+    refreshed even when nothing else changed, so later events referencing the
+    new dn resolve."""
+    uid = UUID4(str(uuid.uuid4()))
+    current_user = make_user(uid=uid)
+    current_user.email = "testuser@example.com"
+    mock_storage.users.get.return_value = current_user
+
+    event = _user_modify_event(uid)
+    await manager.handle_user_modify(event)
+
+    mock_storage.users.modify.assert_not_called()  # no property changes
+    mock_mapper.set_mapping.assert_called_once_with(ObjectType.USER, event.new.dn, uid)
+
+
 async def test_handle_user_modify_creates_missing_user(manager, mock_storage, mock_mapper):
     """A modify event carries the full desired state — if the user's create
     event was lost, the modify event repairs the gap by creating."""
@@ -1001,6 +1017,19 @@ async def test_handle_group_modify_filters_members_against_stored_school_when_sc
     _, school_filter = query.where.clauses
     assert school_filter.field == "schools.public_id"
     assert school_filter.value == str(school.public_id)
+
+
+async def test_handle_group_modify_refreshes_dn_mapping(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    school = make_school("testschool")
+    current_group = make_group("testschool-group", school, uid=uid)
+    mock_storage.groups.get.return_value = current_group
+    mock_storage.schools.search.return_value = [school]
+
+    event = _group_modify_event(uid)
+    await manager.handle_group_modify(event)
+
+    mock_mapper.set_mapping.assert_called_once_with(ObjectType.GROUP, event.new.dn, uid)
 
 
 async def test_handle_group_modify_creates_missing_group(manager, mock_storage, mock_mapper):
@@ -1191,6 +1220,17 @@ async def test_handle_school_modify_calls_modify_when_patch_is_non_empty(
     await manager.handle_school_modify(event)
 
     mock_storage.schools.modify.assert_called_once()
+
+
+async def test_handle_school_modify_refreshes_dn_mapping(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    current_school = make_school("testschool", uid=uid)
+    mock_storage.schools.get.return_value = current_school
+
+    event = _school_modify_event(uid)
+    await manager.handle_school_modify(event)
+
+    mock_mapper.set_mapping.assert_called_once_with(ObjectType.SCHOOL, event.new.dn, uid)
 
 
 async def test_handle_school_modify_creates_missing_school(manager, mock_storage, mock_mapper):
