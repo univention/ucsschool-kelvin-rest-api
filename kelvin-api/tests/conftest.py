@@ -50,6 +50,7 @@ import pytest
 import requests
 from constants import MAPPED_UDM_PROPERTIES
 from faker import Faker
+from fastapi.testclient import TestClient
 from uldap3 import UCSUser
 
 import ucsschool.kelvin.config
@@ -76,6 +77,23 @@ from univention.config_registry import ConfigRegistry
 # handle RuntimeError: Directory '/kelvin/kelvin-api/static' does not exist
 with patch("ucsschool.kelvin.constants.STATIC_FILES_PATH", "/tmp"):
     import ucsschool.kelvin.main
+
+
+@pytest.fixture
+def client():
+    """In-process API client with the ASGI lifespan run.
+
+    Entering the TestClient context manager runs the lifespan, which
+    populates ``app.state`` (the v2 storage session factory). v1 routes
+    build their UDM connection per request and do not need this, but v2
+    routes read the factory from ``app.state``. The v2 storage engine is
+    async and bound to this client's event loop, so the same client must
+    issue the requests — use this fixture instead of constructing
+    ``TestClient(app)`` inline.
+    """
+    with TestClient(ucsschool.kelvin.main.app, base_url="http://test.server") as test_client:
+        yield test_client
+
 
 APP_ID = "ucsschool-kelvin-rest-api"
 APP_BASE_PATH = Path("/var/lib/univention-appcenter/apps", APP_ID)
