@@ -1,3 +1,4 @@
+import json
 from typing import cast, final
 from uuid import UUID
 
@@ -22,6 +23,7 @@ from kelvin_connector.models import (
 )
 from kelvin_connector.ports import DNIDMapperFactory, SynchronizationManagerProtocol
 from loguru import logger
+from pydantic import BaseModel
 from typing_extensions import override
 from ucsschool_objects import (
     UNLOADED,
@@ -60,6 +62,20 @@ _USER_REPLACE_FIELDS = frozenset(
         "school_memberships/*/roles",
     }
 )
+
+# Never stored in the cache: large binary payloads and secrets.
+_UDM_PROPERTIES_DENYLIST = frozenset({"jpegPhoto", "password"})
+
+
+def _udm_properties(properties: BaseModel) -> dict[str, object]:
+    """The full UDM properties of an event as a JSON-safe dict.
+
+    Stored verbatim (minus the denylist) instead of only the configured
+    mapped properties: the API filters at read time, so changing the
+    mapped-properties configuration does not require a resync.
+    """
+    serialized = cast("dict[str, object]", json.loads(properties.json()))
+    return {key: value for key, value in serialized.items() if key not in _UDM_PROPERTIES_DENYLIST}
 
 
 class SynchronizationException(Exception):
@@ -324,6 +340,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                     school_memberships=school_memberships,
                     legal_wards=legal_wards,
                     legal_guardians=legal_guardians,
+                    udm_properties=_udm_properties(user_props),
                 )
             )
             await mapper.set_mapping(ObjectType.USER, event.new.dn, public_id)
@@ -465,6 +482,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         user.school_memberships = school_memberships
         user.legal_wards = legal_wards
         user.legal_guardians = legal_guardians
+        user.udm_properties = _udm_properties(user_props)
 
     # ── Group event handlers ────────────────────────────────────────────────
 
@@ -543,6 +561,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                     create_share=False,
                     roles=group_roles,
                     member_roles=member_roles,
+                    udm_properties=_udm_properties(group_props),
                 )
             )
             await mapper.set_mapping(ObjectType.GROUP, event.new.dn, public_id)
@@ -713,6 +732,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         group.allowed_email_senders_groups = allowed_email_senders_groups
         group.members = members
         group.member_roles = member_roles
+        group.udm_properties = _udm_properties(group_props)
 
     # ── School event handlers ───────────────────────────────────────────────
 
@@ -750,6 +770,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             # so nullable ones must be explicitly None instead of UNLOADED.
             class_share_file_server=None,
             home_share_file_server=None,
+            udm_properties=_udm_properties(school_props),
         )
         try:
             current_school = await storage.schools.get(public_id)
@@ -768,6 +789,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             with track_changes(current_school) as tracker:
                 current_school.name = school_props.name
                 current_school.display_name = school_props.displayName
+                current_school.udm_properties = _udm_properties(school_props)
             if tracker.patch:
                 await storage.schools.modify(public_id, tracker.patch)
                 logger.info(
@@ -827,6 +849,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         with track_changes(current_school) as tracker:
             current_school.name = school_props.name
             current_school.display_name = school_props.displayName
+            current_school.udm_properties = _udm_properties(school_props)
         if tracker.patch:
             await storage.schools.modify(public_id, tracker.patch)
             logger.info("School {!r} modified (public_id={})", school_props.name, public_id)
