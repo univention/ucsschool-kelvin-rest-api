@@ -26,12 +26,20 @@ from sqlalchemy import (
     UniqueConstraint,
     event,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:  # pragma: no cover
     from sqlalchemy.engine import Connection
     from sqlalchemy.orm import Mapper
     from sqlalchemy.sql.schema import Constraint
+
+
+# json has no equality operator on PostgreSQL, which breaks e.g. SELECT
+# DISTINCT over rows containing such a column (joins add DISTINCT); jsonb
+# has one. SQLite ignores the variant and keeps the generic JSON type.
+def _json_type() -> JSON:
+    return JSON().with_variant(JSONB(), "postgresql")
 
 
 class Base(DeclarativeBase):
@@ -84,11 +92,11 @@ class School(Base):
     display_name: Mapped[str] = mapped_column(
         String(255), nullable=False, default="", info={"udm_attr": "displayName"}
     )
-    educational_servers: Mapped[list[str]] = mapped_column(JSON(), nullable=False, default=list)
-    administrative_servers: Mapped[list[str]] = mapped_column(JSON(), nullable=False, default=list)
+    educational_servers: Mapped[list[str]] = mapped_column(_json_type(), nullable=False, default=list)
+    administrative_servers: Mapped[list[str]] = mapped_column(_json_type(), nullable=False, default=list)
     class_share_file_server: Mapped[str | None] = mapped_column(String(255), nullable=True)
     home_share_file_server: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    udm_properties: Mapped[dict[str, object]] = mapped_column(JSON(), nullable=False, default=dict)
+    udm_properties: Mapped[dict[str, object]] = mapped_column(_json_type(), nullable=False, default=dict)
 
 
 class Group(Base):
@@ -133,7 +141,7 @@ class Group(Base):
     email: Mapped[str | None] = mapped_column(
         String(255), nullable=True, unique=True, info={"udm_attr": "mailAddress"}
     )
-    udm_properties: Mapped[dict[str, object]] = mapped_column(JSON(), nullable=False, default=dict)
+    udm_properties: Mapped[dict[str, object]] = mapped_column(_json_type(), nullable=False, default=dict)
 
     roles: Mapped[list["Role"]] = relationship("Role", secondary="group_role_association", lazy="raise")
 
@@ -213,7 +221,7 @@ class User(Base):
     active: Mapped[bool] = mapped_column(
         BOOLEAN, nullable=False, default=True, info={"udm_attr": "disabled"}
     )
-    udm_properties: Mapped[dict[str, object]] = mapped_column(JSON(), nullable=False, default=dict)
+    udm_properties: Mapped[dict[str, object]] = mapped_column(_json_type(), nullable=False, default=dict)
 
     legal_wards: Mapped[list["User"]] = relationship(
         secondary="legal_guardian_association",
@@ -243,7 +251,7 @@ class Role(Base):
         UUID, unique=True, index=True, default=uuid.uuid4, nullable=False
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    display_name: Mapped[dict[str, str]] = mapped_column(JSON, nullable=False, default=dict)
+    display_name: Mapped[dict[str, str]] = mapped_column(_json_type(), nullable=False, default=dict)
 
 
 #############################
