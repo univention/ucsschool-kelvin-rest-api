@@ -54,6 +54,7 @@ def _build_school_reference(public_id: UUID, *, name: str = "school-ref") -> Sch
     return School(
         public_id=public_id,
         record_uid=f"rec-{name}",
+        udm_properties={},
         source_uid=f"src-{name}",
         name=name,
         display_name=name,
@@ -70,6 +71,7 @@ def _build_group_reference(public_id: UUID, *, name: str = "group-ref") -> Group
     return Group(
         public_id=public_id,
         record_uid=f"rec-{name}",
+        udm_properties={},
         source_uid=f"src-{name}",
         name=name,
         display_name=name,
@@ -88,6 +90,7 @@ def _build_user_reference(public_id: UUID, *, name: str = "user-ref") -> User:
     return User(
         public_id=public_id,
         record_uid=f"rec-{name}",
+        udm_properties={},
         source_uid=f"src-{name}",
         name=name,
         firstname="Ref",
@@ -112,6 +115,7 @@ def _build_user_reference(public_id: UUID, *, name: str = "user-ref") -> User:
             {
                 "public_id": uuid.uuid4(),
                 "record_uid": "rec-s1",
+                "udm_properties": {},
                 "source_uid": "src-s1",
                 "name": "school-explicit-id",
                 "display_name": "School Explicit",
@@ -129,6 +133,7 @@ def _build_user_reference(public_id: UUID, *, name: str = "user-ref") -> User:
         pytest.param(
             {
                 "record_uid": "rec-s2",
+                "udm_properties": {},
                 "source_uid": "src-s2",
                 "name": "school-auto-id",
                 "display_name": "School Auto",
@@ -144,6 +149,7 @@ def _build_user_reference(public_id: UUID, *, name: str = "user-ref") -> User:
             {
                 "public_id": uuid.uuid4(),
                 "record_uid": "rec-s3",
+                "udm_properties": {},
                 "source_uid": "src-s3",
                 "name": "school-multi-servers",
                 "display_name": "School Multi",
@@ -179,6 +185,7 @@ async def test_school_manager_create_success(
         pytest.param(
             {
                 "record_uid": UNLOADED,
+                "udm_properties": {},
                 "source_uid": "src-s-fail-null-record",
                 "name": "school-fail-null-record",
                 "display_name": "Fail",
@@ -191,6 +198,7 @@ async def test_school_manager_create_success(
         pytest.param(
             {
                 "record_uid": None,
+                "udm_properties": {},
                 "source_uid": "src-s-fail-null-record",
                 "name": "school-fail-null-record",
                 "display_name": "Fail",
@@ -356,6 +364,7 @@ async def _setup_group_create_full(
     group = Group(
         public_id=uuid.uuid4(),
         record_uid="rec-group-full",
+        udm_properties={},
         source_uid="src-group-full",
         name="group-create-full",
         display_name="Group Full",
@@ -395,6 +404,7 @@ async def _setup_group_create_minimal(
     group = Group(
         public_id=UNSET,
         record_uid="rec-group-min",
+        udm_properties={},
         source_uid="src-group-min",
         name="group-create-min",
         display_name="Group Min",
@@ -429,6 +439,7 @@ async def _setup_group_create_missing_roles(
         group=Group(
             public_id=uuid.uuid4(),
             record_uid="rec-group-fail-type",
+            udm_properties={},
             source_uid="src-group-fail-type",
             name="group-fail-type",
             display_name="Group Fail Type",
@@ -458,6 +469,7 @@ async def _setup_group_create_missing_school(
         group=Group(
             public_id=uuid.uuid4(),
             record_uid="rec-group-fail-school",
+            udm_properties={},
             source_uid="src-group-fail-school",
             name="group-fail-school",
             display_name="Group Fail School",
@@ -488,6 +500,7 @@ async def _setup_group_create_missing_role(
         group=Group(
             public_id=uuid.uuid4(),
             record_uid="rec-group-fail-role",
+            udm_properties={},
             source_uid="src-group-fail-role",
             name="group-fail-role",
             display_name="Group Fail Role",
@@ -518,6 +531,7 @@ async def _setup_group_create_missing_sender_user(
         group=Group(
             public_id=uuid.uuid4(),
             record_uid="rec-group-fail-sender-user",
+            udm_properties={},
             source_uid="src-group-fail-sender-user",
             name="group-fail-sender-user",
             display_name="Group Fail Sender User",
@@ -548,6 +562,7 @@ async def _setup_group_create_missing_sender_group(
         group=Group(
             public_id=uuid.uuid4(),
             record_uid="rec-group-fail-sender-group",
+            udm_properties={},
             source_uid="src-group-fail-sender-group",
             name="group-fail-sender-group",
             display_name="Group Fail Sender Group",
@@ -580,6 +595,7 @@ async def _setup_group_create_sender_user_without_public_id(
         group=Group(
             public_id=uuid.uuid4(),
             record_uid="rec-group-fail-sender-user-public-id",
+            udm_properties={},
             source_uid="src-group-fail-sender-user-public-id",
             name="group-fail-sender-user-public-id",
             display_name="Group Fail Sender User Public Id",
@@ -589,6 +605,7 @@ async def _setup_group_create_sender_user_without_public_id(
                 {
                     User(
                         record_uid="rec-invalid-sender-user",
+                        udm_properties={},
                         source_uid="src-invalid-sender-user",
                         name="invalid-sender-user",
                         firstname="Invalid",
@@ -624,6 +641,7 @@ async def _setup_group_create_sender_group_without_public_id(
         group=Group(
             public_id=uuid.uuid4(),
             record_uid="rec-group-fail-sender-group-public-id",
+            udm_properties={},
             source_uid="src-group-fail-sender-group-public-id",
             name="group-fail-sender-group-public-id",
             display_name="Group Fail Sender Group Public Id",
@@ -634,6 +652,7 @@ async def _setup_group_create_sender_group_without_public_id(
                 {
                     Group(
                         record_uid="rec-invalid-sender-group",
+                        udm_properties={},
                         source_uid="src-invalid-sender-group",
                         name="invalid-sender-group",
                         display_name="Invalid Sender Group",
@@ -673,6 +692,7 @@ async def _setup_group_create_school_without_public_id(
         group=Group(
             public_id=uuid.uuid4(),
             record_uid="rec-group-fail-school-public-id",
+            udm_properties={},
             source_uid="src-group-fail-school-public-id",
             name="group-fail-school-public-id",
             display_name="Group Fail School Public Id",
@@ -684,6 +704,7 @@ async def _setup_group_create_school_without_public_id(
             member_roles=set(),
             school=School(
                 record_uid="rec-invalid-school",
+                udm_properties={},
                 source_uid="src-invalid-school",
                 name="invalid-school",
                 display_name="Invalid School",
@@ -711,6 +732,7 @@ async def _setup_group_create_missing_member_membership(
         group=Group(
             public_id=uuid.uuid4(),
             record_uid="rec-group-fail-member-membership",
+            udm_properties={},
             source_uid="src-group-fail-member-membership",
             name="group-fail-member-membership",
             display_name="Group Fail Member Membership",
@@ -878,6 +900,7 @@ async def _setup_user_create_full(
     user = User(
         public_id=uuid.uuid4(),
         record_uid="rec-user-full",
+        udm_properties={},
         source_uid="src-user-full",
         name="user-create-full",
         firstname="Create",
@@ -906,6 +929,7 @@ async def _setup_user_create_minimal(
     user = User(
         public_id=uuid.uuid4(),
         record_uid="rec-user-min",
+        udm_properties={},
         source_uid="src-user-min",
         name="user-create-min",
         firstname="Create",
@@ -949,6 +973,7 @@ async def _setup_user_create_multi_membership(
     user = User(
         public_id=uuid.uuid4(),
         record_uid="rec-user-multi",
+        udm_properties={},
         source_uid="src-user-multi",
         name="user-create-multi",
         firstname="Create",
@@ -978,6 +1003,7 @@ async def _setup_user_create_unloaded_relations(
 ) -> UserCreateExpectation:
     user = User(
         record_uid="rec-user-unloaded",
+        udm_properties={},
         source_uid="src-user-unloaded",
         name="user-create-unloaded",
         firstname="Create",
@@ -1014,6 +1040,7 @@ async def _setup_user_create_missing_school(
         user=User(
             public_id=uuid.uuid4(),
             record_uid="rec-user-fail-school",
+            udm_properties={},
             source_uid="src-user-fail-school",
             name="user-fail-school",
             firstname="Fail",
@@ -1044,6 +1071,7 @@ async def _setup_user_create_missing_role(
         user=User(
             public_id=uuid.uuid4(),
             record_uid="rec-user-fail-role",
+            udm_properties={},
             source_uid="src-user-fail-role",
             name="user-fail-role",
             firstname="Fail",
@@ -1073,6 +1101,7 @@ async def _setup_user_create_missing_ward(
         user=User(
             public_id=uuid.uuid4(),
             record_uid="rec-user-fail-ward",
+            udm_properties={},
             source_uid="src-user-fail-ward",
             name="user-fail-ward",
             firstname="Fail",
@@ -1094,6 +1123,7 @@ async def _setup_user_create_membership_school_without_public_id(
     membership = SchoolMembership(
         school=School(
             record_uid="rec-invalid-school",
+            udm_properties={},
             source_uid="src-invalid-school",
             name="invalid-school",
             display_name="Invalid School",
@@ -1108,6 +1138,7 @@ async def _setup_user_create_membership_school_without_public_id(
         user=User(
             public_id=uuid.uuid4(),
             record_uid="rec-user-fail-membership-school-public-id",
+            udm_properties={},
             source_uid="src-user-fail-membership-school-public-id",
             name="user-fail-membership-school-public-id",
             firstname="Fail",
@@ -1137,6 +1168,7 @@ async def _setup_user_create_membership_key_mismatch(
         user=User(
             public_id=uuid.uuid4(),
             record_uid="rec-user-fail-membership-key",
+            udm_properties={},
             source_uid="src-user-fail-membership-key",
             name="user-fail-membership-key",
             firstname="Fail",
@@ -1173,6 +1205,7 @@ async def _setup_user_create_membership_role_without_public_id(
         user=User(
             public_id=uuid.uuid4(),
             record_uid="rec-user-fail-membership-role-public-id",
+            udm_properties={},
             source_uid="src-user-fail-membership-role-public-id",
             name="user-fail-membership-role-public-id",
             firstname="Fail",
@@ -1200,6 +1233,7 @@ async def _setup_user_create_membership_group_without_public_id(
             {
                 Group(
                     record_uid="rec-group-without-public-id",
+                    udm_properties={},
                     source_uid="src-group-without-public-id",
                     name="group-without-public-id",
                     display_name="Group Without Public Id",
@@ -1219,6 +1253,7 @@ async def _setup_user_create_membership_group_without_public_id(
         user=User(
             public_id=uuid.uuid4(),
             record_uid="rec-user-fail-membership-group-public-id",
+            udm_properties={},
             source_uid="src-user-fail-membership-group-public-id",
             name="user-fail-membership-group-public-id",
             firstname="Fail",

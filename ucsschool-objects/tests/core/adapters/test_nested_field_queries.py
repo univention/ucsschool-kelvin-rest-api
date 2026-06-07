@@ -355,6 +355,7 @@ def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPa
         allowed_email_senders_groups=(),
         members=(),
         member_roles=(),
+        udm_properties={},
     )
 
     monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: _State())

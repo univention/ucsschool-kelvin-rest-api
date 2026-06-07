@@ -39,6 +39,7 @@ def _apply_school_patch(model: SchoolModel, patched: PatchDict) -> None:
     model.home_share_file_server = cast(str | None, patched["home_share_file_server"])
     model.educational_servers = list(cast(list[str], patched["educational_servers"]))
     model.administrative_servers = list(cast(list[str], patched["administrative_servers"]))
+    model.udm_properties = cast("dict[str, object]", patched["udm_properties"])
 
 
 class SQLAlchemySchoolManager(Manager[School]):
@@ -56,6 +57,7 @@ class SQLAlchemySchoolManager(Manager[School]):
     }
     _LOAD_ATTRIBUTE_MAP: dict[str, FieldColumn] = {
         **_SCALAR_FIELD_MAP,
+        "udm_properties": SchoolModel.udm_properties,
     }
     _FIELD_MAP: dict[str, FieldColumn] = compose_field_map(
         _BASE_FIELD_MAP,

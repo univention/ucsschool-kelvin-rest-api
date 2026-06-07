@@ -83,6 +83,7 @@ def _school_patched(**overrides: object) -> dict[str, object]:
         "administrative_servers": ["adm1"],
         "class_share_file_server": None,
         "home_share_file_server": None,
+        "udm_properties": {},
     }
     base.update(overrides)
     return base
@@ -115,6 +116,7 @@ def _user_patched(**overrides: object) -> dict[str, object]:
         "active": True,
         "birthday": None,
         "expiration_date": None,
+        "udm_properties": {},
     }
     base.update(overrides)
     return base

@@ -58,6 +58,7 @@ class School:
         "_administrative_servers",
         "_class_share_file_server",
         "_home_share_file_server",
+        "_udm_properties",
     )
 
     def __init__(
@@ -71,6 +72,7 @@ class School:
         administrative_servers: set[str] | UnloadedType = UNLOADED,
         class_share_file_server: str | None | UnloadedType = UNLOADED,
         home_share_file_server: str | None | UnloadedType = UNLOADED,
+        udm_properties: dict[str, object] | UnloadedType = UNLOADED,
     ) -> None:
         self.public_id = public_id
         self._record_uid = record_uid
@@ -81,6 +83,7 @@ class School:
         self._administrative_servers = administrative_servers
         self._class_share_file_server = class_share_file_server
         self._home_share_file_server = home_share_file_server
+        self._udm_properties = udm_properties
 
     @classmethod
     def minimal(cls, public_id: UUID) -> School:
@@ -168,6 +171,18 @@ class School:
     def home_share_file_server(self, value: str | None) -> None:
         self._home_share_file_server = value
 
+    @property
+    def udm_properties(self) -> dict[str, object]:
+        return _require_loaded(
+            self._udm_properties,
+            object_type="School",
+            field_name="udm_properties",
+        )
+
+    @udm_properties.setter
+    def udm_properties(self, value: dict[str, object]) -> None:
+        self._udm_properties = value
+
     def __hash__(self) -> int:
         return hash(self.public_id)
 
@@ -232,6 +247,7 @@ class Group:
         "_member_roles",
         "_school",
         "_email",
+        "_udm_properties",
     )
 
     def __init__(
@@ -249,6 +265,7 @@ class Group:
         member_roles: set[Role] | UnloadedType = UNLOADED,
         school: School | UnloadedType = UNLOADED,
         email: str | None | UnloadedType = UNLOADED,
+        udm_properties: dict[str, object] | UnloadedType = UNLOADED,
     ) -> None:
         self.public_id = public_id
         self._record_uid = record_uid
@@ -263,6 +280,7 @@ class Group:
         self._member_roles = member_roles
         self._school = school
         self._email = email
+        self._udm_properties = udm_properties
 
     @classmethod
     def minimal(cls, public_id: UUID) -> Group:
@@ -378,6 +396,18 @@ class Group:
     def email(self, value: str | None) -> None:
         self._email = value
 
+    @property
+    def udm_properties(self) -> dict[str, object]:
+        return _require_loaded(
+            self._udm_properties,
+            object_type="Group",
+            field_name="udm_properties",
+        )
+
+    @udm_properties.setter
+    def udm_properties(self, value: dict[str, object]) -> None:
+        self._udm_properties = value
+
     def __hash__(self) -> int:
         return hash(self.public_id)
 
@@ -442,6 +472,7 @@ class User:
         "_email",
         "_birthday",
         "_expiration_date",
+        "_udm_properties",
     )
 
     def __init__(
@@ -459,6 +490,7 @@ class User:
         email: str | None | UnloadedType = None,
         birthday: date | None | UnloadedType = None,
         expiration_date: date | None | UnloadedType = None,
+        udm_properties: dict[str, object] | UnloadedType = UNLOADED,
     ) -> None:
         self.public_id = public_id
         self._record_uid = record_uid
@@ -473,6 +505,7 @@ class User:
         self._email = email
         self._birthday = birthday
         self._expiration_date = expiration_date
+        self._udm_properties = udm_properties
 
     @property
     def record_uid(self) -> str:
@@ -581,6 +614,18 @@ class User:
     @expiration_date.setter
     def expiration_date(self, value: date | None) -> None:
         self._expiration_date = value
+
+    @property
+    def udm_properties(self) -> dict[str, object]:
+        return _require_loaded(
+            self._udm_properties,
+            object_type="User",
+            field_name="udm_properties",
+        )
+
+    @udm_properties.setter
+    def udm_properties(self, value: dict[str, object]) -> None:
+        self._udm_properties = value
 
     def __hash__(self) -> int:
         return hash(self.public_id)

@@ -88,6 +88,7 @@ class School(Base):
     administrative_servers: Mapped[list[str]] = mapped_column(JSON(), nullable=False, default=list)
     class_share_file_server: Mapped[str | None] = mapped_column(String(255), nullable=True)
     home_share_file_server: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    udm_properties: Mapped[dict[str, object]] = mapped_column(JSON(), nullable=False, default=dict)
 
 
 class Group(Base):
@@ -132,6 +133,7 @@ class Group(Base):
     email: Mapped[str | None] = mapped_column(
         String(255), nullable=True, unique=True, info={"udm_attr": "mailAddress"}
     )
+    udm_properties: Mapped[dict[str, object]] = mapped_column(JSON(), nullable=False, default=dict)
 
     roles: Mapped[list["Role"]] = relationship("Role", secondary="group_role_association", lazy="raise")
 
@@ -211,6 +213,7 @@ class User(Base):
     active: Mapped[bool] = mapped_column(
         BOOLEAN, nullable=False, default=True, info={"udm_attr": "disabled"}
     )
+    udm_properties: Mapped[dict[str, object]] = mapped_column(JSON(), nullable=False, default=dict)
 
     legal_wards: Mapped[list["User"]] = relationship(
         secondary="legal_guardian_association",

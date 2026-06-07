@@ -86,6 +86,11 @@ def to_school_model(data: School) -> SchoolModel:
             object_type="School",
             field_name="home_share_file_server",
         ),
+        udm_properties=_require_loaded(
+            data.udm_properties,
+            object_type="School",
+            field_name="udm_properties",
+        ),
     )
     if isinstance(data.public_id, UUID):
         school_model.public_id = data.public_id
@@ -112,6 +117,11 @@ def to_group_model(data: Group) -> GroupModel:
         display_name=_require_loaded(data.display_name, object_type="Group", field_name="display_name"),
         has_share=_require_loaded(data.create_share, object_type="Group", field_name="create_share"),
         email=check_nullable_value_presence(data.email, object_type="Group", field_name="email"),
+        udm_properties=_require_loaded(
+            data.udm_properties,
+            object_type="Group",
+            field_name="udm_properties",
+        ),
     )
     if data.public_id == UNSET:
         group_model.public_id = generate_public_id()
@@ -134,6 +144,11 @@ def to_user_model(data: User) -> UserModel:
             data.expiration_date,
             object_type="User",
             field_name="expiration_date",
+        ),
+        udm_properties=_require_loaded(
+            data.udm_properties,
+            object_type="User",
+            field_name="udm_properties",
         ),
     )
     if isinstance(data.public_id, UUID):

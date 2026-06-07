@@ -157,6 +157,7 @@ def _apply_user_patch(model: UserModel, patched: PatchDict) -> None:
     model.birthday = date.fromisoformat(cast(str, birthday_val)) if birthday_val is not None else None
     exp_val = patched["expiration_date"]
     model.expiration_date = date.fromisoformat(cast(str, exp_val)) if exp_val is not None else None
+    model.udm_properties = cast("dict[str, object]", patched["udm_properties"])
 
 
 def _includes_user_memberships(load: LoadSpec) -> bool:
@@ -334,6 +335,7 @@ class SQLAlchemyUserManager(Manager[User]):
     }
     _LOAD_ATTRIBUTE_MAP: dict[str, FieldColumn] = {
         **_SCALAR_FIELD_MAP,
+        "udm_properties": UserModel.udm_properties,
     }
     _FIELD_MAP: dict[str, FieldColumn] = compose_field_map(
         _BASE_FIELD_MAP,
