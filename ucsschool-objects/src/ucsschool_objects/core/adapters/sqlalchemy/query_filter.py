@@ -25,6 +25,7 @@ from ucsschool_objects.core.domain.errors import (
     EmptyAndClause,
     EmptyOrClause,
     InvalidInFilter,
+    InvalidJsonFilter,
     InvalidLikeFilter,
     InvalidRangeFilter,
     InvalidUuidFilter,
@@ -160,10 +161,38 @@ def _supports_range_filters(column: FieldColumn) -> bool:
     return isinstance(_get_column_type(column), RANGE_CAPABLE_TYPES)
 
 
+def _json_extracted_column(
+    json_column: FieldColumn,
+    json_key: str,
+    filter_expr: Filter,
+) -> FieldColumn:
+    """A typed extraction of one key from a JSON column.
+
+    The extraction type follows the filter value's type, so comparisons are
+    portable across backends (``->>`` on PostgreSQL, ``JSON_EXTRACT`` on
+    SQLite) and downstream operator handling works on the returned element
+    like on a real column. Only scalar values are supported — matching
+    inside JSON arrays has no portable spelling.
+    """
+    element = cast("ColumnElement[object]", json_column)[json_key]
+    value = filter_expr.value
+    # bool first: bool is a subclass of int.
+    if isinstance(value, bool):
+        return cast("ColumnElement[object]", element.as_boolean())
+    if isinstance(value, int):
+        return cast("ColumnElement[object]", element.as_integer())
+    if isinstance(value, float):
+        return cast("ColumnElement[object]", element.as_float())
+    if isinstance(value, str):
+        return cast("ColumnElement[object]", element.as_string())
+    raise InvalidJsonFilter(filter_expr.field, value)
+
+
 def _get_filter_column(
     filter_expr: Filter,
     field_map: Mapping[str, FieldColumn],
     registry: dict[str, JoinSpec] | None = None,
+    json_field_map: Mapping[str, FieldColumn] | None = None,
 ) -> FieldColumn:
     """Resolve a filter field to its column, with nested field support.
 
@@ -171,6 +200,9 @@ def _get_filter_column(
         filter_expr: The filter expression containing the field name.
         field_map: Mapping of field names to columns.
         registry: Optional registry for validating nested fields.
+        json_field_map: Optional mapping of JSON column roots; a field like
+            ``udm_properties.title`` resolves to a typed extraction of the
+            ``title`` key from the mapped JSON column.
 
     Returns:
         The resolved column.
@@ -179,10 +211,18 @@ def _get_filter_column(
         UnsupportedFilterField: If the field is not in field_map.
         UnsupportedNestedField: If a nested field references an unknown
             relation or unsupported field.
+        InvalidJsonFilter: If a JSON field filter carries a non-scalar value.
     """
     # Fast path: scalar field in map
     if filter_expr.field in field_map:
         return field_map[filter_expr.field]
+
+    # JSON field: extract the key from the mapped JSON column
+    if "." in filter_expr.field and json_field_map:
+        root, _, json_key = filter_expr.field.partition(".")
+        json_column = json_field_map.get(root)
+        if json_column is not None:
+            return _json_extracted_column(json_column, json_key, filter_expr)
 
     # Nested field: validate against registry
     if "." in filter_expr.field and registry:
@@ -275,8 +315,9 @@ def _build_filter_expression(
     filter_expr: Filter,
     field_map: Mapping[str, FieldColumn],
     registry: dict[str, JoinSpec] | None = None,
+    json_field_map: Mapping[str, FieldColumn] | None = None,
 ) -> FilterExpression:
-    column = _get_filter_column(filter_expr, field_map, registry)
+    column = _get_filter_column(filter_expr, field_map, registry, json_field_map)
     _validate_filter_value(filter_expr, column)
 
     builder = FILTER_OPERATOR_BUILDERS.get(filter_expr.op)
@@ -289,21 +330,32 @@ def build_expression(
     query_expr: Filter | And | Or | Not,
     field_map: Mapping[str, FieldColumn],
     registry: dict[str, JoinSpec] | None = None,
+    json_field_map: Mapping[str, FieldColumn] | None = None,
 ) -> FilterExpression:
     if isinstance(query_expr, Filter):
-        return _build_filter_expression(query_expr, field_map, registry)
+        return _build_filter_expression(query_expr, field_map, registry, json_field_map)
 
     if isinstance(query_expr, And):
         if not query_expr.clauses:
             raise EmptyAndClause()
-        return and_(*(build_expression(clause, field_map, registry) for clause in query_expr.clauses))
+        return and_(
+            *(
+                build_expression(clause, field_map, registry, json_field_map)
+                for clause in query_expr.clauses
+            )
+        )
 
     if isinstance(query_expr, Or):
         if not query_expr.clauses:
             raise EmptyOrClause()
-        return or_(*(build_expression(clause, field_map, registry) for clause in query_expr.clauses))
+        return or_(
+            *(
+                build_expression(clause, field_map, registry, json_field_map)
+                for clause in query_expr.clauses
+            )
+        )
 
-    return not_(build_expression(query_expr.clause, field_map, registry))
+    return not_(build_expression(query_expr.clause, field_map, registry, json_field_map))
 
 
 def apply_search_query(
@@ -311,6 +363,7 @@ def apply_search_query(
     query: SearchQuery | None,
     field_map: Mapping[str, FieldColumn],
     registry: dict[str, JoinSpec] | None = None,
+    json_field_map: Mapping[str, FieldColumn] | None = None,
 ) -> Select[SelectT]:
     if query is None or query.where is None:
         return stmt
@@ -320,7 +373,7 @@ def apply_search_query(
     stmt = apply_nested_joins(stmt, required_joins, registry)
 
     # Build and apply filter expression
-    return stmt.where(build_expression(query.where, field_map, registry))
+    return stmt.where(build_expression(query.where, field_map, registry, json_field_map))
 
 
 def apply_sort(

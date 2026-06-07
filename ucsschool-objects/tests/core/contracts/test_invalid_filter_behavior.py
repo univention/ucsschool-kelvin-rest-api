@@ -7,6 +7,7 @@ import pytest
 from ucsschool_objects import (
     Filter,
     InvalidInFilter,
+    InvalidJsonFilter,
     InvalidLikeFilter,
     InvalidRangeFilter,
     InvalidUuidFilter,
@@ -116,6 +117,20 @@ async def test_like_filter_with_non_string_raises_domain_error(
         await manager.search(SearchQuery(where=invalid_filter))
     assert exc_info.value.field == "name"
     assert exc_info.value.value == 123
+
+
+@pytest.mark.asyncio
+async def test_json_filter_with_non_scalar_value_raises_domain_error(
+    db_session: AsyncSession, user_factory: UserFactory
+) -> None:
+    await user_factory(name="user-a")
+    manager = SQLAlchemyUserManager(db_session)
+    invalid_filter = Filter(field="udm_properties.title", op=Operator.EQ, value=None)
+
+    with pytest.raises(InvalidJsonFilter, match="requires a string, integer, float or boolean") as exc:
+        await manager.search(SearchQuery(where=invalid_filter))
+    assert exc.value.field == "udm_properties.title"
+    assert exc.value.value is None
 
 
 @pytest.mark.asyncio
