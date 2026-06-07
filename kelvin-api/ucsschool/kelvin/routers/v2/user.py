@@ -232,6 +232,13 @@ async def _user_to_model(
         if "workgroup" in [role.name for role in group.roles]:
             workgroups[group.school.name].append(group.name.split("-")[1])
 
+    # user.groups is a set, so the per-school lists are built in arbitrary
+    # order; sort them for deterministic, v1-equivalent output.
+    for names in school_classes.values():
+        names.sort()
+    for names in workgroups.values():
+        names.sort()
+
     role_urls = [UserModel.scheme_and_quote(str(role.to_url(request))) for role in sorted(roles)]
 
     legal_guardian_urls = [
