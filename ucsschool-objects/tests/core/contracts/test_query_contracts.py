@@ -404,6 +404,32 @@ async def _setup_user_udm_int_range_case(factories: UserQueryFactories) -> Query
     )
 
 
+async def _setup_user_udm_contains_in_array_case(factories: UserQueryFactories) -> QueryExpectation:
+    await factories.user_factory(
+        name="mailed", udm_properties={"e-mail": ["a@example.com", "b@example.com"]}
+    )
+    await factories.user_factory(name="othermail", udm_properties={"e-mail": ["c@example.com"]})
+    await factories.user_factory(name="mailless")
+    return QueryExpectation(
+        query=SearchQuery(
+            where=Filter(field="udm_properties.e-mail", op=Operator.CONTAINS, value="b@example.com")
+        ),
+        expected_names=("mailed",),
+    )
+
+
+async def _setup_user_udm_contains_scalar_case(factories: UserQueryFactories) -> QueryExpectation:
+    """CONTAINS on a scalar value behaves like equality on both backends."""
+    await factories.user_factory(name="prof2", udm_properties={"title": "Prof"})
+    await factories.user_factory(name="doc2", udm_properties={"title": "Dr"})
+    return QueryExpectation(
+        query=SearchQuery(
+            where=Filter(field="udm_properties.title", op=Operator.CONTAINS, value="Prof")
+        ),
+        expected_names=("prof2",),
+    )
+
+
 async def _setup_user_ids_in_school_case(factories: UserQueryFactories) -> QueryExpectation:
     """The kelvin-connector's group member filter: id list narrowed to the
     users that hold a membership for the group's school."""
@@ -538,6 +564,8 @@ async def test_role_query_operators(
         pytest.param(_setup_user_udm_bool_case, id="user-udm-bool"),
         pytest.param(_setup_user_udm_float_case, id="user-udm-float"),
         pytest.param(_setup_user_udm_int_range_case, id="user-udm-int-range"),
+        pytest.param(_setup_user_udm_contains_in_array_case, id="user-udm-contains-array"),
+        pytest.param(_setup_user_udm_contains_scalar_case, id="user-udm-contains-scalar"),
     ],
 )
 async def test_user_query_operators(

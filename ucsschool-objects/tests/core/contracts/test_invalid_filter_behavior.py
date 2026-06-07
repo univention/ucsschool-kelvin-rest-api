@@ -134,6 +134,33 @@ async def test_json_filter_with_non_scalar_value_raises_domain_error(
 
 
 @pytest.mark.asyncio
+async def test_contains_filter_with_non_string_value_raises_domain_error(
+    db_session: AsyncSession, user_factory: UserFactory
+) -> None:
+    await user_factory(name="user-a")
+    manager = SQLAlchemyUserManager(db_session)
+    invalid_filter = Filter(field="udm_properties.phone", op=Operator.CONTAINS, value=123)
+
+    with pytest.raises(InvalidJsonFilter) as exc:
+        await manager.search(SearchQuery(where=invalid_filter))
+    assert exc.value.field == "udm_properties.phone"
+    assert exc.value.value == 123
+
+
+@pytest.mark.asyncio
+async def test_contains_filter_on_non_json_field_raises_domain_error(
+    db_session: AsyncSession, user_factory: UserFactory
+) -> None:
+    await user_factory(name="user-a")
+    manager = SQLAlchemyUserManager(db_session)
+    invalid_filter = Filter(field="name", op=Operator.CONTAINS, value="user-a")
+
+    with pytest.raises(UnsupportedFilterOperator) as exc:
+        await manager.search(SearchQuery(where=invalid_filter))
+    assert exc.value.field == "name"
+
+
+@pytest.mark.asyncio
 async def test_uuid_filter_with_malformed_string_raises_domain_error(
     db_session: AsyncSession, school_factory: SchoolFactory
 ) -> None:
