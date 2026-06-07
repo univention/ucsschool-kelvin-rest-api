@@ -358,6 +358,52 @@ async def _setup_user_like_schools_case(factories: UserQueryFactories) -> QueryE
     )
 
 
+async def _setup_user_udm_string_case(factories: UserQueryFactories) -> QueryExpectation:
+    await factories.user_factory(name="prof", udm_properties={"title": "Prof"})
+    await factories.user_factory(name="doc", udm_properties={"title": "Dr"})
+    await factories.user_factory(name="untitled")
+    return QueryExpectation(
+        query=SearchQuery(where=Filter(field="udm_properties.title", op=Operator.EQ, value="Prof")),
+        expected_names=("prof",),
+    )
+
+
+async def _setup_user_udm_int_case(factories: UserQueryFactories) -> QueryExpectation:
+    await factories.user_factory(name="gid5", udm_properties={"gidNumber": 5005})
+    await factories.user_factory(name="gid7", udm_properties={"gidNumber": 5007})
+    return QueryExpectation(
+        query=SearchQuery(where=Filter(field="udm_properties.gidNumber", op=Operator.EQ, value=5005)),
+        expected_names=("gid5",),
+    )
+
+
+async def _setup_user_udm_bool_case(factories: UserQueryFactories) -> QueryExpectation:
+    await factories.user_factory(name="flagged", udm_properties={"someFlag": True})
+    await factories.user_factory(name="unflagged", udm_properties={"someFlag": False})
+    return QueryExpectation(
+        query=SearchQuery(where=Filter(field="udm_properties.someFlag", op=Operator.EQ, value=True)),
+        expected_names=("flagged",),
+    )
+
+
+async def _setup_user_udm_float_case(factories: UserQueryFactories) -> QueryExpectation:
+    await factories.user_factory(name="half", udm_properties={"workload": 0.5})
+    await factories.user_factory(name="full", udm_properties={"workload": 1.0})
+    return QueryExpectation(
+        query=SearchQuery(where=Filter(field="udm_properties.workload", op=Operator.EQ, value=0.5)),
+        expected_names=("half",),
+    )
+
+
+async def _setup_user_udm_int_range_case(factories: UserQueryFactories) -> QueryExpectation:
+    await factories.user_factory(name="low", udm_properties={"uidNumber": 1000})
+    await factories.user_factory(name="high", udm_properties={"uidNumber": 9000})
+    return QueryExpectation(
+        query=SearchQuery(where=Filter(field="udm_properties.uidNumber", op=Operator.GT, value=5000)),
+        expected_names=("high",),
+    )
+
+
 async def _setup_user_ids_in_school_case(factories: UserQueryFactories) -> QueryExpectation:
     """The kelvin-connector's group member filter: id list narrowed to the
     users that hold a membership for the group's school."""
@@ -487,6 +533,11 @@ async def test_role_query_operators(
         pytest.param(_setup_user_lte_case, id="user-lte"),
         pytest.param(_setup_user_like_schools_case, id="user-like-schools"),
         pytest.param(_setup_user_ids_in_school_case, id="user-ids-in-school"),
+        pytest.param(_setup_user_udm_string_case, id="user-udm-string"),
+        pytest.param(_setup_user_udm_int_case, id="user-udm-int"),
+        pytest.param(_setup_user_udm_bool_case, id="user-udm-bool"),
+        pytest.param(_setup_user_udm_float_case, id="user-udm-float"),
+        pytest.param(_setup_user_udm_int_range_case, id="user-udm-int-range"),
     ],
 )
 async def test_user_query_operators(

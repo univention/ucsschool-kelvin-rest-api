@@ -159,6 +159,9 @@ class SQLAlchemyGroupManager(Manager[Group]):
         "create_share": GroupModel.has_share,
         "udm_properties": GroupModel.udm_properties,
     }
+    _JSON_FIELD_MAP: dict[str, FieldColumn] = {
+        "udm_properties": GroupModel.udm_properties,
+    }
     _FIELD_MAP: dict[str, FieldColumn] = compose_field_map(
         _BASE_FIELD_MAP,
         _NESTED_FIELD_REGISTRY,
@@ -267,7 +270,13 @@ class SQLAlchemyGroupManager(Manager[Group]):
                     SchoolModel.public_id, *school_scalar_columns()
                 )
             )
-        stmt = apply_search_query(stmt, query, self._FIELD_MAP, self._NESTED_FIELD_REGISTRY)
+        stmt = apply_search_query(
+            stmt,
+            query,
+            self._FIELD_MAP,
+            self._NESTED_FIELD_REGISTRY,
+            json_field_map=self._JSON_FIELD_MAP,
+        )
         stmt = apply_sort(
             stmt,
             sort_by,

@@ -80,6 +80,19 @@ def test_domain_object_all_properties_returns_set_of_public_property_names() -> 
     assert "public_id" in properties
 
 
+def test_udm_properties_loading_and_assignment() -> None:
+    for obj in (
+        School.minimal(uuid.uuid4()),
+        Group.minimal(uuid.uuid4()),
+        User.minimal(uuid.uuid4()),
+    ):
+        object_type = type(obj).__name__
+        with pytest.raises(ValueError, match=f"{object_type}.udm_properties is not loaded"):
+            _ = obj.udm_properties
+        obj.udm_properties = {"title": "Prof"}
+        assert obj.udm_properties == {"title": "Prof"}
+
+
 def test_is_loaded_reports_state_and_missing_field() -> None:
     loaded_school = build_school("loaded")
     unloaded_school = School.minimal(uuid.uuid4())

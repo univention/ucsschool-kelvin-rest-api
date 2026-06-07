@@ -337,6 +337,9 @@ class SQLAlchemyUserManager(Manager[User]):
         **_SCALAR_FIELD_MAP,
         "udm_properties": UserModel.udm_properties,
     }
+    _JSON_FIELD_MAP: dict[str, FieldColumn] = {
+        "udm_properties": UserModel.udm_properties,
+    }
     _FIELD_MAP: dict[str, FieldColumn] = compose_field_map(
         _BASE_FIELD_MAP,
         _NESTED_FIELD_REGISTRY,
@@ -406,7 +409,13 @@ class SQLAlchemyUserManager(Manager[User]):
         stmt = select(UserModel)
         if load is not None:
             stmt = _with_user_load_options(stmt, load, self._LOAD_ATTRIBUTE_MAP)
-        stmt = apply_search_query(stmt, query, self._FIELD_MAP, self._NESTED_FIELD_REGISTRY)
+        stmt = apply_search_query(
+            stmt,
+            query,
+            self._FIELD_MAP,
+            self._NESTED_FIELD_REGISTRY,
+            json_field_map=self._JSON_FIELD_MAP,
+        )
         stmt = apply_sort(
             stmt,
             sort_by,
