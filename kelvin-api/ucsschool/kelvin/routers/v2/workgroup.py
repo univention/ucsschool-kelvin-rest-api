@@ -57,6 +57,7 @@ from ..v1.workgroup import (
     partial_update,
     search as v1_search,
 )
+from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
 
@@ -71,6 +72,7 @@ WORKGROUP_LOAD_SPEC_V2 = LoadSpec.from_attributes(
     "members",
     "allowed_email_senders_users",
     "allowed_email_senders_groups",
+    "udm_properties",
 )
 
 
@@ -142,7 +144,7 @@ async def _group_to_workgroup_model(
             str(cached_url_for(request, "get", workgroup_name=relative_name, school=school_name))
         ),
         dn=dn,
-        udm_properties={},
+        udm_properties=mapped_udm_properties(group.udm_properties, "workgroup"),
     )
 
 
