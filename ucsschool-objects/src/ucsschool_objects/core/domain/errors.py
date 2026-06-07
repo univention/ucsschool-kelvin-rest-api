@@ -46,6 +46,20 @@ class InvalidInFilter(InvalidFilter):
         super().__init__(f"IN operator requires an iterable value for field {field!r}; got {value!r}")
 
 
+class InvalidJsonFilter(InvalidFilter):
+    """Raised when a JSON field filter receives an untyped or unsupported value."""
+
+    field: str
+    value: object
+
+    def __init__(self, field: str, value: object) -> None:
+        self.field = field
+        self.value = value
+        super().__init__(
+            f"Field {field!r} requires a string, integer, float or boolean value; got {value!r}"
+        )
+
+
 class InvalidUuidFilter(InvalidFilter):
     """Raised when a filter on a UUID column receives a malformed value."""
 

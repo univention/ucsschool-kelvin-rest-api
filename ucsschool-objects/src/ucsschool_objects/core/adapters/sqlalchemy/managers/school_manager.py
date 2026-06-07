@@ -59,6 +59,9 @@ class SQLAlchemySchoolManager(Manager[School]):
         **_SCALAR_FIELD_MAP,
         "udm_properties": SchoolModel.udm_properties,
     }
+    _JSON_FIELD_MAP: dict[str, FieldColumn] = {
+        "udm_properties": SchoolModel.udm_properties,
+    }
     _FIELD_MAP: dict[str, FieldColumn] = compose_field_map(
         _BASE_FIELD_MAP,
         _NESTED_FIELD_REGISTRY,
@@ -96,7 +99,13 @@ class SQLAlchemySchoolManager(Manager[School]):
             load,
             self._LOAD_ATTRIBUTE_MAP,
         )
-        stmt = apply_search_query(stmt, query, self._FIELD_MAP, self._NESTED_FIELD_REGISTRY)
+        stmt = apply_search_query(
+            stmt,
+            query,
+            self._FIELD_MAP,
+            self._NESTED_FIELD_REGISTRY,
+            json_field_map=self._JSON_FIELD_MAP,
+        )
         stmt = apply_sort(
             stmt,
             sort_by,
