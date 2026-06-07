@@ -27,7 +27,11 @@ from kelvin_connector.models import (
     UserPayload,
     UserProperties,
 )
-from kelvin_connector.sync import DEFAULT_NUBUS_SOURCE_UID, SynchronizationException
+from kelvin_connector.sync import (
+    DEFAULT_NUBUS_SOURCE_UID,
+    SynchronizationException,
+    _udm_properties,
+)
 from pydantic import UUID4
 from ucsschool_objects import ObjectType
 from ucsschool_objects.core.domain.errors import NotFound
@@ -675,6 +679,7 @@ async def test_handle_user_modify_skips_modify_when_patch_is_empty(manager, mock
             properties=props,
         ),
     )
+    current_user.udm_properties = _udm_properties(event.new.properties)
     await manager.handle_user_modify(event)
 
     mock_storage.users.modify.assert_not_called()
@@ -730,6 +735,7 @@ async def test_handle_user_modify_same_group_at_different_load_depth_is_no_chang
     mock_storage.groups.search.return_value = [fresh_group]
 
     event = _user_modify_event(uid, extra_props={"groups": [group_dn]})
+    current_user.udm_properties = _udm_properties(event.new.properties)
     await manager.handle_user_modify(event)
 
     mock_storage.users.modify.assert_not_called()
@@ -808,6 +814,7 @@ async def test_handle_user_modify_school_reorder_moves_primary_flag(manager, moc
             ],
         },
     )
+    current_user.udm_properties = _udm_properties(event.new.properties)
     await manager.handle_user_modify(event)
 
     mock_storage.users.modify.assert_called_once()
@@ -828,6 +835,7 @@ async def test_handle_user_modify_refreshes_dn_mapping(manager, mock_storage, mo
     mock_storage.users.get.return_value = current_user
 
     event = _user_modify_event(uid)
+    current_user.udm_properties = _udm_properties(event.new.properties)
     await manager.handle_user_modify(event)
 
     mock_storage.users.modify.assert_not_called()  # no property changes
@@ -1112,6 +1120,7 @@ async def test_handle_group_modify_skips_modify_when_patch_is_empty(manager, moc
             properties=props,
         ),
     )
+    current_group.udm_properties = _udm_properties(event.new.properties)
     await manager.handle_group_modify(event)
 
     mock_storage.groups.modify.assert_not_called()
@@ -1268,6 +1277,7 @@ async def test_handle_school_modify_skips_modify_when_patch_is_empty(manager, mo
     mock_storage.schools.get.return_value = current_school
 
     event = _school_modify_event(uid)
+    current_school.udm_properties = _udm_properties(event.new.properties)
     await manager.handle_school_modify(event)
 
     mock_storage.schools.modify.assert_not_called()
@@ -1463,6 +1473,7 @@ async def test_handle_user_create_already_exists_no_changes(manager, mock_storag
     mock_storage.users.get.return_value = current_user
 
     event = _user_create_event(uid)  # identical data to current_user
+    current_user.udm_properties = _udm_properties(event.new.properties)
     await manager.handle_user_create(event)
 
     mock_storage.users.create.assert_not_called()
@@ -1477,6 +1488,7 @@ async def test_handle_group_create_already_exists_no_changes(manager, mock_stora
     mock_storage.groups.get.return_value = current_group
 
     event = _group_create_event(uid)  # same name and defaults as current_group
+    current_group.udm_properties = _udm_properties(event.new.properties)
     await manager.handle_group_create(event)
 
     mock_storage.groups.create.assert_not_called()
@@ -1489,6 +1501,7 @@ async def test_handle_school_create_already_exists_no_changes(manager, mock_stor
     mock_storage.schools.get.return_value = current_school
 
     event = _school_create_event(uid)  # name="testschool", displayName="testschool Display"
+    current_school.udm_properties = _udm_properties(event.new.properties)
     await manager.handle_school_create(event)
 
     mock_storage.schools.create.assert_not_called()
