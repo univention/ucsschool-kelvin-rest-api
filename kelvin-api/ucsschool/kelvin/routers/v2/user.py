@@ -60,6 +60,7 @@ from ..v1.user import (
     partial_update,
     search as v1_search,
 )
+from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
 
@@ -85,6 +86,7 @@ USER_LOAD_SPEC_V2 = LoadSpec.from_attributes(
     "email",
     "birthday",
     "expiration_date",
+    "udm_properties",
 )
 
 
@@ -212,7 +214,7 @@ async def _user_to_model(
         ucsschool_roles=ucsschool_roles,
         legal_guardians=legal_guardian_urls,
         legal_wards=legal_ward_urls,
-        udm_properties={},
+        udm_properties=mapped_udm_properties(user.udm_properties, "user"),
     )
 
 
