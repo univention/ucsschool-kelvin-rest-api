@@ -26,6 +26,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import logging
+import os
 from pathlib import Path
 
 import lazy_object_proxy
@@ -37,6 +38,11 @@ def _app_version() -> str:
     return get_version()
 
 
+# ALEMBIC_CONFIG is the alembic CLI's own config env var — honoring it here
+# means one knob covers both the `alembic` command and the API. The default
+# is the container path; for uv-based development runs point it at the
+# repository's pyproject.toml.
+ALEMBIC_CONFIG_FILE = Path(os.environ.get("ALEMBIC_CONFIG", "/kelvin/pyproject.toml"))
 APP_ID = "ucsschool-kelvin-rest-api"
 APP_VERSION = lazy_object_proxy.Proxy(_app_version)
 API_USERS_GROUP_NAME = f"{APP_ID}-admins"
