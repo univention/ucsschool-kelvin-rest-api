@@ -18,8 +18,11 @@ from sqlalchemy import (
     not_,
     or_,
 )
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm.attributes import InstrumentedAttribute
-from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.compiler import SQLCompiler
+from sqlalchemy.sql.elements import ColumnElement, literal
+from sqlalchemy.sql.sqltypes import Boolean
 from sqlalchemy.sql.type_api import TypeEngine
 from ucsschool_objects.core.domain.errors import (
     EmptyAndClause,
@@ -159,6 +162,77 @@ def _get_column_type(column: FieldColumn) -> TypeEngine[object]:
 
 def _supports_range_filters(column: FieldColumn) -> bool:
     return isinstance(_get_column_type(column), RANGE_CAPABLE_TYPES)
+
+
+class _JsonArrayContains(ColumnElement[bool]):
+    """Membership test for a value inside a JSON column's key.
+
+    True when the key holds an array containing the value, or a scalar equal
+    to it — both backends agree on these semantics: PostgreSQL's
+    ``jsonb_exists`` checks array elements and string equality, SQLite's
+    ``json_each`` iterates array elements and yields a single row for
+    scalars. There is no portable single spelling, hence the per-dialect
+    compilation below.
+    """
+
+    inherit_cache = False
+    type = Boolean()
+
+    def __init__(self, json_column: FieldColumn, json_key: str, value: str) -> None:
+        super().__init__()
+        self.json_column = json_column
+        self.key_param = literal(json_key)
+        escaped_key = json_key.replace('"', '\\"')
+        self.path_param = literal(f'$."{escaped_key}"')
+        self.value_param = literal(value)
+
+
+@compiles(_JsonArrayContains)
+def _compile_json_array_contains(
+    element: _JsonArrayContains, compiler: SQLCompiler, **kw: object
+) -> str:
+    raise NotImplementedError(
+        f"JSON array membership is not implemented for dialect {compiler.dialect.name!r}."
+    )
+
+
+@compiles(_JsonArrayContains, "sqlite")
+def _compile_json_array_contains_sqlite(
+    element: _JsonArrayContains, compiler: SQLCompiler, **kw: object
+) -> str:
+    column = compiler.process(cast("ColumnElement[object]", element.json_column), **kw)
+    path = compiler.process(element.path_param, **kw)
+    value = compiler.process(element.value_param, **kw)
+    # Not injectable: column is a compiler-emitted column reference, path and
+    # value are bind-parameter placeholders.
+    return (
+        f"EXISTS (SELECT 1 FROM json_each({column}, {path})"  # nosec B608
+        f" WHERE json_each.value = {value})"
+    )
+
+
+@compiles(_JsonArrayContains, "postgresql")
+def _compile_json_array_contains_postgresql(
+    element: _JsonArrayContains, compiler: SQLCompiler, **kw: object
+) -> str:
+    # Function form of the jsonb ``?`` operator — avoids paramstyle clashes.
+    column = compiler.process(cast("ColumnElement[object]", element.json_column), **kw)
+    key = compiler.process(element.key_param, **kw)
+    value = compiler.process(element.value_param, **kw)
+    return f"jsonb_exists(CAST({column} -> {key} AS JSONB), {value})"
+
+
+def _build_json_contains_expression(
+    filter_expr: Filter,
+    json_field_map: Mapping[str, FieldColumn] | None,
+) -> FilterExpression:
+    root, sep, json_key = filter_expr.field.partition(".")
+    json_column = json_field_map.get(root) if (sep and json_field_map) else None
+    if json_column is None:
+        raise UnsupportedFilterOperator(filter_expr.field, filter_expr.op)
+    if not isinstance(filter_expr.value, str):
+        raise InvalidJsonFilter(filter_expr.field, filter_expr.value)
+    return _JsonArrayContains(json_column, json_key, filter_expr.value)
 
 
 def _json_extracted_column(
@@ -317,6 +391,8 @@ def _build_filter_expression(
     registry: dict[str, JoinSpec] | None = None,
     json_field_map: Mapping[str, FieldColumn] | None = None,
 ) -> FilterExpression:
+    if filter_expr.op is Operator.CONTAINS:
+        return _build_json_contains_expression(filter_expr, json_field_map)
     column = _get_filter_column(filter_expr, field_map, registry, json_field_map)
     _validate_filter_value(filter_expr, column)
 

@@ -27,6 +27,8 @@ class Operator(str, Enum):
     GTE = "gte"
     LT = "lt"
     LTE = "lte"
+    CONTAINS = "contains"
+    """Membership in a multi-valued (JSON array) field; equality on scalars."""
 
 
 FilterScalarValue: TypeAlias = str | int | float | bool | date | datetime | Decimal | UUID | None
