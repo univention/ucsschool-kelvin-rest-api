@@ -119,10 +119,10 @@ def _udm_property_filters(request: Request) -> list[QueryExpr]:
     """Filters for configured mapped UDM properties given as query parameters.
 
     Mirrors v1: parameters that are neither known search parameters nor
-    configured mapped properties are silently ignored. Digit values also
-    compare as integers (e.g. uidNumber); '*' acts as a wildcard.
-    Multi-valued properties (e.g. e-mail, phone) cannot be matched against
-    the cache's JSON column and never match.
+    configured mapped properties are silently ignored. CONTAINS matches both
+    scalar values (equality) and elements of multi-valued properties such as
+    e-mail or phone. Digit values also compare as integers (e.g. uidNumber);
+    '*' acts as a wildcard on scalar values.
     """
     configured = set(UDM_MAPPING_CONFIG.user)
     filters: list[QueryExpr] = []
@@ -131,19 +131,20 @@ def _udm_property_filters(request: Request) -> list[QueryExpr]:
             continue
         field = f"udm_properties.{param}"
         if value.lstrip("-").isdigit():
-            # The stored JSON value may be a number or a string of digits.
+            # The stored JSON value may be a number, a string of digits, or
+            # a list containing one (e.g. phone numbers).
             filters.append(
                 Or(
                     clauses=(
                         Filter(field=field, op=Operator.EQ, value=int(value)),
-                        Filter(field=field, op=Operator.EQ, value=value),
+                        Filter(field=field, op=Operator.CONTAINS, value=value),
                     )
                 )
             )
         elif "*" in value:
             filters.append(Filter(field=field, op=Operator.LIKE, value=value.replace("*", "%")))
         else:
-            filters.append(Filter(field=field, op=Operator.EQ, value=value))
+            filters.append(Filter(field=field, op=Operator.CONTAINS, value=value))
     return filters
 
 
