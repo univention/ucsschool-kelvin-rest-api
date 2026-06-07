@@ -57,6 +57,7 @@ from ..v1.school_class import (
     partial_update,
     search as v1_search,
 )
+from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
 
@@ -68,6 +69,7 @@ SCHOOL_CLASS_LOAD_SPEC_V2 = LoadSpec.from_attributes(
     "create_share",
     "roles",
     "members",
+    "udm_properties",
 )
 
 
@@ -124,7 +126,7 @@ async def _group_to_school_class_model(
             str(cached_url_for(request, "get", class_name=relative_name, school=school_name))
         ),
         dn=dn,
-        udm_properties={},
+        udm_properties=mapped_udm_properties(group.udm_properties, "school_class"),
     )
 
 

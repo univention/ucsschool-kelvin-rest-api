@@ -53,6 +53,7 @@ from ..v1.school import (
     school_get as v1_school_get,
     school_search as v1_school_search,
 )
+from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
 
@@ -89,7 +90,7 @@ async def _school_to_model(
         ),
         dn=dn,
         ucsschool_roles=[f"school:school:{school.name}"],
-        udm_properties={},
+        udm_properties=mapped_udm_properties(school.udm_properties, "school"),
     )
 
 
