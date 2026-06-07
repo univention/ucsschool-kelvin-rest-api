@@ -44,7 +44,7 @@ from ucsschool_objects.core.domain.ports.dn_mapper import ObjectType
 
 from ...ldap import LdapUser
 from ...service.dependency import get_storage_session
-from ...token_auth import get_kelvin_admin
+from ...token_auth import get_kelvin_reader
 from ...urls import cached_url_for
 from ..v1.school import (
     SchoolModel,
@@ -105,7 +105,7 @@ async def search(
     ),
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
 ) -> List[SchoolModel]:
     query = SearchQuery(where=_str_filter("name", name_filter)) if name_filter else None
     logger.debug("v2 school search query: %r", query)
@@ -124,7 +124,7 @@ async def school_get(
     ),
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
 ) -> SchoolModel:
     results = list(
         await session.schools.search(
@@ -148,7 +148,7 @@ async def school_exists(
         title="name",
     ),
     session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
 ):
     results = list(
         await session.schools.search(

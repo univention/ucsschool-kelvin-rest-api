@@ -40,7 +40,7 @@ from ucsschool_objects import (
 
 from ...ldap import LdapUser
 from ...service.dependency import get_storage_session
-from ...token_auth import get_kelvin_admin
+from ...token_auth import get_kelvin_reader
 from ..v1.role import RoleModel, SchoolUserRole, get as v1_get, search as v1_search
 
 router = APIRouter()
@@ -61,7 +61,7 @@ async def search(
     request: Request,
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
 ) -> List[RoleModel]:
     roles = sorted(
         [
@@ -88,7 +88,7 @@ async def get(
     role_name: str = Path(..., description="Name of the role to fetch."),
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
 ) -> RoleModel:
     try:
         school_role = SchoolUserRole(role_name)

@@ -51,7 +51,7 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
 from ...config import UDM_MAPPING_CONFIG
 from ...ldap import LdapUser
 from ...service.dependency import get_storage_session
-from ...token_auth import get_kelvin_admin
+from ...token_auth import get_kelvin_reader
 from ...urls import cached_url_for
 from ..v1.role import SchoolUserRole
 from ..v1.user import (
@@ -293,7 +293,7 @@ async def search(
     disabled: bool = Query(None),
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
 ) -> List[UserModel]:
     query = _build_query(
         school=school,
@@ -322,7 +322,7 @@ async def get(
     username: str = Path(..., description="Name of the school user to fetch."),
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_admin: LdapUser = Depends(get_kelvin_admin),
+    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
 ) -> UserModel:
     results = list(
         await session.users.search(
