@@ -25,9 +25,11 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+import asyncio
 import os
 import random
-from typing import Any, NamedTuple, Type, Union
+import time
+from typing import Any, Callable, NamedTuple, Type, Union
 
 import pytest
 import requests
@@ -86,6 +88,41 @@ def assert_responses_equal(v1_data: dict, v2_data: dict) -> None:
         ), f"{field!r}: v1={v1_val!r} != v2={v2_val!r}"
 
 
+async def _retry_until_replicated(check: Callable[[], None], timeout: int = 60, interval: int = 2):
+    """Repeat a fetch-and-compare until it passes or the deadline expires.
+
+    The v2 cache is replicated asynchronously, so a request can return 200
+    with results that do not yet match LDAP — e.g. a search missing a
+    just-created object or still listing a just-deleted one. Status-based
+    retries (``retry_until_synced``) cannot detect that, so retry on the
+    comparison itself and let the last attempt's AssertionError surface.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            check()
+            return
+        except AssertionError:
+            if time.monotonic() >= deadline:
+                raise
+            await asyncio.sleep(interval)
+
+
+def _assert_search_parity(
+    v1_response: requests.Response, v2_response: requests.Response, label: str
+) -> None:
+    assert v1_response.status_code == 200, v1_response.reason
+    assert v2_response.status_code == 200, v2_response.reason
+    v1_items = {item["name"]: item for item in v1_response.json()}
+    v2_items = {item["name"]: item for item in v2_response.json()}
+    assert set(v1_items) == set(v2_items), (
+        f"{label} sets differ: only in v1={set(v1_items) - set(v2_items)}, "
+        f"only in v2={set(v2_items) - set(v1_items)}"
+    )
+    for name in v1_items:
+        assert_responses_equal(v1_items[name], v2_items[name])
+
+
 # ── Users ──────────────────────────────────────────────────────────────────────
 
 
@@ -93,7 +130,6 @@ def assert_responses_equal(v1_data: dict, v2_data: dict) -> None:
 async def test_v1_v2_get_user_returns_same_output(
     auth_header,
     retry_http_502,
-    retry_until_synced,
     create_ou_using_python,
     new_import_user,
     import_config,
@@ -105,22 +141,20 @@ async def test_v1_v2_get_user_returns_same_output(
 
     v1_url, v2_url = _make_base_urls()
 
-    v1_response = retry_http_502(requests.get, f"{v1_url}/users/{user.name}", headers=auth_header)
-    assert v1_response.status_code == 200, v1_response.reason
+    def _check() -> None:
+        v1_response = retry_http_502(requests.get, f"{v1_url}/users/{user.name}", headers=auth_header)
+        assert v1_response.status_code == 200, v1_response.reason
+        v2_response = requests.get(f"{v2_url}/users/{user.name}", headers=auth_header)
+        assert v2_response.status_code == 200, v2_response.reason
+        assert_responses_equal(v1_response.json(), v2_response.json())
 
-    v2_response = await retry_until_synced(
-        requests.get, f"{v2_url}/users/{user.name}", headers=auth_header
-    )
-    assert v2_response.status_code == 200, v2_response.reason
-
-    assert_responses_equal(v1_response.json(), v2_response.json())
+    await _retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
 async def test_v1_v2_search_users_returns_same_output(
     auth_header,
     retry_http_502,
-    retry_until_synced,
     create_ou_using_python,
     new_school_users,
     import_config,
@@ -135,25 +169,14 @@ async def test_v1_v2_search_users_returns_same_output(
 
     v1_url, v2_url = _make_base_urls()
 
-    v1_response = retry_http_502(
-        requests.get, f"{v1_url}/users/", headers=auth_header, params={"school": school}
-    )
-    assert v1_response.status_code == 200, v1_response.reason
+    def _check() -> None:
+        v1_response = retry_http_502(
+            requests.get, f"{v1_url}/users/", headers=auth_header, params={"school": school}
+        )
+        v2_response = requests.get(f"{v2_url}/users/", headers=auth_header, params={"school": school})
+        _assert_search_parity(v1_response, v2_response, "User")
 
-    v2_response = await retry_until_synced(
-        requests.get, f"{v2_url}/users/", headers=auth_header, params={"school": school}
-    )
-    assert v2_response.status_code == 200, v2_response.reason
-
-    v1_users = {u["name"]: u for u in v1_response.json()}
-    v2_users = {u["name"]: u for u in v2_response.json()}
-
-    assert set(v1_users) == set(v2_users), (
-        f"User sets differ: only in v1={set(v1_users) - set(v2_users)}, "
-        f"only in v2={set(v2_users) - set(v1_users)}"
-    )
-    for name in v1_users:
-        assert_responses_equal(v1_users[name], v2_users[name])
+    await _retry_until_replicated(_check)
 
 
 # ── Schools ────────────────────────────────────────────────────────────────────
@@ -163,29 +186,26 @@ async def test_v1_v2_search_users_returns_same_output(
 async def test_v1_v2_get_school_returns_same_output(
     auth_header,
     retry_http_502,
-    retry_until_synced,
     create_ou_using_python,
 ):
     """V1 and V2 GET /schools/{name} return equivalent data for the same school."""
     school = await create_ou_using_python()
     v1_url, v2_url = _make_base_urls()
 
-    v1_response = retry_http_502(requests.get, f"{v1_url}/schools/{school}", headers=auth_header)
-    assert v1_response.status_code == 200, v1_response.reason
+    def _check() -> None:
+        v1_response = retry_http_502(requests.get, f"{v1_url}/schools/{school}", headers=auth_header)
+        assert v1_response.status_code == 200, v1_response.reason
+        v2_response = requests.get(f"{v2_url}/schools/{school}", headers=auth_header)
+        assert v2_response.status_code == 200, v2_response.reason
+        assert_responses_equal(v1_response.json(), v2_response.json())
 
-    v2_response = await retry_until_synced(
-        requests.get, f"{v2_url}/schools/{school}", headers=auth_header
-    )
-    assert v2_response.status_code == 200, v2_response.reason
-
-    assert_responses_equal(v1_response.json(), v2_response.json())
+    await _retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
 async def test_v1_v2_search_schools_returns_same_output(
     auth_header,
     retry_http_502,
-    retry_until_synced,
     create_ou_using_python,
     random_ou_name,
 ):
@@ -196,23 +216,15 @@ async def test_v1_v2_search_schools_returns_same_output(
     v1_url, v2_url = _make_base_urls()
 
     params = {"name": f"{common_name}*"}
-    v1_response = retry_http_502(requests.get, f"{v1_url}/schools/", headers=auth_header, params=params)
-    assert v1_response.status_code == 200, v1_response.reason
 
-    v2_response = await retry_until_synced(
-        requests.get, f"{v2_url}/schools/", headers=auth_header, params=params
-    )
-    assert v2_response.status_code == 200, v2_response.reason
+    def _check() -> None:
+        v1_response = retry_http_502(
+            requests.get, f"{v1_url}/schools/", headers=auth_header, params=params
+        )
+        v2_response = requests.get(f"{v2_url}/schools/", headers=auth_header, params=params)
+        _assert_search_parity(v1_response, v2_response, "School")
 
-    v1_schools = {s["name"]: s for s in v1_response.json()}
-    v2_schools = {s["name"]: s for s in v2_response.json()}
-
-    assert set(v1_schools) == set(v2_schools), (
-        f"School sets differ: only in v1={set(v1_schools) - set(v2_schools)}, "
-        f"only in v2={set(v2_schools) - set(v1_schools)}"
-    )
-    for name in v1_schools:
-        assert_responses_equal(v1_schools[name], v2_schools[name])
+    await _retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
@@ -248,43 +260,31 @@ async def test_v1_v2_head_school_returns_same_status(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("role_name", ALL_ROLE_NAMES)
-async def test_v1_v2_get_role_returns_same_output(
-    auth_header, retry_http_502, retry_until_synced, role_name
-):
+async def test_v1_v2_get_role_returns_same_output(auth_header, retry_http_502, role_name):
     """V1 and V2 GET /roles/{name} return equivalent data for each built-in role."""
     v1_url, v2_url = _make_base_urls()
 
-    v1_response = retry_http_502(requests.get, f"{v1_url}/roles/{role_name}", headers=auth_header)
-    assert v1_response.status_code == 200, v1_response.reason
+    def _check() -> None:
+        v1_response = retry_http_502(requests.get, f"{v1_url}/roles/{role_name}", headers=auth_header)
+        assert v1_response.status_code == 200, v1_response.reason
+        v2_response = requests.get(f"{v2_url}/roles/{role_name}", headers=auth_header)
+        assert v2_response.status_code == 200, v2_response.reason
+        assert_responses_equal(v1_response.json(), v2_response.json())
 
-    v2_response = await retry_until_synced(
-        requests.get, f"{v2_url}/roles/{role_name}", headers=auth_header
-    )
-    assert v2_response.status_code == 200, v2_response.reason
-
-    assert_responses_equal(v1_response.json(), v2_response.json())
+    await _retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
-async def test_v1_v2_search_roles_returns_same_output(auth_header, retry_http_502, retry_until_synced):
+async def test_v1_v2_search_roles_returns_same_output(auth_header, retry_http_502):
     """V1 and V2 GET /roles/ return equivalent data for every role."""
     v1_url, v2_url = _make_base_urls()
 
-    v1_response = retry_http_502(requests.get, f"{v1_url}/roles/", headers=auth_header)
-    assert v1_response.status_code == 200, v1_response.reason
+    def _check() -> None:
+        v1_response = retry_http_502(requests.get, f"{v1_url}/roles/", headers=auth_header)
+        v2_response = requests.get(f"{v2_url}/roles/", headers=auth_header)
+        _assert_search_parity(v1_response, v2_response, "Role")
 
-    v2_response = await retry_until_synced(requests.get, f"{v2_url}/roles/", headers=auth_header)
-    assert v2_response.status_code == 200, v2_response.reason
-
-    v1_roles = {r["name"]: r for r in v1_response.json()}
-    v2_roles = {r["name"]: r for r in v2_response.json()}
-
-    assert set(v1_roles) == set(v2_roles), (
-        f"Role sets differ: only in v1={set(v1_roles) - set(v2_roles)}, "
-        f"only in v2={set(v2_roles) - set(v1_roles)}"
-    )
-    for name in v1_roles:
-        assert_responses_equal(v1_roles[name], v2_roles[name])
+    await _retry_until_replicated(_check)
 
 
 # ── School Classes ─────────────────────────────────────────────────────────────
@@ -294,7 +294,6 @@ async def test_v1_v2_search_roles_returns_same_output(auth_header, retry_http_50
 async def test_v1_v2_get_school_class_returns_same_output(
     auth_header,
     retry_http_502,
-    retry_until_synced,
     create_ou_using_python,
     new_school_class_using_lib,
 ):
@@ -304,24 +303,22 @@ async def test_v1_v2_get_school_class_returns_same_output(
     class_name = attrs["name"]
     v1_url, v2_url = _make_base_urls()
 
-    v1_response = retry_http_502(
-        requests.get, f"{v1_url}/classes/{school}/{class_name}", headers=auth_header
-    )
-    assert v1_response.status_code == 200, v1_response.reason
+    def _check() -> None:
+        v1_response = retry_http_502(
+            requests.get, f"{v1_url}/classes/{school}/{class_name}", headers=auth_header
+        )
+        assert v1_response.status_code == 200, v1_response.reason
+        v2_response = requests.get(f"{v2_url}/classes/{school}/{class_name}", headers=auth_header)
+        assert v2_response.status_code == 200, v2_response.reason
+        assert_responses_equal(v1_response.json(), v2_response.json())
 
-    v2_response = await retry_until_synced(
-        requests.get, f"{v2_url}/classes/{school}/{class_name}", headers=auth_header
-    )
-    assert v2_response.status_code == 200, v2_response.reason
-
-    assert_responses_equal(v1_response.json(), v2_response.json())
+    await _retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
 async def test_v1_v2_search_school_classes_returns_same_output(
     auth_header,
     retry_http_502,
-    retry_until_synced,
     create_ou_using_python,
     new_school_class_using_lib,
 ):
@@ -332,23 +329,15 @@ async def test_v1_v2_search_school_classes_returns_same_output(
     v1_url, v2_url = _make_base_urls()
 
     params = {"school": school}
-    v1_response = retry_http_502(requests.get, f"{v1_url}/classes/", headers=auth_header, params=params)
-    assert v1_response.status_code == 200, v1_response.reason
 
-    v2_response = await retry_until_synced(
-        requests.get, f"{v2_url}/classes/", headers=auth_header, params=params
-    )
-    assert v2_response.status_code == 200, v2_response.reason
+    def _check() -> None:
+        v1_response = retry_http_502(
+            requests.get, f"{v1_url}/classes/", headers=auth_header, params=params
+        )
+        v2_response = requests.get(f"{v2_url}/classes/", headers=auth_header, params=params)
+        _assert_search_parity(v1_response, v2_response, "Class")
 
-    v1_classes = {c["name"]: c for c in v1_response.json()}
-    v2_classes = {c["name"]: c for c in v2_response.json()}
-
-    assert set(v1_classes) == set(v2_classes), (
-        f"Class sets differ: only in v1={set(v1_classes) - set(v2_classes)}, "
-        f"only in v2={set(v2_classes) - set(v1_classes)}"
-    )
-    for name in v1_classes:
-        assert_responses_equal(v1_classes[name], v2_classes[name])
+    await _retry_until_replicated(_check)
 
 
 # ── Workgroups ─────────────────────────────────────────────────────────────────
@@ -358,7 +347,6 @@ async def test_v1_v2_search_school_classes_returns_same_output(
 async def test_v1_v2_get_workgroup_returns_same_output(
     auth_header,
     retry_http_502,
-    retry_until_synced,
     create_ou_using_python,
     new_workgroup_using_lib,
 ):
@@ -368,24 +356,22 @@ async def test_v1_v2_get_workgroup_returns_same_output(
     wg_name = attrs["name"]
     v1_url, v2_url = _make_base_urls()
 
-    v1_response = retry_http_502(
-        requests.get, f"{v1_url}/workgroups/{school}/{wg_name}", headers=auth_header
-    )
-    assert v1_response.status_code == 200, v1_response.reason
+    def _check() -> None:
+        v1_response = retry_http_502(
+            requests.get, f"{v1_url}/workgroups/{school}/{wg_name}", headers=auth_header
+        )
+        assert v1_response.status_code == 200, v1_response.reason
+        v2_response = requests.get(f"{v2_url}/workgroups/{school}/{wg_name}", headers=auth_header)
+        assert v2_response.status_code == 200, v2_response.reason
+        assert_responses_equal(v1_response.json(), v2_response.json())
 
-    v2_response = await retry_until_synced(
-        requests.get, f"{v2_url}/workgroups/{school}/{wg_name}", headers=auth_header
-    )
-    assert v2_response.status_code == 200, v2_response.reason
-
-    assert_responses_equal(v1_response.json(), v2_response.json())
+    await _retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
 async def test_v1_v2_search_workgroups_returns_same_output(
     auth_header,
     retry_http_502,
-    retry_until_synced,
     create_ou_using_python,
     new_workgroup_using_lib,
 ):
@@ -396,22 +382,12 @@ async def test_v1_v2_search_workgroups_returns_same_output(
     v1_url, v2_url = _make_base_urls()
 
     params = {"school": school}
-    v1_response = retry_http_502(
-        requests.get, f"{v1_url}/workgroups/", headers=auth_header, params=params
-    )
-    assert v1_response.status_code == 200, v1_response.reason
 
-    v2_response = await retry_until_synced(
-        requests.get, f"{v2_url}/workgroups/", headers=auth_header, params=params
-    )
-    assert v2_response.status_code == 200, v2_response.reason
+    def _check() -> None:
+        v1_response = retry_http_502(
+            requests.get, f"{v1_url}/workgroups/", headers=auth_header, params=params
+        )
+        v2_response = requests.get(f"{v2_url}/workgroups/", headers=auth_header, params=params)
+        _assert_search_parity(v1_response, v2_response, "Workgroup")
 
-    v1_workgroups = {w["name"]: w for w in v1_response.json()}
-    v2_workgroups = {w["name"]: w for w in v2_response.json()}
-
-    assert set(v1_workgroups) == set(v2_workgroups), (
-        f"Workgroup sets differ: only in v1={set(v1_workgroups) - set(v2_workgroups)}, "
-        f"only in v2={set(v2_workgroups) - set(v1_workgroups)}"
-    )
-    for name in v1_workgroups:
-        assert_responses_equal(v1_workgroups[name], v2_workgroups[name])
+    await _retry_until_replicated(_check)
