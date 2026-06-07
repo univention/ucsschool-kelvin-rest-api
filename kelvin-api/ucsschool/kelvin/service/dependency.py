@@ -36,12 +36,16 @@ from ucsschool_objects import KelvinStorageSession
 from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from ucsschool.kelvin.constants import ALEMBIC_CONFIG_FILE
 from ucsschool.kelvin.database import get_database_url
 
 
 @lru_cache(maxsize=1)
 def _get_alembic_head_revision() -> str:
-    alembic_cfg = Config(toml_file="./pyproject.toml")
+    # Not CWD-relative: a relative path only resolves when the process
+    # happens to start in /kelvin (gunicorn does, the test runner does not).
+    # Override via the ALEMBIC_CONFIG env var, e.g. for uv-based dev runs.
+    alembic_cfg = Config(toml_file=str(ALEMBIC_CONFIG_FILE))
     return ScriptDirectory.from_config(alembic_cfg).get_current_head()
 
 
