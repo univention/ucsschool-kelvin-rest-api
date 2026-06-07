@@ -8,6 +8,7 @@ Create Date: 2026-04-22 15:57:35.379614
 from typing import Sequence, Union
 
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
@@ -26,7 +27,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("public_id", sa.UUID(), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
-        sa.Column("display_name", sa.JSON(), nullable=False),
+        sa.Column(
+            "display_name", sa.JSON().with_variant(postgresql.JSONB(), "postgresql"), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
     )
@@ -39,11 +42,21 @@ def upgrade() -> None:
         sa.Column("source_uid", sa.String(length=255), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("display_name", sa.String(length=255), nullable=False),
-        sa.Column("educational_servers", sa.JSON(), nullable=False),
-        sa.Column("administrative_servers", sa.JSON(), nullable=False),
+        sa.Column(
+            "educational_servers",
+            sa.JSON().with_variant(postgresql.JSONB(), "postgresql"),
+            nullable=False,
+        ),
+        sa.Column(
+            "administrative_servers",
+            sa.JSON().with_variant(postgresql.JSONB(), "postgresql"),
+            nullable=False,
+        ),
         sa.Column("class_share_file_server", sa.String(length=255), nullable=True),
         sa.Column("home_share_file_server", sa.String(length=255), nullable=True),
-        sa.Column("udm_properties", sa.JSON(), nullable=False),
+        sa.Column(
+            "udm_properties", sa.JSON().with_variant(postgresql.JSONB(), "postgresql"), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
         sa.UniqueConstraint("record_uid", "source_uid", name="uq_school_record_source_uid"),
@@ -62,7 +75,9 @@ def upgrade() -> None:
         sa.Column("birthday", sa.DATE(), nullable=True),
         sa.Column("expiration_date", sa.DATE(), nullable=True),
         sa.Column("active", sa.BOOLEAN(), nullable=False),
-        sa.Column("udm_properties", sa.JSON(), nullable=False),
+        sa.Column(
+            "udm_properties", sa.JSON().with_variant(postgresql.JSONB(), "postgresql"), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("email"),
         sa.UniqueConstraint("name"),
@@ -79,7 +94,9 @@ def upgrade() -> None:
         sa.Column("display_name", sa.String(length=255), nullable=False),
         sa.Column("has_share", sa.BOOLEAN(), nullable=False),
         sa.Column("email", sa.String(length=255), nullable=True),
-        sa.Column("udm_properties", sa.JSON(), nullable=False),
+        sa.Column(
+            "udm_properties", sa.JSON().with_variant(postgresql.JSONB(), "postgresql"), nullable=False
+        ),
         sa.Column("school_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(["school_id"], ["school.id"], ondelete="NO ACTION"),
         sa.PrimaryKeyConstraint("id"),
