@@ -39,6 +39,8 @@ from ucsschool_objects import (
     LoadSpec,
     ObjectType,
     Operator,
+    Or,
+    QueryExpr,
     SearchQuery,
     User,
 )
@@ -46,6 +48,7 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
 )
 
+from ...config import UDM_MAPPING_CONFIG
 from ...ldap import LdapUser
 from ...service.dependency import get_storage_session
 from ...token_auth import get_kelvin_admin
@@ -96,6 +99,54 @@ def _str_filter(field: str, value: str) -> Filter:
     return Filter(field=field, op=Operator.EQ, value=value)
 
 
+_KNOWN_SEARCH_PARAMS = frozenset(
+    {
+        "school",
+        "name",
+        "firstname",
+        "lastname",
+        "email",
+        "record_uid",
+        "source_uid",
+        "birthday",
+        "expiration_date",
+        "disabled",
+    }
+)
+
+
+def _udm_property_filters(request: Request) -> list[QueryExpr]:
+    """Filters for configured mapped UDM properties given as query parameters.
+
+    Mirrors v1: parameters that are neither known search parameters nor
+    configured mapped properties are silently ignored. Digit values also
+    compare as integers (e.g. uidNumber); '*' acts as a wildcard.
+    Multi-valued properties (e.g. e-mail, phone) cannot be matched against
+    the cache's JSON column and never match.
+    """
+    configured = set(UDM_MAPPING_CONFIG.user)
+    filters: list[QueryExpr] = []
+    for param, value in request.query_params.items():
+        if param in _KNOWN_SEARCH_PARAMS or param not in configured:
+            continue
+        field = f"udm_properties.{param}"
+        if value.lstrip("-").isdigit():
+            # The stored JSON value may be a number or a string of digits.
+            filters.append(
+                Or(
+                    clauses=(
+                        Filter(field=field, op=Operator.EQ, value=int(value)),
+                        Filter(field=field, op=Operator.EQ, value=value),
+                    )
+                )
+            )
+        elif "*" in value:
+            filters.append(Filter(field=field, op=Operator.LIKE, value=value.replace("*", "%")))
+        else:
+            filters.append(Filter(field=field, op=Operator.EQ, value=value))
+    return filters
+
+
 def _build_query(
     school: Optional[str],
     name: Optional[str],
@@ -107,8 +158,9 @@ def _build_query(
     birthday: Optional[datetime.date],
     expiration_date: Optional[datetime.date],
     disabled: Optional[bool],
+    extra_clauses: Optional[list[QueryExpr]] = None,
 ) -> Optional[SearchQuery]:
-    clauses = []
+    clauses: list[QueryExpr] = list(extra_clauses or [])
     if name:
         clauses.append(_str_filter("name", name))
     if school:
@@ -253,6 +305,7 @@ async def search(
         birthday=birthday,
         expiration_date=expiration_date,
         disabled=disabled,
+        extra_clauses=_udm_property_filters(request),
     )
     logger.debug("v2 user search query: %r", query)
     users = list(await session.users.search(query, load=USER_LOAD_SPEC_V2, limit=10000))
