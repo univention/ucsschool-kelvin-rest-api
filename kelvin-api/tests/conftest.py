@@ -51,6 +51,12 @@ import requests
 from constants import MAPPED_UDM_PROPERTIES
 from faker import Faker
 from fastapi.testclient import TestClient
+from tenacity import (
+    AsyncRetrying,
+    retry_if_exception_type,
+    stop_after_delay,
+    wait_fixed,
+)
 from uldap3 import UCSUser
 
 import ucsschool.kelvin.config
@@ -77,6 +83,36 @@ from univention.config_registry import ConfigRegistry
 # handle RuntimeError: Directory '/kelvin/kelvin-api/static' does not exist
 with patch("ucsschool.kelvin.constants.STATIC_FILES_PATH", "/tmp"):
     import ucsschool.kelvin.main
+
+
+@pytest.fixture
+def retry_until_replicated():
+    """Retry a fetch-and-assert block until it passes or a deadline expires.
+
+    The v2 cache is populated asynchronously by the connector, so a read
+    issued right after a write can return 200 with stale or missing data — a
+    just-created object absent, a just-deleted one still present. Status-based
+    retries (``retry_until_synced``) cannot see that, so retry on the
+    assertions themselves and let the last attempt's AssertionError surface
+    (``reraise=True``) with its diff.
+
+    ``check`` may be sync or async; for v1 (synchronous LDAP) it passes on the
+    first attempt and adds no delay.
+    """
+
+    async def _retry(check: Callable[[], Any], *, timeout: int = 60, interval: int = 2) -> None:
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(AssertionError),
+            stop=stop_after_delay(timeout),
+            wait=wait_fixed(interval),
+            reraise=True,
+        ):
+            with attempt:
+                result = check()
+                if inspect.isawaitable(result):
+                    await result
+
+    return _retry
 
 
 @pytest.fixture
