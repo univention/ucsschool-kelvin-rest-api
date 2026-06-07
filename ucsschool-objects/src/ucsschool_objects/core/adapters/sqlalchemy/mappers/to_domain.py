@@ -60,6 +60,10 @@ def _as_set_str(value: object) -> set[str]:
     return set(cast(Iterable[str], value))
 
 
+def _as_udm_properties(value: object) -> dict[str, object]:
+    return cast("dict[str, object]", value)
+
+
 def _is_loaded(model: object, attribute: str) -> bool:
     state = inspect(model, raiseerr=False)
     if state is None:
@@ -107,6 +111,7 @@ def to_school(model: SchoolModel) -> School:
         administrative_servers=_convert_unloadable(model, "administrative_servers", _as_set_str),
         class_share_file_server=_convert_unloadable(model, "class_share_file_server", _as_optional_str),
         home_share_file_server=_convert_unloadable(model, "home_share_file_server", _as_optional_str),
+        udm_properties=_convert_unloadable(model, "udm_properties", _as_udm_properties),
     )
 
 
@@ -159,6 +164,7 @@ def to_group(model: GroupModel) -> Group:
         members=members,
         member_roles=member_roles,
         school=school,
+        udm_properties=_convert_unloadable(model, "udm_properties", _as_udm_properties),
     )
 
 
@@ -232,6 +238,7 @@ def to_user(
         school_memberships=school_memberships,
         legal_wards=legal_wards,
         legal_guardians=legal_guardians,
+        udm_properties=_convert_unloadable(model, "udm_properties", _as_udm_properties),
     )
 
 
