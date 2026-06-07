@@ -180,7 +180,8 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         new: AttributeMapping,
         has_moved: bool,
     ) -> None:
-        # TODO has_moved is unused
+        # has_moved needs no special handling: the modify handlers refresh
+        # the DN mapping from the event's new dn unconditionally.
         match new["objectType"]:
             case ObjectType.USERS:
                 await self.synchronization_manager.handle_user_modify(
