@@ -28,7 +28,6 @@
 from typing import Any, Dict, Iterable, Set, Tuple
 
 import pytest
-from fastapi.testclient import TestClient
 
 import ucsschool.kelvin.constants
 from ucsschool.kelvin.constants import URL_KELVIN_BASE
@@ -71,7 +70,7 @@ async def compare_lib_api_obj(lib_obj: School, api_obj: SchoolModel):
 
 
 @pytest.mark.asyncio
-async def test_search_no_filter(auth_header, udm_kwargs, api_version):
+async def test_search_no_filter(client, auth_header, udm_kwargs, api_version):
     uldap = uldap_admin_read_local()
     ldap_ous: Set[Tuple[str, str]] = {
         (ldap_result["ou"].value, ldap_result.entry_dn)
@@ -99,7 +98,6 @@ async def test_search_no_filter(auth_header, udm_kwargs, api_version):
         }
     assert {s.name for s in lib_schools} == {ou[0] for ou in ldap_ous}
 
-    client = TestClient(app, base_url="http://test.server")
     response = client.get(f"{URL_KELVIN_BASE}/{api_version}/schools/", headers=auth_header)
     json_resp = response.json()
     assert response.status_code == 200
@@ -117,7 +115,7 @@ async def test_search_no_filter(auth_header, udm_kwargs, api_version):
 
 @pytest.mark.asyncio
 async def test_search_with_filter(
-    auth_header, create_ou_using_python, random_ou_name, udm_kwargs, api_version
+    client, auth_header, create_ou_using_python, random_ou_name, udm_kwargs, api_version
 ):
     common_name = random_ou_name()[:8]
     await create_ou_using_python(ou_name=f"{common_name}abc12")
@@ -133,7 +131,6 @@ async def test_search_with_filter(
         lib_schools: Iterable[School] = await School.get_all(udm, filter_str=f"ou={common_name}*")
     assert {s.name for s in lib_schools} == {ou[0] for ou in ldap_ous}
 
-    client = TestClient(app, base_url="http://test.server")
     response = client.get(
         f"{URL_KELVIN_BASE}/{api_version}/schools/",
         headers=auth_header,
@@ -154,13 +151,12 @@ async def test_search_with_filter(
 
 
 @pytest.mark.asyncio
-async def test_get(auth_header, create_ou_using_python, ldap_base, udm_kwargs, api_version):
+async def test_get(client, auth_header, create_ou_using_python, ldap_base, udm_kwargs, api_version):
     ou_name = await create_ou_using_python()
     async with UDM(**udm_kwargs) as udm:
         lib_obj = await School.from_dn(f"ou={ou_name},{ldap_base}", ou_name, udm)
         lib_obj.udm_properties["description"] = f"{ou_name}-description"
         await lib_obj.modify(udm)
-    client = TestClient(app, base_url="http://test.server")
     response = client.get(f"{URL_KELVIN_BASE}/{api_version}/schools/{ou_name}", headers=auth_header)
     json_resp = response.json()
     assert response.status_code == 200
@@ -175,7 +171,7 @@ async def test_get(auth_header, create_ou_using_python, ldap_base, udm_kwargs, a
 
 @pytest.mark.asyncio
 async def test_get_without_administrative_group(
-    auth_header, create_ou_using_python, ldap_base, udm_kwargs, api_version
+    client, auth_header, create_ou_using_python, ldap_base, udm_kwargs, api_version
 ):
     ou_name = await create_ou_using_python()
     async with UDM(**udm_kwargs) as udm:
@@ -187,7 +183,6 @@ async def test_get_without_administrative_group(
         adm_obj = await udm.obj_by_dn(administrative_group_dn)
         await adm_obj.delete()
         lib_obj.administrative_servers = []
-    client = TestClient(app, base_url="http://test.server")
     response = client.get(f"{URL_KELVIN_BASE}/{api_version}/schools/{ou_name}", headers=auth_header)
     json_resp = response.json()
     assert response.status_code == 200
@@ -201,7 +196,7 @@ async def test_get_without_administrative_group(
 
 @pytest.mark.asyncio
 async def test_get_missing_fileserver(
-    auth_header, create_ou_using_python, ldap_base, udm_kwargs, monkeypatch
+    client, auth_header, create_ou_using_python, ldap_base, udm_kwargs, monkeypatch
 ):
     _from_lib_model_kwargs = SchoolModel._from_lib_model_kwargs
 
@@ -223,7 +218,6 @@ async def test_get_missing_fileserver(
         lib_obj.class_share_file_server = f"cn=deleted-server,cn=dc,ou=deleted,{ldap_base}"
         lib_obj.home_share_file_server = f"cn=deleted-server,cn=dc,ou=deleted,{ldap_base}"
         await lib_obj.modify(udm)
-    client = TestClient(app, base_url="http://test.server")
     response = client.get(f"{URL_KELVIN_BASE}/v1/schools/{ou_name}", headers=auth_header)
     json_resp = response.json()
     assert response.status_code == 200
@@ -239,6 +233,7 @@ async def test_get_missing_fileserver(
 @pytest.mark.parametrize("exists", [True, False])
 @pytest.mark.asyncio
 async def test_head(
+    client,
     auth_header,
     create_ou_using_python,
     exists,
@@ -251,7 +246,6 @@ async def test_head(
     ou_name = random_ou_name()
     if exists:
         await create_ou_using_python(ou_name=ou_name, cache=False)
-    client = TestClient(app, base_url="http://test.server")
     response = client.head(f"{URL_KELVIN_BASE}/{api_version}/schools/{ou_name}", headers=auth_header)
     if exists:
         assert response.status_code == 200
@@ -274,6 +268,7 @@ async def test_head(
 
 @pytest.mark.asyncio
 async def test_create(
+    client,
     auth_header,
     udm_kwargs,
     docker_host_name,
@@ -286,7 +281,6 @@ async def test_create(
     attrs = school_create_model.dict()
     attrs["udm_properties"] = {"description": "DESCRIPTION"}
     schedule_delete_ou_using_ssh(school_create_model.name, docker_host_name)
-    client = TestClient(app, base_url="http://test.server")
     response = client.post(
         f"{URL_KELVIN_BASE}/{api_version}/schools/",
         headers={"Content-Type": "application/json", **auth_header},
@@ -312,6 +306,7 @@ async def test_create(
 
 @pytest.mark.asyncio
 async def test_create_unmapped_udm_prop(
+    client,
     random_school_create_model,
     schedule_delete_ou_using_ssh,
     docker_host_name,
@@ -322,7 +317,6 @@ async def test_create_unmapped_udm_prop(
     attrs = school_create_model.dict()
     attrs["udm_properties"] = {"unmapped_prop": "some value"}
     schedule_delete_ou_using_ssh(school_create_model.name, docker_host_name)
-    client = TestClient(app, base_url="http://test.server")
     response = client.post(
         f"{URL_KELVIN_BASE}/{api_version}/schools/",
         headers={"Content-Type": "application/json", **auth_header},
@@ -344,6 +338,7 @@ async def test_create_unmapped_udm_prop(
 
 @pytest.mark.asyncio
 async def test_create_udm_error_forwarding(
+    client,
     auth_header,
     docker_host_name,
     random_school_create_model,
@@ -354,7 +349,6 @@ async def test_create_udm_error_forwarding(
     attrs = school_create_model.dict()
     attrs["udm_properties"] = {"description": "DESCRIPTION", "userPath": "_xxx"}
     schedule_delete_ou_using_ssh(school_create_model.name, docker_host_name)
-    client = TestClient(app, base_url="http://test.server")
     response = client.post(
         f"{URL_KELVIN_BASE}/{api_version}/schools/",
         headers={"Content-Type": "application/json", **auth_header},
@@ -376,7 +370,7 @@ async def test_create_udm_error_forwarding(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("language", [None, "de", "en", "de-DE", "en-US;q=0.95"])
-async def test_get_school_language(auth_header, monkeypatch, language):
+async def test_get_school_language(client, auth_header, monkeypatch, language):
     async def from_lib_model_mock(obj, request, udm) -> SchoolModel:
         kwargs = await SchoolModel._from_lib_model_kwargs(obj, request, udm)
         kwargs["display_name"] = udm.session.language
@@ -384,7 +378,6 @@ async def test_get_school_language(auth_header, monkeypatch, language):
 
     monkeypatch.setattr(SchoolModel, "from_lib_model", from_lib_model_mock)
 
-    client = TestClient(app, base_url="http://test.server")
     if language is not None:
         headers = {"Accept-Language": language, **auth_header}
     else:
