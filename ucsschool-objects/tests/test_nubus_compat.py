@@ -119,6 +119,25 @@ async def test_set_mapping_updates_existing(db_session: AsyncSession, school: Sc
 
 
 @pytest.mark.asyncio
+async def test_set_mapping_replaces_old_dn_of_same_object(
+    db_session: AsyncSession, school: School
+) -> None:
+    """An object rename keeps the public_id but changes the dn — the old
+    mapping row is displaced instead of violating the unique public_id."""
+    old_dn = "cn=oldname,dc=example,dc=com"
+    new_dn = "cn=newname,dc=example,dc=com"
+    mapper = SQLAlchemyDNIDMapper(db_session)
+    await mapper.set_mapping(ObjectType.SCHOOL, old_dn, school.public_id)
+    await mapper.set_mapping(ObjectType.SCHOOL, new_dn, school.public_id)
+
+    result = await mapper.dns_to_public_ids(ObjectType.SCHOOL, [old_dn, new_dn])
+    assert result == {new_dn: school.public_id}
+    assert await mapper.public_ids_to_dns(ObjectType.SCHOOL, [school.public_id]) == {
+        school.public_id: new_dn
+    }
+
+
+@pytest.mark.asyncio
 async def test_set_mapping_deletes_existing(db_session: AsyncSession, school: School) -> None:
     dn = "cn=testschool,dc=example,dc=com"
     mapper = SQLAlchemyDNIDMapper(db_session)

@@ -1,7 +1,7 @@
 import uuid
 from typing import TYPE_CHECKING, Iterable, cast
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from ucsschool_objects.core.domain.ports.dn_mapper import DNIDMapper, ObjectType
 from ucsschool_objects.database_models import GroupDNMapping, SchoolDNMapping, UserDNMapping
@@ -45,9 +45,16 @@ class SQLAlchemyDNIDMapper:
 
     async def set_mapping(self, object_type: ObjectType, dn: str, public_id: uuid.UUID | None) -> None:
         model = self.TYPE_TO_MODEL_MAPPING[object_type]
-        await self._session.execute(delete(model).where(model.dn == dn))
-        if public_id is not None:
-            self._session.add(model(public_id=public_id, dn=dn))
+        if public_id is None:
+            await self._session.execute(delete(model).where(model.dn == dn))
+            return
+        # The mapping is a bijection: setting (dn, public_id) must displace
+        # both any row holding the dn and any row holding the public_id — an
+        # object rename keeps its public_id but changes its dn.
+        await self._session.execute(
+            delete(model).where(or_(model.dn == dn, model.public_id == public_id))
+        )
+        self._session.add(model(public_id=public_id, dn=dn))
 
 
 def sqlalchemy_mapper_factory(storage: "KelvinStorageSession") -> DNIDMapper:
