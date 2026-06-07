@@ -104,6 +104,7 @@ def compare_ldap_json_obj(dn, json_resp, url_fragment):
 async def test_search(
     auth_header,
     retry_http_502,
+    retry_until_replicated,
     url_fragment,
     udm_kwargs,
     new_school_class_using_lib,
@@ -116,28 +117,34 @@ async def test_search(
         lib_classes: List[SchoolClass] = await SchoolClass.get_all(udm, ou)
     assert sc1_dn in [c.dn for c in lib_classes]
     assert sc2_dn in [c.dn for c in lib_classes]
-    response = retry_http_502(
-        requests.get,
-        f"{url_fragment}/classes/",
-        headers=auth_header,
-        params={"school": ou},
-    )
-    json_resp = response.json()
-    assert response.status_code == 200
-    api_classes = {f"{ou}-{data['name']}": SchoolClassModel(**data) for data in json_resp}
-    assert sc1_dn in [ac.dn for ac in api_classes.values()]
-    assert sc2_dn in [ac.dn for ac in api_classes.values()]
-    for lib_obj in lib_classes:
-        api_obj = api_classes[lib_obj.name]
-        await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
-        resp = [resp for resp in json_resp if resp["dn"] == api_obj.dn][0]
-        compare_ldap_json_obj(api_obj.dn, resp, url_fragment)
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/classes/",
+            headers=auth_header,
+            params={"school": ou},
+        )
+        json_resp = response.json()
+        assert response.status_code == 200
+        api_classes = {f"{ou}-{data['name']}": SchoolClassModel(**data) for data in json_resp}
+        assert sc1_dn in [ac.dn for ac in api_classes.values()]
+        assert sc2_dn in [ac.dn for ac in api_classes.values()]
+        for lib_obj in lib_classes:
+            api_obj = api_classes[lib_obj.name]
+            await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
+            resp = [resp for resp in json_resp if resp["dn"] == api_obj.dn][0]
+            compare_ldap_json_obj(api_obj.dn, resp, url_fragment)
+
+    await retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
 async def test_get(
     auth_header,
     retry_http_502,
+    retry_until_replicated,
     url_fragment,
     udm_kwargs,
     new_school_class_using_lib,
@@ -153,17 +160,30 @@ async def test_get(
         await lib_obj.modify(udm)
     assert sc1_dn == lib_obj.dn
     url = f"{url_fragment}/classes/{ou}/{sc1_attr['name']}"
-    response = retry_http_502(requests.get, url, headers=auth_header)
-    json_resp = response.json()
-    assert response.status_code == 200
-    assert all(
-        attr in json_resp
-        for attr in ("description", "dn", "name", "ucsschool_roles", "url", "users", "udm_properties")
-    )
-    api_obj = SchoolClassModel(**json_resp)
-    await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
-    compare_ldap_json_obj(json_resp["dn"], json_resp, url_fragment)
-    assert api_obj.udm_properties["mailAddress"] == mail_address
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        response = retry_http_502(requests.get, url, headers=auth_header)
+        json_resp = response.json()
+        assert response.status_code == 200
+        assert all(
+            attr in json_resp
+            for attr in (
+                "description",
+                "dn",
+                "name",
+                "ucsschool_roles",
+                "url",
+                "users",
+                "udm_properties",
+            )
+        )
+        api_obj = SchoolClassModel(**json_resp)
+        await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
+        compare_ldap_json_obj(json_resp["dn"], json_resp, url_fragment)
+        assert api_obj.udm_properties["mailAddress"] == mail_address
+
+    await retry_until_replicated(_check)
 
 
 def scramble_case(s: str) -> str:
@@ -587,7 +607,10 @@ async def test_search_udm_error_forwarding(
     retry_http_502,
     url_fragment,
     udm_kwargs,
+    api_version,
 ):
+    if api_version != "v1":
+        pytest.skip("UDM error forwarding is v1-only; v2 reads the cache and never queries UDM.")
     response = retry_http_502(
         requests.get,
         f"{url_fragment}/classes/",

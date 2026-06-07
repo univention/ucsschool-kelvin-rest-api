@@ -103,6 +103,7 @@ def compare_ldap_json_obj(dn, json_resp, url_fragment):
 async def test_search(
     auth_header,
     retry_http_502,
+    retry_until_replicated,
     url_fragment,
     udm_kwargs,
     new_workgroup_using_lib,
@@ -115,28 +116,34 @@ async def test_search(
         lib_workgroups: List[WorkGroup] = await WorkGroup.get_all(udm, ou)
     assert sc1_dn in [c.dn for c in lib_workgroups]
     assert sc2_dn in [c.dn for c in lib_workgroups]
-    response = retry_http_502(
-        requests.get,
-        f"{url_fragment}/workgroups/",
-        headers=auth_header,
-        params={"school": ou},
-    )
-    json_resp = response.json()
-    assert response.status_code == 200
-    api_workgroups = {f"{ou}-{data['name']}": WorkGroupModel(**data) for data in json_resp}
-    assert sc1_dn in [ac.dn for ac in api_workgroups.values()]
-    assert sc2_dn in [ac.dn for ac in api_workgroups.values()]
-    for lib_obj in lib_workgroups:
-        api_obj = api_workgroups[lib_obj.name]
-        await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
-        resp = [resp for resp in json_resp if resp["dn"] == api_obj.dn][0]
-        compare_ldap_json_obj(api_obj.dn, resp, url_fragment)
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/workgroups/",
+            headers=auth_header,
+            params={"school": ou},
+        )
+        json_resp = response.json()
+        assert response.status_code == 200
+        api_workgroups = {f"{ou}-{data['name']}": WorkGroupModel(**data) for data in json_resp}
+        assert sc1_dn in [ac.dn for ac in api_workgroups.values()]
+        assert sc2_dn in [ac.dn for ac in api_workgroups.values()]
+        for lib_obj in lib_workgroups:
+            api_obj = api_workgroups[lib_obj.name]
+            await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
+            resp = [resp for resp in json_resp if resp["dn"] == api_obj.dn][0]
+            compare_ldap_json_obj(api_obj.dn, resp, url_fragment)
+
+    await retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
 async def test_get(
     auth_header,
     retry_http_502,
+    retry_until_replicated,
     url_fragment,
     udm_kwargs,
     new_workgroup_using_lib,
@@ -150,19 +157,32 @@ async def test_get(
         await lib_obj.modify(udm)
     assert sc1_dn == lib_obj.dn
     url = f"{url_fragment}/workgroups/{ou}/{sc1_attr['name']}"
-    response = retry_http_502(requests.get, url, headers=auth_header)
-    json_resp = response.json()
-    assert response.status_code == 200
-    assert all(
-        attr in json_resp
-        for attr in ("description", "dn", "name", "ucsschool_roles", "url", "users", "udm_properties")
-    )
-    api_obj = WorkGroupModel(**json_resp)
-    await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
-    compare_ldap_json_obj(json_resp["dn"], json_resp, url_fragment)
-    assert "gidNumber" in api_obj.udm_properties
-    assert api_obj.udm_properties["gidNumber"]
-    assert isinstance(api_obj.udm_properties["gidNumber"], int)
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        response = retry_http_502(requests.get, url, headers=auth_header)
+        json_resp = response.json()
+        assert response.status_code == 200
+        assert all(
+            attr in json_resp
+            for attr in (
+                "description",
+                "dn",
+                "name",
+                "ucsschool_roles",
+                "url",
+                "users",
+                "udm_properties",
+            )
+        )
+        api_obj = WorkGroupModel(**json_resp)
+        await compare_lib_api_obj(lib_obj, api_obj, url_fragment)
+        compare_ldap_json_obj(json_resp["dn"], json_resp, url_fragment)
+        assert "gidNumber" in api_obj.udm_properties
+        assert api_obj.udm_properties["gidNumber"]
+        assert isinstance(api_obj.udm_properties["gidNumber"], int)
+
+    await retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio

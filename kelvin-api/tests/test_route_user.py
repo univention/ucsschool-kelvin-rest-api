@@ -285,7 +285,13 @@ def test_validate_date_range():
 
 @pytest.mark.asyncio
 async def test_search_no_filter(
-    auth_header, retry_http_502, url_fragment, new_school_users, create_ou_using_python, udm_kwargs
+    auth_header,
+    retry_http_502,
+    retry_until_replicated,
+    url_fragment,
+    new_school_users,
+    create_ou_using_python,
+    udm_kwargs,
 ):
     ou_name = await create_ou_using_python()
     users: List[User] = await new_school_users(
@@ -296,23 +302,28 @@ async def test_search_no_filter(
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, ou_name)
     assert {u.name for u in users}.issubset({u.name for u in lib_users})
-    response = retry_http_502(
-        requests.get,
-        f"{url_fragment}/users/",
-        headers=auth_header,
-        params={"school": ou_name},
-    )
-    assert response.status_code == 200, response.reason
-    api_users = {data["name"]: UserModel(**data) for data in response.json()}
-    assert len(api_users) == len(lib_users)
-    assert {u.name for u in users}.issubset(set(api_users.keys()))
-    json_resp = response.json()
-    async with UDM(**udm_kwargs) as udm:
-        for lib_user in lib_users:
-            api_user = api_users[lib_user.name]
-            await compare_lib_api_user(lib_user, api_user, udm, url_fragment)
-            resp = [r for r in json_resp if r["dn"] == api_user.dn][0]
-            compare_ldap_json_obj(api_user.dn, resp, url_fragment)
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/users/",
+            headers=auth_header,
+            params={"school": ou_name},
+        )
+        assert response.status_code == 200, response.reason
+        api_users = {data["name"]: UserModel(**data) for data in response.json()}
+        assert len(api_users) == len(lib_users)
+        assert {u.name for u in users}.issubset(set(api_users.keys()))
+        json_resp = response.json()
+        async with UDM(**udm_kwargs) as udm:
+            for lib_user in lib_users:
+                api_user = api_users[lib_user.name]
+                await compare_lib_api_user(lib_user, api_user, udm, url_fragment)
+                resp = [r for r in json_resp if r["dn"] == api_user.dn][0]
+                compare_ldap_json_obj(api_user.dn, resp, url_fragment)
+
+    await retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio  # noqa: C901
@@ -339,6 +350,7 @@ async def test_search_no_filter(
 async def test_search_filter(  # noqa: C901
     auth_header,
     retry_http_502,
+    retry_until_replicated,
     url_fragment,
     new_import_user,
     udm_kwargs,
@@ -399,25 +411,32 @@ async def test_search_filter(  # noqa: C901
         params = [(filter_param, pv) for pv in param_value]
     else:
         params = {filter_param: param_value}
-    response = retry_http_502(
-        requests.get,
-        f"{url_fragment}/users/",
-        headers=auth_header,
-        params=params,
-    )
-    assert response.status_code == 200, response.reason
-    json_resp = response.json()
-    api_users = {
-        data["name"]: UserModel(**data) for data in json_resp if data["school"].split("/")[-1] == ou_name
-    }
-    if filter_param not in ("disabled", "roles", "school"):
-        assert len(api_users) == 1
-    assert user.name in api_users
-    api_user = api_users[user.name]
-    async with UDM(**udm_kwargs) as udm:
-        await compare_lib_api_user(user, api_user, udm, url_fragment)
-    resp = [r for r in json_resp if r["dn"] == api_user.dn][0]
-    compare_ldap_json_obj(api_user.dn, resp, url_fragment)
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/users/",
+            headers=auth_header,
+            params=params,
+        )
+        assert response.status_code == 200, response.reason
+        json_resp = response.json()
+        api_users = {
+            data["name"]: UserModel(**data)
+            for data in json_resp
+            if data["school"].split("/")[-1] == ou_name
+        }
+        if filter_param not in ("disabled", "roles", "school"):
+            assert len(api_users) == 1
+        assert user.name in api_users
+        api_user = api_users[user.name]
+        async with UDM(**udm_kwargs) as udm:
+            await compare_lib_api_user(user, api_user, udm, url_fragment)
+        resp = [r for r in json_resp if r["dn"] == api_user.dn][0]
+        compare_ldap_json_obj(api_user.dn, resp, url_fragment)
+
+    await retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
@@ -429,6 +448,7 @@ async def test_search_filter_udm_properties(
     auth_header,
     create_ou_using_python,
     retry_http_502,
+    retry_until_replicated,
     url_fragment,
     new_import_user,
     mail_domain,
@@ -468,32 +488,44 @@ async def test_search_filter_udm_properties(
     else:
         assert udm_user.props[filter_param] == create_kwargs["udm_properties"][filter_param]
     params = {filter_param: filter_value}
-    response = retry_http_502(
-        requests.get,
-        f"{url_fragment}/users/",
-        headers=auth_header,
-        params=params,
-    )
-    assert response.status_code == 200, response.reason
-    api_users = {data["name"]: UserModel(**data) for data in response.json()}
-    if filter_param != "gidNumber":
-        assert len(api_users) == 1
-    assert user.name in api_users
-    api_user = api_users[user.name]
-    created_value = api_user.udm_properties[filter_param]
-    if filter_param in {"e-mail", "phone"}:
-        assert set(created_value) == set(create_kwargs["udm_properties"][filter_param])
-    else:
-        assert created_value == filter_value
-    await compare_lib_api_user(user, api_user, udm, url_fragment)
-    json_resp = response.json()
-    resp = [r for r in json_resp if r["dn"] == api_user.dn][0]
-    compare_ldap_json_obj(api_user.dn, resp, url_fragment)
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/users/",
+            headers=auth_header,
+            params=params,
+        )
+        assert response.status_code == 200, response.reason
+        api_users = {data["name"]: UserModel(**data) for data in response.json()}
+        if filter_param != "gidNumber":
+            assert len(api_users) == 1
+        assert user.name in api_users
+        api_user = api_users[user.name]
+        created_value = api_user.udm_properties[filter_param]
+        if filter_param in {"e-mail", "phone"}:
+            assert set(created_value) == set(create_kwargs["udm_properties"][filter_param])
+        else:
+            assert created_value == filter_value
+        await compare_lib_api_user(user, api_user, udm, url_fragment)
+        json_resp = response.json()
+        resp = [r for r in json_resp if r["dn"] == api_user.dn][0]
+        compare_ldap_json_obj(api_user.dn, resp, url_fragment)
+
+    await retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
 async def test_search_user_without_firstname(
-    auth_header, create_ou_using_python, retry_http_502, url_fragment, new_school_user, udm_kwargs
+    auth_header,
+    create_ou_using_python,
+    retry_http_502,
+    retry_until_replicated,
+    url_fragment,
+    new_school_user,
+    udm_kwargs,
+    api_version,
 ):
     role = random.choice(
         ("student", "teacher", "staff", "teacher_and_staff", "legal_guardian", "school_admin")
@@ -501,16 +533,27 @@ async def test_search_user_without_firstname(
     school = await create_ou_using_python()
     lib_user: User = await new_school_user(school, role)
     assert lib_user.firstname
-    response = retry_http_502(
-        requests.get,
-        f"{url_fragment}/users/",
-        headers=auth_header,
-        params={"school": school},
-    )
-    assert response.status_code == 200, (response.reason, response.content)
-    json_resp = response.json()
-    assert any(u["firstname"] == lib_user.firstname for u in json_resp)
-    # reading the user is OK at this point
+
+    # v2 is replicated asynchronously: retry until the user appears.
+    async def _check():
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/users/",
+            headers=auth_header,
+            params={"school": school},
+        )
+        assert response.status_code == 200, (response.reason, response.content)
+        json_resp = response.json()
+        assert any(u["firstname"] == lib_user.firstname for u in json_resp)
+
+    await retry_until_replicated(_check)
+
+    # The remainder asserts read-through validation: v1 reads UDM live and
+    # rejects the now-invalid user with HTTP 500. v2 serves the cache, which
+    # is not re-validated on read, so this behaviour is v1-only.
+    if api_version != "v1":
+        return
+
     async with UDM(**udm_kwargs) as udm:
         udm_user = await udm.get("users/user").get(lib_user.dn)
         udm_user.props.firstname = ""
@@ -559,6 +602,7 @@ async def test_search_returns_no_exam_user(
 async def test_get(
     auth_header,
     retry_http_502,
+    retry_until_replicated,
     url_fragment,
     create_ou_using_python,
     new_import_user,
@@ -577,43 +621,48 @@ async def test_get(
     school = await create_ou_using_python()
     user: ImportUser = await new_import_user(school, role.name, udm_properties)
     assert isinstance(user, role.klass)
-    response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
-    assert response.status_code == 200, response.reason
-    json_resp = response.json()
-    assert all(
-        attr in json_resp
-        for attr in (
-            "birthday",
-            "disabled",
-            "dn",
-            "email",
-            "expiration_date",
-            "firstname",
-            "lastname",
-            "name",
-            "record_uid",
-            "roles",
-            "schools",
-            "school_classes",
-            "source_uid",
-            "ucsschool_roles",
-            "udm_properties",
-            "url",
-            "workgroups",
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
+        assert response.status_code == 200, response.reason
+        json_resp = response.json()
+        assert all(
+            attr in json_resp
+            for attr in (
+                "birthday",
+                "disabled",
+                "dn",
+                "email",
+                "expiration_date",
+                "firstname",
+                "lastname",
+                "name",
+                "record_uid",
+                "roles",
+                "schools",
+                "school_classes",
+                "source_uid",
+                "ucsschool_roles",
+                "udm_properties",
+                "url",
+                "workgroups",
+            )
         )
-    )
-    api_user = UserModel(**json_resp)
-    for k, v in udm_properties.items():
-        if isinstance(v, (tuple, list)):
-            assert set(api_user.udm_properties.get(k, [])) == set(v)
-        else:
-            assert api_user.udm_properties.get(k) == v
-    async with UDM(**udm_kwargs) as udm:
-        await compare_lib_api_user(user, api_user, udm, url_fragment)
-    json_resp = response.json()
-    if type(json_resp) is list:
-        json_resp = [resp for resp in json_resp if resp["dn"] == api_user.dn][0]
-    compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
+        api_user = UserModel(**json_resp)
+        for k, v in udm_properties.items():
+            if isinstance(v, (tuple, list)):
+                assert set(api_user.udm_properties.get(k, [])) == set(v)
+            else:
+                assert api_user.udm_properties.get(k) == v
+        async with UDM(**udm_kwargs) as udm:
+            await compare_lib_api_user(user, api_user, udm, url_fragment)
+        json_resp = response.json()
+        if type(json_resp) is list:
+            json_resp = [resp for resp in json_resp if resp["dn"] == api_user.dn][0]
+        compare_ldap_json_obj(api_user.dn, json_resp, url_fragment)
+
+    await retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
@@ -638,7 +687,13 @@ async def test_get_empty_udm_properties_are_returned(
 
 @pytest.mark.asyncio
 async def test_get_returns_exam_user(
-    auth_header, create_ou_using_python, retry_http_502, url_fragment, create_exam_user, udm_kwargs
+    auth_header,
+    create_ou_using_python,
+    retry_http_502,
+    retry_until_replicated,
+    url_fragment,
+    create_exam_user,
+    udm_kwargs,
 ):
     school = await create_ou_using_python()
     dn, exam_user = await create_exam_user(school)
@@ -649,6 +704,8 @@ async def test_get_returns_exam_user(
         assert lib_user.ucsschool_roles == exam_user["ucsschoolRole"]
         assert f"cn=examusers,ou={school}" in lib_user.dn
 
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
         response = retry_http_502(
             requests.get,
             f"{url_fragment}/users/{exam_user['username']}",
@@ -660,6 +717,8 @@ async def test_get_returns_exam_user(
         assert json_resp["name"] == exam_user["username"]
         assert json_resp["ucsschool_roles"] == exam_user["ucsschoolRole"]
         assert f"cn=examusers,ou={school}" in json_resp["dn"]
+
+    await retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
