@@ -141,6 +141,9 @@ class Group(Base):
     email: Mapped[str | None] = mapped_column(
         String(255), nullable=True, unique=True, info={"udm_attr": "mailAddress"}
     )
+    description: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, info={"udm_attr": "description"}
+    )
     udm_properties: Mapped[dict[str, object]] = mapped_column(_json_type(), nullable=False, default=dict)
 
     roles: Mapped[list["Role"]] = relationship("Role", secondary="group_role_association", lazy="raise")

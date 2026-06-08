@@ -970,6 +970,19 @@ async def test_handle_group_create_happy_path(manager, mock_storage, mock_mapper
     )
 
 
+async def test_handle_group_create_stores_description(manager, mock_storage, mock_mapper):
+    uid = uuid.uuid4()
+    school = make_school("testschool")
+    mock_storage.schools.search.return_value = [school]
+    mock_storage.groups.get.side_effect = NotFound("group", str(uid))
+    event = _group_create_event(uid, extra_props={"description": "1a maths"})
+
+    await manager.handle_group_create(event)
+
+    created = mock_storage.groups.create.call_args[0][0]
+    assert created.description == "1a maths"
+
+
 async def test_handle_group_create_skips_members_without_school_membership(
     manager, mock_storage, mock_mapper
 ):

@@ -69,6 +69,7 @@ SCHOOL_CLASS_LOAD_SPEC_V2 = LoadSpec.from_attributes(
     "create_share",
     "roles",
     "members",
+    "description",
     "udm_properties",
 )
 
@@ -118,7 +119,7 @@ async def _group_to_school_class_model(
         school=SchoolClassModel.scheme_and_quote(
             str(cached_url_for(request, "school_get", school_name=school_name))
         ),
-        description=None,
+        description=group.description,
         users=users,
         create_share=group.create_share,
         ucsschool_roles=ucsschool_roles,
