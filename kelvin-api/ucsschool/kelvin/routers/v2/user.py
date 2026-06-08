@@ -228,10 +228,13 @@ async def _user_to_model(
 
     for group in user.groups:
         role_names = [role.name for role in group.roles]
+        # Strip the "{school}-" prefix to get the relative name, like v1 —
+        # not split("-")[1], which mangles names containing a hyphen.
+        relative_name = group.name.replace(f"{group.school.name}-", "")
         if "school_class" in role_names:
-            school_classes.setdefault(group.school.name, []).append(group.name.split("-")[1])
+            school_classes.setdefault(group.school.name, []).append(relative_name)
         if "workgroup" in role_names:
-            workgroups.setdefault(group.school.name, []).append(group.name.split("-")[1])
+            workgroups.setdefault(group.school.name, []).append(relative_name)
 
     # user.groups is a set, so the per-school lists are built in arbitrary
     # order; sort them for deterministic, v1-equivalent output.
