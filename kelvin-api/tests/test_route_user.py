@@ -690,10 +690,10 @@ async def test_get_returns_exam_user(
     auth_header,
     create_ou_using_python,
     retry_http_502,
-    retry_until_replicated,
     url_fragment,
     create_exam_user,
     udm_kwargs,
+    api_version,
 ):
     school = await create_ou_using_python()
     dn, exam_user = await create_exam_user(school)
@@ -704,21 +704,27 @@ async def test_get_returns_exam_user(
         assert lib_user.ucsschool_roles == exam_user["ucsschoolRole"]
         assert f"cn=examusers,ou={school}" in lib_user.dn
 
-    # v2 is replicated asynchronously: retry until the cache caught up.
-    async def _check():
+    if api_version != "v1":
+        # Exam users are intentionally not cached, so v2 never returns them.
         response = retry_http_502(
             requests.get,
             f"{url_fragment}/users/{exam_user['username']}",
             headers=auth_header,
-            params={"school": school},
         )
-        assert response.status_code == 200, response.reason
-        json_resp = response.json()
-        assert json_resp["name"] == exam_user["username"]
-        assert json_resp["ucsschool_roles"] == exam_user["ucsschoolRole"]
-        assert f"cn=examusers,ou={school}" in json_resp["dn"]
+        assert response.status_code == 404, response.reason
+        return
 
-    await retry_until_replicated(_check)
+    response = retry_http_502(
+        requests.get,
+        f"{url_fragment}/users/{exam_user['username']}",
+        headers=auth_header,
+        params={"school": school},
+    )
+    assert response.status_code == 200, response.reason
+    json_resp = response.json()
+    assert json_resp["name"] == exam_user["username"]
+    assert json_resp["ucsschool_roles"] == exam_user["ucsschoolRole"]
+    assert f"cn=examusers,ou={school}" in json_resp["dn"]
 
 
 @pytest.mark.asyncio
