@@ -221,16 +221,17 @@ async def _user_to_model(
         except ValueError:
             logger.error(f"Unknown role name: {role.name=}. Omitting role.")
 
-    school_classes: dict[str, list[str]] = {
-        sm.school.name: [] for sm in user.school_memberships.values()
-    }
-    workgroups: dict[str, list[str]] = {sm.school.name: [] for sm in user.school_memberships.values()}
+    # Only schools that actually have a class/workgroup get an entry, matching
+    # v1 — do not pre-seed every membership's school with an empty list.
+    school_classes: dict[str, list[str]] = {}
+    workgroups: dict[str, list[str]] = {}
 
     for group in user.groups:
-        if "school_class" in [role.name for role in group.roles]:
-            school_classes[group.school.name].append(group.name.split("-")[1])
-        if "workgroup" in [role.name for role in group.roles]:
-            workgroups[group.school.name].append(group.name.split("-")[1])
+        role_names = [role.name for role in group.roles]
+        if "school_class" in role_names:
+            school_classes.setdefault(group.school.name, []).append(group.name.split("-")[1])
+        if "workgroup" in role_names:
+            workgroups.setdefault(group.school.name, []).append(group.name.split("-")[1])
 
     # user.groups is a set, so the per-school lists are built in arbitrary
     # order; sort them for deterministic, v1-equivalent output.
