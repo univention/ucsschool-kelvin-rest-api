@@ -577,25 +577,45 @@ def create_random_users(
 
 
 @pytest.fixture
-def create_exam_user(new_udm_user, ldap_base, random_name, udm_kwargs):
+def create_exam_user(
+    udm_kwargs,
+    ldap_base,
+    random_name,
+    udm_users_user_props,
+    schedule_delete_user_dn,
+    wait_for_replication,
+):
     async def _func(school: str, **school_user_kwargs) -> Tuple[str, Dict[str, Any]]:
-        dn, user = await new_udm_user(school, "student", **school_user_kwargs)
+        # Create the exam user directly under cn=examusers in a single create,
+        # rather than creating a student and moving it. The connector then sees
+        # exactly one exam-user create event (which it skips), with no
+        # intermediate non-exam user that would be cached. There is no backing
+        # regular user, which is fine in the kelvin test context.
+        user = await udm_users_user_props(school, **school_user_kwargs)
         user["ucsschoolRole"] = [
             f"exam_user:school:{school}",
             f"exam_user:exam:{random_name()}-{school}",
         ]
-        logger.debug("Modifying student %r to be an exam user...", user["username"])
+        logger.debug("Creating exam user %r ...", user["username"])
         async with UDM(**udm_kwargs) as udm:
-            udm_user: UdmObject = await udm.get("users/user").get(dn)
-            udm_user.options["ucsschoolExam"] = True
+            udm_user: UdmObject = await udm.get("users/user").new()
+            # ucsschoolStudent + ucsschoolExam: v1 excludes exam users via
+            # (!(objectClass=ucsschoolExam)) in its user-type filter.
+            udm_user.options.update({"ucsschoolStudent": True, "ucsschoolExam": True})
             udm_user.position = f"cn=examusers,ou={school},{ldap_base}"
+            udm_user.props.update(user)
+            udm_user.props.primaryGroup = f"cn=Domain Users {school},cn=groups,ou={school},{ldap_base}"
+            udm_user.props.ucsschoolRecordUID = school_user_kwargs.get("record_uid", user["username"])
+            udm_user.props.ucsschoolSourceUID = school_user_kwargs.get("source_uid", "Kelvin")
+            udm_user.props.groups = list(user.get("groups", []))
             udm_user.props.groups.append(
                 f"cn=OU{school.lower()}-Klassenarbeit,cn=ucsschool,cn=groups,{ldap_base}"
             )
-            udm_user.props.ucsschoolRole = user["ucsschoolRole"]
             await udm_user.save()
-        logger.debug("Done: %r", dn)
-        return dn, user
+            schedule_delete_user_dn(udm_user.dn)
+            wait_for_replication(udm_user.dn)
+        logger.debug("Done: %r", udm_user.dn)
+        return udm_user.dn, user
 
     return _func
 
