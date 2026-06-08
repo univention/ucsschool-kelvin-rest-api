@@ -878,35 +878,43 @@ class SynchronizationManager(SynchronizationManagerProtocol):
     async def _handle_host_group_change(
         self, event: HostGroupModifyEvent | HostGroupCreateEvent, storage: KelvinStorageSession
     ) -> None:
-        m = HOST_GROUP_NAME_RE.match(event.new.properties.name)
-        if m is None:
-            raise SynchronizationException(
-                f"Unable to handle event of type {type(event)}: Unexpected host group name."
-            )
-
-        group_type = m.group(2)
-        school_name = m.group(1)
-
-        schools = await storage.schools.search(
-            SearchQuery(Filter(field="name", op=Operator.ILIKE, value=school_name))
-        )
-        try:
-            school = next(iter(schools))
-            if isinstance(school.public_id, UnsetType):
-                raise ValueError("Unexpected UnsetType in {}", school)
-        except StopIteration:
-            raise SynchronizationException(f"Unable to find school with name={school_name} in database.")
-
         # The host group lists its members by DN; the cache stores server
         # hostnames (the leaf cn), matching what the v1 API resolves via
         # computer_dn2name. Otherwise schools would expose raw DNs.
         hosts = {DN(host).rdn[1] for host in event.new.properties.hosts}
-        logger.debug(
-            "Updating {} servers for school {!r} from host group event",
-            "educational" if group_type == "Edukativnetz" else "administrative",
-            school_name,
-        )
+        await self._set_school_servers(event.new.properties.name, hosts, storage)
 
+    async def _set_school_servers(
+        self,
+        group_name: str,
+        hosts: set[str],
+        storage: KelvinStorageSession,
+        *,
+        missing_school_ok: bool = False,
+    ) -> None:
+        m = HOST_GROUP_NAME_RE.match(group_name)
+        if m is None:
+            raise SynchronizationException(f"Unexpected host group name {group_name!r}.")
+
+        group_type = m.group(2)
+        school_name = m.group(1)
+        kind = "educational" if group_type == "Edukativnetz" else "administrative"
+
+        schools = list(
+            await storage.schools.search(
+                SearchQuery(Filter(field="name", op=Operator.ILIKE, value=school_name))
+            )
+        )
+        if not schools:
+            if missing_school_ok:
+                logger.debug("School {!r} not in cache, nothing to clear for host group", school_name)
+                return
+            raise SynchronizationException(f"Unable to find school with name={school_name} in database.")
+        school = schools[0]
+        if isinstance(school.public_id, UnsetType):
+            raise ValueError(f"Unexpected UnsetType in {school}")
+
+        logger.debug("Setting {} servers for school {!r} to {}", kind, school_name, sorted(hosts))
         with track_changes(school) as tracker:
             match group_type:
                 case "Edukativnetz":
@@ -919,18 +927,21 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         if tracker.patch:
             await storage.schools.modify(school.public_id, tracker.patch)
             logger.info(
-                "Updated {} servers for school {!r} (public_id={})",
-                "educational" if group_type == "Edukativnetz" else "administrative",
-                school_name,
-                school.public_id,
+                "Updated {} servers for school {!r} (public_id={})", kind, school_name, school.public_id
             )
         else:
             logger.debug(
                 "No changes for {} servers of school {!r} (public_id={}), skipping modify",
-                "educational" if group_type == "Edukativnetz" else "administrative",
+                kind,
                 school_name,
                 school.public_id,
             )
 
     async def handle_host_group_delete(self, event: HostGroupDeleteEvent) -> None:
-        logger.debug("Ignoring host group delete event.")
+        # A deleted DC host group means the school no longer has those servers;
+        # clear them so the cache does not keep stale entries (v1 reads the
+        # group's members live and reports none once it is gone).
+        async with self.storage_factory.transaction_scope() as storage:
+            await self._set_school_servers(
+                event.old.properties.name, set(), storage, missing_school_ok=True
+            )
