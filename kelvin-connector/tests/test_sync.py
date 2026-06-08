@@ -1374,8 +1374,30 @@ async def test_handle_host_group_modify_verwaltungsnetz(manager, mock_storage, m
     assert all("newserver" in op["value"] and "cn=" not in op["value"][0] for op in server_ops)
 
 
-async def test_handle_host_group_delete(manager, mock_storage, mock_mapper):
+async def test_handle_host_group_delete_clears_servers(manager, mock_storage, mock_mapper):
+    # demoschool starts with educational_servers={"server1"}; deleting its
+    # Edukativnetz host group must clear them so the cache does not keep
+    # stale servers that v1 (reading the now-gone group) no longer reports.
     uid = uuid.uuid4()
+    school = make_school("demoschool")
+    mock_storage.schools.search.return_value = [school]
+    event = _host_group_delete_event(uid, name="OUdemoschool-DC-Edukativnetz")
+
+    await manager.handle_host_group_delete(event)
+
+    mock_storage.schools.modify.assert_called_once()
+    patch = mock_storage.schools.modify.call_args[0][1]
+    server_ops = [op for op in patch if "educational_servers" in op["path"]]
+    # clearing the list is expressed as element removals, never additions
+    assert server_ops
+    assert all(op["op"] == "remove" for op in server_ops)
+
+
+async def test_handle_host_group_delete_ignores_missing_school(manager, mock_storage, mock_mapper):
+    # The school may already be gone (OU deleted); deleting its host group is
+    # then a no-op rather than an error.
+    uid = uuid.uuid4()
+    mock_storage.schools.search.return_value = []
     event = _host_group_delete_event(uid)
     await manager.handle_host_group_delete(event)
     mock_storage.schools.modify.assert_not_called()
