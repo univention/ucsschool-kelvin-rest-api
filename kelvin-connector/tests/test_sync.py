@@ -965,6 +965,7 @@ async def test_handle_group_create_happy_path(manager, mock_storage, mock_mapper
     _assert_fully_loaded(created)
     assert created.public_id == uid
     assert created.name == "testschool-group"
+    assert created.create_share is True
     mock_mapper.set_mapping.assert_called_once_with(
         ObjectType.GROUP, "cn=testschool-group,cn=klassen,dc=test", uid
     )
