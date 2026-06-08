@@ -82,7 +82,12 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                 if HOST_GROUP_NAME_RE.match(name):
                     return True
                 return False
-            case (ObjectType.USERS | ObjectType.OUS):
+            case (ObjectType.USERS):
+                # Exam users are temporary copies (created under cn=examusers
+                # for the duration of an exam, then deleted). They are
+                # intentionally not cached.
+                return not any(role.startswith("exam_user:") for role in roles)
+            case (ObjectType.OUS):
                 return True
             case _:
                 return False

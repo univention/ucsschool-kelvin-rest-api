@@ -156,6 +156,24 @@ async def test_is_relevant_returns_true_for_user_topic(handler):
     assert await handler.is_relevant(event) is True
 
 
+async def test_is_relevant_skips_exam_user(handler):
+    # Exam users are temporary copies and must not be cached.
+    event = {
+        "topic": "users/user",
+        "body": {
+            "new": {
+                "properties": {
+                    "ucsschoolRole": [
+                        "exam_user:school:DEMOSCHOOL",
+                        "exam_user:exam:demo-DEMOSCHOOL",
+                    ]
+                }
+            }
+        },
+    }
+    assert await handler.is_relevant(event) is False
+
+
 async def test_is_relevant_returns_true_for_ou_topic(handler):
     event = {
         "topic": "container/ou",
