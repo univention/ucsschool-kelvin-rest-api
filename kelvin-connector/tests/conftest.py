@@ -16,6 +16,8 @@ def make_school(name="testschool", uid=None) -> School:
         display_name=f"{name} Display",
         educational_servers={"server1"},
         administrative_servers={"server2"},
+        class_share_file_server=None,
+        home_share_file_server=None,
     )
 
 
