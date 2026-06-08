@@ -559,7 +559,10 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                     allowed_email_senders_users=allowed_email_senders_users,
                     allowed_email_senders_groups=allowed_email_senders_groups,
                     members=members,
-                    create_share=False,
+                    # School classes and workgroups always have a share. v1
+                    # has no read-time source for this and returns its model
+                    # default (True); mirror that.
+                    create_share=True,
                     roles=group_roles,
                     member_roles=member_roles,
                     description=group_props.description,
@@ -734,6 +737,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         group.allowed_email_senders_groups = allowed_email_senders_groups
         group.members = members
         group.member_roles = member_roles
+        group.create_share = True
         group.description = group_props.description
         group.udm_properties = _udm_properties(group_props)
 
