@@ -23,6 +23,7 @@ from kelvin_connector.models import (
 )
 from kelvin_connector.ports import DNIDMapperFactory, SynchronizationManagerProtocol
 from loguru import logger
+from provisioning_consumer_lib.dn import DN
 from pydantic import BaseModel
 from typing_extensions import override
 from ucsschool_objects import (
@@ -890,7 +891,10 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         except StopIteration:
             raise SynchronizationException(f"Unable to find school with name={school_name} in database.")
 
-        hosts = set(event.new.properties.hosts)
+        # The host group lists its members by DN; the cache stores server
+        # hostnames (the leaf cn), matching what the v1 API resolves via
+        # computer_dn2name. Otherwise schools would expose raw DNs.
+        hosts = {DN(host).rdn[1] for host in event.new.properties.hosts}
         logger.debug(
             "Updating {} servers for school {!r} from host group event",
             "educational" if group_type == "Edukativnetz" else "administrative",

@@ -1333,26 +1333,31 @@ async def test_handle_host_group_create_edukativnetz(manager, mock_storage, mock
     uid = uuid.uuid4()
     school = make_school("demoschool")
     mock_storage.schools.search.return_value = [school]
-    event = _host_group_create_event(uid, hosts=["newserver"])
+    event = _host_group_create_event(uid, hosts=["cn=newserver,cn=computers,dc=test"])
 
     await manager.handle_host_group_create(event)
 
     mock_storage.schools.modify.assert_called_once()
     patch = mock_storage.schools.modify.call_args[0][1]
-    assert any("educational_servers" in op["path"] for op in patch)
+    # the host DN is reduced to its hostname (leaf cn), matching v1
+    server_ops = [op for op in patch if "educational_servers" in op["path"]]
+    assert server_ops
+    assert all("newserver" in op["value"] and "cn=" not in op["value"][0] for op in server_ops)
 
 
 async def test_handle_host_group_modify_verwaltungsnetz(manager, mock_storage, mock_mapper):
     uid = uuid.uuid4()
     school = make_school("demoschool")
     mock_storage.schools.search.return_value = [school]
-    event = _host_group_modify_event(uid, hosts=["newserver"])
+    event = _host_group_modify_event(uid, hosts=["cn=newserver,cn=computers,dc=test"])
 
     await manager.handle_host_group_modify(event)
 
     mock_storage.schools.modify.assert_called_once()
     patch = mock_storage.schools.modify.call_args[0][1]
-    assert any("administrative_servers" in op["path"] for op in patch)
+    server_ops = [op for op in patch if "administrative_servers" in op["path"]]
+    assert server_ops
+    assert all("newserver" in op["value"] and "cn=" not in op["value"][0] for op in server_ops)
 
 
 async def test_handle_host_group_delete(manager, mock_storage, mock_mapper):
@@ -1380,8 +1385,8 @@ async def test_handle_host_group_change_school_not_found_raises(manager, mock_st
 @pytest.mark.parametrize(
     "event_fn, handler_name, hosts",
     [
-        (_host_group_create_event, "handle_host_group_create", ["server1"]),
-        (_host_group_modify_event, "handle_host_group_modify", ["server2"]),
+        (_host_group_create_event, "handle_host_group_create", ["cn=server1,cn=computers,dc=test"]),
+        (_host_group_modify_event, "handle_host_group_modify", ["cn=server2,cn=computers,dc=test"]),
     ],
 )
 async def test_handle_host_group_change_skips_modify_when_patch_is_empty(
