@@ -86,6 +86,7 @@ async def _apply_group_patch(
     model.display_name = cast(str, patched["display_name"])
     model.email = cast(str | None, patched["email"])
     model.has_share = cast(bool, patched["create_share"])
+    model.description = cast(str | None, patched["description"])
     model.udm_properties = cast("dict[str, object]", patched["udm_properties"])
 
     await sync_collection(
@@ -157,6 +158,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         **_SCALAR_FIELD_MAP,
         "display_name": GroupModel.display_name,
         "create_share": GroupModel.has_share,
+        "description": GroupModel.description,
         "udm_properties": GroupModel.udm_properties,
     }
     _JSON_FIELD_MAP: dict[str, FieldColumn] = {

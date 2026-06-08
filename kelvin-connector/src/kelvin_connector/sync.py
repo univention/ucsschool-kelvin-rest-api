@@ -562,6 +562,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                     create_share=False,
                     roles=group_roles,
                     member_roles=member_roles,
+                    description=group_props.description,
                     udm_properties=_udm_properties(group_props),
                 )
             )
@@ -733,6 +734,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         group.allowed_email_senders_groups = allowed_email_senders_groups
         group.members = members
         group.member_roles = member_roles
+        group.description = group_props.description
         group.udm_properties = _udm_properties(group_props)
 
     # ── School event handlers ───────────────────────────────────────────────

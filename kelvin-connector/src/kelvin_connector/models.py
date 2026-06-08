@@ -82,6 +82,7 @@ class GroupProperties(BaseModel):
     allowedEmailGroups: list[str]
     users: list[str]
     mailAddress: str | None
+    description: str | None = None
     guardianMemberRoles: list[GuardianRole]
 
     @validator("ucsschoolRole", pre=True)

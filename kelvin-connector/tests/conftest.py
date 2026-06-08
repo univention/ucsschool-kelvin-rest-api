@@ -48,6 +48,7 @@ def make_group(name: str, school: School, uid=None) -> Group:
         members=set(),
         member_roles=set(),
         school=school,
+        description=None,
     )
 
 

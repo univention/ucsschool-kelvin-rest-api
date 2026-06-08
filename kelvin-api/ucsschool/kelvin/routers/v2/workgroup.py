@@ -72,6 +72,7 @@ WORKGROUP_LOAD_SPEC_V2 = LoadSpec.from_attributes(
     "members",
     "allowed_email_senders_users",
     "allowed_email_senders_groups",
+    "description",
     "udm_properties",
 )
 
@@ -133,7 +134,7 @@ async def _group_to_workgroup_model(
         school=WorkGroupModel.scheme_and_quote(
             str(cached_url_for(request, "school_get", school_name=school_name))
         ),
-        description=None,
+        description=group.description,
         users=users,
         create_share=group.create_share,
         email=group.email,

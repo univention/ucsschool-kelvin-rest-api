@@ -117,6 +117,9 @@ def to_group_model(data: Group) -> GroupModel:
         display_name=_require_loaded(data.display_name, object_type="Group", field_name="display_name"),
         has_share=_require_loaded(data.create_share, object_type="Group", field_name="create_share"),
         email=check_nullable_value_presence(data.email, object_type="Group", field_name="email"),
+        description=check_nullable_value_presence(
+            data.description, object_type="Group", field_name="description"
+        ),
         udm_properties=_require_loaded(
             data.udm_properties,
             object_type="Group",

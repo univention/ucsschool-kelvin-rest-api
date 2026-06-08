@@ -94,6 +94,7 @@ def upgrade() -> None:
         sa.Column("display_name", sa.String(length=255), nullable=False),
         sa.Column("has_share", sa.BOOLEAN(), nullable=False),
         sa.Column("email", sa.String(length=255), nullable=True),
+        sa.Column("description", sa.String(length=255), nullable=True),
         sa.Column(
             "udm_properties", sa.JSON().with_variant(postgresql.JSONB(), "postgresql"), nullable=False
         ),

@@ -247,6 +247,7 @@ class Group:
         "_member_roles",
         "_school",
         "_email",
+        "_description",
         "_udm_properties",
     )
 
@@ -265,6 +266,7 @@ class Group:
         member_roles: set[Role] | UnloadedType = UNLOADED,
         school: School | UnloadedType = UNLOADED,
         email: str | None | UnloadedType = UNLOADED,
+        description: str | None | UnloadedType = UNLOADED,
         udm_properties: dict[str, object] | UnloadedType = UNLOADED,
     ) -> None:
         self.public_id = public_id
@@ -280,6 +282,7 @@ class Group:
         self._member_roles = member_roles
         self._school = school
         self._email = email
+        self._description = description
         self._udm_properties = udm_properties
 
     @classmethod
@@ -395,6 +398,14 @@ class Group:
     @email.setter
     def email(self, value: str | None) -> None:
         self._email = value
+
+    @property
+    def description(self) -> str | None:
+        return _require_loaded(self._description, object_type="Group", field_name="description")
+
+    @description.setter
+    def description(self, value: str | None) -> None:
+        self._description = value
 
     @property
     def udm_properties(self) -> dict[str, object]:
