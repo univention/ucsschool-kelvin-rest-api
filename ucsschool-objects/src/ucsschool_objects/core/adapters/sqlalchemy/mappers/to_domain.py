@@ -164,6 +164,7 @@ def to_group(model: GroupModel) -> Group:
         members=members,
         member_roles=member_roles,
         school=school,
+        description=_convert_unloadable(model, "description", _as_optional_str),
         udm_properties=_convert_unloadable(model, "udm_properties", _as_udm_properties),
     )
 
@@ -266,6 +267,7 @@ def group_from_patch(patched: dict[str, object], public_id: UUID) -> Group:
         create_share=cast(bool, patched["create_share"]),
         roles=cast(set[Role], patched["roles"]),
         email=cast(str | None, patched["email"]),
+        description=cast(str | None, patched["description"]),
         school=UNLOADED,
         members=UNLOADED,
         member_roles=UNLOADED,
