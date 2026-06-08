@@ -103,6 +103,8 @@ class SchoolProperties(BaseModel):
     univentionObjectIdentifier: UUID4
     name: str
     displayName: str
+    ucsschoolClassShareFileServer: str | None = None
+    ucsschoolHomeShareFileServer: str | None = None
 
     class Config:
         extra = Extra.allow

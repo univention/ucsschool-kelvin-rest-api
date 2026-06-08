@@ -1224,6 +1224,26 @@ async def test_handle_school_create_happy_path(manager, mock_storage, mock_mappe
     mock_mapper.set_mapping.assert_called_once_with(ObjectType.SCHOOL, "ou=testschool,dc=test", uid)
 
 
+async def test_handle_school_create_stores_share_file_servers(manager, mock_storage, mock_mapper):
+    # The share file servers are carried by the OU event as DNs; the cache
+    # stores the hostname, matching what v1 resolves via computer_dn2name.
+    uid = uuid.uuid4()
+    mock_storage.schools.get.side_effect = NotFound("school", str(uid))
+    event = _school_create_event(
+        uid,
+        extra_props={
+            "ucsschoolClassShareFileServer": "cn=master,cn=dc,dc=test",
+            "ucsschoolHomeShareFileServer": "cn=master,cn=dc,dc=test",
+        },
+    )
+
+    await manager.handle_school_create(event)
+
+    created = mock_storage.schools.create.call_args[0][0]
+    assert created.class_share_file_server == "master"
+    assert created.home_share_file_server == "master"
+
+
 async def test_handle_school_delete_happy_path(manager, mock_storage, mock_mapper):
     uid = uuid.uuid4()
     event = _school_delete_event(uid)

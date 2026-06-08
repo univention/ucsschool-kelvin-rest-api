@@ -68,6 +68,18 @@ _USER_REPLACE_FIELDS = frozenset(
 _UDM_PROPERTIES_DENYLIST = frozenset({"jpegPhoto", "password"})
 
 
+def _server_hostname(value: str | None) -> str | None:
+    """Reduce a server reference to its hostname (leaf cn).
+
+    UDM exposes the share file servers as DNs; the cache stores hostnames to
+    match what the v1 API resolves via computer_dn2name. A value that is
+    already a bare hostname (no DN syntax) is returned unchanged.
+    """
+    if not value:
+        return None
+    return DN(value).rdn[1] if "=" in value else value
+
+
 def _udm_properties(properties: BaseModel) -> dict[str, object]:
     """The full UDM properties of an event as a JSON-safe dict.
 
@@ -771,12 +783,12 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             display_name=school_props.displayName,
             record_uid=school_props.name,
             source_uid="kelvin-connector",
+            # Servers are populated by the DC host group events, not the OU
+            # event; start empty.
             educational_servers=set(),
             administrative_servers=set(),
-            # Not carried by the UDM ou event; create() requires every field,
-            # so nullable ones must be explicitly None instead of UNLOADED.
-            class_share_file_server=None,
-            home_share_file_server=None,
+            class_share_file_server=_server_hostname(school_props.ucsschoolClassShareFileServer),
+            home_share_file_server=_server_hostname(school_props.ucsschoolHomeShareFileServer),
             udm_properties=_udm_properties(school_props),
         )
         try:
@@ -796,6 +808,12 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             with track_changes(current_school) as tracker:
                 current_school.name = school_props.name
                 current_school.display_name = school_props.displayName
+                current_school.class_share_file_server = _server_hostname(
+                    school_props.ucsschoolClassShareFileServer
+                )
+                current_school.home_share_file_server = _server_hostname(
+                    school_props.ucsschoolHomeShareFileServer
+                )
                 current_school.udm_properties = _udm_properties(school_props)
             if tracker.patch:
                 await storage.schools.modify(public_id, tracker.patch)
@@ -856,6 +874,12 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         with track_changes(current_school) as tracker:
             current_school.name = school_props.name
             current_school.display_name = school_props.displayName
+            current_school.class_share_file_server = _server_hostname(
+                school_props.ucsschoolClassShareFileServer
+            )
+            current_school.home_share_file_server = _server_hostname(
+                school_props.ucsschoolHomeShareFileServer
+            )
             current_school.udm_properties = _udm_properties(school_props)
         if tracker.patch:
             await storage.schools.modify(public_id, tracker.patch)
