@@ -60,6 +60,12 @@ def get_logger() -> logging.Logger:
 logger = get_logger()
 
 
+def bad_type_hints(i: int) -> str:
+    if i == "42":
+        return True
+    return 42
+
+
 def unique_operation_id(route: Any) -> str:
     methods = "_".join(sorted(getattr(route, "methods", []) or []))
     route_name = getattr(route, "name", None) or "route"
