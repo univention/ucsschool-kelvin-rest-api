@@ -67,6 +67,43 @@ repos:
         language: pygrep
         entry: '.*\n\n(Issue \w+(/[a-zA-Z_-]+)*#\d+|Bug #\d+)\n+(\n.*)*\Z'
         args: ["--multiline", "--negate"]
+  - repo: local
+    hooks:
+      - id: basedpyright-native-baseline
+        name: basedpyright (relative to baseline, native)
+        language: system
+        entry: |
+          sh -c 'uv sync && uv pip install basedpyright && uv run basedpyright \
+            --project pyrightconfig.json \
+            --baselinefile basedpyright-baseline.json \
+            --baselinemode=auto' --
+        stages: [manual]
+        pass_filenames: false
+        types: [python]
+
+  - repo: local
+    hooks:
+      - id: basedpyright-container-baseline
+        name: basedpyright (relative to baseline)
+        language: system
+        entry: docker/pre_commit/run-basedpyright.sh baseline
+        pass_filenames: false
+        types: [python]
+
+      - id: basedpyright-container-no-baseline
+        name: basedpyright (lint file, no baseline)
+        language: system
+        entry: docker/pre_commit/run-basedpyright.sh no-baseline
+        stages: [manual]
+        pass_filenames: true
+        types: [python]
+
+      - id: basedpyright-container-write-baseline
+        name: basedpyright (write baseline)
+        language: system
+        entry: docker/pre_commit/run-basedpyright.sh write-baseline
+        stages: [manual]
+        pass_filenames: false
 
 default_language_version:
   python: python3.11
