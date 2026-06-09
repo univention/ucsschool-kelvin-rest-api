@@ -1,63 +1,72 @@
 exclude: ^venv/|^ucs-school-import/usr/share/ucs-school-import/scripts/ucs-school-import|^univention-lib-slim/|^univention-directory-manager-modules-slim/|^kelvin-api/static/
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
-    -   id: check-added-large-files
-    -   id: check-json
-    -   id: check-xml
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-xml
         exclude: ^doc/changelog/changelog-ucsschool-4.4v5-de.xml
-    -   id: check-yaml
-        args: ['--unsafe']
-    -   id: trailing-whitespace
--   repo: https://github.com/timothycrosley/isort
+      - id: check-yaml
+        args: ["--unsafe"]
+      - id: trailing-whitespace
+  - repo: https://github.com/timothycrosley/isort
     rev: 7.0.0
     hooks:
-    -   id: isort
+      - id: isort
         entry: isort
--   repo: https://github.com/psf/black
+  - repo: https://github.com/psf/black
     rev: 23.1.0
     hooks:
-    -   id: black
+      - id: black
         entry: black --config .black
--   repo: https://github.com/pycqa/flake8
+  - repo: https://github.com/pycqa/flake8
     rev: 6.0.0
     hooks:
-    -   id: flake8
--   repo: https://github.com/pre-commit/mirrors-mypy
+      - id: flake8
+  - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.20.0
     hooks:
-    -   id: mypy
+      - id: mypy
         files: ^ucsschool-objects
         args: [--strict]
-        additional_dependencies: ["jsonpatch", "pytest", "pytest-asyncio", "pytestarch", "sqlalchemy", "testcontainers"]
--   repo: https://github.com/pre-commit/pygrep-hooks
+        additional_dependencies:
+          [
+            "sqlalchemy",
+            "pytest",
+            "pytest-asyncio",
+            "testcontainers",
+            "pytestarch",
+            "jsonpatch",
+          ]
+  - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
-    -   id: python-check-blanket-noqa
-    -   id: python-no-eval
-    -   id: rst-backticks
--   repo: https://github.com/PyCQA/bandit
+      - id: python-check-blanket-noqa
+      - id: python-no-eval
+      - id: rst-backticks
+  - repo: https://github.com/PyCQA/bandit
     rev: 1.8.6
     hooks:
-    -   id: bandit
+      - id: bandit
         entry: bandit -c .bandit
         language_version: python3.11
-        additional_dependencies: ['pbr']
+        additional_dependencies: ["pbr"]
         exclude: ^kelvin-api/tests/|^ucs-school-lib/modules/ucsschool/lib/tests/|^build_appcenter_changelog.py
--   repo: https://github.com/compilerla/conventional-pre-commit
+  - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.3.0
     hooks:
       - id: conventional-pre-commit
-        stages: [ commit-msg ]
+        stages: [commit-msg]
         args: ["--strict"]
--   repo: local
+  - repo: local
     hooks:
       - id: issue-reference
-        stages: [ commit-msg ]
+        stages: [commit-msg]
         name: issue-reference
         language: pygrep
         entry: '.*\n\n(Issue \w+(/[a-zA-Z_-]+)*#\d+|Bug #\d+)\n+(\n.*)*\Z'
         args: ["--multiline", "--negate"]
+
 default_language_version:
-    python: python3.11
+  python: python3.11
