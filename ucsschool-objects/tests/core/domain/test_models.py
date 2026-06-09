@@ -93,6 +93,14 @@ def test_udm_properties_loading_and_assignment() -> None:
         assert obj.udm_properties == {"title": "Prof"}
 
 
+def test_group_description_loading_and_assignment() -> None:
+    group = Group.minimal(uuid.uuid4())
+    with pytest.raises(ValueError, match="Group.description is not loaded"):
+        _ = group.description
+    group.description = "1a maths"
+    assert group.description == "1a maths"
+
+
 def test_is_loaded_reports_state_and_missing_field() -> None:
     loaded_school = build_school("loaded")
     unloaded_school = School.minimal(uuid.uuid4())
