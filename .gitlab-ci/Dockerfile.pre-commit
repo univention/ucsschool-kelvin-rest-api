@@ -1,9 +1,0 @@
-FROM docker-registry.knut.univention.de/python:3.11-slim
-
-RUN apt-get -qq update \
-	&& apt-get install -q --assume-yes --no-install-recommends git curl \
-    && pip install pre-commit \
-	&& rm -rf /var/lib/apt/lists/*_* /var/cache/apt/archives/*.deb
-
-ENV HOME /tmp
-CMD pre-commit run --all-files

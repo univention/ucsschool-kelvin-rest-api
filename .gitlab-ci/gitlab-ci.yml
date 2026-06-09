@@ -2,6 +2,8 @@ include:
   - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/pre-commit@2
     inputs:
       commit_msg_hooks: "conventional-pre-commit issue-reference"
+      skip_hooks: "basedpyright-container-baseline"
+      manual_stage_hooks: "basedpyright-native-baseline"
   - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/app-release@2
     inputs:
       app_id: "ucsschool-kelvin-rest-api"
