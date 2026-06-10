@@ -463,40 +463,40 @@ class SQLAlchemyUserManager(Manager[User]):
         if result is None:
             raise NotFound(object_type="User", public_id=str(public_id))
 
-        current_domain = to_user(
+        user = to_user(
             result,
             include_memberships=m_memberships,
             include_legal_wards=m_wards,
             include_legal_guardians=m_guardians,
         )
-        patched = apply_patch(operations=operations, current_domain_obj=current_domain)
-        UserValidator.validate(user_from_patch(patched, result.public_id))
+        target = apply_patch(operations=operations, current_domain_obj=user)
+        UserValidator.validate(user_from_patch(target, result.public_id))
 
-        _apply_user_patch(result, patched)
+        _apply_user_patch(result, target)
 
         if m_memberships:
-            current_dict = to_json(current_domain)
+            source = to_json(user)
             await _apply_membership_relation_changes(
                 result,
-                cast(PatchDict, current_dict.get("school_memberships", {})),
-                cast(PatchDict, patched.get("school_memberships", {})),
+                cast(PatchDict, source.get("school_memberships", {})),
+                cast(PatchDict, target.get("school_memberships", {})),
                 self._session,
             )
         if m_guardians:
-            current_dict = to_json(current_domain)
+            source = to_json(user)
             await sync_collection(
                 self._session,
-                cast(list[PublicIdInput], patched.get("legal_guardians", [])),
-                cast(list[PublicIdInput], current_dict.get("legal_guardians", [])),
+                cast(list[PublicIdInput], target.get("legal_guardians", [])),
+                cast(list[PublicIdInput], source.get("legal_guardians", [])),
                 UserModel,
                 lambda values: setattr(result, "legal_guardians", values),
             )
         if m_wards:
-            current_dict = to_json(current_domain)
+            source = to_json(user)
             await sync_collection(
                 self._session,
-                cast(list[PublicIdInput], patched.get("legal_wards", [])),
-                cast(list[PublicIdInput], current_dict.get("legal_wards", [])),
+                cast(list[PublicIdInput], target.get("legal_wards", [])),
+                cast(list[PublicIdInput], source.get("legal_wards", [])),
                 UserModel,
                 lambda values: setattr(result, "legal_wards", values),
             )
