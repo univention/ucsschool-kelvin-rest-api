@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, TypeVar, cast
 from uuid import UUID
 
 from sqlalchemy import inspect
+from ucsschool_objects.core.domain.json import PatchDict
 from ucsschool_objects.core.domain.models import (
     UNLOADED,
     Group,
@@ -243,7 +244,7 @@ def to_user(
     )
 
 
-def school_from_patch(patched: dict[str, object], public_id: UUID) -> School:
+def school_from_patch(patched: PatchDict, public_id: UUID) -> School:
     return School(
         public_id=public_id,
         record_uid=cast(str, patched["record_uid"]),
@@ -257,7 +258,7 @@ def school_from_patch(patched: dict[str, object], public_id: UUID) -> School:
     )
 
 
-def group_from_patch(patched: dict[str, object], public_id: UUID) -> Group:
+def group_from_patch(patched: PatchDict, public_id: UUID) -> Group:
     return Group(
         public_id=public_id,
         record_uid=cast(str, patched["record_uid"]),
@@ -276,7 +277,7 @@ def group_from_patch(patched: dict[str, object], public_id: UUID) -> Group:
     )
 
 
-def user_from_patch(patched: dict[str, object], public_id: UUID) -> User:
+def user_from_patch(patched: PatchDict, public_id: UUID) -> User:
     birthday_val = patched["birthday"]
     expiration_val = patched["expiration_date"]
     return User(

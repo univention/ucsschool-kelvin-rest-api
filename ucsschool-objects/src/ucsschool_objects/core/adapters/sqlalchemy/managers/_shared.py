@@ -102,7 +102,7 @@ def apply_patch(
     *,
     operations: Sequence[JSONPathOperation],
     current_domain_obj: SerializableDomainObject,
-) -> dict[str, object]:
+) -> PatchDict:
     """Apply JSON Patch operations to a domain object and return the patched dict."""
     current_dict = to_json(current_domain_obj)
     # NOTE lib jsonpatch is untyped
