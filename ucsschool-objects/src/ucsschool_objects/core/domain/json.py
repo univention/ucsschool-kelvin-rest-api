@@ -6,7 +6,7 @@ from typing import TypeAlias, cast
 from uuid import UUID
 
 from ucsschool_objects.core.domain.models import (
-    SerializableDomainObject,
+    DomainObject,
     UnloadedType,
     UnsetType,
     domain_object_properties,
@@ -41,7 +41,7 @@ def _serialize_value(value: object) -> object:
     if isinstance(value, (UnloadedType, UnsetType)):
         return value
 
-    if isinstance(value, SerializableDomainObject):
+    if isinstance(value, DomainObject):
         return domain_object_properties(value, _serialize_value)
 
     if isinstance(value, dict):

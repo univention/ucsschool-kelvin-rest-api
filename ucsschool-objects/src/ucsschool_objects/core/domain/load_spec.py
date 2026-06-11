@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from ucsschool_objects.core.domain.models import get_properties
 
 if TYPE_CHECKING:
-    from ucsschool_objects.core.domain.models import SerializableDomainObjectType
+    from ucsschool_objects.core.domain.models import DomainObjectType
 
 
 @dataclass(frozen=True)
@@ -23,7 +23,7 @@ class LoadSpec:
 
     @classmethod
     @lru_cache(maxsize=None)
-    def from_model(cls, model: SerializableDomainObjectType) -> "LoadSpec":
+    def from_model(cls, model: DomainObjectType) -> "LoadSpec":
         """Return a LoadSpec covering every field of the given domain model.
 
         Use this when the loaded object serves as a change-detection baseline

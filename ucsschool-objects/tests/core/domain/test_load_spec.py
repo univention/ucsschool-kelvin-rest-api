@@ -3,7 +3,7 @@ from typing import Hashable, cast
 import pytest
 from ucsschool_objects import Group, LoadSpec, Role, School, SchoolMembership, User
 from ucsschool_objects.core.domain.models import (
-    SerializableDomainObjectType,
+    DomainObjectType,
     get_properties,
 )
 
@@ -21,7 +21,7 @@ def test_load_spec_includes() -> None:
     ids=["school", "role", "group", "school_membership", "user"],
 )
 def test_load_spec_from_model_covers_all_fields(
-    model: SerializableDomainObjectType,
+    model: DomainObjectType,
 ) -> None:
     load = LoadSpec.from_model(cast(Hashable, model))
     for property_name in get_properties(model):
@@ -35,6 +35,6 @@ def test_load_spec_from_model_covers_all_fields(
     ids=["school", "role", "group", "school_membership", "user"],
 )
 def test_load_spec_from_model_is_cached_per_model(
-    model: SerializableDomainObjectType,
+    model: DomainObjectType,
 ) -> None:
     assert LoadSpec.from_model(cast(Hashable, model)) is LoadSpec.from_model(cast(Hashable, model))
