@@ -145,7 +145,14 @@ async def _apply_membership_relation_changes(
         )
 
 
-def _apply_user_patch(model: UserModel, patched: PatchDict) -> None:
+async def _apply_user_patch(
+    model: UserModel,
+    patched: PatchDict,
+    current: PatchDict,
+    session: AsyncSession,
+    operations: Sequence[JSONPathOperation],
+) -> None:
+    modifies_memberships, modifies_guardians, modifies_wards = _check_modify_operations(operations)
     model.record_uid = cast(str, patched["record_uid"])
     model.source_uid = cast(str, patched["source_uid"])
     model.name = cast(str, patched["name"])
@@ -158,6 +165,30 @@ def _apply_user_patch(model: UserModel, patched: PatchDict) -> None:
     exp_val = patched["expiration_date"]
     model.expiration_date = date.fromisoformat(cast(str, exp_val)) if exp_val is not None else None
     model.udm_properties = cast("dict[str, object]", patched["udm_properties"])
+
+    if modifies_memberships:
+        await _apply_membership_relation_changes(
+            model,
+            cast(PatchDict, current.get("school_memberships", {})),
+            cast(PatchDict, patched.get("school_memberships", {})),
+            session,
+        )
+    if modifies_guardians:
+        await sync_collection(
+            session,
+            cast(list[PublicIdInput], patched.get("legal_guardians", [])),
+            cast(list[PublicIdInput], current.get("legal_guardians", [])),
+            UserModel,
+            lambda values: setattr(model, "legal_guardians", values),
+        )
+    if modifies_wards:
+        await sync_collection(
+            session,
+            cast(list[PublicIdInput], patched.get("legal_wards", [])),
+            cast(list[PublicIdInput], current.get("legal_wards", [])),
+            UserModel,
+            lambda values: setattr(model, "legal_wards", values),
+        )
 
 
 def _includes_user_memberships(load: LoadSpec) -> bool:
@@ -294,6 +325,21 @@ def _classify_patch_operation(parts: list[str]) -> str | None:
     return None
 
 
+def _check_modify_operations(
+    operations: Sequence[JSONPathOperation],
+) -> tuple[bool, bool, bool]:
+    flags: dict[str, bool] = {
+        "school_memberships": False,
+        "legal_guardians": False,
+        "legal_wards": False,
+    }
+    for op in operations:
+        key = _classify_patch_operation(op["path"].lstrip("/").split("/"))
+        if key is not None:
+            flags[key] = True
+    return flags["school_memberships"], flags["legal_guardians"], flags["legal_wards"]
+
+
 class SQLAlchemyUserManager(Manager[User]):
     _SCALAR_FIELD_MAP: dict[str, FieldColumn] = {
         "record_uid": UserModel.record_uid,
@@ -347,20 +393,6 @@ class SQLAlchemyUserManager(Manager[User]):
 
     def __init__(self, session: AsyncSession):
         self._session = session
-
-    def _check_modify_operations(
-        self, operations: Sequence[JSONPathOperation]
-    ) -> tuple[bool, bool, bool]:
-        flags: dict[str, bool] = {
-            "school_memberships": False,
-            "legal_guardians": False,
-            "legal_wards": False,
-        }
-        for op in operations:
-            key = _classify_patch_operation(op["path"].lstrip("/").split("/"))
-            if key is not None:
-                flags[key] = True
-        return flags["school_memberships"], flags["legal_guardians"], flags["legal_wards"]
 
     def _modify_query(
         self,
@@ -441,7 +473,7 @@ class SQLAlchemyUserManager(Manager[User]):
         public_id: UUID,
         operations: Sequence[JSONPathOperation],
     ) -> None:
-        m_memberships, m_guardians, m_wards = self._check_modify_operations(operations)
+        m_memberships, m_guardians, m_wards = _check_modify_operations(operations)
 
         stmt = self._modify_query(public_id, m_memberships, m_guardians, m_wards)
         result = (await self._session.execute(stmt)).scalar_one_or_none()
@@ -452,34 +484,8 @@ class SQLAlchemyUserManager(Manager[User]):
         target = apply_patch(operations=operations, current_domain_obj=user)
         UserValidator.validate(user_from_patch(target, result.public_id))
 
-        _apply_user_patch(result, target)
-
-        if m_memberships:
-            source = to_json(user)
-            await _apply_membership_relation_changes(
-                result,
-                cast(PatchDict, source.get("school_memberships", {})),
-                cast(PatchDict, target.get("school_memberships", {})),
-                self._session,
-            )
-        if m_guardians:
-            source = to_json(user)
-            await sync_collection(
-                self._session,
-                cast(list[PublicIdInput], target.get("legal_guardians", [])),
-                cast(list[PublicIdInput], source.get("legal_guardians", [])),
-                UserModel,
-                lambda values: setattr(result, "legal_guardians", values),
-            )
-        if m_wards:
-            source = to_json(user)
-            await sync_collection(
-                self._session,
-                cast(list[PublicIdInput], target.get("legal_wards", [])),
-                cast(list[PublicIdInput], source.get("legal_wards", [])),
-                UserModel,
-                lambda values: setattr(result, "legal_wards", values),
-            )
+        source = to_json(user)
+        await _apply_user_patch(result, target, source, self._session, operations)
 
     async def delete(self, public_id: UUID) -> None:
         stmt = delete(UserModel).where(UserModel.public_id == public_id)
