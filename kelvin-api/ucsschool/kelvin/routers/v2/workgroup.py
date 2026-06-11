@@ -195,7 +195,7 @@ async def get(
     results = [
         g
         for g in await session.groups.search(
-            SearchQuery(where=Filter(field="name", op=Operator.EQ, value=full_name)),
+            SearchQuery(where=Filter(field="name", op=Operator.ILIKE, value=full_name)),
             load=WORKGROUP_LOAD_SPEC_V2,
         )
         if _is_workgroup(g)
