@@ -18,7 +18,7 @@ from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import _require_loaded  # pyright: ignore[reportPrivateUsage]
-from ucsschool_objects.core.domain.models import SerializableDomainObject, UnloadedType
+from ucsschool_objects.core.domain.models import DomainObject, UnloadedType
 from ucsschool_objects.core.domain.query import And, Filter, Not, Or
 from ucsschool_objects.database_models import (
     Base,
@@ -101,7 +101,7 @@ def extract_public_ids(items: Sequence[PublicIdInput]) -> set[UUID]:
 def apply_patch(
     *,
     operations: Sequence[JSONPathOperation],
-    current_domain_obj: SerializableDomainObject,
+    current_domain_obj: DomainObject,
 ) -> PatchDict:
     """Apply JSON Patch operations to a domain object and return the patched dict."""
     current_dict = to_json(current_domain_obj)
