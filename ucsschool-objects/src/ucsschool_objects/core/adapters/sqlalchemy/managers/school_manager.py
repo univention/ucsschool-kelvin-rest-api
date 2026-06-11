@@ -16,6 +16,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search
 from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import School
+from ucsschool_objects.core.domain.patch_types import SchoolPatchDict
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
 from ucsschool_objects.core.domain.validators import SchoolValidator
@@ -27,19 +28,18 @@ if TYPE_CHECKING:
 
     from sqlalchemy.ext.asyncio import AsyncSession
     from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import FieldColumn
-    from ucsschool_objects.core.domain.json import PatchDict
 
 
-def _apply_school_patch(model: SchoolModel, patched: PatchDict) -> None:
-    model.record_uid = cast(str, patched["record_uid"])
-    model.source_uid = cast(str, patched["source_uid"])
-    model.name = cast(str, patched["name"])
-    model.display_name = cast(str, patched["display_name"])
-    model.class_share_file_server = cast(str | None, patched["class_share_file_server"])
-    model.home_share_file_server = cast(str | None, patched["home_share_file_server"])
-    model.educational_servers = list(cast(list[str], patched["educational_servers"]))
-    model.administrative_servers = list(cast(list[str], patched["administrative_servers"]))
-    model.udm_properties = cast("dict[str, object]", patched["udm_properties"])
+def _apply_school_patch(model: SchoolModel, patched: SchoolPatchDict) -> None:
+    model.record_uid = patched["record_uid"]
+    model.source_uid = patched["source_uid"]
+    model.name = patched["name"]
+    model.display_name = patched["display_name"]
+    model.class_share_file_server = patched["class_share_file_server"]
+    model.home_share_file_server = patched["home_share_file_server"]
+    model.educational_servers = list(patched["educational_servers"])
+    model.administrative_servers = list(patched["administrative_servers"])
+    model.udm_properties = patched["udm_properties"]
 
 
 class SQLAlchemySchoolManager(Manager[School]):
@@ -134,10 +134,10 @@ class SQLAlchemySchoolManager(Manager[School]):
         if result is None:
             raise NotFound(object_type="School", public_id=str(public_id))
 
-        current_domain = to_school(result)
-        patched = apply_patch(operations=operations, current_domain_obj=current_domain)
-        SchoolValidator.validate(school_from_patch(patched, result.public_id))
-        _apply_school_patch(result, patched)
+        school = to_school(result)
+        target = cast(SchoolPatchDict, apply_patch(operations=operations, current_domain_obj=school))
+        SchoolValidator.validate(school_from_patch(target, result.public_id))
+        _apply_school_patch(result, target)
 
     async def delete(self, public_id: UUID) -> None:
         stmt = delete(SchoolModel).where(SchoolModel.public_id == public_id)

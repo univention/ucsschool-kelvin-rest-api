@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, TypeVar, cast
 from uuid import UUID
 
 from sqlalchemy import inspect
-from ucsschool_objects.core.domain.json import PatchDict
 from ucsschool_objects.core.domain.models import (
     UNLOADED,
     Group,
@@ -16,6 +15,7 @@ from ucsschool_objects.core.domain.models import (
     UnloadedType,
     User,
 )
+from ucsschool_objects.core.domain.patch_types import GroupPatchDict, SchoolPatchDict, UserPatchDict
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -244,31 +244,31 @@ def to_user(
     )
 
 
-def school_from_patch(patched: PatchDict, public_id: UUID) -> School:
+def school_from_patch(patched: SchoolPatchDict, public_id: UUID) -> School:
     return School(
         public_id=public_id,
-        record_uid=cast(str, patched["record_uid"]),
-        source_uid=cast(str, patched["source_uid"]),
-        name=cast(str, patched["name"]),
-        display_name=cast(str, patched["display_name"]),
-        educational_servers=set(cast(list[str], patched["educational_servers"])),
-        administrative_servers=set(cast(list[str], patched["administrative_servers"])),
-        class_share_file_server=cast(str | None, patched["class_share_file_server"]),
-        home_share_file_server=cast(str | None, patched["home_share_file_server"]),
+        record_uid=patched["record_uid"],
+        source_uid=patched["source_uid"],
+        name=patched["name"],
+        display_name=patched["display_name"],
+        educational_servers=set(patched["educational_servers"]),
+        administrative_servers=set(patched["administrative_servers"]),
+        class_share_file_server=patched["class_share_file_server"],
+        home_share_file_server=patched["home_share_file_server"],
     )
 
 
-def group_from_patch(patched: PatchDict, public_id: UUID) -> Group:
+def group_from_patch(patched: GroupPatchDict, public_id: UUID) -> Group:
     return Group(
         public_id=public_id,
-        record_uid=cast(str, patched["record_uid"]),
-        source_uid=cast(str, patched["source_uid"]),
-        name=cast(str, patched["name"]),
-        display_name=cast(str, patched["display_name"]),
-        create_share=cast(bool, patched["create_share"]),
+        record_uid=patched["record_uid"],
+        source_uid=patched["source_uid"],
+        name=patched["name"],
+        display_name=patched["display_name"],
+        create_share=patched["create_share"],
         roles=cast(set[Role], patched["roles"]),
-        email=cast(str | None, patched["email"]),
-        description=cast(str | None, patched["description"]),
+        email=patched["email"],
+        description=patched["description"],
         school=UNLOADED,
         members=UNLOADED,
         member_roles=UNLOADED,
@@ -277,22 +277,20 @@ def group_from_patch(patched: PatchDict, public_id: UUID) -> Group:
     )
 
 
-def user_from_patch(patched: PatchDict, public_id: UUID) -> User:
+def user_from_patch(patched: UserPatchDict, public_id: UUID) -> User:
     birthday_val = patched["birthday"]
     expiration_val = patched["expiration_date"]
     return User(
         public_id=public_id,
-        record_uid=cast(str, patched["record_uid"]),
-        source_uid=cast(str, patched["source_uid"]),
-        name=cast(str, patched["name"]),
-        firstname=cast(str, patched["firstname"]),
-        lastname=cast(str, patched["lastname"]),
-        email=cast(str | None, patched["email"]),
-        active=cast(bool, patched["active"]),
-        birthday=date.fromisoformat(cast(str, birthday_val)) if birthday_val is not None else None,
-        expiration_date=date.fromisoformat(cast(str, expiration_val))
-        if expiration_val is not None
-        else None,
+        record_uid=patched["record_uid"],
+        source_uid=patched["source_uid"],
+        name=patched["name"],
+        firstname=patched["firstname"],
+        lastname=patched["lastname"],
+        email=patched["email"],
+        active=patched["active"],
+        birthday=date.fromisoformat(birthday_val) if birthday_val is not None else None,
+        expiration_date=date.fromisoformat(expiration_val) if expiration_val is not None else None,
         school_memberships=UNLOADED,
         legal_wards=UNLOADED,
         legal_guardians=UNLOADED,

@@ -28,9 +28,10 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
 )
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain.errors import NotFound, UnsupportedOperation
-from ucsschool_objects.core.domain.json import PatchDict, to_json
+from ucsschool_objects.core.domain.json import to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import User
+from ucsschool_objects.core.domain.patch_types import MembershipPatchDict, UserPatchDict
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
 from ucsschool_objects.core.domain.validators import UserValidator
@@ -53,12 +54,12 @@ async def _create_membership(
     session: AsyncSession,
     model: UserModel,
     school_uuid: UUID,
-    patched_membership: PatchDict,
+    patched_membership: MembershipPatchDict,
 ) -> SchoolMembership:
     school_model = await fetch_one_by_public_id(session, SchoolModel, school_uuid, SchoolModel.__name__)
     orm_membership = SchoolMembership(
         school=school_model,
-        is_primary=cast(bool, patched_membership.get("is_primary", False)),
+        is_primary=patched_membership.get("is_primary", False),
     )
     # Initialise the lazy="raise" collections while the object is still
     # transient — once appended (and thus pending), assigning them would
@@ -72,8 +73,8 @@ async def _create_membership(
 async def _sync_membership_links(
     session: AsyncSession,
     orm_membership: SchoolMembership,
-    current_membership: PatchDict,
-    patched_membership: PatchDict,
+    current_membership: MembershipPatchDict,
+    patched_membership: MembershipPatchDict,
 ) -> None:
     await sync_collection(
         session,
@@ -93,8 +94,8 @@ async def _sync_membership_links(
 
 async def _apply_membership_relation_changes(
     model: UserModel,
-    current_memberships: PatchDict,
-    patched_memberships: PatchDict,
+    current_memberships: dict[str, MembershipPatchDict],
+    patched_memberships: dict[str, MembershipPatchDict],
     session: AsyncSession,
 ) -> None:
     memberships_by_school = {m.school.public_id: m for m in model.school_memberships}
@@ -115,12 +116,12 @@ async def _apply_membership_relation_changes(
 
     demoted = False
     for school_uuid_str, patched_m in patched_memberships.items():
-        patched_membership = cast(PatchDict, patched_m)
+        patched_membership = patched_m
         kept_membership = memberships_by_school.get(UUID(school_uuid_str))
         if (
             kept_membership is not None
             and kept_membership.is_primary
-            and not cast(bool, patched_membership.get("is_primary", True))
+            and not patched_membership.get("is_primary", True)
         ):
             kept_membership.is_primary = False
             demoted = True
@@ -128,36 +129,35 @@ async def _apply_membership_relation_changes(
         await session.flush()
 
     for school_uuid_str, patched_m in patched_memberships.items():
-        patched_membership = cast(PatchDict, patched_m)
+        patched_membership = patched_m
         school_uuid = UUID(school_uuid_str)
         orm_membership = memberships_by_school.get(school_uuid)
         if orm_membership is None:
             orm_membership = await _create_membership(session, model, school_uuid, patched_membership)
         else:
-            orm_membership.is_primary = cast(
-                bool, patched_membership.get("is_primary", orm_membership.is_primary)
-            )
+            orm_membership.is_primary = patched_membership.get("is_primary", orm_membership.is_primary)
+        current_membership = current_memberships.get(school_uuid_str, {})
         await _sync_membership_links(
             session,
             orm_membership,
-            cast(PatchDict, current_memberships.get(school_uuid_str, {})),
+            current_membership,
             patched_membership,
         )
 
 
-def _apply_user_patch(model: UserModel, patched: PatchDict) -> None:
-    model.record_uid = cast(str, patched["record_uid"])
-    model.source_uid = cast(str, patched["source_uid"])
-    model.name = cast(str, patched["name"])
-    model.firstname = cast(str, patched["firstname"])
-    model.lastname = cast(str, patched["lastname"])
-    model.email = cast(str | None, patched["email"])
-    model.active = cast(bool, patched["active"])
+def _apply_user_patch(model: UserModel, patched: UserPatchDict) -> None:
+    model.record_uid = patched["record_uid"]
+    model.source_uid = patched["source_uid"]
+    model.name = patched["name"]
+    model.firstname = patched["firstname"]
+    model.lastname = patched["lastname"]
+    model.email = patched["email"]
+    model.active = patched["active"]
     birthday_val = patched["birthday"]
-    model.birthday = date.fromisoformat(cast(str, birthday_val)) if birthday_val is not None else None
+    model.birthday = date.fromisoformat(birthday_val) if birthday_val is not None else None
     exp_val = patched["expiration_date"]
-    model.expiration_date = date.fromisoformat(cast(str, exp_val)) if exp_val is not None else None
-    model.udm_properties = cast("dict[str, object]", patched["udm_properties"])
+    model.expiration_date = date.fromisoformat(exp_val) if exp_val is not None else None
+    model.udm_properties = patched["udm_properties"]
 
 
 def _includes_user_memberships(load: LoadSpec) -> bool:
@@ -469,21 +469,21 @@ class SQLAlchemyUserManager(Manager[User]):
             include_legal_wards=m_wards,
             include_legal_guardians=m_guardians,
         )
-        target = apply_patch(operations=operations, current_domain_obj=user)
+        target = cast(UserPatchDict, apply_patch(operations=operations, current_domain_obj=user))
         UserValidator.validate(user_from_patch(target, result.public_id))
 
         _apply_user_patch(result, target)
 
         if m_memberships:
-            source = to_json(user)
+            source = cast(UserPatchDict, to_json(user))
             await _apply_membership_relation_changes(
                 result,
-                cast(PatchDict, source.get("school_memberships", {})),
-                cast(PatchDict, target.get("school_memberships", {})),
+                source.get("school_memberships", {}),
+                target.get("school_memberships", {}),
                 self._session,
             )
         if m_guardians:
-            source = to_json(user)
+            source = cast(UserPatchDict, to_json(user))
             await sync_collection(
                 self._session,
                 cast(list[PublicIdInput], target.get("legal_guardians", [])),
@@ -492,7 +492,7 @@ class SQLAlchemyUserManager(Manager[User]):
                 lambda values: setattr(result, "legal_guardians", values),
             )
         if m_wards:
-            source = to_json(user)
+            source = cast(UserPatchDict, to_json(user))
             await sync_collection(
                 self._session,
                 cast(list[PublicIdInput], target.get("legal_wards", [])),
