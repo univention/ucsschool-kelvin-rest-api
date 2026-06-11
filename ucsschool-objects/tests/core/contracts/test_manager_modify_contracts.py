@@ -179,35 +179,65 @@ def test_apply_school_patch_updates_display_name() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_apply_user_patch_updates_scalar_fields() -> None:
+async def test_apply_user_patch_updates_scalar_fields() -> None:
     model = _bare_user()
-    _apply_user_patch(model, _user_patched(name="newuser", email="new@example.com"))
+    await _apply_user_patch(
+        model,
+        patched=_user_patched(name="newuser", email="new@example.com"),
+        current={},
+        session=None,  # type: ignore[arg-type]
+        operations=[],
+    )
     assert model.name == "newuser"
     assert model.email == "new@example.com"
 
 
-def test_apply_user_patch_converts_birthday_string_to_date() -> None:
+async def test_apply_user_patch_converts_birthday_string_to_date() -> None:
     model = _bare_user()
-    _apply_user_patch(model, _user_patched(birthday="2000-06-15"))
+    await _apply_user_patch(
+        model,
+        patched=_user_patched(birthday="2000-06-15"),
+        current={},
+        session=None,  # type: ignore[arg-type]
+        operations=[],
+    )
     assert model.birthday == date(2000, 6, 15)
 
 
-def test_apply_user_patch_converts_expiration_date_string_to_date() -> None:
+async def test_apply_user_patch_converts_expiration_date_string_to_date() -> None:
     model = _bare_user()
-    _apply_user_patch(model, _user_patched(expiration_date="2030-12-31"))
+    await _apply_user_patch(
+        model,
+        patched=_user_patched(expiration_date="2030-12-31"),
+        current={},
+        session=None,  # type: ignore[arg-type]
+        operations=[],
+    )
     assert model.expiration_date == date(2030, 12, 31)
 
 
-def test_apply_user_patch_accepts_none_for_date_fields() -> None:
+async def test_apply_user_patch_accepts_none_for_date_fields() -> None:
     model = _bare_user(birthday=date(2000, 1, 1), expiration_date=date(2030, 1, 1))
-    _apply_user_patch(model, _user_patched(birthday=None, expiration_date=None))
+    await _apply_user_patch(
+        model,
+        patched=_user_patched(birthday=None, expiration_date=None),
+        current={},
+        session=None,  # type: ignore[arg-type]
+        operations=[],
+    )
     assert model.birthday is None
     assert model.expiration_date is None
 
 
-def test_apply_user_patch_toggles_active_flag() -> None:
+async def test_apply_user_patch_toggles_active_flag() -> None:
     model = _bare_user(active=True)
-    _apply_user_patch(model, _user_patched(active=False))
+    await _apply_user_patch(
+        model,
+        patched=_user_patched(active=False),
+        current={},
+        session=None,  # type: ignore[arg-type]
+        operations=[],
+    )
     assert model.active is False
 
 
