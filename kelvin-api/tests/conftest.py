@@ -41,7 +41,7 @@ from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
 from tempfile import mkdtemp, mkstemp
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Set, Tuple
 from unittest.mock import patch
 
 import factory
@@ -751,14 +751,42 @@ async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kw
             logger.debug("Deleted WorkGroup %r through UDM.", dn)
 
 
+def _gunicorn_worker_pids() -> Set[int]:
+    """PIDs of the gunicorn worker processes (children of the master, PID 1)."""
+    pids = set()
+    for proc in Path("/proc").iterdir():
+        if not proc.name.isdigit():
+            continue
+        try:
+            stat = (proc / "stat").read_text()
+            cmdline = (proc / "cmdline").read_bytes()
+        except OSError:
+            continue  # process exited while iterating
+        # ppid is the second field after the parenthesized comm
+        ppid = int(stat.rsplit(")", 1)[1].split()[1])
+        if ppid == 1 and b"gunicorn" in cmdline:
+            pids.add(int(proc.name))
+    return pids
+
+
 def restart_kelvin_api_server() -> None:
     logger.debug("Reloading Kelvin API server...")
+    old_workers = _gunicorn_worker_pids()
     # Send HUP signal to gunicorn master process to reload workers
     subprocess.check_call(["kill", "-HUP", "1"])
 
-    # Wait for the service to be ready
+    # The reload is graceful: old workers keep serving until they exit, so a
+    # 200 response may come from a worker that still holds the previous
+    # configuration. Wait until every pre-reload worker is gone before
+    # checking that the service is ready.
+    deadline = time.time() + 120
     while True:
         time.sleep(0.5)
+        remaining = _gunicorn_worker_pids() & old_workers
+        if remaining:
+            if time.time() > deadline:
+                raise RuntimeError(f"Gunicorn workers {sorted(remaining)} still alive 120s after HUP.")
+            continue
         response = requests.get(url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/docs")
         if response.status_code == 200:
             break
