@@ -389,13 +389,7 @@ class SQLAlchemyUserManager(Manager[User]):
         result = (await self._session.execute(stmt)).scalar_one_or_none()
         if result is None:
             raise NotFound(object_type="User", public_id=str(public_id))
-        spec = load or LoadSpec()
-        return to_user(
-            result,
-            include_memberships=_includes_user_memberships(spec),
-            include_legal_wards=spec.includes("legal_wards"),
-            include_legal_guardians=spec.includes("legal_guardians"),
-        )
+        return to_user(result)
 
     async def search(
         self,
@@ -424,17 +418,8 @@ class SQLAlchemyUserManager(Manager[User]):
             registry=self._NESTED_FIELD_REGISTRY,
         )
         stmt = stmt.limit(limit).offset(offset)
-        spec = load or LoadSpec()
 
-        return (
-            to_user(
-                model,
-                include_memberships=_includes_user_memberships(spec),
-                include_legal_wards=spec.includes("legal_wards"),
-                include_legal_guardians=spec.includes("legal_guardians"),
-            )
-            for model in (await self._session.execute(stmt)).scalars()
-        )
+        return (to_user(model) for model in (await self._session.execute(stmt)).scalars())
 
     async def create(
         self,
@@ -463,12 +448,7 @@ class SQLAlchemyUserManager(Manager[User]):
         if result is None:
             raise NotFound(object_type="User", public_id=str(public_id))
 
-        user = to_user(
-            result,
-            include_memberships=m_memberships,
-            include_legal_wards=m_wards,
-            include_legal_guardians=m_guardians,
-        )
+        user = to_user(result)
         target = apply_patch(operations=operations, current_domain_obj=user)
         UserValidator.validate(user_from_patch(target, result.public_id))
 

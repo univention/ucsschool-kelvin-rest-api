@@ -413,7 +413,4 @@ def test_to_user_raises_when_membership_school_has_no_uuid(
     with pytest.raises(ValueError, match="Mapped school membership has no UUID school public_id"):
         to_domain.to_user(
             model,  # type: ignore[arg-type]
-            include_memberships=True,
-            include_legal_wards=False,
-            include_legal_guardians=False,
         )
