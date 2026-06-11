@@ -201,16 +201,10 @@ def _optional_user_relation(models: tuple[UserModel, ...] | list[UserModel]) -> 
     return {_to_related_user(model) for model in models}
 
 
-def to_user(
-    model: UserModel,
-    *,
-    include_memberships: bool,
-    include_legal_wards: bool,
-    include_legal_guardians: bool,
-) -> User:
+def to_user(model: UserModel) -> User:
     school_memberships: dict[UUID, SchoolMembership] | UnloadedType = UNLOADED
 
-    if include_memberships:
+    if _is_loaded(model, "school_memberships"):
         school_memberships = {}
         for membership in (_to_school_membership(m) for m in model.school_memberships):
             school_public_id = membership.school.public_id
@@ -219,11 +213,11 @@ def to_user(
             school_memberships[school_public_id] = membership
 
     legal_wards: set[User] | UnloadedType = UNLOADED
-    if include_legal_wards:
+    if _is_loaded(model, "legal_wards"):
         legal_wards = _optional_user_relation(model.legal_wards)
 
     legal_guardians: set[User] | UnloadedType = UNLOADED
-    if include_legal_guardians:
+    if _is_loaded(model, "legal_guardians"):
         legal_guardians = _optional_user_relation(model.legal_guardians)
 
     return User(
