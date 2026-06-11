@@ -683,8 +683,8 @@ class User:
         return result
 
 
-SerializableDomainObject: TypeAlias = School | Role | Group | SchoolMembership | User
-SerializableDomainObjectType: TypeAlias = type[SerializableDomainObject]
+DomainObject: TypeAlias = School | Role | Group | SchoolMembership | User
+DomainObjectType: TypeAlias = type[DomainObject]
 
 
 def serialized_domain_field_name(field_name: str) -> str:
@@ -693,14 +693,14 @@ def serialized_domain_field_name(field_name: str) -> str:
 
 
 def get_properties(
-    domain_obj: SerializableDomainObject | SerializableDomainObjectType,
+    domain_obj: DomainObject | DomainObjectType,
 ) -> set[str]:
     """Return all public property names for a domain object or domain model class."""
     return {serialized_domain_field_name(field_name) for field_name in domain_obj.__serialize_fields__}
 
 
 def domain_object_properties(
-    domain_obj: SerializableDomainObject,
+    domain_obj: DomainObject,
     serialize_value: Callable[[object], object],
 ) -> dict[str, object]:
     """Return serialized properties for a domain object using __serialize_fields__."""
