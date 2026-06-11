@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from ucsschool_objects.core.domain.models import get_properties
 
 if TYPE_CHECKING:
-    from ucsschool_objects.core.domain.models import SerializableDomainObject
+    from ucsschool_objects.core.domain.models import SerializableDomainObjectType
 
 
 @dataclass(frozen=True)
@@ -21,13 +22,15 @@ class LoadSpec:
         return cls(includes_set=frozenset(attributes))
 
     @classmethod
-    def from_model(cls, model: type[SerializableDomainObject]) -> "LoadSpec":
+    @lru_cache(maxsize=None)
+    def from_model(cls, model: SerializableDomainObjectType) -> "LoadSpec":
         """Return a LoadSpec covering every field of the given domain model.
 
         Use this when the loaded object serves as a change-detection baseline
         (e.g. with ``track_changes``): unloaded fields would otherwise diff as
         changed against their newly assigned values.
+
+        NOTE The cache size is set to unlimited, but the type limits the number
+        of distinct models (=the 5 SerializableDomainObject types) that can be cached.
         """
-        # get_properties already maps private field names (``_name``) to the
-        # public property names that LoadSpec attributes use.
         return cls(includes_set=frozenset(get_properties(model)))
