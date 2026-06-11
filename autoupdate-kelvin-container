@@ -35,7 +35,7 @@ done
 }
 
 if [ -n "$USE_STOPPED" ]; then
-	INSTANCE="$(ssh "root@$TARGET" docker ps -a | grep -E "artifacts.software-univention.de/ucsschool/ucsschool-kelvin-rest-api:|gitregistry.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api:" | cut -d" " -f1)"
+	INSTANCE="$(ssh "root@$TARGET" docker ps -a | grep "ucsschool-kelvin-rest-api:" | cut -d" " -f1)"
 	TARGETDIR="$(ssh "root@$TARGET" docker inspect "$INSTANCE" | jq .[0].GraphDriver.Data.UpperDir -r)"
 	echo "Container (stopped): $INSTANCE"
 	echo "Container dir: $TARGETDIR"
@@ -45,7 +45,7 @@ if [ -n "$USE_STOPPED" ]; then
 		exit 1
 	}
 else
-	INSTANCE="$(ssh "root@$TARGET" docker ps | grep -E "artifacts.software-univention.de/ucsschool/ucsschool-kelvin-rest-api:|gitregistry.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api:" | cut -d" " -f1)"
+	INSTANCE="$(ssh "root@$TARGET" docker ps | grep "ucsschool-kelvin-rest-api:" | cut -d" " -f1)"
 	TARGETDIR="$(ssh "root@$TARGET" docker inspect "$INSTANCE" | jq .[0].GraphDriver.Data.MergedDir -r)"
 	echo "Container: $INSTANCE"
 	echo "Container dir: $TARGETDIR"
@@ -56,7 +56,7 @@ else
 	}
 fi
 
-CONNECTOR_INSTANCE="$(ssh "root@$TARGET" docker ps | grep -E "artifacts.software-univention.de/ucsschool/ucsschool-kelvin-connector:|gitregistry.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api/ucsschool-kelvin-connector:|ucsschool-kelvin-connector:" | cut -d" " -f1)"
+CONNECTOR_INSTANCE="$(ssh "root@$TARGET" docker ps | grep "ucsschool-kelvin-connector:" | cut -d" " -f1)"
 CONNECTOR_TARGETDIR="$(ssh "root@$TARGET" docker inspect "$CONNECTOR_INSTANCE" | jq .[0].GraphDriver.Data.MergedDir -r)"
 echo "Connector container: $CONNECTOR_INSTANCE"
 echo "Connector container dir: $CONNECTOR_TARGETDIR"
