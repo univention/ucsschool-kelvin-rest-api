@@ -27,9 +27,10 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
 )
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
 from ucsschool_objects.core.domain.errors import NotFound, UnsupportedOperation
-from ucsschool_objects.core.domain.json import PatchDict, to_json
+from ucsschool_objects.core.domain.json import to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import Group
+from ucsschool_objects.core.domain.patch_types import GroupPatchDict
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
 from ucsschool_objects.core.domain.validators import GroupValidator
@@ -76,18 +77,18 @@ async def _sync_group_members(
 
 async def _apply_group_patch(
     model: GroupModel,
-    patched: PatchDict,
-    current: PatchDict,
+    patched: GroupPatchDict,
+    current: GroupPatchDict,
     session: AsyncSession,
 ) -> None:
-    model.record_uid = cast(str, patched["record_uid"])
-    model.source_uid = cast(str, patched["source_uid"])
-    model.name = cast(str, patched["name"])
-    model.display_name = cast(str, patched["display_name"])
-    model.email = cast(str | None, patched["email"])
-    model.has_share = cast(bool, patched["create_share"])
-    model.description = cast(str | None, patched["description"])
-    model.udm_properties = cast("dict[str, object]", patched["udm_properties"])
+    model.record_uid = patched["record_uid"]
+    model.source_uid = patched["source_uid"]
+    model.name = patched["name"]
+    model.display_name = patched["display_name"]
+    model.email = patched["email"]
+    model.has_share = patched["create_share"]
+    model.description = patched["description"]
+    model.udm_properties = patched["udm_properties"]
 
     await sync_collection(
         session,
@@ -338,12 +339,12 @@ class SQLAlchemyGroupManager(Manager[Group]):
         if result is None:
             raise NotFound(object_type="Group", public_id=str(public_id))
 
-        current_domain = to_group(result)
-        patched = apply_patch(operations=operations, current_domain_obj=current_domain)
-        GroupValidator.validate(group_from_patch(patched, result.public_id))
+        group = to_group(result)
+        target = cast(GroupPatchDict, apply_patch(operations=operations, current_domain_obj=group))
+        GroupValidator.validate(group_from_patch(target, result.public_id))
 
-        current_dict = to_json(current_domain)
-        await _apply_group_patch(result, patched, current_dict, self._session)
+        source = cast(GroupPatchDict, to_json(group))
+        await _apply_group_patch(result, target, source, self._session)
 
     async def delete(self, public_id: UUID) -> None:
         stmt = delete(GroupModel).where(GroupModel.public_id == public_id)
