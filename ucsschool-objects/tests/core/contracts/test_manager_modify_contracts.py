@@ -247,12 +247,7 @@ async def test_sync_scalar_relation_clears_optional(db_session: AsyncSession) ->
 
 def test_to_user_returns_none_for_null_birthday() -> None:
     model = _bare_user()  # birthday=None by default
-    user = to_user(
-        model,
-        include_memberships=False,
-        include_legal_wards=False,
-        include_legal_guardians=False,
-    )
+    user = to_user(model)
     assert user.birthday is None
 
 
@@ -382,14 +377,7 @@ async def test_group_manager_modify_members(
 
     group_domain = to_group(await _load_group_full(db_session, group.public_id))
     dst = copy.copy(group_domain)
-    dst.members = {
-        to_user(
-            user,
-            include_memberships=False,
-            include_legal_wards=False,
-            include_legal_guardians=False,
-        )
-    }
+    dst.members = {to_user(user)}
     ops = _create_patch(group_domain, dst)
 
     await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
@@ -409,14 +397,7 @@ async def test_group_manager_modify_allowed_email_senders_users(
 
     group_domain = to_group(await _load_group_full(db_session, group.public_id))
     dst = copy.copy(group_domain)
-    dst.allowed_email_senders_users = {
-        to_user(
-            user,
-            include_memberships=False,
-            include_legal_wards=False,
-            include_legal_guardians=False,
-        )
-    }
+    dst.allowed_email_senders_users = {to_user(user)}
     ops = _create_patch(group_domain, dst)
 
     await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
@@ -638,12 +619,7 @@ async def test_user_manager_modify_birthday(
     user_factory: AsyncUserFactory,
 ) -> None:
     user = await user_factory(birthday=date(1990, 1, 1))
-    domain = to_user(
-        user,
-        include_memberships=False,
-        include_legal_wards=False,
-        include_legal_guardians=False,
-    )
+    domain = to_user(user)
     dst = copy.copy(domain)
     dst.birthday = date(2000, 6, 15)
     ops = _create_patch(domain, dst)
@@ -662,12 +638,7 @@ async def test_user_manager_modify_clears_email_to_none(
     user_factory: AsyncUserFactory,
 ) -> None:
     user = await user_factory(email="before@example.com")
-    domain = to_user(
-        user,
-        include_memberships=False,
-        include_legal_wards=False,
-        include_legal_guardians=False,
-    )
+    domain = to_user(user)
     dst = copy.copy(domain)
     dst.email = None
     ops = _create_patch(domain, dst)
