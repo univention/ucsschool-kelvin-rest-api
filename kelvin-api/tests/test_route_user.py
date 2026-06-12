@@ -1505,6 +1505,7 @@ async def test_patch(
     school = await create_ou_using_python()
     user: ImportUser = await new_import_user(school, role.name, disabled=False)
     await check_password(user.dn, user.password)
+    await wait_for_s4(user.dn)
     logger.debug("OK: can login with old password")
     old_user_data = import_user_to_create_model_kwargs(user)
     user_create_model = await random_user_create_model(
