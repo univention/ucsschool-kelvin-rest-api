@@ -701,7 +701,7 @@ async def test_get_returns_exam_user(
         lib_user: User = (await User.get_all(udm, school, filter_str=f"uid={exam_user['username']}"))[0]
         assert lib_user.name == exam_user["username"]
         assert lib_user.school == school
-        assert lib_user.ucsschool_roles == exam_user["ucsschoolRole"]
+        assert sorted(lib_user.ucsschool_roles) == sorted(exam_user["ucsschoolRole"])
         assert f"cn=examusers,ou={school}" in lib_user.dn
 
     if api_version != "v1":
