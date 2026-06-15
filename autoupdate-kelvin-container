@@ -73,17 +73,28 @@ if ! ssh "root@$TARGET" test -d "$UCS_TEST_DIR"; then
 fi
 
 inotifycopy \
-	-a kelvin-api/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ \
 	-a kelvin-api/tests/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/tests/ \
 	-a kelvin-api/ucsschool/kelvin/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ucsschool/kelvin/ \
 	-a kelvin-api/ucsschool/kelvin/service/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ucsschool/kelvin/service/ \
 	-a kelvin-api/ucsschool/kelvin/routers/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ucsschool/kelvin/routers/ \
+	-a kelvin-api/ucsschool/kelvin/routers/v1/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ucsschool/kelvin/routers/v1/ \
+	-a kelvin-api/ucsschool/kelvin/routers/v2/*.py:$TARGET:$TARGETDIR/kelvin/kelvin-api/ucsschool/kelvin/routers/v2/ \
 	-a ucs-school-import/modules/ucsschool/importer/models/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/models/ \
 	-a ucs-school-import/modules/ucsschool/importer/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/ \
+	-a ucs-school-import/modules/ucsschool/importer/contrib/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/contrib/ \
+	-a ucs-school-import/modules/ucsschool/importer/frontend/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/frontend/ \
+	-a ucs-school-import/modules/ucsschool/importer/legacy/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/legacy/ \
+	-a ucs-school-import/modules/ucsschool/importer/mass_import/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/mass_import/ \
+	-a ucs-school-import/modules/ucsschool/importer/reader/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/reader/ \
+	-a ucs-school-import/modules/ucsschool/importer/utils/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/utils/ \
+	-a ucs-school-import/modules/ucsschool/importer/writer/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-import/modules/ucsschool/importer/writer/ \
+	-a ucs-school-lib/modules/ucsschool/lib/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-lib/modules/ucsschool/lib/ \
 	-a ucs-school-lib/modules/ucsschool/lib/models/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-lib/modules/ucsschool/lib/models/ \
+	-a ucs-school-lib/modules/ucsschool/lib/pyhooks/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-lib/modules/ucsschool/lib/pyhooks/ \
 	-a ucs-school-lib/modules/ucsschool/lib/tests/*.py:$TARGET:$TARGETDIR/kelvin/ucs-school-lib/modules/ucsschool/lib/tests/ \
 	-a ucs-test-ucsschool-kelvin/94_ucsschool-kelvin/*.py:$TARGET:/usr/share/ucs-test/94_ucsschool-kelvin/ \
 	-a kelvin-connector/src/kelvin_connector/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/kelvin-connector/src/kelvin_connector/ \
+	-a kelvin-connector/tests/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/kelvin-connector/tests/ \
 	-a ucsschool-objects/src/ucsschool_objects/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/ \
 	-a ucsschool-objects/src/ucsschool_objects/core/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/ \
 	-a ucsschool-objects/src/ucsschool_objects/core/adapters/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/adapters/ \
@@ -92,4 +103,11 @@ inotifycopy \
 	-a ucsschool-objects/src/ucsschool_objects/core/adapters/sqlalchemy/mappers/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/adapters/sqlalchemy/mappers/ \
 	-a ucsschool-objects/src/ucsschool_objects/core/domain/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/domain/ \
 	-a ucsschool-objects/src/ucsschool_objects/core/domain/ports/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/src/ucsschool_objects/core/domain/ports/ \
+	-a ucsschool-objects/tests/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/tests/ \
+	-a ucsschool-objects/tests/core/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/tests/core/ \
+	-a ucsschool-objects/tests/core/adapters/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/tests/core/adapters/ \
+	-a ucsschool-objects/tests/core/contracts/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/tests/core/contracts/ \
+	-a ucsschool-objects/tests/core/domain/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/tests/core/domain/ \
+	-a ucsschool-objects/tests/core/domain/helpers/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/tests/core/domain/helpers/ \
+	-a ucsschool-objects/tests/test_database_models/*.py:$TARGET:$CONNECTOR_TARGETDIR/app/ucsschool-objects/tests/test_database_models/ \
 	-i

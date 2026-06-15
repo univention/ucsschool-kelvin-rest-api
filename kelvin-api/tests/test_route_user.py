@@ -2688,6 +2688,105 @@ async def test_create_with_multiple_schools(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("method", ("patch", "put"))
+async def test_school_move_primary_follows_dn(
+    auth_header,
+    retry_http_502,
+    retry_until_replicated,
+    url_fragment,
+    create_random_users,
+    create_multiple_ous,
+    udm_kwargs,
+    method: str,
+):
+    """A user in three schools, moved from its primary OU to another one, ends
+    up with the new OU as its primary school -- for both v1 and v2.
+
+    The primary school is the OU in the user's DN, not the first entry of the
+    (unordered) multi-valued ``school`` property. Because the move keeps the
+    school set unchanged, a primary derived from list order would not follow
+    the move. This is the regression guard for that bug, exercised through the
+    asynchronously replicated v2 cache as well as the live v1 path.
+    """
+    role = Role("teacher", Teacher)
+    ou1_name, ou2_name, ou3_name = await create_multiple_ous(3)
+    all_ous = {ou1_name, ou2_name, ou3_name}
+    school_urls = [f"{url_fragment}/schools/{ou}" for ou in (ou1_name, ou2_name, ou3_name)]
+    user = (
+        await create_random_users(
+            ou1_name,
+            {role.name: 1},
+            school=f"{url_fragment}/schools/{ou1_name}",
+            schools=school_urls,
+        )
+    )[0]
+
+    async with UDM(**udm_kwargs) as udm:
+        lib_users = await User.get_all(udm, ou1_name, f"username={user.name}")
+    assert len(lib_users) == 1
+    assert lib_users[0].school == ou1_name
+    assert set(lib_users[0].schools) == all_ous
+
+    async def _assert_api_primary(expected_primary: str) -> None:
+        response = retry_http_502(
+            requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header
+        )
+        assert response.status_code == 200, response.reason
+        api_user = UserModel(**response.json())
+        assert (
+            api_user.unscheme_and_unquote(str(api_user.school))
+            == f"{url_fragment}/schools/{expected_primary}"
+        )
+        assert {api_user.unscheme_and_unquote(str(s)) for s in api_user.schools} == set(school_urls)
+
+    # Initial state: ou1 is primary (the user's DN lives under ou=ou1).
+    await retry_until_replicated(lambda: _assert_api_primary(ou1_name))
+
+    # Move the primary OU to ou2 while keeping all three memberships: the
+    # school *set* does not change, only which OU the DN lives in.
+    if method == "patch":
+        response = retry_http_502(
+            requests.patch,
+            f"{url_fragment}/users/{user.name}",
+            headers=auth_header,
+            json=dict(school=f"{url_fragment}/schools/{ou2_name}", schools=school_urls),
+        )
+    else:
+        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
+        modified_user = UserCreateModel(
+            school=f"{url_fragment}/schools/{ou2_name}", schools=school_urls, **old_data
+        )
+        response = retry_http_502(
+            requests.put,
+            f"{url_fragment}/users/{user.name}",
+            headers=auth_header,
+            data=modified_user.json(),
+        )
+    assert response.status_code == 200, response.reason
+    # A school move rewrites the DN and the user's (primary) group memberships,
+    # which the Samba4 connector writes back asynchronously. Wait for that to
+    # settle before reading back -- as the modify/disable tests above do -- so we
+    # never assert against a half-applied move. The additional v2 cache lag is
+    # handled by retry_until_replicated below; for v1 this S4 wait is the only
+    # settle, since retry_until_replicated passes on the first attempt there.
+    await wait_for_s4(response.json()["dn"])
+
+    # Ground truth in LDAP: the DN moved under ou=ou2, the school set is kept.
+    async with UDM(**udm_kwargs) as udm:
+        async for udm_user in udm.get("users/user").search(filter_format("uid=%s", (user.name,))):
+            assert set(udm_user.props.school) == all_ous
+            assert f"ou={ou2_name}," in udm_user.dn
+        lib_users = await User.get_all(udm, ou2_name, f"username={user.name}")
+    assert len(lib_users) == 1
+    assert lib_users[0].school == ou2_name
+    assert set(lib_users[0].schools) == all_ous
+    assert set(lib_users[0].ucsschool_roles) == {f"{role.name}:school:{ou}" for ou in all_ous}
+
+    # The primary now follows the DN's OU (ou2), not the unchanged school list.
+    await retry_until_replicated(lambda: _assert_api_primary(ou2_name))
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "role",
     [role for role in USER_ROLES if role.name != "staff"],
