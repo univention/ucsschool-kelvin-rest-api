@@ -29,7 +29,7 @@ from ucsschool_objects.core.domain.errors import (
     EmptyOrClause,
     InvalidInFilter,
     InvalidJsonFilter,
-    InvalidLikeFilter,
+    InvalidPatternFilter,
     InvalidRangeFilter,
     InvalidUuidFilter,
     UnsupportedFilterField,
@@ -337,8 +337,10 @@ def _validate_filter_value(filter_expr: Filter, column: FieldColumn) -> None:
             raise InvalidInFilter(filter_expr.field, values)
         return
 
-    if filter_expr.op in {Operator.LIKE, Operator.ILIKE} and not isinstance(filter_expr.value, str):
-        raise InvalidLikeFilter(filter_expr.field, filter_expr.value)
+    if filter_expr.op in {Operator.MATCHES, Operator.MATCHES_CI} and not isinstance(
+        filter_expr.value, str
+    ):
+        raise InvalidPatternFilter(filter_expr.field, filter_expr.value)
 
     if filter_expr.op in RANGE_OPERATORS and (
         filter_expr.value is None or not _supports_range_filters(column)
@@ -372,12 +374,23 @@ def _coerce_filter_value(filter_expr: Filter, column: FieldColumn) -> FilterValu
     return cast(FilterValue, _coerce_uuid(filter_expr.field, filter_expr.value))
 
 
+def _glob_to_sql_pattern(user_glob: str, escape_char: str = "\\") -> str:
+    escaped = user_glob.replace(escape_char, escape_char + escape_char)
+    escaped = escaped.replace("%", escape_char + "%")
+    escaped = escaped.replace("_", escape_char + "_")
+    return escaped.replace("*", "%")
+
+
 FILTER_OPERATOR_BUILDERS: dict[Operator, FilterExpressionBuilder] = {
     Operator.EQ: lambda column, value: column == value,
     Operator.NE: lambda column, value: column != value,
     Operator.IN: lambda column, value: column.in_(tuple(cast(FilterInValue, value))),
-    Operator.LIKE: lambda column, value: column.like(value),
-    Operator.ILIKE: lambda column, value: column.ilike(value),
+    Operator.MATCHES: lambda column, value: column.like(
+        _glob_to_sql_pattern(cast(str, value)), escape="\\"
+    ),
+    Operator.MATCHES_CI: lambda column, value: column.ilike(
+        _glob_to_sql_pattern(cast(str, value)), escape="\\"
+    ),
     Operator.GT: lambda column, value: column > value,
     Operator.GTE: lambda column, value: column >= value,
     Operator.LT: lambda column, value: column < value,

@@ -184,7 +184,9 @@ async def test_group_manager_by_school_name(db_session: AsyncSession) -> None:
     # Should not raise on field resolution
     try:
         list(
-            await manager.search(query=SearchQuery(where=Filter("school.name", Operator.ILIKE, "test%")))
+            await manager.search(
+                query=SearchQuery(where=Filter("school.name", Operator.MATCHES_CI, "test*"))
+            )
         )
     except Exception as e:
         if "Unsupported" in str(type(e).__name__):
