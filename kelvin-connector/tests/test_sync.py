@@ -30,6 +30,7 @@ from kelvin_connector.models import (
 from kelvin_connector.sync import (
     DEFAULT_NUBUS_SOURCE_UID,
     SynchronizationException,
+    _school_ou_from_dn,
     _udm_properties,
 )
 from pydantic import UUID4
@@ -61,8 +62,7 @@ def _assert_fully_loaded(created):
 # ── Event constructors ────────────────────────────────────────────────────────
 
 
-def _user_create_event(uid, extra_props=None):
-    dn = "uid=testuser,cn=users,dc=test"
+def _user_create_event(uid, extra_props=None, dn="uid=testuser,cn=users,dc=test"):
     id = "testuser"
     position = "cn=users,dc=test"
     props = UserProperties.parse_obj(
@@ -91,8 +91,7 @@ def _user_create_event(uid, extra_props=None):
     )
 
 
-def _user_modify_event(uid, extra_props=None):
-    dn = "uid=testuser,cn=users,dc=test"
+def _user_modify_event(uid, extra_props=None, dn="uid=testuser,cn=users,dc=test"):
     id = "testuser"
     position = "cn=users,dc=test"
     objectType = "users/user"
@@ -517,7 +516,7 @@ async def test_fetch_roles_by_entries_searches_for_role_names(manager, mock_stor
 
 async def test_build_school_memberships_no_roles_skips_role_search(manager, mock_storage):
     school = make_school()
-    result = await manager._build_school_memberships([school], set(), [], mock_storage)
+    result = await manager._build_school_memberships([school], set(), [], mock_storage, None)
     assert school.public_id in result
     assert result[school.public_id].roles == set()
     mock_storage.roles.search.assert_not_called()
@@ -533,6 +532,7 @@ async def test_build_school_memberships_matches_roles_to_school(manager, mock_st
         set(),
         [UcsschoolRole(role="teacher", context="school", school="testschool")],
         mock_storage,
+        None,
     )
 
     assert result[school.public_id].roles == {role}
@@ -574,6 +574,34 @@ async def test_handle_user_create_happy_path(manager, mock_storage, mock_mapper)
     mock_mapper.set_mapping.assert_called_once_with(
         ObjectType.USER, "uid=testuser,cn=users,dc=test", uid
     )
+
+
+async def test_handle_user_create_primary_school_from_dn(manager, mock_storage, mock_mapper):
+    """A user created in school B that is also a member of school A: the DN's
+    OU decides the primary membership, not the order of the (unordered)
+    school property list."""
+    uid = uuid.uuid4()
+    school_a = make_school("schoola")
+    school_b = make_school("schoolb")
+    mock_storage.schools.search.return_value = [school_a, school_b]
+    mock_storage.users.get.side_effect = NotFound("user", str(uid))
+    event = _user_create_event(
+        uid,
+        extra_props={
+            "school": ["schoola", "schoolb"],
+            "ucsschoolRole": [
+                UcsschoolRole(role="teacher", context="school", school="schoola"),
+                UcsschoolRole(role="teacher", context="school", school="schoolb"),
+            ],
+        },
+        dn="uid=testuser,cn=lehrer,cn=users,ou=schoolb,dc=test",
+    )
+
+    await manager.handle_user_create(event)
+
+    created = mock_storage.users.create.call_args[0][0]
+    assert created.school_memberships[school_a.public_id].is_primary is False
+    assert created.school_memberships[school_b.public_id].is_primary is True
 
 
 async def test_handle_user_create_generates_record_uid_and_source_uid(
@@ -780,9 +808,10 @@ async def test_handle_user_modify_group_change_replaces_membership_groups_atomic
     assert not any(op["path"].startswith(f"{groups_path}/") for op in ops)
 
 
-async def test_handle_user_modify_school_reorder_moves_primary_flag(manager, mock_storage, mock_mapper):
-    """Reordering the schools in the event flips is_primary on the kept
-    memberships — emitted as per-membership is_primary replace ops."""
+async def test_handle_user_modify_school_move_moves_primary_flag(manager, mock_storage, mock_mapper):
+    """A move to another OU flips is_primary on the kept memberships —
+    emitted as per-membership is_primary replace ops. The primary school
+    follows the DN, not the (unordered) school property list."""
     uid = uuid.uuid4()
     school_a = make_school("schoola")
     school_b = make_school("schoolb")
@@ -807,12 +836,13 @@ async def test_handle_user_modify_school_reorder_moves_primary_flag(manager, moc
     event = _user_modify_event(
         uid,
         extra_props={
-            "school": ["schoolb", "schoola"],
+            "school": ["schoola", "schoolb"],
             "ucsschoolRole": [
                 UcsschoolRole(role="teacher", context="school", school="schoola"),
                 UcsschoolRole(role="teacher", context="school", school="schoolb"),
             ],
         },
+        dn="uid=testuser,cn=lehrer,cn=users,ou=schoolb,dc=test",
     )
     current_user.udm_properties = _udm_properties(event.new.properties)
     await manager.handle_user_modify(event)
@@ -1320,12 +1350,48 @@ async def test_handle_school_modify_skips_modify_when_patch_is_empty(manager, mo
 # ── Robustness / regression tests ────────────────────────────────────────────
 
 
-async def test_build_school_memberships_two_schools_first_is_primary(manager, mock_storage):
+def test_school_ou_from_dn():
+    assert _school_ou_from_dn("uid=a,cn=lehrer,cn=users,ou=school1,dc=test") == "school1"
+    # district mode: the school is the innermost (first) OU
+    assert _school_ou_from_dn("uid=a,cn=users,OU=school1,ou=district,dc=test") == "school1"
+    assert _school_ou_from_dn("uid=a,cn=users,dc=test") is None
+
+
+async def test_build_school_memberships_primary_school_wins_over_list_order(manager, mock_storage):
+    """The multi-valued school UDM property is unordered — the OU from the
+    user's DN decides the primary membership, not list position."""
     school_a = make_school("schoola")
     school_b = make_school("schoolb")
-    result = await manager._build_school_memberships([school_a, school_b], set(), [], mock_storage)
-    assert result[school_a.public_id].is_primary is True
-    assert result[school_b.public_id].is_primary is False
+    result = await manager._build_school_memberships(
+        [school_a, school_b], set(), [], mock_storage, "schoolb"
+    )
+    assert result[school_a.public_id].is_primary is False
+    assert result[school_b.public_id].is_primary is True
+
+
+async def test_build_school_memberships_primary_school_matches_case_insensitively(
+    manager, mock_storage
+):
+    school_a = make_school("schoola")
+    school_b = make_school("schoolb")
+    result = await manager._build_school_memberships(
+        [school_a, school_b], set(), [], mock_storage, "SchoolB"
+    )
+    assert result[school_a.public_id].is_primary is False
+    assert result[school_b.public_id].is_primary is True
+
+
+async def test_build_school_memberships_falls_back_to_first_school(manager, mock_storage):
+    """No or unknown DN OU (e.g. it was dropped as not cached): the first
+    school is primary, as the only remaining order signal."""
+    school_a = make_school("schoola")
+    school_b = make_school("schoolb")
+    for primary_school in (None, "otherschool"):
+        result = await manager._build_school_memberships(
+            [school_a, school_b], set(), [], mock_storage, primary_school
+        )
+        assert result[school_a.public_id].is_primary is True
+        assert result[school_b.public_id].is_primary is False
 
 
 async def test_build_school_memberships_groups_filtered_per_school(manager, mock_storage):
@@ -1335,7 +1401,7 @@ async def test_build_school_memberships_groups_filtered_per_school(manager, mock
     group_b = make_group("schoolb-class1", school_b)
 
     result = await manager._build_school_memberships(
-        [school_a, school_b], {group_a, group_b}, [], mock_storage
+        [school_a, school_b], {group_a, group_b}, [], mock_storage, None
     )
 
     assert result[school_a.public_id].groups == {group_a}

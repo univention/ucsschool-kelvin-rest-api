@@ -1,4 +1,5 @@
 import json
+import re
 from typing import cast, final
 from uuid import UUID
 
@@ -66,6 +67,19 @@ _USER_REPLACE_FIELDS = frozenset(
 
 # Never stored in the cache: large binary payloads and secrets.
 _UDM_PROPERTIES_DENYLIST = frozenset({"jpegPhoto", "password"})
+
+# The first ou= RDN of a DN, like ucs-school-lib's SchoolSearchBase.getOU.
+_RE_SCHOOL_OU = re.compile(r"(?:^|,)ou=([^,]+)", re.IGNORECASE)
+
+
+def _school_ou_from_dn(dn: str) -> str | None:
+    """The school OU a DN resides in, or None for DNs outside any OU.
+
+    The user's primary school is its LDAP position, not the first entry of
+    the multi-valued ``school`` UDM property — that list is unordered.
+    """
+    match = _RE_SCHOOL_OU.search(dn)
+    return match.group(1) if match else None
 
 
 def _server_hostname(value: str | None) -> str | None:
@@ -231,7 +245,23 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         groups: set[Group],
         roles: list[UcsschoolRole],
         storage: KelvinStorageSession,
+        primary_school: str | None,
     ) -> dict[UUID, SchoolMembership]:
+        """Build one membership per school, marking exactly one as primary.
+
+        ``primary_school`` is the OU from the user's DN. When it matches none
+        of the schools (e.g. the DN's OU was dropped as unknown), the first
+        school is primary, as the only remaining order signal.
+        """
+        primary_id: UUID | UnsetType | None = None
+        if primary_school:
+            for school in schools:
+                if school.name.lower() == primary_school.lower():
+                    primary_id = school.public_id
+                    break
+        if primary_id is None and schools:
+            primary_id = schools[0].public_id
+
         all_role_names = {r.role for r in roles}
         roles_by_name: dict[str, Role] = {}
         if all_role_names:
@@ -248,7 +278,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 )
             }
         result: dict[UUID, SchoolMembership] = {}
-        for i, school in enumerate(schools):
+        for school in schools:
             assert not isinstance(school.public_id, UnsetType)
 
             school_role_names = {r.role for r in roles if r.school == school.name}
@@ -262,7 +292,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             result[school.public_id] = SchoolMembership(
                 school,
                 groups=school_groups,
-                is_primary=(i == 0),
+                is_primary=(school.public_id == primary_id),
                 roles={roles_by_name[n] for n in school_role_names if n in roles_by_name},
             )
         return result
@@ -292,9 +322,8 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         user_props = event.new.properties
         logger.debug("User {!r} has school property: {!r}", user_props.username, user_props.school)
         if user_props.school:
-            school_by_name = {
-                s.name: s
-                for s in await storage.schools.search(
+            schools = list(
+                await storage.schools.search(
                     SearchQuery(
                         Or(
                             clauses=tuple(
@@ -303,8 +332,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                         )
                     )
                 )
-            }
-            schools = [school_by_name[name] for name in user_props.school if name in school_by_name]
+            )
         else:
             schools = []
         if not schools:
@@ -323,7 +351,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
 
         groups = await self._fetch_groups_by_dns(user_props.groups, "Group", mapper, storage)
         school_memberships = await self._build_school_memberships(
-            schools, groups, user_props.ucsschoolRole, storage
+            schools, groups, user_props.ucsschoolRole, storage, _school_ou_from_dn(event.new.dn)
         )
         legal_wards = await self._fetch_users_by_dns(
             user_props.ucsschoolLegalWard, "Legal ward", mapper, storage
@@ -429,9 +457,8 @@ class SynchronizationManager(SynchronizationManagerProtocol):
 
         raw_schools = user_props.school
         if raw_schools:
-            school_by_name = {
-                s.name: s
-                for s in await storage.schools.search(
+            schools = list(
+                await storage.schools.search(
                     SearchQuery(
                         Or(
                             clauses=tuple(
@@ -440,15 +467,12 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                         )
                     )
                 )
-            }
-            # sort by order of raw_schools, as the primary school
-            # in _build_school_memberships is derived from the first school
-            schools = [school_by_name[name] for name in raw_schools if name in school_by_name]
+            )
         else:
             schools = []
         groups = await self._fetch_groups_by_dns(user_props.groups, "Group", mapper, storage)
         school_memberships = await self._build_school_memberships(
-            schools, groups, user_props.ucsschoolRole, storage
+            schools, groups, user_props.ucsschoolRole, storage, _school_ou_from_dn(event.new.dn)
         )
         legal_wards = await self._fetch_users_by_dns(
             user_props.ucsschoolLegalWard, "Legal ward", mapper, storage
