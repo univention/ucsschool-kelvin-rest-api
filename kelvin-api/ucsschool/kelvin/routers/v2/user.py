@@ -133,11 +133,12 @@ def _udm_property_filters(request: Request) -> list[QueryExpr]:
         if value.lstrip("-").isdigit():
             # The stored JSON value may be a number, a string of digits, or
             # a list containing one (e.g. phone numbers).
+            sliced_value = value.lstrip("-")
             filters.append(
                 Or(
                     clauses=(
-                        Filter(field=field, op=Operator.EQ, value=int(value)),
-                        Filter(field=field, op=Operator.CONTAINS, value=value),
+                        Filter(field=field, op=Operator.EQ, value=int(sliced_value)),
+                        Filter(field=field, op=Operator.CONTAINS, value=sliced_value),
                     )
                 )
             )
