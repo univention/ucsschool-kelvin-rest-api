@@ -43,6 +43,7 @@ from ucsschool_objects import (
     QueryExpr,
     SearchQuery,
     User,
+    make_wildcard_filter,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
@@ -94,9 +95,12 @@ USER_LOAD_SPEC_V2 = LoadSpec.from_attributes(
 
 
 def _str_filter(field: str, value: str) -> Filter:
-    if "*" in value:
-        return Filter(field=field, op=Operator.LIKE, value=value.replace("*", "%"))
-    return Filter(field=field, op=Operator.EQ, value=value)
+    """Create a string filter with wildcard support and proper escaping."""
+    return (
+        make_wildcard_filter(field, value)
+        if "*" in value
+        else Filter(field=field, op=Operator.EQ, value=value)
+    )
 
 
 _KNOWN_SEARCH_PARAMS = frozenset(
@@ -143,7 +147,7 @@ def _udm_property_filters(request: Request) -> list[QueryExpr]:
                 )
             )
         elif "*" in value:
-            filters.append(Filter(field=field, op=Operator.LIKE, value=value.replace("*", "%")))
+            filters.append(make_wildcard_filter(field, value))
         else:
             filters.append(Filter(field=field, op=Operator.CONTAINS, value=value))
     return filters

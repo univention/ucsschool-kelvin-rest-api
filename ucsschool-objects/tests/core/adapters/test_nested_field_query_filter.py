@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.dialects import postgresql, sqlite
+from sqlalchemy.engine.interfaces import Dialect
 from ucsschool_objects import (
     And,
     Filter,
@@ -14,8 +16,10 @@ from ucsschool_objects import (
 )
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import JoinSpec, JoinType
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
+    FILTER_OPERATOR_BUILDERS,
     _get_filter_column,
     _get_required_joins,
+    _glob_to_sql_pattern,
     apply_nested_joins,
 )
 from ucsschool_objects.core.domain.errors import UnsupportedNestedField
@@ -28,6 +32,12 @@ from ucsschool_objects.database_models import (
 
 if TYPE_CHECKING:
     from ucsschool_objects.core.adapters.sqlalchemy.query_filter import FieldColumn
+
+
+SUPPORTED_DIALECTS: dict[str, Dialect] = {
+    "postgresql": postgresql.dialect(),  # type: ignore[no-untyped-call]
+    "sqlite": sqlite.dialect(),
+}
 
 
 def _r(*names: str) -> dict[str, JoinSpec]:
@@ -46,7 +56,7 @@ def test_get_required_joins_detects_single_nested_field() -> None:
 
 def test_get_required_joins_ignores_scalar_fields() -> None:
     """Test that scalar fields don't trigger joins."""
-    filter_expr = Filter("name", Operator.ILIKE, "test")
+    filter_expr = Filter("name", Operator.MATCHES_CI, "test")
     joins = _get_required_joins(filter_expr, registry=_r("groups"))
 
     assert len(joins) == 0
@@ -99,13 +109,71 @@ def test_get_required_joins_deduplicates() -> None:
     filter_expr = And(
         (
             Filter("groups.public_id", Operator.EQ, "group1"),
-            Filter("groups.name", Operator.ILIKE, "test%"),
+            Filter("groups.name", Operator.MATCHES_CI, "test*"),
         )
     )
     joins = _get_required_joins(filter_expr, registry=_r("groups"))
 
     assert "groups" in joins
     assert len(joins) == 1
+
+
+def test_glob_to_sql_pattern_escapes_like_metacharacters() -> None:
+    assert _glob_to_sql_pattern("50%_*") == "50\\%\\_%"
+
+
+@pytest.mark.parametrize(
+    ("user_pattern", "expected_sql_pattern"),
+    [
+        pytest.param("test*", "test%", id="simple-wildcard"),
+        pytest.param("*test*", "%test%", id="multi-wildcard"),
+        pytest.param("50%", "50\\%", id="literal-percent"),
+        pytest.param("test_", "test\\_", id="literal-underscore"),
+        pytest.param("100%_50%", "100\\%\\_50\\%", id="mixed-metacharacters"),
+        pytest.param("test*50%", "test%50\\%", id="wildcard-with-percent"),
+        pytest.param("", "", id="empty-string"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("dialect_name",),
+    [
+        pytest.param("postgresql", id="dialect-postgresql"),
+        pytest.param("sqlite", id="dialect-sqlite"),
+    ],
+)
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(Operator.MATCHES, id="matches-like"),
+        pytest.param(Operator.MATCHES_CI, id="matches-ci"),
+    ],
+)
+def test_matches_builder_renders_variants_with_escape_clause(
+    user_pattern: str,
+    expected_sql_pattern: str,
+    dialect_name: str,
+    operator: Operator,
+) -> None:
+    expr = FILTER_OPERATOR_BUILDERS[operator](UserModel.name, user_pattern)
+    dialect = SUPPORTED_DIALECTS[dialect_name]
+
+    sql = str(
+        select(UserModel).where(expr).compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+    )
+
+    expected_literal = expected_sql_pattern
+    if dialect_name == "postgresql":
+        expected_literal = expected_sql_pattern.replace("\\", "\\\\").replace("%", "%%")
+
+    if operator is Operator.MATCHES_CI:
+        if dialect_name == "postgresql":
+            assert " ILIKE " in sql
+        else:
+            assert " LIKE lower(" in sql
+    else:
+        assert " LIKE " in sql
+    assert expected_literal in sql
+    assert " ESCAPE " in sql
 
 
 @pytest.mark.asyncio

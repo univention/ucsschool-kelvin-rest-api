@@ -159,7 +159,7 @@ from ucsschool_objects import Filter, Operator, SearchQuery, SortSpec
 async def find_schools(name_prefix: str):
     async with storage_factory.session_scope() as storage:
         query = SearchQuery(
-            where=Filter(field="name", op=Operator.LIKE, value=f"{name_prefix}%")
+      where=Filter(field="name", op=Operator.MATCHES, value=f"{name_prefix}*")
         )
         return list(
             await storage.schools.search(query, sort_by=[SortSpec(field="name")])

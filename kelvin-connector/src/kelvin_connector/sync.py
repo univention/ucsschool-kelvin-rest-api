@@ -956,7 +956,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
 
         schools = list(
             await storage.schools.search(
-                SearchQuery(Filter(field="name", op=Operator.ILIKE, value=school_name))
+                SearchQuery(Filter(field="name", op=Operator.MATCHES_CI, value=school_name))
             )
         )
         if not schools:
