@@ -38,6 +38,7 @@ from ucsschool_objects import (
     LoadSpec,
     Operator,
     SearchQuery,
+    make_wildcard_filter,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
@@ -80,9 +81,12 @@ def get_logger() -> logging.Logger:
 
 
 def _str_filter(field: str, value: str) -> Filter:
-    if "*" in value:
-        return Filter(field=field, op=Operator.LIKE, value=value.replace("*", "%"))
-    return Filter(field=field, op=Operator.EQ, value=value)
+    """Create a string filter with wildcard support and proper escaping."""
+    return (
+        make_wildcard_filter(field, value)
+        if "*" in value
+        else Filter(field=field, op=Operator.EQ, value=value)
+    )
 
 
 def _get_relative_name(group: Group) -> str:
@@ -177,7 +181,7 @@ async def get(
     results = [
         g
         for g in await session.groups.search(
-            SearchQuery(where=Filter(field="name", op=Operator.ILIKE, value=full_name)),
+            SearchQuery(where=Filter(field="name", op=Operator.MATCHES_CI, value=full_name)),
             load=SCHOOL_CLASS_LOAD_SPEC_V2,
         )
         if _is_school_class(g)

@@ -11,7 +11,7 @@ from ucsschool_objects import (
     Filter,
     InvalidFilter,
     InvalidInFilter,
-    InvalidLikeFilter,
+    InvalidPatternFilter,
     NotFound,
     Operator,
     Or,
@@ -38,7 +38,9 @@ if TYPE_CHECKING:
     from ucsschool_objects.core.domain.ports.manager import Manager
 
 
-FieldInvalidFilter = UnsupportedFilterField | UnsupportedSortField | InvalidInFilter | InvalidLikeFilter
+FieldInvalidFilter = (
+    UnsupportedFilterField | UnsupportedSortField | InvalidInFilter | InvalidPatternFilter
+)
 
 
 def build_exception_case(
@@ -90,18 +92,22 @@ def build_exception_case(
             expected_exc_value=99,
         ),
         build_exception_case(
-            id="invalid-like-filter-value",
-            search_args={"query": SearchQuery(where=Filter(field="name", op=Operator.LIKE, value=42))},
-            expected_exc_type=InvalidLikeFilter,
-            expected_exc_message="LIKE operator requires a string value",
+            id="invalid-matches-filter-value",
+            search_args={
+                "query": SearchQuery(where=Filter(field="name", op=Operator.MATCHES, value=42))
+            },
+            expected_exc_type=InvalidPatternFilter,
+            expected_exc_message="Pattern operator requires a string value",
             expected_exc_field="name",
             expected_exc_value=42,
         ),
         build_exception_case(
-            id="invalid-ilike-filter-value",
-            search_args={"query": SearchQuery(where=Filter(field="name", op=Operator.ILIKE, value=42))},
-            expected_exc_type=InvalidLikeFilter,
-            expected_exc_message="LIKE operator requires a string value",
+            id="invalid-matches-ci-filter-value",
+            search_args={
+                "query": SearchQuery(where=Filter(field="name", op=Operator.MATCHES_CI, value=42))
+            },
+            expected_exc_type=InvalidPatternFilter,
+            expected_exc_message="Pattern operator requires a string value",
             expected_exc_field="name",
             expected_exc_value=42,
         ),
@@ -130,7 +136,7 @@ async def test_group_manager_raises_invalid_filter(
     error = cast("FieldInvalidFilter", exc_info.value)
     assert error.field == expected_exc_field
     if expected_exc_value is not None:
-        assert isinstance(error, (InvalidInFilter, InvalidLikeFilter))
+        assert isinstance(error, (InvalidInFilter, InvalidPatternFilter))
         assert error.value == expected_exc_value
 
 

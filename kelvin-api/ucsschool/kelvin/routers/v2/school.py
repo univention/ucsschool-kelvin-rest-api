@@ -36,6 +36,7 @@ from ucsschool_objects import (
     Operator,
     School,
     SearchQuery,
+    make_wildcard_filter,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
@@ -64,9 +65,12 @@ def get_logger() -> logging.Logger:
 
 
 def _str_filter(field: str, value: str) -> Filter:
-    if "*" in value:
-        return Filter(field=field, op=Operator.LIKE, value=value.replace("*", "%"))
-    return Filter(field=field, op=Operator.EQ, value=value)
+    """Create a string filter with wildcard support and proper escaping."""
+    return (
+        make_wildcard_filter(field, value)
+        if "*" in value
+        else Filter(field=field, op=Operator.EQ, value=value)
+    )
 
 
 async def _school_to_model(

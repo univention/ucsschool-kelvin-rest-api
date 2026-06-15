@@ -72,8 +72,8 @@ class InvalidUuidFilter(InvalidFilter):
         super().__init__(f"Field {field!r} requires a UUID value; got {value!r}")
 
 
-class InvalidLikeFilter(InvalidFilter):
-    """Raised when a LIKE filter receives a non-string value."""
+class InvalidPatternFilter(InvalidFilter):
+    """Raised when a pattern-matching filter receives a non-string value."""
 
     field: str
     value: object
@@ -81,7 +81,7 @@ class InvalidLikeFilter(InvalidFilter):
     def __init__(self, field: str, value: object) -> None:
         self.field = field
         self.value = value
-        super().__init__(f"LIKE operator requires a string value for field {field!r}; got {value!r}")
+        super().__init__(f"Pattern operator requires a string value for field {field!r}; got {value!r}")
 
 
 class InvalidRangeFilter(InvalidFilter):

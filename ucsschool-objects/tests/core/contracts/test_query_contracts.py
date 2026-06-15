@@ -66,20 +66,20 @@ async def _setup_school_in_case(factories: SchoolQueryFactories) -> QueryExpecta
     )
 
 
-async def _setup_school_like_case(factories: SchoolQueryFactories) -> QueryExpectation:
+async def _setup_school_matches_ci_case(factories: SchoolQueryFactories) -> QueryExpectation:
     await factories.school_factory(name="alpha-campus")
     await factories.school_factory(name="beta-school")
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="name", op=Operator.ILIKE, value="%school%")),
+        query=SearchQuery(where=Filter(field="name", op=Operator.MATCHES_CI, value="*school*")),
         expected_names=("beta-school",),
     )
 
 
-async def _setup_school_like_case_sensitive_case(factories: SchoolQueryFactories) -> QueryExpectation:
+async def _setup_school_matches_case(factories: SchoolQueryFactories) -> QueryExpectation:
     await factories.school_factory(name="alpha-campus")
     await factories.school_factory(name="beta-school")
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="name", op=Operator.LIKE, value="%school%")),
+        query=SearchQuery(where=Filter(field="name", op=Operator.MATCHES, value="*school*")),
         expected_names=("beta-school",),
     )
 
@@ -115,19 +115,19 @@ async def _setup_group_in_case(factories: GroupQueryFactories) -> QueryExpectati
     )
 
 
-async def _setup_group_ilike_school_case(factories: GroupQueryFactories) -> QueryExpectation:
+async def _setup_group_matches_ci_school_case(factories: GroupQueryFactories) -> QueryExpectation:
     role = await factories.roles_factory(name="workgroup")
     alpha_school = await factories.school_factory(name="alpha-school")
     beta_school = await factories.school_factory(name="beta-school")
     await factories.group_factory(name="group-a", school=alpha_school, roles=role)
     await factories.group_factory(name="group-b", school=beta_school, roles=role)
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="school.name", op=Operator.ILIKE, value="alpha%")),
+        query=SearchQuery(where=Filter(field="school.name", op=Operator.MATCHES_CI, value="alpha*")),
         expected_names=("group-a",),
     )
 
 
-async def _setup_group_like_school_case(
+async def _setup_group_matches_school_case(
     factories: GroupQueryFactories,
 ) -> QueryExpectation:
     role = await factories.roles_factory(name="workgroup")
@@ -136,7 +136,7 @@ async def _setup_group_like_school_case(
     await factories.group_factory(name="group-a", school=alpha_school, roles=role)
     await factories.group_factory(name="group-b", school=beta_school, roles=role)
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="school.name", op=Operator.LIKE, value="alpha%")),
+        query=SearchQuery(where=Filter(field="school.name", op=Operator.MATCHES, value="alpha*")),
         expected_names=("group-a",),
     )
 
@@ -152,7 +152,7 @@ async def _setup_group_and_case(factories: GroupQueryFactories) -> QueryExpectat
         query=SearchQuery(
             where=And(
                 clauses=(
-                    Filter(field="school.name", op=Operator.ILIKE, value="alpha%"),
+                    Filter(field="school.name", op=Operator.MATCHES_CI, value="alpha*"),
                     Filter(field="name", op=Operator.EQ, value="group-a"),
                 )
             )
@@ -225,20 +225,20 @@ async def _setup_role_in_case(factories: RoleQueryFactories) -> QueryExpectation
     )
 
 
-async def _setup_role_like_case(factories: RoleQueryFactories) -> QueryExpectation:
+async def _setup_role_matches_ci_case(factories: RoleQueryFactories) -> QueryExpectation:
     await factories.role_factory(name="school:admin")
     await factories.role_factory(name="district:viewer")
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="name", op=Operator.ILIKE, value="school:%")),
+        query=SearchQuery(where=Filter(field="name", op=Operator.MATCHES_CI, value="school:*")),
         expected_names=("school:admin",),
     )
 
 
-async def _setup_role_like_case_sensitive_case(factories: RoleQueryFactories) -> QueryExpectation:
+async def _setup_role_matches_case(factories: RoleQueryFactories) -> QueryExpectation:
     await factories.role_factory(name="school:admin")
     await factories.role_factory(name="district:viewer")
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="name", op=Operator.LIKE, value="school:%")),
+        query=SearchQuery(where=Filter(field="name", op=Operator.MATCHES, value="school:*")),
         expected_names=("school:admin",),
     )
 
@@ -271,20 +271,20 @@ async def _setup_user_in_case(factories: UserQueryFactories) -> QueryExpectation
     )
 
 
-async def _setup_user_ilike_case_insensitve(factories: UserQueryFactories) -> QueryExpectation:
+async def _setup_user_matches_ci_case(factories: UserQueryFactories) -> QueryExpectation:
     await factories.user_factory(name="anna", lastname="Miller")
     await factories.user_factory(name="bert", lastname="Schmidt")
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="lastname", op=Operator.ILIKE, value="mill%")),
+        query=SearchQuery(where=Filter(field="lastname", op=Operator.MATCHES_CI, value="mill*")),
         expected_names=("anna",),
     )
 
 
-async def _setup_user_like_case_sensitive_case(factories: UserQueryFactories) -> QueryExpectation:
+async def _setup_user_matches_case(factories: UserQueryFactories) -> QueryExpectation:
     await factories.user_factory(name="anna", lastname="Miller")
     await factories.user_factory(name="bert", lastname="Schmidt")
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="lastname", op=Operator.LIKE, value="Mill%")),
+        query=SearchQuery(where=Filter(field="lastname", op=Operator.MATCHES, value="Mill*")),
         expected_names=("anna",),
     )
 
@@ -353,7 +353,7 @@ async def _setup_user_like_schools_case(factories: UserQueryFactories) -> QueryE
     )
 
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="schools.name", op=Operator.ILIKE, value="school-%")),
+        query=SearchQuery(where=Filter(field="schools.name", op=Operator.MATCHES_CI, value="school-*")),
         expected_names=("anna",),
     )
 
@@ -470,8 +470,8 @@ async def _setup_user_ids_in_school_case(factories: UserQueryFactories) -> Query
         pytest.param(_setup_school_eq_case, id="school-eq"),
         pytest.param(_setup_school_ne_case, id="school-ne"),
         pytest.param(_setup_school_in_case, id="school-in"),
-        pytest.param(_setup_school_like_case, id="school-ilike"),
-        pytest.param(_setup_school_like_case_sensitive_case, id="school-like"),
+        pytest.param(_setup_school_matches_ci_case, id="school-matches-ci"),
+        pytest.param(_setup_school_matches_case, id="school-matches"),
     ],
 )
 async def test_school_query_operators(
@@ -494,8 +494,8 @@ async def test_school_query_operators(
         pytest.param(_setup_group_eq_case, id="group-eq"),
         pytest.param(_setup_group_ne_case, id="group-ne"),
         pytest.param(_setup_group_in_case, id="group-in"),
-        pytest.param(_setup_group_ilike_school_case, id="group-ilike-school"),
-        pytest.param(_setup_group_like_school_case, id="group-like-school"),
+        pytest.param(_setup_group_matches_ci_school_case, id="group-matches-ci-school"),
+        pytest.param(_setup_group_matches_school_case, id="group-matches-school"),
         pytest.param(_setup_group_and_case, id="group-and"),
         pytest.param(_setup_group_or_case, id="group-or"),
         pytest.param(_setup_group_not_case, id="group-not"),
@@ -527,8 +527,8 @@ async def test_group_query_operators(
         pytest.param(_setup_role_eq_case, id="role-eq"),
         pytest.param(_setup_role_ne_case, id="role-ne"),
         pytest.param(_setup_role_in_case, id="role-in"),
-        pytest.param(_setup_role_like_case, id="role-ilike"),
-        pytest.param(_setup_role_like_case_sensitive_case, id="role-like"),
+        pytest.param(_setup_role_matches_ci_case, id="role-matches-ci"),
+        pytest.param(_setup_role_matches_case, id="role-matches"),
     ],
 )
 async def test_role_query_operators(
@@ -551,8 +551,8 @@ async def test_role_query_operators(
         pytest.param(_setup_user_eq_case, id="user-eq"),
         pytest.param(_setup_user_ne_case, id="user-ne"),
         pytest.param(_setup_user_in_case, id="user-in"),
-        pytest.param(_setup_user_ilike_case_insensitve, id="user-ilike"),
-        pytest.param(_setup_user_like_case_sensitive_case, id="user-like"),
+        pytest.param(_setup_user_matches_ci_case, id="user-matches-ci"),
+        pytest.param(_setup_user_matches_case, id="user-matches"),
         pytest.param(_setup_user_gt_case, id="user-gt"),
         pytest.param(_setup_user_gte_case, id="user-gte"),
         pytest.param(_setup_user_lt_case, id="user-lt"),

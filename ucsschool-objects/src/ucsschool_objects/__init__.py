@@ -17,7 +17,7 @@ from ucsschool_objects.core.domain.errors import (
     InvalidFilter,
     InvalidInFilter,
     InvalidJsonFilter,
-    InvalidLikeFilter,
+    InvalidPatternFilter,
     InvalidRangeFilter,
     InvalidUuidFilter,
     NotFound,
@@ -57,6 +57,7 @@ from ucsschool_objects.core.domain.query import (
     QueryExpr,
     SearchQuery,
     SortSpec,
+    make_wildcard_filter,
 )
 
 __all__ = [
@@ -84,6 +85,7 @@ __all__ = [
     "QueryExpr",
     "SearchQuery",
     "SortSpec",
+    "make_wildcard_filter",
     # Exceptions
     "CorelibError",
     "EmptyAndClause",
@@ -91,7 +93,7 @@ __all__ = [
     "InvalidFilter",
     "InvalidInFilter",
     "InvalidJsonFilter",
-    "InvalidLikeFilter",
+    "InvalidPatternFilter",
     "InvalidRangeFilter",
     "InvalidUuidFilter",
     "NotFound",
