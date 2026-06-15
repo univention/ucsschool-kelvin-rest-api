@@ -271,11 +271,11 @@ async def _setup_user_in_case(factories: UserQueryFactories) -> QueryExpectation
     )
 
 
-async def _setup_user_like_case(factories: UserQueryFactories) -> QueryExpectation:
+async def _setup_user_ilike_case_insensitve(factories: UserQueryFactories) -> QueryExpectation:
     await factories.user_factory(name="anna", lastname="Miller")
     await factories.user_factory(name="bert", lastname="Schmidt")
     return QueryExpectation(
-        query=SearchQuery(where=Filter(field="lastname", op=Operator.ILIKE, value="Mill%")),
+        query=SearchQuery(where=Filter(field="lastname", op=Operator.ILIKE, value="mill%")),
         expected_names=("anna",),
     )
 
@@ -551,7 +551,7 @@ async def test_role_query_operators(
         pytest.param(_setup_user_eq_case, id="user-eq"),
         pytest.param(_setup_user_ne_case, id="user-ne"),
         pytest.param(_setup_user_in_case, id="user-in"),
-        pytest.param(_setup_user_like_case, id="user-ilike"),
+        pytest.param(_setup_user_ilike_case_insensitve, id="user-ilike"),
         pytest.param(_setup_user_like_case_sensitive_case, id="user-like"),
         pytest.param(_setup_user_gt_case, id="user-gt"),
         pytest.param(_setup_user_gte_case, id="user-gte"),
