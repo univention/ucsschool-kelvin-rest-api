@@ -191,21 +191,48 @@ def _build_query(
     return SearchQuery(where=And(clauses=tuple(clauses)))
 
 
+def _school_classes_and_workgroups(
+    user: User,
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    # Only schools that actually have a class/workgroup get an entry, matching
+    # v1 — do not pre-seed every membership's school with an empty list.
+    school_classes: dict[str, list[str]] = {}
+    workgroups: dict[str, list[str]] = {}
+
+    for group in user.groups:
+        role_names = [role.name for role in group.roles]
+        relative_name = group.name.removeprefix(f"{group.school.name}-")
+        if "school_class" in role_names:
+            school_classes.setdefault(group.school.name, []).append(relative_name)
+        if "workgroup" in role_names:
+            workgroups.setdefault(group.school.name, []).append(relative_name)
+
+    # user.groups is a set, so the per-school lists are built in arbitrary
+    # order; sort them for deterministic, v1-equivalent output.
+    for names in school_classes.values():
+        names.sort()
+    for names in workgroups.values():
+        names.sort()
+
+    return school_classes, workgroups
+
+
 async def _user_to_model(
     user: User,
     request: Request,
     session: KelvinStorageSession,
     dn_map: dict[UUID, str] | None = None,
 ) -> UserModel:
+    def url(name: str, **kwargs) -> str:
+        return UserModel.scheme_and_quote(str(cached_url_for(request, name, **kwargs)))
+
     if dn_map is None:
         mapper = sqlalchemy_mapper_factory(session)
         dn_map = await mapper.public_ids_to_dns(ObjectType.USER, [user.public_id])
     dn = dn_map[user.public_id]
 
     schools = sorted(
-        UserModel.scheme_and_quote(
-            str(cached_url_for(request, "school_get", school_name=school_membership.school.name))
-        )
+        url("school_get", school_name=school_membership.school.name)
         for school_membership in user.school_memberships.values()
     )
 
@@ -222,42 +249,14 @@ async def _user_to_model(
         except ValueError:
             logger.error(f"Unknown role name: {role.name=}. Omitting role.")
 
-    # Only schools that actually have a class/workgroup get an entry, matching
-    # v1 — do not pre-seed every membership's school with an empty list.
-    school_classes: dict[str, list[str]] = {}
-    workgroups: dict[str, list[str]] = {}
+    school_classes, workgroups = _school_classes_and_workgroups(user)
 
-    for group in user.groups:
-        role_names = [role.name for role in group.roles]
-        # Strip the "{school}-" prefix to get the relative name, like v1 —
-        # not split("-")[1], which mangles names containing a hyphen.
-        relative_name = group.name.replace(f"{group.school.name}-", "")
-        if "school_class" in role_names:
-            school_classes.setdefault(group.school.name, []).append(relative_name)
-        if "workgroup" in role_names:
-            workgroups.setdefault(group.school.name, []).append(relative_name)
+    role_urls = [url("get", role_name=role.value) for role in sorted(roles)]
 
-    # user.groups is a set, so the per-school lists are built in arbitrary
-    # order; sort them for deterministic, v1-equivalent output.
-    for names in school_classes.values():
-        names.sort()
-    for names in workgroups.values():
-        names.sort()
+    legal_guardian_urls = [url("get", username=guardian.name) for guardian in user.legal_guardians]
+    legal_ward_urls = [url("get", username=ward.name) for ward in user.legal_wards]
 
-    role_urls = [UserModel.scheme_and_quote(str(role.to_url(request))) for role in sorted(roles)]
-
-    legal_guardian_urls = [
-        UserModel.scheme_and_quote(str(cached_url_for(request, "get", username=guardian.name)))
-        for guardian in user.legal_guardians
-    ]
-    legal_ward_urls = [
-        UserModel.scheme_and_quote(str(cached_url_for(request, "get", username=ward.name)))
-        for ward in user.legal_wards
-    ]
-
-    school = UserModel.scheme_and_quote(
-        str(cached_url_for(request, "school_get", school_name=user.primary_school.name))
-    )
+    school = url("school_get", school_name=user.primary_school.name)
 
     return UserModel(
         school=school,
@@ -271,7 +270,7 @@ async def _user_to_model(
         expiration_date=user.expiration_date,
         record_uid=user.record_uid,
         source_uid=user.source_uid,
-        url=UserModel.scheme_and_quote(str(cached_url_for(request, "get", username=user.name))),
+        url=url("get", username=user.name),
         schools=schools,
         roles=role_urls,
         school_classes=school_classes,
