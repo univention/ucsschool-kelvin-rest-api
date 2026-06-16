@@ -2728,9 +2728,7 @@ async def test_school_move_primary_follows_dn(
     assert set(lib_users[0].schools) == all_ous
 
     async def _assert_api_primary(expected_primary: str) -> None:
-        response = retry_http_502(
-            requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header
-        )
+        response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
         assert response.status_code == 200, response.reason
         api_user = UserModel(**response.json())
         assert (
