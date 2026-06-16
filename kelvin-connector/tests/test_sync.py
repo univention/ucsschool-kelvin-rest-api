@@ -1369,9 +1369,7 @@ async def test_build_school_memberships_primary_school_wins_over_list_order(mana
     assert result[school_b.public_id].is_primary is True
 
 
-async def test_build_school_memberships_primary_school_matches_case_insensitively(
-    manager, mock_storage
-):
+async def test_build_school_memberships_primary_school_matches_case_insensitively(manager, mock_storage):
     school_a = make_school("schoola")
     school_b = make_school("schoolb")
     result = await manager._build_school_memberships(
