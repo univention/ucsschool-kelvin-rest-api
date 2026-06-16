@@ -54,6 +54,8 @@ class ObjectType(enum.StrEnum):
 
 
 SUBSCRIBED_TOPICS = [ObjectType.OUS, ObjectType.GROUPS, ObjectType.USERS]
+DEFAULT_MAX_DELIVERIES = 3
+DEFAULT_LONG_POLLING_TIMEOUT = 10
 
 
 class UnknownTopicException(Exception):
@@ -292,12 +294,14 @@ class KelvinConsumerModule(ConsumerModule):
     TODO: upstream this policy into provisioning_consumer_lib.
     """
 
-    def __init__(self, handler: EventHandler, *args, max_deliveries: int = 3, **kwargs) -> None:
+    def __init__(
+        self, handler: EventHandler, *args, max_deliveries: int = DEFAULT_MAX_DELIVERIES, **kwargs
+    ) -> None:
         super().__init__(handler, *args, **kwargs)
         self.max_deliveries = max_deliveries
 
     @override
-    async def process_one_event(self, long_polling_timeout: int = 10) -> None:
+    async def process_one_event(self, long_polling_timeout: int = DEFAULT_LONG_POLLING_TIMEOUT) -> None:
         event = await self._fetch_event(long_polling_timeout)
         if not event:
             # If the queue is empty, long polling timed out without new events.
