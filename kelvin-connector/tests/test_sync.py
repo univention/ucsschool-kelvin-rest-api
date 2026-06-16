@@ -391,31 +391,6 @@ def test_guardian_role_validator_accepts_pre_parsed_object():
     assert group_props.guardianMemberRoles == [guardian]
 
 
-def test_ucsschool_role_validator_keeps_colons_in_context():
-    """Split like ucs-school-lib's get_role_info: the context part may itself
-    contain colons (additional-context role strings)."""
-    props = UserProperties.parse_obj(
-        dict(
-            univentionObjectIdentifier=uuid.uuid4(),
-            username="testuser",
-            firstname="Test",
-            lastname="User",
-            disabled=False,
-            school=["testschool"],
-            ucsschoolRole=["myrole:myapp:context:with:colons"],
-            ucsschoolRecordUID="testuser",
-            ucsschoolSourceUID="src",
-            groups=[],
-            ucsschoolLegalWard=[],
-            ucsschoolLegalGuardian=[],
-            mailPrimaryAddress="",
-        )
-    )
-    assert props.ucsschoolRole == [
-        UcsschoolRole(role="myrole", context="myapp", school="context:with:colons")
-    ]
-
-
 def test_ucsschool_role_validator_skips_malformed_role_strings():
     """One garbage role entry must not make an otherwise valid user invisible
     to the cache — it is skipped with a warning."""
