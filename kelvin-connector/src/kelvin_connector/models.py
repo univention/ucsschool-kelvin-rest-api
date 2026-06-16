@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Iterable
 
 from loguru import logger
 from pydantic import UUID4, BaseModel, Extra, Field, validator
@@ -18,20 +19,21 @@ class GuardianRole(BaseModel):
     role_name: str
 
 
-def _parse_ucsschool_role_item(v):
+def _parse_ucsschool_role_item(v: str | UcsschoolRole):
+    """Split like ucs-school-lib's get_role_info"""
     if isinstance(v, str):
-        # Split like ucs-school-lib's get_role_info: the context (third part)
-        # may itself contain colons, e.g. in additional-context role strings.
-        role, context, school = v.split(":", 2)
+        role, context, school = v.split(":")
         return {"role": role, "context": context, "school": school}
     return v
 
 
-def _parse_ucsschool_roles(values):
-    # Skip malformed role strings instead of rejecting the whole object: one
-    # garbage entry must not make an otherwise valid user or group invisible
-    # to the cache. An object with no parseable role at all still fails
-    # validation through min_items.
+def _parse_ucsschool_roles(values: Iterable[str | UcsschoolRole]) -> list[str]:
+    """Skip malformed role strings instead of rejecting the whole object
+
+    one garbage entry must not make an otherwise valid user or group invisible
+    to the cache. An object with no parseable role at all still fails
+    validation through min_items.
+    """
     roles = []
     for item in values:
         try:
