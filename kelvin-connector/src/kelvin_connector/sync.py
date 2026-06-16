@@ -400,8 +400,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                     legal_wards,
                     legal_guardians,
                 )
-            if tracker.patch:
-                await storage.users.modify(public_id, tracker.patch)
+            patch = tracker.patch
+            if patch:
+                await storage.users.modify(public_id, patch)
                 logger.info(
                     "User {!r} modified from create event (public_id={})", user_props.username, public_id
                 )
@@ -489,8 +490,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 legal_wards,
                 legal_guardians,
             )
-        if tracker.patch:
-            await storage.users.modify(public_id, tracker.patch)
+        patch = tracker.patch
+        if patch:
+            await storage.users.modify(public_id, patch)
             logger.info("User {!r} modified (public_id={})", user_props.username, public_id)
         else:
             logger.debug(
@@ -636,8 +638,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                     members,
                     member_roles,
                 )
-            if tracker.patch:
-                await storage.groups.modify(public_id, tracker.patch)
+            patch = tracker.patch
+            if patch:
+                await storage.groups.modify(public_id, patch)
                 logger.info(
                     "Group {!r} modified from create event (public_id={})", group_props.name, public_id
                 )
@@ -742,8 +745,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 members,
                 member_roles,
             )
-        if tracker.patch:
-            await storage.groups.modify(public_id, tracker.patch)
+        patch = tracker.patch
+        if patch:
+            await storage.groups.modify(public_id, patch)
             logger.info("Group {!r} modified (public_id={})", group_props.name, public_id)
         else:
             logger.debug(
@@ -839,8 +843,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                     school_props.ucsschoolHomeShareFileServer
                 )
                 current_school.udm_properties = _udm_properties(school_props)
-            if tracker.patch:
-                await storage.schools.modify(public_id, tracker.patch)
+            patch = tracker.patch
+            if patch:
+                await storage.schools.modify(public_id, patch)
                 logger.info(
                     "School {!r} modified from create event (public_id={})", school_props.name, public_id
                 )
@@ -905,8 +910,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 school_props.ucsschoolHomeShareFileServer
             )
             current_school.udm_properties = _udm_properties(school_props)
-        if tracker.patch:
-            await storage.schools.modify(public_id, tracker.patch)
+        patch = tracker.patch
+        if patch:
+            await storage.schools.modify(public_id, patch)
             logger.info("School {!r} modified (public_id={})", school_props.name, public_id)
         else:
             logger.debug(
@@ -972,8 +978,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 case _:  # pragma: no cover
                     raise SynchronizationException("Unreachable code reached.")
 
-        if tracker.patch:
-            await storage.schools.modify(school.public_id, tracker.patch)
+        patch = tracker.patch
+        if patch:
+            await storage.schools.modify(school.public_id, patch)
             logger.info(
                 "Updated {} servers for school {!r} (public_id={})", kind, school_name, school.public_id
             )

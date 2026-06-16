@@ -276,9 +276,6 @@ def load_requested_scalar_attributes(
 
 
 def school_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
-    # Includes udm_properties: a membership's school is serialized into
-    # change-detection baselines, so its load depth must match a school
-    # fetched via search (full row) — see the user manager's loaders.
     return (
         SchoolModel.record_uid,
         SchoolModel.source_uid,
