@@ -88,7 +88,9 @@ class KelvinClient(HttpUser):
     fake: Faker = Faker()
     test_data: TestData = TestData()
     test_cleaner: TestCleaner = get_test_cleaner()
-    base_path: str = "/ucsschool/kelvin/v1"
+    # API version is selected via the UCS_ENV_KELVIN_API_VERSION env var (default "v1").
+    # Read at import time so locust workers (separate processes) pick it up too.
+    base_path: str = f"/ucsschool/kelvin/{get_settings().kelvin_api_version}"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

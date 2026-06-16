@@ -1,6 +1,6 @@
 #!/usr/share/ucs-test/runner /usr/bin/pytest-3 -l -v
 ## -*- coding: utf-8 -*-
-## desc: Test performance of HEAD /ucsschool/kelvin/v1/schools/SCHOOL
+## desc: Test performance of HEAD /ucsschool/kelvin/<version>/schools/SCHOOL
 ## tags: [kelvin, performance]
 ## exposure: safe
 ## packages: []
@@ -19,20 +19,24 @@ test_parameter = PerformanceTestParameters(
 
 
 @pytest.fixture(scope="module", autouse=True)
-def run_test(verify_test_sent_requests):
-    execute_test(test_parameter)
+def run_test(api_version, verify_test_sent_requests):
+    execute_test(test_parameter, api_version)
     # fail in fixture, so pytest prints the output of Locust,
     # regardless which test_*() function started Locust
-    verify_test_sent_requests(test_parameter.result_file_base_path)
+    verify_test_sent_requests(test_parameter.result_file_base_path(api_version))
 
 
-def test_failure_count(check_failure_count):
-    check_failure_count(test_parameter.result_file_base_path)
+def test_failure_count(api_version, check_failure_count):
+    check_failure_count(test_parameter.result_file_base_path(api_version))
 
 
-def test_rps(check_rps):
-    check_rps(test_parameter.result_file_base_path, test_parameter.url_name, 32)
+def test_rps(api_version, check_rps):
+    check_rps(
+        test_parameter.result_file_base_path(api_version), test_parameter.url_name(api_version), 32
+    )
 
 
-def test_99_percentile(check_99_percentile):
-    check_99_percentile(test_parameter.result_file_base_path, test_parameter.url_name, 100)
+def test_99_percentile(api_version, check_99_percentile):
+    check_99_percentile(
+        test_parameter.result_file_base_path(api_version), test_parameter.url_name(api_version), 100
+    )

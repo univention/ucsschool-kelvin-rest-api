@@ -55,12 +55,46 @@ LOCUST_FILE_PATH: Path = Path(__file__).parent / "locust_files"
 
 KELVIN_HOST_ENV = "UCS_ENV_KELVIN_HOST"
 KELVIN_HOST_FALLBACK = "primary.ucsschool.test"
-KELVIN_URL_BASE = "/ucsschool/kelvin/v1"
+KELVIN_API_VERSION_ENV = "UCS_ENV_KELVIN_API_VERSION"
 TEST_DATA_PATH = "/var/lib/test-data"
 KELVIN_WORKER_COUNT = 4
 
+
+def kelvin_url_base(api_version: str) -> str:
+    return f"/ucsschool/kelvin/{api_version}"
+
+
 ucr = univention.testing.ucr.UCSTestConfigRegistry()
 ucr.load()
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--api-version",
+        action="store",
+        default=None,
+        choices=["v1", "v2", "both"],
+        help=(
+            "Which API version(s) to test: v1, v2, or both. "
+            f"Defaults to ${KELVIN_API_VERSION_ENV} or 'both' if unset."
+        ),
+    )
+
+
+def _resolve_api_versions(config) -> list[str]:
+    selection = config.getoption("--api-version") or os.environ.get(KELVIN_API_VERSION_ENV, "both")
+    return ["v1", "v2"] if selection == "both" else [selection]
+
+
+def pytest_generate_tests(metafunc):
+    if "api_version" in metafunc.fixturenames:
+        metafunc.parametrize("api_version", _resolve_api_versions(metafunc.config), scope="module")
+
+
+@pytest.fixture(scope="module")
+def api_version(request) -> str:
+    """The Kelvin API version (``v1``/``v2``) the current test run targets."""
+    return request.param
 
 
 @dataclass
@@ -84,13 +118,17 @@ class PerformanceTestParameters:
     )
     # post init
     target_locust_file_path: Path = field(init=False)
-    result_file_base_path: Path = field(init=False)
-    url_name: str = field(init=False)
 
     def __post_init__(self):
         self.target_locust_file_path = LOCUST_FILE_PATH / self.target_locust_file_name
-        self.result_file_base_path = RESULT_DIR / self.result_files_name
-        self.url_name = f"{KELVIN_URL_BASE}/{self.route}"
+
+    def result_file_base_path(self, api_version: str) -> Path:
+        """Result files are kept per API version so v1 and v2 runs don't overwrite each other."""
+        return RESULT_DIR / f"{self.result_files_name}-{api_version}"
+
+    def url_name(self, api_version: str) -> str:
+        """The request name Locust reports in the stats CSV for this route (see ``base.py``)."""
+        return f"{kelvin_url_base(api_version)}/{self.route}"
 
 
 @lru_cache(maxsize=1)
@@ -184,6 +222,7 @@ def check_99_percentile(get_one_row: Callable[[Path | str, str, str], dict[str, 
 
 def execute_test(
     test_parameter: PerformanceTestParameters,
+    api_version: str,
     host: str | None = None,
     loglevel: str | None = None,
 ):
@@ -197,7 +236,9 @@ def execute_test(
             os.environ[k] = v
     if loglevel:
         os.environ["LOCUST_LOGLEVEL"] = loglevel
-    result_file_base_path = test_parameter.result_file_base_path
+    # Tell the Locust subprocess (and its workers) which API version to target.
+    os.environ[KELVIN_API_VERSION_ENV] = api_version
+    result_file_base_path = test_parameter.result_file_base_path(api_version)
     result_file_base_path.parent.mkdir(parents=True, exist_ok=True)
     envs = {k: v for k, v in os.environ.items() if k.startswith("LOCUST_")}
     cmd = [

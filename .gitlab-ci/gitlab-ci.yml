@@ -276,6 +276,7 @@ performance-tests:
       { echo '<!DOCTYPE html><html><head><title>Locust Performance Reports</title></head><body><h1>Locust Performance Reports</h1><ul>';
         for f in locust-reports/*.html; do name=$(basename "$f"); printf '<li><a href="%s">%s</a></li>\n' "$name" "$name"; done;
         echo '</ul></body></html>'; } > locust-reports/index.html
+    - .gitlab-ci/compare_locust_versions.py results | tee locust-reports/version_comparison.md || true
     - ls results/singleserver/test-reports/locust
     - .gitlab-ci/parse_junit.py
   artifacts:

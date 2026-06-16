@@ -10,6 +10,8 @@ KELVIN_PASSWORD_ENV = "UCS_ENV_TEST_KELVIN_PASSWORD"  # nosec
 KELVIN_PASSWORD_FALLBACK = "univention"  # nosec
 KELVIN_USERNAME_ENV = "UCS_ENV_TEST_KELVIN_USERNAME"
 KELVIN_USERNAME_FALLBACK = "Administrator"
+KELVIN_API_VERSION_ENV = "UCS_ENV_KELVIN_API_VERSION"
+KELVIN_API_VERSION_FALLBACK = "v1"
 
 
 @overload
@@ -55,6 +57,9 @@ class Settings:
     )
     kelvin_host: str = field(
         default_factory=default_from_env(KELVIN_HOST_ENV, default=KELVIN_HOST_FALLBACK)
+    )
+    kelvin_api_version: str = field(
+        default_factory=default_from_env(KELVIN_API_VERSION_ENV, default=KELVIN_API_VERSION_FALLBACK)
     )
     roles: list[str] = field(
         default_factory=lambda: ["staff", "student", "teacher", "legal_guardian", "school_admin"]

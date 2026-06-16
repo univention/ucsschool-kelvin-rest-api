@@ -14,3 +14,20 @@ Results are stored in `/var/lib/ucs-test-ucsschool-kelvin-performance/results/`.
 The `*_stats.csv` files stored there are then used by the pytest tests to evaluate if the endpoint
 fulfills the performance requirements.
 
+## Selecting the API version (v1 / v2)
+
+Like the `kelvin-api` unit tests, the performance tests can target the `v1` or `v2`
+Kelvin API endpoints (or both). The version is selected via:
+
+- the `--api-version` pytest option (`v1`, `v2` or `both`), or
+- the `UCS_ENV_KELVIN_API_VERSION` environment variable (same values).
+
+When neither is set, both versions are tested. `ucs-test` cannot forward pytest
+options, so under `ucs-test` (and in CI) the `UCS_ENV_KELVIN_API_VERSION`
+environment variable is the way to control this; see
+`.gitlab-ci/branch_performance_tests.cfg`.
+
+When `both` is selected, every test runs Locust once per version and writes its
+results to a version-suffixed file (e.g. `010-get-all-users-v1_stats.csv` and
+`010-get-all-users-v2_stats.csv`), so the two runs never overwrite each other.
+

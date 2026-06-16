@@ -16,11 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 class TestCleaner:
-    base_path = "/ucsschool/kelvin/v1"
-
     def __init__(self):
         """Please use `get_test_cleaner()` to make sure there is only one instance."""
         self.settings = get_settings()
+        self.base_path = f"/ucsschool/kelvin/{self.settings.kelvin_api_version}"
         self._users_to_delete: deque = deque()
 
     def delete_user_later(self, username: str):
