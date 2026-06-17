@@ -53,7 +53,7 @@ within the timeout, and is a no-op when `UCS_ENV_KELVIN_API_VERSION=v1`.
 The timeout must be large: the provisioning service pre-fills its **own** queue
 (NATS) before delivering anything to the connector, which can take hours — during
 that phase the v2 count legitimately stays at 0. Tunables:
-`UCS_ENV_DB_FILL_TIMEOUT` (default 21600s = 6h), `UCS_ENV_DB_FILL_INTERVAL`
+`UCS_ENV_DB_FILL_TIMEOUT` (default 32400s = 9h), `UCS_ENV_DB_FILL_INTERVAL`
 (30s), `UCS_ENV_DB_FILL_MIN_RATIO` (1.0). The CI job's own `timeout` must exceed
 this plus the Locust run time.
 

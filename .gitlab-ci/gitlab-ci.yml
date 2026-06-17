@@ -256,9 +256,9 @@ integration-tests:
 performance-tests:
   extends: .run_openstack_cfg
   stage: tests
-  # Generous: the v2 connector waits for the provisioning prefill (up to ~6h, see
+  # Generous: the v2 connector waits for the provisioning prefill (up to ~9h, see
   # UCS_ENV_DB_FILL_TIMEOUT) before the Locust runs (~2h for both versions) start.
-  timeout: 540 minutes
+  timeout: 660 minutes
   needs:
     - create_app_version
     - update_appcenter
