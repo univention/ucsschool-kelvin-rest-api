@@ -88,7 +88,7 @@ class SQLAlchemySchoolManager(Manager[School]):
         query: SearchQuery | None = None,
         *,
         sort_by: Sequence[SortSpec] = (),
-        limit: int = 50,
+        limit: int | None = None,
         offset: int = 0,
         load: LoadSpec | None = None,
     ) -> Iterable[School]:
@@ -113,7 +113,10 @@ class SQLAlchemySchoolManager(Manager[School]):
             default_field="public_id",
             registry=self._NESTED_FIELD_REGISTRY,
         )
-        stmt = stmt.limit(limit).offset(offset)
+        if limit is not None:
+            stmt = stmt.limit(limit)
+        if offset:
+            stmt = stmt.offset(offset)
         return (to_school(model) for model in (await self._session.execute(stmt)).scalars())
 
     async def create(
