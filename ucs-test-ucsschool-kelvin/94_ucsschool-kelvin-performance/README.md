@@ -31,29 +31,21 @@ When `both` is selected, every test runs Locust once per version and writes its
 results to a version-suffixed file (e.g. `010-get-all-users-v1_stats.csv` and
 `010-get-all-users-v2_stats.csv`), so the two runs never overwrite each other.
 
-## Waiting for the v2 database (`wait_for_db_full.py`)
+## Waiting for the v2 database
 
 The v2 API serves from a separate database that the connector fills by consuming
-the provisioning queue. With a large pre-filled LDAP, that database is empty when
-the app starts and catches up asynchronously — there is no queue-depth endpoint,
-so `wait_for_db_full.py` polls instead: it reads the expected per-school user
-counts from LDAP and waits until the Kelvin v2 REST API reports the same counts.
-
-It uses the host's **system** Python (for `univention.admin.uldap`), not the
-Locust virtualenv, so it is run directly:
+the provisioning queue. With a large pre-filled LDAP this catches up only slowly
+(the provisioning service even pre-fills its own queue first, which can take
+hours). To keep that wait out of the performance run, the **golden image** is
+built with a fully-replicated v2 database: the image build (in the
+`ucsschool-images` repo) blocks on `ucsschool.kelvin.wait_for_db_full`, which
+ships inside the Kelvin container:
 
 ```bash
-python3 /usr/share/ucs-test/94_ucsschool-kelvin-performance/wait_for_db_full.py
+univention-app shell ucsschool-kelvin-rest-api python3 -m ucsschool.kelvin.wait_for_db_full
 ```
 
-CI runs it in `branch_performance_tests.cfg` after the app restart and before
-`ucs-test`. It exits non-zero (failing the run) if replication does not complete
-within the timeout, and is a no-op when `UCS_ENV_KELVIN_API_VERSION=v1`.
-
-The timeout must be large: the provisioning service pre-fills its **own** queue
-(NATS) before delivering anything to the connector, which can take hours — during
-that phase the v2 count legitimately stays at 0. Tunables:
-`UCS_ENV_DB_FILL_TIMEOUT` (default 32400s = 9h), `UCS_ENV_DB_FILL_INTERVAL`
-(30s), `UCS_ENV_DB_FILL_MIN_RATIO` (1.0). The CI job's own `timeout` must exceed
-this plus the Locust run time.
+It compares the ucsschool user count in LDAP with the user-row count in the v2
+database and blocks until they match. Because the database is already full in the
+image, the performance tests here do not need to wait.
 
