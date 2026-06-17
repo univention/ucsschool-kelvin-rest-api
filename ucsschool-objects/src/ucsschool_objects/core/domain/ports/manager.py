@@ -59,7 +59,7 @@ class Manager(Protocol[ManagerT]):
         query: SearchQuery | None = None,
         *,
         sort_by: Sequence[SortSpec] = (),
-        limit: int = 50,
+        limit: int | None = None,
         offset: int = 0,
         load: LoadSpec | None = None,
     ) -> Iterable[ManagerT]:  # pragma: no cover
@@ -72,7 +72,7 @@ class Manager(Protocol[ManagerT]):
         Args:
             query: Optional structured filter expression.
             sort_by: Sort fields and direction.
-            limit: Maximum number of records to return.
+            limit: Maximum number of records to return; ``None`` (default) returns all.
             offset: Number of matching records to skip.
             load: Optional attribute/loading specification for eager loading.
         """

@@ -324,7 +324,7 @@ async def search(
         extra_clauses=_udm_property_filters(request),
     )
     logger.debug("v2 user search query: %r", query)
-    users = list(await session.users.search(query, load=USER_LOAD_SPEC_V2, limit=10000))
+    users = list(await session.users.search(query, load=USER_LOAD_SPEC_V2))
     users.sort(key=lambda u: u.name)
     mapper = sqlalchemy_mapper_factory(session)
     dn_map = await mapper.public_ids_to_dns(ObjectType.USER, [user.public_id for user in users])
