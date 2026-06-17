@@ -176,9 +176,9 @@ def main() -> int:
     parser.add_argument(
         "--timeout",
         type=float,
-        default=float(os.environ.get("UCS_ENV_DB_FILL_TIMEOUT", "21600")),
+        default=float(os.environ.get("UCS_ENV_DB_FILL_TIMEOUT", "32400")),
         help=(
-            "Maximum seconds to wait for the v2 database to catch up (default: 21600 = 6h). "
+            "Maximum seconds to wait for the v2 database to catch up (default: 32400 = 9h). "
             "Must be generous: the provisioning service first pre-fills its own queue, which "
             "can take HOURS, during which the connector receives nothing and the count stays 0."
         ),
