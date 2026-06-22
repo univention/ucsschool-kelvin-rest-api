@@ -21,9 +21,8 @@ include:
       python_paths: .
       python_version: "3.11"
       baseline_file: basedpyright-baseline.json
-      before_script: []
-        # TODO we need to create a baseline with installed packages to lint code using our modules
-        # - "apt-get update -qq && apt-get install -y -qq git gcc python3-dev libldap2-dev libsasl2-dev && uv sync --dev"
+      before_script:
+        - "apt-get update -qq && apt-get install -y -qq git gcc python3-dev libldap2-dev libsasl2-dev && uv sync --dev"
       job_rules:
         - if: $CI_MERGE_REQUEST_ID
           changes:
