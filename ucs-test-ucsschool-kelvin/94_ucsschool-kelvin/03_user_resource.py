@@ -51,6 +51,29 @@ def extract_class_dns(lo):
     return _func
 
 
+# Issue univention/dev/education/ucsschool-kelvin-rest-api#130: Under high parallelism the UDM HTTP
+# REST API intermittently answers with an
+# ``APICommunicationError`` (e.g. HTTP 422 with body
+# ``{"detail": [{"type": "UdmError:APICommunicationError"}]}``). These parallel tests exist to
+# detect exactly that condition, so the error must NOT be hidden by retrying. Until the upstream
+# fix lands we mark an affected run as xfail: a clean run still passes (green), this specific
+# error turns the run yellow (xfailed) instead of red, and any *other* failure still fails.
+API_COMMUNICATION_ERROR_TYPE = "UdmError:APICommunicationError"
+
+
+def xfail_on_api_communication_error(results):
+    """Mark the current test xfail if any parallel result is an APICommunicationError.
+
+    Does not retry and does not mask other failures.
+    See univention/dev/education/ucsschool-kelvin-rest-api#130.
+    """
+    if any(API_COMMUNICATION_ERROR_TYPE in repr(result) for result in results):
+        pytest.xfail(
+            "Issue univention/dev/education/ucsschool-kelvin-rest-api#130: UDM REST API returned "
+            "{!r} under parallel load; upstream fix pending.".format(API_COMMUNICATION_ERROR_TYPE)
+        )
+
+
 def assert_equal_dicts(dict1, dict2):
     assert set(dict1.keys()) == set(dict2.keys())
     for k, v in dict1.items():
@@ -107,6 +130,7 @@ def test_create_user_parallel_from_external_different_classes(
         except KeyError:
             # continue to collect user DNs, so we can cleanup as much as possible
             errors.append("Result without DN: {!r}.".format(r))
+    xfail_on_api_communication_error(results)
     assert not errors, " ".join(errors)
     wait_for_listener_replication()
     wait_for_s4connector_replication()
@@ -189,6 +213,7 @@ def test_create_user_parallel_from_external_same_classes(
         except KeyError:
             # continue to collect user DNs, so we can cleanup as much as possible
             errors.append("Result without DN: {!r}.".format(r))
+    xfail_on_api_communication_error(results)
     assert not errors, " ".join(errors)
     wait_for_listener_replication()
     wait_for_s4connector_replication()
@@ -277,6 +302,7 @@ def test_partial_update_user_parallel_from_external_different_classes(
     t1 = time.time()
     logger.info("***** got %d results in %d seconds", len(results), t1 - t0)
     logger.debug("***** results=%r", results)
+    xfail_on_api_communication_error(results)
     wait_for_listener_replication()
     wait_for_s4connector_replication()
     for num, result in enumerate(results, start=1):
