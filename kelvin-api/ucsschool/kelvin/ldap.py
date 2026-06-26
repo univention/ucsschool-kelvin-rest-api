@@ -32,8 +32,11 @@ from datetime import datetime
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
+import ldap3
+import ldap3.core.connection
 import uldap3
 from asgi_correlation_id.context import correlation_id
+from ldap3.strategy.restartable import RestartableStrategy
 from pydantic import BaseModel
 from uldap3 import Entry, LdapConfig as uLdapConfig, escape_filter_chars
 
@@ -47,6 +50,59 @@ from .constants import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class FirstAttemptImmediateRestartableStrategy(RestartableStrategy):
+    """``RestartableStrategy`` that performs the first reconnect attempt without waiting.
+
+    ldap3's stock ``RestartableStrategy`` sleeps ``RESTARTABLE_SLEEPTIME`` seconds
+    *before every* reconnection attempt -- including the first one. After an LDAP
+    server restart a cached connection is stale but the server is reachable again, so
+    the first retry would succeed immediately; the client nevertheless waits the full
+    sleep time. With several connections per login request this adds up to seconds of
+    delay (Bug #58263).
+
+    This subclass skips the wait before the first attempt of each restart cycle while
+    keeping ldap3's default sleep time between the following attempts. A stale
+    connection therefore reconnects instantly, while a genuinely unreachable server is
+    still polled at the default interval and not hammered with a tight retry loop.
+    """
+
+    def _open_socket(self, *args, **kwargs):
+        if not self._restarting:  # entering a fresh restart cycle
+            self._skip_next_sleep = True
+        return super()._open_socket(*args, **kwargs)
+
+    def send(self, *args, **kwargs):
+        if not self._restarting:  # entering a fresh restart cycle
+            self._skip_next_sleep = True
+        return super().send(*args, **kwargs)
+
+    @property
+    def restartable_sleep_time(self):
+        # The parent reads this once per retry-loop iteration. Return 0 for the first
+        # read of a cycle so the first reconnect attempt happens immediately.
+        if getattr(self, "_skip_next_sleep", False):
+            self._skip_next_sleep = False
+            return 0
+        return self._restartable_sleep_time
+
+    @restartable_sleep_time.setter
+    def restartable_sleep_time(self, value):
+        self._restartable_sleep_time = value
+
+
+def _install_immediate_reconnect_strategy() -> None:
+    # uldap3 hard-codes ``client_strategy=RESTARTABLE``; ldap3 resolves that constant
+    # to whatever ``RestartableStrategy`` name is bound in its connection module at
+    # instantiation time, so swapping that binding installs our strategy globally.
+    ldap3.core.connection.RestartableStrategy = FirstAttemptImmediateRestartableStrategy
+
+
+try:
+    _install_immediate_reconnect_strategy()
+except Exception as e:
+    logger.warning("Could not configure LDAP reconnection behaviour: %s", e)
 
 
 @lru_cache

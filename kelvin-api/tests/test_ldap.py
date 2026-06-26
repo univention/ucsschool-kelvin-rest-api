@@ -26,9 +26,12 @@
 # <http://www.gnu.org/licenses/>.
 
 from collections.abc import Sequence
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import ldap3
 import pytest
+from ldap3.core.exceptions import LDAPMaximumRetriesError, LDAPSocketOpenError
+from ldap3.strategy.sync import SyncStrategy
 
 import ucsschool.kelvin.constants
 import ucsschool.kelvin.ldap
@@ -39,6 +42,36 @@ must_run_in_container = pytest.mark.skipif(
     not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
     reason="Must run inside Docker container started by appcenter.",
 )
+
+
+def test_immediate_reconnect_strategy_is_installed():
+    ucsschool.kelvin.ldap._install_immediate_reconnect_strategy()
+    connection = ldap3.Connection(
+        ldap3.Server("ldap.example.com", port=7389),
+        client_strategy=ldap3.RESTARTABLE,
+        lazy=True,
+    )
+    assert isinstance(
+        connection.strategy, ucsschool.kelvin.ldap.FirstAttemptImmediateRestartableStrategy
+    )
+
+
+def test_first_reconnect_attempt_is_immediate_then_backs_off():
+    """First retry must not sleep; subsequent retries use the configured sleep time."""
+    connection = Mock(closed=True, usage=None, server_pool=None)
+    strategy = ucsschool.kelvin.ldap.FirstAttemptImmediateRestartableStrategy(connection)
+    strategy.restartable_sleep_time = 2  # configured between-retries backoff
+    strategy.restartable_tries = 3  # finite, so the loop terminates
+
+    sleeps = []
+    with patch.object(
+        SyncStrategy, "_open_socket", side_effect=LDAPSocketOpenError("server down")
+    ), patch("ldap3.strategy.restartable.sleep", side_effect=lambda seconds: sleeps.append(seconds)):
+        with pytest.raises(LDAPMaximumRetriesError):
+            strategy._open_socket(("ldap.example.com", 7389))
+
+    # 1st attempt immediate (0s), the remaining attempts wait the configured 2s.
+    assert sleeps == [0, 2, 2]
 
 
 def test_get_uldap_conf_props(temp_file_func, random_name):

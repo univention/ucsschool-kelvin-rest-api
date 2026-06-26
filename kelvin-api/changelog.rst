@@ -5,6 +5,11 @@
 Changelog
 =========
 
+v3.3.1 (2026-06-15)
+-------------------
+* Fixed: After a restart of the LDAP server, the first login request could be delayed by several seconds because the LDAP library waited before every reconnection attempt, including the first one.
+  The first reconnection attempt is now performed immediately, so a stale connection to an already-reachable LDAP server reconnects without delay (:uv:bug:`58263`).
+
 v3.3.0 (2026-06-02)
 -------------------
 * Changed the application Docker base image from Alpine to the standard UCS base image (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#147`).
