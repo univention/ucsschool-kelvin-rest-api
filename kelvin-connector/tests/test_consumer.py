@@ -115,23 +115,28 @@ def handler(sync_manager):
 
 
 async def test_is_relevant_unknown_topic_returns_false(handler):
-    event = {"topic": "unknown/type", "body": {"new": {"properties": {"ucsschoolRole": ["t"]}}}}
+    event = {
+        "topic": "unknown/type",
+        "sequence_number": 1,
+        "body": {"new": {"properties": {"ucsschoolRole": ["t"]}}},
+    }
     assert await handler.is_relevant(event) is False
 
 
 async def test_is_relevant_no_properties_returns_false(handler):
-    event = {"topic": "users/user", "body": {"new": {}}}
+    event = {"topic": "users/user", "sequence_number": 1, "body": {"new": {}}}
     assert await handler.is_relevant(event) is False
 
 
 async def test_is_relevant_no_ucsschool_role_returns_false(handler):
-    event = {"topic": "users/user", "body": {"new": {"properties": {}}}}
+    event = {"topic": "users/user", "sequence_number": 1, "body": {"new": {"properties": {}}}}
     assert await handler.is_relevant(event) is False
 
 
 async def test_is_relevant_reads_properties_from_old(handler):
     event = {
         "topic": "users/user",
+        "sequence_number": 1,
         "body": {"old": {"properties": {"ucsschoolRole": ["teacher:school:DEMOSCHOOL"]}}},
     }
     assert await handler.is_relevant(event) is True
@@ -140,6 +145,7 @@ async def test_is_relevant_reads_properties_from_old(handler):
 async def test_is_relevant_falls_back_to_new_when_old_has_no_properties(handler):
     event = {
         "topic": "users/user",
+        "sequence_number": 1,
         "body": {
             "old": {},
             "new": {"properties": {"ucsschoolRole": ["teacher:school:DEMOSCHOOL"]}},
@@ -151,6 +157,7 @@ async def test_is_relevant_falls_back_to_new_when_old_has_no_properties(handler)
 async def test_is_relevant_returns_true_for_user_topic(handler):
     event = {
         "topic": "users/user",
+        "sequence_number": 1,
         "body": {"new": {"properties": {"ucsschoolRole": ["teacher:school:DEMOSCHOOL"]}}},
     }
     assert await handler.is_relevant(event) is True
@@ -160,6 +167,7 @@ async def test_is_relevant_skips_exam_user(handler):
     # Exam users are temporary copies and must not be cached.
     event = {
         "topic": "users/user",
+        "sequence_number": 1,
         "body": {
             "new": {
                 "properties": {
@@ -177,6 +185,7 @@ async def test_is_relevant_skips_exam_user(handler):
 async def test_is_relevant_returns_true_for_ou_topic(handler):
     event = {
         "topic": "container/ou",
+        "sequence_number": 1,
         "body": {"new": {"properties": {"ucsschoolRole": ["school_admin:school:DEMOSCHOOL"]}}},
     }
     assert await handler.is_relevant(event) is True
@@ -185,6 +194,7 @@ async def test_is_relevant_returns_true_for_ou_topic(handler):
 async def test_is_relevant_group_with_school_class_role(handler):
     event = {
         "topic": "groups/group",
+        "sequence_number": 1,
         "body": {"new": {"properties": {"ucsschoolRole": ["school_class:school:DEMOSCHOOL"]}}},
     }
     assert await handler.is_relevant(event) is True
@@ -193,6 +203,7 @@ async def test_is_relevant_group_with_school_class_role(handler):
 async def test_is_relevant_group_with_workgroup_role(handler):
     event = {
         "topic": "groups/group",
+        "sequence_number": 1,
         "body": {"new": {"properties": {"ucsschoolRole": ["workgroup:school:DEMOSCHOOL"]}}},
     }
     assert await handler.is_relevant(event) is True
@@ -201,6 +212,7 @@ async def test_is_relevant_group_with_workgroup_role(handler):
 async def test_is_relevant_group_with_unmatched_role_returns_false(handler):
     event = {
         "topic": "groups/group",
+        "sequence_number": 1,
         "body": {"new": {"properties": {"ucsschoolRole": ["other_role:school:DEMOSCHOOL"]}}},
     }
     assert await handler.is_relevant(event) is False
@@ -358,6 +370,7 @@ async def test_handle_remove_unknown_type_logs_error(handler, sync_manager):
 async def test_is_relevant_group_with_host_group_name_returns_true(handler):
     event = {
         "topic": "groups/group",
+        "sequence_number": 1,
         "body": {
             "old": {"properties": {"ucsschoolRole": []}},
             "new": {
@@ -374,6 +387,7 @@ async def test_is_relevant_group_with_host_group_name_returns_true(handler):
 async def test_is_relevant_both_old_and_new_have_ucsschool_role(handler):
     event = {
         "topic": "groups/group",
+        "sequence_number": 1,
         "body": {
             "old": {"properties": {"ucsschoolRole": ["school_class:school:demoschool"]}},
             "new": {"properties": {"ucsschoolRole": ["school_class:school:demoschool"]}},

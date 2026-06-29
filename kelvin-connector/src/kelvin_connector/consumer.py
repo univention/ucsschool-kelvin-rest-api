@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import enum
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from kelvin_connector.models import (
     DeletePayload,
@@ -43,6 +43,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
     from loguru import Logger
 
+    logger: Logger
+
 
 HOST_GROUP_NAME_RE = re.compile(r"OU(.*)-DC-(Edukativnetz|Verwaltungsnetz)")
 
@@ -74,7 +76,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         super().__init__(logger, *args, **kwargs)
 
     @staticmethod
-    def _filter(object_type: str, roles: list[str], name: str = "") -> bool:
+    def _filter(object_type: str, roles: list[str], seq_num: int, name: str = "") -> bool:
         match object_type:
             case (ObjectType.GROUPS):
                 if any(
@@ -83,21 +85,44 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     return True
                 if HOST_GROUP_NAME_RE.match(name):
                     return True
+                logger.info(
+                    "Skipping event {}: Object is not a school class, work group or host group. "
+                    + "object_type={}, name={}",
+                    seq_num,
+                    object_type,
+                    name,
+                )
                 return False
             case (ObjectType.USERS):
                 # Exam users are temporary copies (created under cn=examusers
                 # for the duration of an exam, then deleted). They are
                 # intentionally not cached.
-                return not any(role.startswith("exam_user:") for role in roles)
+                is_exam_user = any(role.startswith("exam_user:") for role in roles)
+                if is_exam_user:
+                    logger.info(
+                        "Skipping event {}: Object is an exam user. object_type={}, name={}",
+                        seq_num,
+                        object_type,
+                        name,
+                    )
+                    return False
+                return True
             case (ObjectType.OUS):
                 return True
             case _:
+                logger.info(
+                    "Skipping event {}: Object type is not recognized. object_type={}, name={}",
+                    seq_num,
+                    object_type,
+                    name,
+                )
                 return False
 
     @override
     async def is_relevant(self, event: QueryEventObject) -> bool:
         self.logger.trace("Checking if event is relevant: {}", event)
         topic = event["topic"]
+        seq_num = event["sequence_number"]
         body = event["body"]
 
         properties_old = None
@@ -109,14 +134,23 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         if "new" in body and "properties" in body["new"]:
             properties_new = body["new"]["properties"]
 
+        dn: str = str((body.get("new") or body.get("old") or {}).get("dn", ""))
+
         match (properties_old, properties_new):
             case ({"ucsschoolRole": roles} as properties, None):
-                return self._filter(topic, roles, properties.get("name", ""))
+                return self._filter(topic, roles, seq_num, cast(str, properties.get("name", "")))
             case (None, {"ucsschoolRole": roles} as properties):
-                return self._filter(topic, roles, properties.get("name", ""))
+                return self._filter(topic, roles, seq_num, cast(str, properties.get("name", "")))
             case ({"ucsschoolRole": _}, {"ucsschoolRole": roles_new} as properties):
-                return self._filter(topic, roles_new, properties.get("name", ""))
+                return self._filter(topic, roles_new, seq_num, cast(str, properties.get("name", "")))
             case _:
+                self.logger.info(
+                    "Skipping event {}: no ucsschoolRole in old or new UDM properties, "
+                    + "topic={}, dn={}",
+                    seq_num,
+                    topic,
+                    dn,
+                )
                 return False
 
     @override
@@ -142,42 +176,75 @@ class KelvinConnectorEventHandler(UDMEventHandler):
 
     @override
     async def _handle_create(self, metadata: Metadata, new: AttributeMapping) -> None:
+        dn: str = str(new.get("dn", ""))
+        public_id: str = str(new.get("properties", {}).get("univentionObjectIdentifier", ""))
+        seq_num = metadata["sequence_number"]
         match new["objectType"]:
             case ObjectType.USERS:
                 await self.synchronization_manager.handle_user_create(
                     UserCreateEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         new=UserPayload.validate(new),
                     )
+                )
+                self.logger.info(
+                    "Create user event processed: dn={}, public_id={}, seq_num={}",
+                    dn,
+                    public_id,
+                    seq_num,
                 )
             case ObjectType.GROUPS:
                 if HOST_GROUP_NAME_RE.match(new["properties"].get("name", "")):
                     await self.synchronization_manager.handle_host_group_create(
                         HostGroupCreateEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             new=HostGroupPayload.validate(new),
                         )
+                    )
+                    self.logger.info(
+                        "Create host_group event processed: dn={}, public_id={}, seq_num={}",
+                        dn,
+                        public_id,
+                        seq_num,
                     )
                 else:
                     await self.synchronization_manager.handle_group_create(
                         GroupCreateEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             new=GroupPayload.validate(new),
                         )
+                    )
+                    self.logger.info(
+                        "Create group event processed: dn={}, public_id={}, seq_num={}",
+                        dn,
+                        public_id,
+                        seq_num,
                     )
             case ObjectType.OUS:
                 await self.synchronization_manager.handle_school_create(
                     SchoolCreateEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         new=SchoolPayload.validate(new),
                     )
                 )
+                self.logger.info(
+                    "Create school event processed: dn={}, public_id={}, seq_num={}",
+                    dn,
+                    public_id,
+                    seq_num,
+                )
             case _:
-                logger.error(f"Unknown object type {new['objectType']} in create event")
+                self.logger.info(
+                    "Skipping create event {}: unknown object type {}, dn={}\nNew: {}",
+                    seq_num,
+                    new["objectType"],
+                    dn,
+                    new,
+                )
 
     @override
     async def _handle_modify(
@@ -189,84 +256,151 @@ class KelvinConnectorEventHandler(UDMEventHandler):
     ) -> None:
         # has_moved needs no special handling: the modify handlers refresh
         # the DN mapping from the event's new dn unconditionally.
+        dn: str = str(new.get("dn", ""))
+        public_id: str = str(new.get("properties", {}).get("univentionObjectIdentifier", ""))
+        seq_num = metadata["sequence_number"]
         match new["objectType"]:
             case ObjectType.USERS:
                 await self.synchronization_manager.handle_user_modify(
                     UserModifyEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         new=UserPayload.validate(new),
                     )
+                )
+                self.logger.info(
+                    "Modify user event processed: dn={}, public_id={}, seq_num={}",
+                    dn,
+                    public_id,
+                    seq_num,
                 )
             case ObjectType.GROUPS:
                 if HOST_GROUP_NAME_RE.match(new["properties"].get("name", "")):
                     await self.synchronization_manager.handle_host_group_modify(
                         HostGroupModifyEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             new=HostGroupPayload.validate(new),
                         )
+                    )
+                    self.logger.info(
+                        "Modify host_group event processed: dn={}, public_id={}, seq_num={}",
+                        dn,
+                        public_id,
+                        seq_num,
                     )
                 else:
                     await self.synchronization_manager.handle_group_modify(
                         GroupModifyEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             new=GroupPayload.validate(new),
                         )
+                    )
+                    self.logger.info(
+                        "Modify group event processed: dn={}, public_id={}, seq_num={}",
+                        dn,
+                        public_id,
+                        seq_num,
                     )
             case ObjectType.OUS:
                 await self.synchronization_manager.handle_school_modify(
                     SchoolModifyEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         new=SchoolPayload.validate(new),
                     )
                 )
+                self.logger.info(
+                    "Modify school event processed: dn={}, public_id={}, seq_num={}",
+                    dn,
+                    public_id,
+                    seq_num,
+                )
             case _:
-                logger.error(f"Unknown object type {new['objectType']} in modify event.")
+                self.logger.info(
+                    "Skipping modify event {}: unknown object type {}, dn={}\nOld: {}\nNew: {}",
+                    seq_num,
+                    new["objectType"],
+                    dn,
+                    old,
+                    new,
+                )
 
     @override
     async def _handle_remove(self, metadata: Metadata, old: AttributeMapping) -> None:
         # Deletion only needs the identifier: the rest of a deleted object's
         # state may be malformed and must not prevent removing it from the
         # cache — see DeletePayload.
+        dn: str = str(old.get("dn", ""))
+        public_id: str = str(old.get("properties", {}).get("univentionObjectIdentifier", ""))
+        seq_num = metadata["sequence_number"]
         match old["objectType"]:
             case ObjectType.USERS:
                 await self.synchronization_manager.handle_user_delete(
                     UserDeleteEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         old=DeletePayload.validate(old),
                     )
+                )
+                self.logger.info(
+                    "Delete user event processed: dn={}, public_id={}, seq_num={}",
+                    dn,
+                    public_id,
+                    seq_num,
                 )
             case ObjectType.GROUPS:
                 if HOST_GROUP_NAME_RE.match(old["properties"].get("name", "")):
                     await self.synchronization_manager.handle_host_group_delete(
                         HostGroupDeleteEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             old=HostGroupPayload.validate(old),
                         )
+                    )
+                    self.logger.info(
+                        "Delete host_group event processed: dn={}, public_id={}, seq_num={}",
+                        dn,
+                        public_id,
+                        seq_num,
                     )
                 else:
                     await self.synchronization_manager.handle_group_delete(
                         GroupDeleteEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             old=DeletePayload.validate(old),
                         )
+                    )
+                    self.logger.info(
+                        "Delete group event processed: dn={}, public_id={}, seq_num={}",
+                        dn,
+                        public_id,
+                        seq_num,
                     )
             case ObjectType.OUS:
                 await self.synchronization_manager.handle_school_delete(
                     SchoolDeleteEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         old=DeletePayload.validate(old),
                     )
                 )
+                self.logger.info(
+                    "Delete school event processed: dn={}, public_id={}, seq_num={}",
+                    dn,
+                    public_id,
+                    seq_num,
+                )
             case _:
-                logger.error(f"Unknown object type {old['objectType']} in remove event.")
+                self.logger.info(
+                    "Skipping delete event {}: unknown object type {}, dn={}\nOld: {}",
+                    seq_num,
+                    old["objectType"],
+                    dn,
+                    old,
+                )
 
 
 class KelvinConsumerModule(ConsumerModule):
@@ -309,34 +443,46 @@ class KelvinConsumerModule(ConsumerModule):
             return
 
         seq_num = event["sequence_number"]
-        self.logger.debug(f"Event {seq_num} has been fetched.")
+        self.logger.debug("Event {} has been fetched.", seq_num)
         if not await self.handler.is_relevant(event):
-            self.logger.debug(f"Skipped and acknowledged event {seq_num} as requested.")
+            self.logger.debug("Skipped and acknowledged event {} as requested.", seq_num)
             await self._acknowledge_event(event)
             return
 
         try:
             handled = await self.handler.handle_event(event)
-        except ValidationError:
-            self.logger.critical(f"Dropping malformed event {seq_num}: {event!r}")
+        except ValidationError as exc:
+            self.logger.error(
+                "Dropping malformed event {}: {} failed validation: {}\nEvent: {!r}",
+                seq_num,
+                exc.model.__name__,
+                exc.errors(),
+                event,
+            )
             await self._acknowledge_event(event)
             return
         except Exception:
             num_delivered = event["num_delivered"]
             if num_delivered < self.max_deliveries:
                 self.logger.error(
-                    f"Event {seq_num} failed on delivery {num_delivered}/{self.max_deliveries}; "
-                    "crashing without acknowledgement, the event will be redelivered."
+                    "Event {} failed on delivery {}/{}; "
+                    + "crashing without acknowledgement, the event will be redelivered.",
+                    seq_num,
+                    num_delivered,
+                    self.max_deliveries,
                 )
                 raise
             self.logger.critical(
-                f"Dropping event {seq_num} after {num_delivered} failed deliveries: {event!r}"
+                "Dropping event {} after {} failed deliveries: {!r}",
+                seq_num,
+                num_delivered,
+                event,
             )
             await self._acknowledge_event(event)
             raise
 
         if handled:
-            self.logger.debug(f"Event {seq_num} has been processed successfully.")
+            self.logger.debug("Event {} has been processed successfully.", seq_num)
             await self._acknowledge_event(event)
         else:
-            self.logger.debug(f"Event {seq_num} has not been processed.")
+            self.logger.debug("Event {} has not been processed.", seq_num)
