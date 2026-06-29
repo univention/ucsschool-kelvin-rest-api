@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import enum
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from kelvin_connector.models import (
     DeletePayload,
@@ -43,6 +43,8 @@ if TYPE_CHECKING:  # pragma: no cover
 
     from loguru import Logger
 
+    logger: Logger
+
 
 HOST_GROUP_NAME_RE = re.compile(r"OU(.*)-DC-(Edukativnetz|Verwaltungsnetz)")
 
@@ -74,7 +76,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         super().__init__(logger, *args, **kwargs)
 
     @staticmethod
-    def _filter(object_type: str, roles: list[str], name: str = "") -> bool:
+    def _filter(object_type: str, roles: list[str], seq_num: int, name: str = "") -> bool:
         match object_type:
             case (ObjectType.GROUPS):
                 if any(
@@ -83,21 +85,36 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     return True
                 if HOST_GROUP_NAME_RE.match(name):
                     return True
+                logger.info(
+                    f"Skipping event {seq_num}: object filtered out (group or host_name), "
+                    + f"object_type={object_type}, name={name}"
+                )
                 return False
             case (ObjectType.USERS):
                 # Exam users are temporary copies (created under cn=examusers
                 # for the duration of an exam, then deleted). They are
                 # intentionally not cached.
-                return not any(role.startswith("exam_user:") for role in roles)
+                if any(role.startswith("exam_user:") for role in roles):
+                    logger.info(
+                        f"Skipping event {seq_num}: object filtered out (exam_user), "
+                        + f"object_type={object_type}, name={name}"
+                    )
+                    return False
+                return True
             case (ObjectType.OUS):
                 return True
             case _:
+                logger.info(
+                    f"Skipping event {seq_num}: object filtered out (unknown object type), "
+                    + f"object_type={object_type}), name={name}"
+                )
                 return False
 
     @override
     async def is_relevant(self, event: QueryEventObject) -> bool:
         self.logger.trace("Checking if event is relevant: {}", event)
         topic = event["topic"]
+        seq_num = event["sequence_number"]
         body = event["body"]
 
         properties_old = None
@@ -109,14 +126,19 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         if "new" in body and "properties" in body["new"]:
             properties_new = body["new"]["properties"]
 
+        dn: str = str((body.get("new") or body.get("old") or {}).get("dn", ""))
+
         match (properties_old, properties_new):
             case ({"ucsschoolRole": roles} as properties, None):
-                return self._filter(topic, roles, properties.get("name", ""))
+                return self._filter(topic, roles, seq_num, cast(str, properties.get("name", "")))
             case (None, {"ucsschoolRole": roles} as properties):
-                return self._filter(topic, roles, properties.get("name", ""))
+                return self._filter(topic, roles, seq_num, cast(str, properties.get("name", "")))
             case ({"ucsschoolRole": _}, {"ucsschoolRole": roles_new} as properties):
-                return self._filter(topic, roles_new, properties.get("name", ""))
+                return self._filter(topic, roles_new, seq_num, cast(str, properties.get("name", "")))
             case _:
+                self.logger.info(
+                    f"Skipping event {seq_num}: old and new are None, topic={topic}, dn={dn}"
+                )
                 return False
 
     @override
@@ -142,42 +164,59 @@ class KelvinConnectorEventHandler(UDMEventHandler):
 
     @override
     async def _handle_create(self, metadata: Metadata, new: AttributeMapping) -> None:
+        dn: str = str(new.get("dn", ""))
+        public_id: str = str(new.get("properties", {}).get("univentionObjectIdentifier", ""))
+        seq_num = metadata["sequence_number"]
         match new["objectType"]:
             case ObjectType.USERS:
                 await self.synchronization_manager.handle_user_create(
                     UserCreateEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         new=UserPayload.validate(new),
                     )
+                )
+                self.logger.info(
+                    f"Create user success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
                 )
             case ObjectType.GROUPS:
                 if HOST_GROUP_NAME_RE.match(new["properties"].get("name", "")):
                     await self.synchronization_manager.handle_host_group_create(
                         HostGroupCreateEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             new=HostGroupPayload.validate(new),
                         )
+                    )
+                    self.logger.info(
+                        f"Create host_group success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
                     )
                 else:
                     await self.synchronization_manager.handle_group_create(
                         GroupCreateEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             new=GroupPayload.validate(new),
                         )
+                    )
+                    self.logger.info(
+                        f"Create group success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
                     )
             case ObjectType.OUS:
                 await self.synchronization_manager.handle_school_create(
                     SchoolCreateEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         new=SchoolPayload.validate(new),
                     )
                 )
+                self.logger.info(
+                    f"Create school success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
+                )
             case _:
-                logger.error(f"Unknown object type {new['objectType']} in create event")
+                self.logger.info(
+                    f"Skipping create event {seq_num}: unknown object type {new['objectType']}, dn={dn}"
+                )
 
     @override
     async def _handle_modify(
@@ -189,84 +228,118 @@ class KelvinConnectorEventHandler(UDMEventHandler):
     ) -> None:
         # has_moved needs no special handling: the modify handlers refresh
         # the DN mapping from the event's new dn unconditionally.
+        dn: str = str(new.get("dn", ""))
+        public_id: str = str(new.get("properties", {}).get("univentionObjectIdentifier", ""))
+        seq_num = metadata["sequence_number"]
         match new["objectType"]:
             case ObjectType.USERS:
                 await self.synchronization_manager.handle_user_modify(
                     UserModifyEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         new=UserPayload.validate(new),
                     )
+                )
+                self.logger.info(
+                    f"Modify user success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
                 )
             case ObjectType.GROUPS:
                 if HOST_GROUP_NAME_RE.match(new["properties"].get("name", "")):
                     await self.synchronization_manager.handle_host_group_modify(
                         HostGroupModifyEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             new=HostGroupPayload.validate(new),
                         )
+                    )
+                    self.logger.info(
+                        f"Modify host_group success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
                     )
                 else:
                     await self.synchronization_manager.handle_group_modify(
                         GroupModifyEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             new=GroupPayload.validate(new),
                         )
+                    )
+                    self.logger.info(
+                        f"Modify group success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
                     )
             case ObjectType.OUS:
                 await self.synchronization_manager.handle_school_modify(
                     SchoolModifyEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         new=SchoolPayload.validate(new),
                     )
                 )
+                self.logger.info(
+                    f"Modify school success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
+                )
             case _:
-                logger.error(f"Unknown object type {new['objectType']} in modify event.")
+                self.logger.info(
+                    f"Skipping modify event {seq_num}: unknown object type {new['objectType']}, dn={dn}"
+                )
 
     @override
     async def _handle_remove(self, metadata: Metadata, old: AttributeMapping) -> None:
         # Deletion only needs the identifier: the rest of a deleted object's
         # state may be malformed and must not prevent removing it from the
         # cache — see DeletePayload.
+        dn: str = str(old.get("dn", ""))
+        public_id: str = str(old.get("properties", {}).get("univentionObjectIdentifier", ""))
+        seq_num = metadata["sequence_number"]
         match old["objectType"]:
             case ObjectType.USERS:
                 await self.synchronization_manager.handle_user_delete(
                     UserDeleteEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         old=DeletePayload.validate(old),
                     )
+                )
+                self.logger.info(
+                    f"Delete user success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
                 )
             case ObjectType.GROUPS:
                 if HOST_GROUP_NAME_RE.match(old["properties"].get("name", "")):
                     await self.synchronization_manager.handle_host_group_delete(
                         HostGroupDeleteEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             old=HostGroupPayload.validate(old),
                         )
+                    )
+                    self.logger.info(
+                        f"Delete host_group success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
                     )
                 else:
                     await self.synchronization_manager.handle_group_delete(
                         GroupDeleteEvent(
                             timestamp=metadata["ts"],
-                            sequence_number=metadata["sequence_number"],
+                            sequence_number=seq_num,
                             old=DeletePayload.validate(old),
                         )
+                    )
+                    self.logger.info(
+                        f"Delete group success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
                     )
             case ObjectType.OUS:
                 await self.synchronization_manager.handle_school_delete(
                     SchoolDeleteEvent(
                         timestamp=metadata["ts"],
-                        sequence_number=metadata["sequence_number"],
+                        sequence_number=seq_num,
                         old=DeletePayload.validate(old),
                     )
                 )
+                self.logger.info(
+                    f"Delete school success: dn={dn}, public_id={public_id}, seq_num={seq_num}"
+                )
             case _:
-                logger.error(f"Unknown object type {old['objectType']} in remove event.")
+                self.logger.info(
+                    f"Skipping delete event {seq_num}: unknown object type {old['objectType']}, dn={dn}"
+                )
 
 
 class KelvinConsumerModule(ConsumerModule):
@@ -317,8 +390,11 @@ class KelvinConsumerModule(ConsumerModule):
 
         try:
             handled = await self.handler.handle_event(event)
-        except ValidationError:
-            self.logger.critical(f"Dropping malformed event {seq_num}: {event!r}")
+        except ValidationError as exc:
+            self.logger.critical(
+                f"Dropping malformed event {seq_num}: {exc.model.__name__} failed validation: "
+                + f"{exc.errors()}\nEvent: {event!r}"
+            )
             await self._acknowledge_event(event)
             return
         except Exception:
