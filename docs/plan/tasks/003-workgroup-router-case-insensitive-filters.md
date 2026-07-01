@@ -13,7 +13,8 @@ untouched (it just needs Task 005's index).
 See [`../context.md`](../context.md) for full background, and Task 001 for
 the reference `_str_filter` change.
 
-Relevant decisions: [`../decisions.md`](../decisions.md) D1, D5.
+Relevant decisions: [`../decisions.md`](../decisions.md) D1, D5, D9 (accept
+`*` as a wildcard consistently, including in the `school.name` join filter).
 
 Current code (`kelvin-api/ucsschool/kelvin/routers/v2/workgroup.py`):
 
@@ -65,22 +66,18 @@ None functionally, but mirrors Task 001's pattern — do that one first.
 
 ## Implementation steps
 
-1. **Resolve Q2** (see `../context.md`) for the `school.name` join filter —
-   same consideration as Task 002, with the note that `workgroup.py`'s `get()`
-   endpoint already accepts `*` as a wildcard in `name` today, which is a
-   partial precedent (though not for the `school` param specifically).
-2. Copy Task 001's updated `_str_filter` into this file.
-3. Update `search()`:
+1. Copy Task 001's updated `_str_filter` into this file.
+2. Update `search()`:
    ```python
    clauses = [make_wildcard_filter("school.name", school, case_insensitive=True)]
    if workgroup_name:
        clauses.append(_str_filter("name", f"{school}-{workgroup_name}", case_insensitive=True))
    ```
-4. Update the `school` query param's docstring to remove "case sensitive,"
-   (keep "exact match, required" if still accurate, or adjust wording to
-   reflect that `*` now acts as a wildcard if Q2 resolves to "accept
-   wildcards here too").
-5. Do not touch `get()`.
+3. Update the `school` query param's docstring to remove "case sensitive,"
+   and reflect that `*` now acts as a wildcard here too (per D9) — e.g.
+   "Name of school (``OU``) in which to search for workgroups (exact match,
+   ``*`` can be used for an inexact search, required)."
+4. Do not touch `get()`.
 
 ## Acceptance criteria
 
@@ -102,8 +99,7 @@ None functionally, but mirrors Task 001's pattern — do that one first.
 
 ## Open questions / blockers
 
-- **Q2** (see `../context.md`) — same as Task 002, applied to the
-  `school.name` join filter here.
+None.
 
 ## Notes for next session
 

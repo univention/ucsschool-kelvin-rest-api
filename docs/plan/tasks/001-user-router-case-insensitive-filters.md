@@ -5,9 +5,10 @@
 ## Objective
 
 Make the v2 user-search filters for `name` (username), `schools.name`
-(school), `firstname`, `lastname`, and `email` case-insensitive, and give
-`email` wildcard (`*`) support it doesn't currently have — while leaving
-`record_uid`/`source_uid` case-sensitive and unchanged.
+(school), `firstname`, `lastname`, and `email` case-insensitive, give `email`
+wildcard (`*`) support it doesn't currently have, and make the UDM-property
+wildcard filter case-insensitive too — while leaving `record_uid`/
+`source_uid` case-sensitive and unchanged.
 
 ## Context
 
@@ -17,7 +18,8 @@ files — do this one first and get it right before copying the pattern.
 
 Relevant decisions: [`../decisions.md`](../decisions.md) D1 (why switch to
 case-insensitive), D4 (email gets wildcard + CI), D5 (opt-in
-`case_insensitive` param, no global flip).
+`case_insensitive` param, no global flip), D8 (UDM-property wildcard filters
+also become case-insensitive).
 
 Current code (`kelvin-api/ucsschool/kelvin/routers/v2/user.py`):
 
@@ -60,16 +62,14 @@ if source_uid:
   `_str_filter("email", email, case_insensitive=True)`.
 - Leave `record_uid`/`source_uid` calls unchanged (no `case_insensitive` arg,
   defaults to `False`).
+- Per D8: switch `_udm_property_filters()`'s wildcard branch (line 150,
+  `make_wildcard_filter(field, value)`) to
+  `make_wildcard_filter(field, value, case_insensitive=True)`.
 
 ## Non-goals
 
-- `_udm_property_filters()`'s `CONTAINS`/digit branches — untouched.
-- The UDM property **wildcard** branch (line 150,
-  `make_wildcard_filter(field, value)`) — **do not touch until Q1 is
-  resolved** (see `../context.md` Unresolved questions). If the stakeholder
-  confirms it should also become case-insensitive, that's a one-line change
-  here (`make_wildcard_filter(field, value, case_insensitive=True)`) but
-  treat it as a separate decision, not bundled silently into this task.
+- `_udm_property_filters()`'s `CONTAINS`/digit branches — untouched (D8 only
+  covers the `"*" in value` wildcard branch).
 - Any change to `query_filter.py`/`query.py` in `ucsschool-objects` — they
   already fully support everything needed here.
 - `record_uid`/`source_uid` semantics.
@@ -82,11 +82,7 @@ those faster and more consistent.
 
 ## Implementation steps
 
-1. Confirm Q1 (UDM property wildcard case-sensitivity) with the stakeholder,
-   or explicitly decide to defer it (leave UDM property filters
-   case-sensitive) and note that in this task's "Notes for next session"
-   section when done.
-2. Update `_str_filter`'s signature and body. The critical correctness detail
+1. Update `_str_filter`'s signature and body. The critical correctness detail
    (D5): when `case_insensitive=True` and there is **no** `*` in `value`, do
    **not** fall back to `Operator.EQ` — route through `make_wildcard_filter`
    too, since a literal value with no `*` still produces a correctly-escaped
@@ -102,11 +98,15 @@ those faster and more consistent.
        return Filter(field=field, op=Operator.EQ, value=value)
    ```
 
-3. Update the 4 `_str_filter` call sites in `_build_query` to pass
+2. Update the 4 `_str_filter` call sites in `_build_query` to pass
    `case_insensitive=True` (`name`, `schools.name`, `firstname`, `lastname`).
-4. Replace the direct `email` filter construction with
+3. Replace the direct `email` filter construction with
    `_str_filter("email", email, case_insensitive=True)`.
-5. Leave `record_uid`/`source_uid` calls exactly as they are today.
+4. Leave `record_uid`/`source_uid` calls exactly as they are today.
+5. Per D8, update `_udm_property_filters()`'s wildcard branch (line 150)
+   from `make_wildcard_filter(field, value)` to
+   `make_wildcard_filter(field, value, case_insensitive=True)`. Leave the
+   `CONTAINS`/digit branches in that function untouched.
 
 ## Acceptance criteria
 
@@ -117,6 +117,9 @@ those faster and more consistent.
 - `record_uid`/`source_uid` filters are byte-for-byte unchanged in behavior.
 - The no-wildcard + `case_insensitive=True` path produces `Operator.MATCHES_CI`
   (not `Operator.EQ`) — verified by Task 010's unit test.
+- UDM-property wildcard searches (configured via `UDM_MAPPING_CONFIG.user`)
+  are now case-insensitive; their `CONTAINS`/digit-value matching behavior is
+  unchanged.
 
 ## Validation / test steps
 
@@ -137,13 +140,9 @@ those faster and more consistent.
 
 ## Open questions / blockers
 
-- **Q1** (see `../context.md`): whether `_udm_property_filters()`'s wildcard
-  branch should also become case-insensitive. Default: leave untouched.
+None.
 
 ## Notes for next session
 
-- If Q1 gets resolved as "yes, make it case-insensitive too", that's a
-  one-line follow-up in `_udm_property_filters()` (line 150) — do it as part
-  of finishing this task, not a separate task.
 - Once this task is done, update its status here and in `../README.md`, then
   move to Task 002 (or start it in parallel — no hard dependency).

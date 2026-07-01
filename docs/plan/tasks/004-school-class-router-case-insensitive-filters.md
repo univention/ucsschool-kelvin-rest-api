@@ -14,7 +14,8 @@ See [`../context.md`](../context.md) for full background. This task is
 structurally identical to Task 003 (`workgroup.py`) — same duplicated
 `_str_filter` pattern exists in `school_class.py`.
 
-Relevant decisions: [`../decisions.md`](../decisions.md) D1, D5.
+Relevant decisions: [`../decisions.md`](../decisions.md) D1, D5, D9 (accept
+`*` as a wildcard consistently, including in the `school.name` join filter).
 
 Current code (`kelvin-api/ucsschool/kelvin/routers/v2/school_class.py`):
 
@@ -65,8 +66,8 @@ None functionally; mirrors Tasks 001 and 003.
 
 ## Implementation steps
 
-Identical to Task 003's steps 1-5, applied to `school_class.py` instead of
-`workgroup.py`.
+Identical to Task 003's steps 1-4 (post-resolution), applied to
+`school_class.py` instead of `workgroup.py`.
 
 ## Acceptance criteria
 
@@ -88,8 +89,7 @@ Identical to Task 003's steps 1-5, applied to `school_class.py` instead of
 
 ## Open questions / blockers
 
-- **Q2** (see `../context.md`) — same as Tasks 002/003, applied to the
-  `school.name` join filter here.
+None.
 
 ## Notes for next session
 

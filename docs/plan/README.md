@@ -9,8 +9,8 @@ targeted PostgreSQL `pg_trgm` GIN trigram indexes, and add an optional,
 deployment-configurable mechanism to index specific UDM JSON properties too.
 
 See [`context.md`](context.md) for full background (problem statement,
-current-state findings, constraints, risks, open questions) and
-[`decisions.md`](decisions.md) for why things are shaped the way they are.
+current-state findings, constraints, risks) and [`decisions.md`](decisions.md)
+for why things are shaped the way they are.
 
 ## Task index
 
@@ -71,10 +71,7 @@ current-state findings, constraints, risks, open questions) and
    order above.
 5. Update that task file's status and this README's status table as work
    progresses.
-6. If a task surfaces a new decision or open question, append it to
-   `decisions.md` / `context.md`'s "Unresolved questions" section rather than
+6. If a task surfaces a new decision, record it in `decisions.md` rather than
    leaving it only in a chat transcript.
 
-Three open questions (Q1, Q2, Q3 in `context.md`) need stakeholder
-confirmation before Tasks 001 (partially), 002–004, and 010 can be fully
-implemented — check those first if picking up fresh.
+All 14 tasks are unblocked and ready to implement in the order above.

@@ -27,8 +27,8 @@ defeating the ticket's stated goal.
 **Consequences:** Touches 4 router files (Tasks 001-004); requires new
 indexes (D3) to avoid a performance regression from switching `EQ`
 (btree-eligible) to `ILIKE` (btree-ineligible without a supporting index);
-requires updating stale "case sensitive" docstrings; opens Q2 (literal `*`
-reintroduction in exact-lookup endpoints, see `context.md`).
+requires updating stale "case sensitive" docstrings; raised the question of
+literal `*` reintroduction in exact-lookup endpoints, resolved by D9.
 
 ---
 
@@ -186,3 +186,93 @@ regex before being interpolated into raw DDL text (defense against a
 misconfigured env var producing invalid/unsafe SQL) — implemented in the
 config module itself (`validate_identifiers()`), not deferred to the
 migration.
+
+---
+
+## D8 — UDM-property wildcard filters also become case-insensitive
+
+**Decision:** The UDM-property wildcard branch in `_udm_property_filters()`
+(`kelvin-api/ucsschool/kelvin/routers/v2/user.py`, line 150 —
+`make_wildcard_filter(field, value)`) switches to
+`make_wildcard_filter(field, value, case_insensitive=True)`, matching the
+other fields touched by D1.
+
+**Rationale:** User's explicit choice, prioritizing internal consistency:
+within the same search request, `name`/`firstname`/`lastname`/`email`/
+`schools.name` become case-insensitive while UDM properties would otherwise
+stay case-sensitive — a UX inconsistency within a single endpoint. Since D2
+already added a mechanism to index specific UDM properties for wildcard
+search, leaving their matching case-sensitive would have been an odd partial
+state.
+
+**Alternatives considered:** Leaving `_udm_property_filters()`'s wildcard
+branch case-sensitive, only adding an index for it (smaller blast radius,
+stays strictly within the ticket's named-property list) — rejected in favor
+of consistency across the endpoint.
+
+**Consequences:** Slightly expands scope beyond the ticket's literal property
+list (now covers arbitrary configured UDM properties, not just the 6 named
+columns), but this was already implied by D2's configurable-indexing
+mechanism. Task 001's scope grows by one line (the `_udm_property_filters()`
+change) rather than being deferred/excluded. The `CONTAINS`/digit branches in
+`_udm_property_filters()` remain untouched (still out of scope — this
+decision only affects the `"*" in value` wildcard branch).
+
+---
+
+## D9 — Accept `*` as a wildcard consistently, including in "exact-lookup" endpoints
+
+**Decision:** `school_get`/`school_exists` (`school.py`) and the
+`school.name` join filter in `workgroup.py`/`school_class.py`'s `search()`
+switch to `make_wildcard_filter(field, value, case_insensitive=True)`, the
+same helper used everywhere else in this story — even though these
+particular values come from path parameters or a required query parameter
+rather than free-text search input.
+
+**Rationale:** User's explicit choice, consistent with the existing precedent
+in `workgroup.py`/`school_class.py`'s `get()` endpoints, which already treat
+`*` as a wildcard in the `name` field today. Using one helper everywhere
+avoids introducing a second, bespoke "case-insensitive but wildcard-disabled"
+code path purely for these call sites. UCS OU/school naming rules already
+disallow `*` in practice, making the theoretical risk (a school/OU name
+containing a literal `*` being misinterpreted as a wildcard) low.
+
+**Alternatives considered:** Escaping any literal `*` before calling
+`make_wildcard_filter` for these specific call sites, or introducing a
+dedicated case-insensitive-exact-only helper — rejected as unnecessary
+complexity given the naming-rule constraint and the existing `get()`-endpoint
+precedent.
+
+**Consequences:** Tasks 002-004 can proceed without a conditional branch —
+`make_wildcard_filter(..., case_insensitive=True)` is used uniformly across
+all four router files for every field touched by this story (`name`,
+`firstname`, `lastname`, `email`, `schools.name`/`school.name`). If UCS OU
+naming rules ever change to permit `*`, this would need revisiting — noted
+here for future reference.
+
+---
+
+## D10 — Add a new fast unit-test file for router filter-helper functions
+
+**Decision:** Create `kelvin-api/tests/test_route_v2_filters.py` as a new,
+DB-free unit-test layer for the `_str_filter`/`_build_query` router helper
+functions, even though all existing `kelvin-api/tests/test_route_*.py` files
+are live E2E tests against a real LDAP/UDM server.
+
+**Rationale:** User's explicit choice. This is the only way to cheaply and
+precisely pin the exact operator-selection logic this story depends on
+(especially the D5 correctness detail: no-wildcard + `case_insensitive=True`
+must produce `MATCHES_CI`, not `Operator.EQ`) without requiring a live
+LDAP/Postgres environment for every test run.
+
+**Alternatives considered:** Relying solely on Task 011's E2E test additions
+— rejected because E2E tests are slower, require live infrastructure, and
+test the operator-selection logic only indirectly (via observed search
+results), making a regression in the exact-branching logic harder to
+pinpoint.
+
+**Consequences:** Introduces a new test-layer convention for this test suite
+(`test_route_v2_filters.py` alongside the existing E2E `test_route_*.py`
+files) — worth a one-line callout in the PR description so reviewers
+understand it's intentionally a different kind of test (pure function
+assertions, no fixtures/app/DB) rather than an incomplete E2E test.

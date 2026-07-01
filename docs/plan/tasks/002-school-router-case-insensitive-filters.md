@@ -13,7 +13,8 @@ See [`../context.md`](../context.md) for full background, and Task 001
 (`docs/plan/tasks/001-user-router-case-insensitive-filters.md`) for the
 reference `_str_filter` change this task mirrors.
 
-Relevant decisions: [`../decisions.md`](../decisions.md) D1, D5.
+Relevant decisions: [`../decisions.md`](../decisions.md) D1, D5, D9 (accept
+`*` as a wildcard consistently, including in `school_get`/`school_exists`).
 
 Current code (`kelvin-api/ucsschool/kelvin/routers/v2/school.py`):
 
@@ -57,20 +58,14 @@ None functionally, but do Task 001 first for a consistent reference pattern.
 
 ## Implementation steps
 
-1. **Resolve Q2 first** (see `../context.md` Unresolved questions): switching
-   `school_get`/`school_exists` to `make_wildcard_filter(...,
-   case_insensitive=True)` reintroduces wildcard interpretation of `*` in
-   `school_name` (a path parameter, not a search query param). Confirm with
-   the stakeholder this is acceptable (recommended default: yes, since UCS OU
-   naming rules already disallow `*`, and `workgroup.py`/`school_class.py`'s
-   `get()` endpoints already do exactly this for `name`).
-2. Copy Task 001's updated `_str_filter` into this file verbatim (same
+1. Copy Task 001's updated `_str_filter` into this file verbatim (same
    signature/body).
-3. Update `search()`'s call site:
+2. Update `search()`'s call site:
    ```python
    query = SearchQuery(where=_str_filter("name", name_filter, case_insensitive=True)) if name_filter else None
    ```
-4. Update `school_get` and `school_exists`:
+3. Update `school_get` and `school_exists` (per D9 — `*` is accepted as a
+   wildcard here too, consistent with the rest of the story):
    ```python
    SearchQuery(where=make_wildcard_filter("name", school_name, case_insensitive=True))
    ```
@@ -82,9 +77,7 @@ None functionally, but do Task 001 first for a consistent reference pattern.
 - School-name list search is case-insensitive, wildcard behavior preserved
   otherwise.
 - `school_get`/`school_exists` find a school regardless of case in the path
-  parameter.
-- Q2 has been explicitly confirmed or explicitly deferred with a documented
-  reason (not silently assumed).
+  parameter, and treat a literal `*` in `school_name` as a wildcard (per D9).
 
 ## Validation / test steps
 
@@ -101,12 +94,8 @@ None functionally, but do Task 001 first for a consistent reference pattern.
 
 ## Open questions / blockers
 
-- **Q2** (see `../context.md`) must be resolved before implementing step 4.
+None.
 
 ## Notes for next session
 
-- If Q2 is answered "no, keep `*` literal in `school_get`/`school_exists`",
-  this task needs a different approach for those two endpoints (e.g. escape
-  `*` in `school_name` before calling `make_wildcard_filter`, or introduce a
-  small "case-insensitive but wildcard-disabled" helper) — flag that as a new
-  decision in `../decisions.md` if it happens, don't just improvise silently.
+- Once this task is done, update its status here and in `../README.md`.

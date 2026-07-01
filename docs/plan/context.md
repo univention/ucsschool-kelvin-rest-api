@@ -265,35 +265,10 @@ ticket's named properties).
    remains until a manual `DROP INDEX` or a follow-up migration). Document as
    a known manual process, no auto-reconciliation.
 
-## Unresolved questions (need stakeholder input)
+## Open questions
 
-- **Q1 — UDM property wildcard case-sensitivity.** Should the UDM-property
-  wildcard branch in `_udm_property_filters()` (`user.py:149-150`) also
-  switch to `case_insensitive=True`, or stay case-sensitive (only gaining an
-  index, not a semantics change)? One analysis recommended leaving it
-  untouched (it's outside the ticket's named-property list, and the indexing
-  decision was framed as "indexing", not "semantics"); an earlier analysis
-  argued for switching it too, for internal consistency within the same
-  search request. **Not yet decided** — default to **leaving it
-  case-sensitive** (smaller blast radius) unless the stakeholder says
-  otherwise, but do not silently pick this — confirm before or during Task
-  001.
-- **Q2 — Literal `*` in exact-lookup path/required params.** Switching
-  `school_get`/`school_exists` (`school.py`) and the `school.name` join
-  filter in `workgroup.py`/`school_class.py`'s `search()` to
-  `make_wildcard_filter(..., case_insensitive=True)` reintroduces wildcard
-  interpretation of `*` in those values (a school/OU name literally
-  containing `*` would be misinterpreted as a wildcard). Precedent already
-  exists — `workgroup.py`/`school_class.py`'s `get()` endpoints already do
-  this for `name`. Recommend accepting this (UCS OU naming rules already
-  disallow `*`) but **confirm with the stakeholder before implementing
-  Tasks 002-004**.
-- **Q3 — New unit-test file acceptable?** Task 010 proposes a new file,
-  `kelvin-api/tests/test_route_v2_filters.py`, testing router helper
-  functions (`_str_filter`/`_build_query`) in isolation — a new pattern for
-  this test suite (existing `test_route_*.py` files are E2E-only). Confirm
-  this is an acceptable addition to the test layout before implementing
-  Task 010.
+None currently. New ones surfaced during implementation should be recorded
+in `decisions.md` once resolved (see README.md's resume instructions).
 
 ## Relevant commands / files / services
 
