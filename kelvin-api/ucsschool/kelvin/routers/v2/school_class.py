@@ -38,7 +38,6 @@ from ucsschool_objects import (
     LoadSpec,
     Operator,
     SearchQuery,
-    make_wildcard_filter,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
@@ -58,6 +57,7 @@ from ..v1.school_class import (
     partial_update,
     search as v1_search,
 )
+from ._filters import str_filter as _str_filter
 from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
@@ -78,15 +78,6 @@ SCHOOL_CLASS_LOAD_SPEC_V2 = LoadSpec.from_attributes(
 @lru_cache(maxsize=1)
 def get_logger() -> logging.Logger:
     return logging.getLogger(__name__)
-
-
-def _str_filter(field: str, value: str) -> Filter:
-    """Create a string filter with wildcard support and proper escaping."""
-    return (
-        make_wildcard_filter(field, value)
-        if "*" in value
-        else Filter(field=field, op=Operator.EQ, value=value)
-    )
 
 
 def _get_relative_name(group: Group) -> str:
