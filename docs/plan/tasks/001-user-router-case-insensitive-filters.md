@@ -1,6 +1,6 @@
 # Task 001 — User router: case-insensitive filters + email wildcard/CI
 
-**Status:** not started
+**Status:** done
 
 ## Objective
 

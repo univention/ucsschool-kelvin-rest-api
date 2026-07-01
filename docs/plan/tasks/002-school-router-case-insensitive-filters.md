@@ -41,10 +41,18 @@ Filter(field="name", op=Operator.EQ, value=school_name)
 ## Scope
 
 - `kelvin-api/ucsschool/kelvin/routers/v2/school.py` only.
-- Mirror Task 001's `_str_filter` signature/body change exactly.
+- **Update (Task 014 landed early):** `_str_filter` is no longer defined
+  locally in this file. It's imported as
+  `from ._filters import str_filter as _str_filter` from the new shared
+  module `kelvin-api/ucsschool/kelvin/routers/v2/_filters.py`, and already
+  has the `case_insensitive` parameter (added as part of Task 001). Skip the
+  "copy `_str_filter`" step below — only the call-site changes remain.
 - Update `search()`'s call site to pass `case_insensitive=True`.
 - Switch `school_get` and `school_exists`'s direct `Filter(..., EQ, ...)` to
-  `make_wildcard_filter("name", school_name, case_insensitive=True)`.
+  `make_wildcard_filter("name", school_name, case_insensitive=True)` (needs
+  `make_wildcard_filter` imported from `ucsschool_objects` again in this
+  file — it was removed when the local `_str_filter` that used it was
+  hoisted out).
 
 ## Non-goals
 
@@ -58,8 +66,9 @@ None functionally, but do Task 001 first for a consistent reference pattern.
 
 ## Implementation steps
 
-1. Copy Task 001's updated `_str_filter` into this file verbatim (same
-   signature/body).
+1. ~~Copy Task 001's updated `_str_filter` into this file verbatim (same
+   signature/body).~~ Already done — see Scope note above. Just re-import
+   `make_wildcard_filter` from `ucsschool_objects` for steps 2-3 below.
 2. Update `search()`'s call site:
    ```python
    query = SearchQuery(where=_str_filter("name", name_filter, case_insensitive=True)) if name_filter else None

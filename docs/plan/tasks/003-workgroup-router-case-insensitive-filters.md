@@ -47,7 +47,14 @@ Filter(field="name", op=Operator.MATCHES_CI, value=full_name)
 ## Scope
 
 - `kelvin-api/ucsschool/kelvin/routers/v2/workgroup.py` only.
-- Mirror Task 001's `_str_filter` change.
+- **Update (Task 014 landed early):** `_str_filter` is no longer defined
+  locally in this file — it's imported as
+  `from ._filters import str_filter as _str_filter` from the shared
+  `kelvin-api/ucsschool/kelvin/routers/v2/_filters.py` module and already
+  supports `case_insensitive`. No need to touch the function itself; only
+  call sites change. `make_wildcard_filter` was removed from this file's
+  imports (it's no longer used directly here) — re-add it from
+  `ucsschool_objects` for the `school.name` join filter below.
 - Switch the `school.name` join filter in `search()` to
   `make_wildcard_filter("school.name", school, case_insensitive=True)`.
 - Pass `case_insensitive=True` for the `name` filter in `search()`.
@@ -66,7 +73,9 @@ None functionally, but mirrors Task 001's pattern — do that one first.
 
 ## Implementation steps
 
-1. Copy Task 001's updated `_str_filter` into this file.
+1. ~~Copy Task 001's updated `_str_filter` into this file.~~ Already done —
+   see Scope note above. Just re-import `make_wildcard_filter` from
+   `ucsschool_objects` for step 2 below.
 2. Update `search()`:
    ```python
    clauses = [make_wildcard_filter("school.name", school, case_insensitive=True)]

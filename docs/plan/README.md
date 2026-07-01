@@ -16,7 +16,7 @@ for why things are shaped the way they are.
 
 | ID | Title | Status | Area |
 |----|-------|--------|------|
-| [001](tasks/001-user-router-case-insensitive-filters.md) | User router: case-insensitive filters + email wildcard/CI | not started | Router |
+| [001](tasks/001-user-router-case-insensitive-filters.md) | User router: case-insensitive filters + email wildcard/CI | done | Router |
 | [002](tasks/002-school-router-case-insensitive-filters.md) | School router: case-insensitive filters | not started | Router |
 | [003](tasks/003-workgroup-router-case-insensitive-filters.md) | Workgroup router: case-insensitive filters | not started | Router |
 | [004](tasks/004-school-class-router-case-insensitive-filters.md) | School-class router: case-insensitive filters | not started | Router |
@@ -29,7 +29,7 @@ for why things are shaped the way they are.
 | [011](tasks/011-e2e-tests-case-insensitive-search.md) | E2E tests: case-insensitive search behavior | not started | Tests |
 | [012](tasks/012-postgres-integration-test-index-usage.md) | Postgres integration test: migration + index-usage verification | not started | Tests |
 | [013](tasks/013-performance-evaluation-evidence.md) | Performance evaluation evidence | not started | Tests |
-| [014](tasks/014-optional-hoist-shared-str-filter.md) | Optional: hoist duplicated `_str_filter` into a shared module | not started | Cleanup (optional) |
+| [014](tasks/014-optional-hoist-shared-str-filter.md) | Optional: hoist duplicated `_str_filter` into a shared module | done | Cleanup (optional) |
 
 ## Recommended execution order
 

@@ -1,6 +1,6 @@
 # Task 014 — Optional: hoist duplicated `_str_filter` into a shared module
 
-**Status:** not started
+**Status:** done (landed early, ahead of Tasks 002-004)
 
 ## Objective
 
@@ -68,6 +68,21 @@ None — purely optional.
 
 ## Notes for next session
 
-- Skip this task entirely if time/priority doesn't allow — it has zero
-  bearing on the ticket's acceptance criteria. Only pick it up as a
-  low-priority cleanup pass after everything else is done and verified.
+- **Deviation from plan:** this was done right after Task 001, not after
+  Tasks 001-004 as originally planned. It was safe to do early because
+  Task 001's `_str_filter(field, value, *, case_insensitive=False)` is a
+  strict superset of the old 3-file implementation (default
+  `case_insensitive=False` reproduces the old behavior exactly), so hoisting
+  it doesn't change behavior for `school.py`/`workgroup.py`/
+  `school_class.py`, which still call it without `case_insensitive=True`.
+- Shared module: `kelvin-api/ucsschool/kelvin/routers/v2/_filters.py`,
+  public function `str_filter`. All 4 router files import it as
+  `from ._filters import str_filter as _str_filter` to keep existing
+  `_str_filter(...)` call sites unchanged.
+- Side effect: the now-unused `make_wildcard_filter` import was removed from
+  `school.py`, `workgroup.py`, and `school_class.py` (it's only used inside
+  `_filters.py` now). Tasks 002-004 each re-introduce a *direct*
+  `make_wildcard_filter` call (for `school_get`/`school_exists` or the
+  `school.name` join filter) and will need to re-import it — this is called
+  out in each of those task files now.
+- Nothing left to do for this task.
