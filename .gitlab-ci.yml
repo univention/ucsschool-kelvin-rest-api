@@ -21,6 +21,7 @@ include:
       python_paths: .
       python_version: "3.11"
       baseline_file: basedpyright-baseline.json
+      basedpyright_version: "1.39.8"
       before_script:
         - "apt-get update -qq && apt-get install -y -qq git gcc python3-dev libldap2-dev libsasl2-dev && uv sync --dev"
       job_rules:
