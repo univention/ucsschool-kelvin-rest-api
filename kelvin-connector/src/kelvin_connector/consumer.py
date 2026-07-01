@@ -43,8 +43,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
     from loguru import Logger
 
-    logger: Logger
-
 
 HOST_GROUP_NAME_RE = re.compile(r"OU(.*)-DC-(Edukativnetz|Verwaltungsnetz)")
 
@@ -123,10 +121,10 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         self.logger.trace("Checking if event is relevant: {}", event)
         topic = event["topic"]
         seq_num = event["sequence_number"]
-        body = event["body"]
+        body: dict[str, AttributeMapping] = event["body"]
 
-        properties_old = None
-        properties_new = None
+        properties_old: dict[str, list[str]] | None = None
+        properties_new: dict[str, list[str]] | None = None
 
         if "old" in body and "properties" in body["old"]:
             properties_old = body["old"]["properties"]
@@ -134,15 +132,17 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         if "new" in body and "properties" in body["new"]:
             properties_new = body["new"]["properties"]
 
-        dn: str = str((body.get("new") or body.get("old") or {}).get("dn", ""))
+        body_new: AttributeMapping | None = body.get("new")
+        body_old: AttributeMapping | None = body.get("old")
+        dn: str = cast(str, (body_new or body_old or {}).get("dn", ""))
 
         match (properties_old, properties_new):
             case ({"ucsschoolRole": roles} as properties, None):
-                return self._filter(topic, roles, seq_num, cast(str, properties.get("name", "")))
+                return self._filter(topic, roles, seq_num, str(properties.get("name", "")))
             case (None, {"ucsschoolRole": roles} as properties):
-                return self._filter(topic, roles, seq_num, cast(str, properties.get("name", "")))
+                return self._filter(topic, roles, seq_num, str(properties.get("name", "")))
             case ({"ucsschoolRole": _}, {"ucsschoolRole": roles_new} as properties):
-                return self._filter(topic, roles_new, seq_num, cast(str, properties.get("name", "")))
+                return self._filter(topic, roles_new, seq_num, str(properties.get("name", "")))
             case _:
                 self.logger.info(
                     "Skipping event {}: no ucsschoolRole in old or new UDM properties, "
@@ -176,8 +176,9 @@ class KelvinConnectorEventHandler(UDMEventHandler):
 
     @override
     async def _handle_create(self, metadata: Metadata, new: AttributeMapping) -> None:
-        dn: str = str(new.get("dn", ""))
-        public_id: str = str(new.get("properties", {}).get("univentionObjectIdentifier", ""))
+        dn: str = cast(str, new.get("dn", ""))
+        new_properties = cast(AttributeMapping, new.get("properties", {}))
+        public_id: str = cast(str, new_properties.get("univentionObjectIdentifier", ""))
         seq_num = metadata["sequence_number"]
         match new["objectType"]:
             case ObjectType.USERS:
@@ -241,7 +242,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                 self.logger.info(
                     "Skipping create event {}: unknown object type {}, dn={}\nNew: {}",
                     seq_num,
-                    new["objectType"],
+                    cast(str, new["objectType"]),
                     dn,
                     new,
                 )
@@ -256,8 +257,9 @@ class KelvinConnectorEventHandler(UDMEventHandler):
     ) -> None:
         # has_moved needs no special handling: the modify handlers refresh
         # the DN mapping from the event's new dn unconditionally.
-        dn: str = str(new.get("dn", ""))
-        public_id: str = str(new.get("properties", {}).get("univentionObjectIdentifier", ""))
+        dn: str = cast(str, new.get("dn", ""))
+        new_properties = cast(AttributeMapping, new.get("properties", {}))
+        public_id: str = cast(str, new_properties.get("univentionObjectIdentifier", ""))
         seq_num = metadata["sequence_number"]
         match new["objectType"]:
             case ObjectType.USERS:
@@ -321,7 +323,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                 self.logger.info(
                     "Skipping modify event {}: unknown object type {}, dn={}\nOld: {}\nNew: {}",
                     seq_num,
-                    new["objectType"],
+                    cast(str, new["objectType"]),
                     dn,
                     old,
                     new,
@@ -332,8 +334,9 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         # Deletion only needs the identifier: the rest of a deleted object's
         # state may be malformed and must not prevent removing it from the
         # cache — see DeletePayload.
-        dn: str = str(old.get("dn", ""))
-        public_id: str = str(old.get("properties", {}).get("univentionObjectIdentifier", ""))
+        dn: str = cast(str, old.get("dn", ""))
+        old_properties = cast(AttributeMapping, old.get("properties", {}))
+        public_id: str = cast(str, old_properties.get("univentionObjectIdentifier", ""))
         seq_num = metadata["sequence_number"]
         match old["objectType"]:
             case ObjectType.USERS:
@@ -397,7 +400,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                 self.logger.info(
                     "Skipping delete event {}: unknown object type {}, dn={}\nOld: {}",
                     seq_num,
-                    old["objectType"],
+                    cast(str, old["objectType"]),
                     dn,
                     old,
                 )
@@ -432,7 +435,7 @@ class KelvinConsumerModule(ConsumerModule):
         self, handler: EventHandler, *args, max_deliveries: int = DEFAULT_MAX_DELIVERIES, **kwargs
     ) -> None:
         super().__init__(handler, *args, **kwargs)
-        self.max_deliveries = max_deliveries
+        self.max_deliveries: int = max_deliveries
 
     @override
     async def process_one_event(self, long_polling_timeout: int = DEFAULT_LONG_POLLING_TIMEOUT) -> None:
