@@ -74,7 +74,7 @@ repos:
         name: basedpyright (relative to baseline, native)
         language: system
         entry: |
-          sh -c 'uv sync && uv pip install basedpyright && uv run basedpyright \
+          sh -c 'uv sync && uv pip install basedpyright==1.39.8 && uv run basedpyright \
             --project pyrightconfig.json \
             --baselinefile basedpyright-baseline.json \
             --baselinemode=auto' --
