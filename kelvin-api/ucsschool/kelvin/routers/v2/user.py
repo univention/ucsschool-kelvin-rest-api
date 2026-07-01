@@ -64,6 +64,7 @@ from ..v1.user import (
     partial_update,
     search as v1_search,
 )
+from ._filters import str_filter as _str_filter
 from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
@@ -92,15 +93,6 @@ USER_LOAD_SPEC_V2 = LoadSpec.from_attributes(
     "expiration_date",
     "udm_properties",
 )
-
-
-def _str_filter(field: str, value: str) -> Filter:
-    """Create a string filter with wildcard support and proper escaping."""
-    return (
-        make_wildcard_filter(field, value)
-        if "*" in value
-        else Filter(field=field, op=Operator.EQ, value=value)
-    )
 
 
 _KNOWN_SEARCH_PARAMS = frozenset(
@@ -147,7 +139,7 @@ def _udm_property_filters(request: Request) -> list[QueryExpr]:
                 )
             )
         elif "*" in value:
-            filters.append(make_wildcard_filter(field, value))
+            filters.append(make_wildcard_filter(field, value, case_insensitive=True))
         else:
             filters.append(Filter(field=field, op=Operator.CONTAINS, value=value))
     return filters
@@ -168,15 +160,15 @@ def _build_query(
 ) -> Optional[SearchQuery]:
     clauses: list[QueryExpr] = list(extra_clauses or [])
     if name:
-        clauses.append(_str_filter("name", name))
+        clauses.append(_str_filter("name", name, case_insensitive=True))
     if school:
-        clauses.append(_str_filter("schools.name", school))
+        clauses.append(_str_filter("schools.name", school, case_insensitive=True))
     if firstname:
-        clauses.append(_str_filter("firstname", firstname))
+        clauses.append(_str_filter("firstname", firstname, case_insensitive=True))
     if lastname:
-        clauses.append(_str_filter("lastname", lastname))
+        clauses.append(_str_filter("lastname", lastname, case_insensitive=True))
     if email:
-        clauses.append(Filter(field="email", op=Operator.EQ, value=email))
+        clauses.append(_str_filter("email", email, case_insensitive=True))
     if record_uid:
         clauses.append(_str_filter("record_uid", record_uid))
     if source_uid:
