@@ -100,13 +100,18 @@ async def search(
         Query(
             alias="name",
             description=(
-                "List schools with this name. '*' can be used for an inexact search. (optional)"
+                "List schools with this name. '*' can be used for a case-insensitive "
+                "wildcard search. (optional)"
             ),
             title="name",
         ),
     ] = None,
 ) -> list[SchoolModel]:
-    query = SearchQuery(where=_str_filter("name", name_filter)) if name_filter else None
+    query = (
+        SearchQuery(where=_str_filter("name", name_filter, case_insensitive=True))
+        if name_filter
+        else None
+    )
     logger.debug("v2 school search query: %r", query)
     schools = list(await session.schools.search(query))
     schools.sort(key=lambda s: s.name)
