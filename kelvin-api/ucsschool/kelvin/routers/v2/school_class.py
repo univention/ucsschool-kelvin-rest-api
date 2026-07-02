@@ -146,7 +146,8 @@ async def search(
             None,
             alias="name",
             description=(
-                "List classes with this name. (optional, ``*`` can be used for an inexact search)."
+                "List classes with this name. (optional, ``*`` can be used for a "
+                "case-insensitive wildcard search)."
             ),
             title="name",
         ),
@@ -157,7 +158,7 @@ async def search(
 ) -> list[SchoolClassModel]:
     clauses = [Filter(field="school.name", op=Operator.EQ, value=school)]
     if class_name:
-        clauses.append(_str_filter("name", f"{school}-{class_name}"))
+        clauses.append(_str_filter("name", f"{school}-{class_name}", case_insensitive=True))
     query = SearchQuery(where=And(clauses=tuple(clauses)) if len(clauses) > 1 else clauses[0])
     logger.debug("v2 school_class search query: %r", query)
     groups = [

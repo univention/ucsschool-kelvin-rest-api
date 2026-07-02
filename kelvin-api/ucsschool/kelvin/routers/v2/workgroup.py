@@ -164,9 +164,8 @@ async def search(
             None,
             alias="name",
             description=(
-                "List workgroups with this name. "
-                "(optional, ``*`` can be used "
-                "for an inexact search)."
+                "List workgroups with this name. (optional, ``*`` can be used "
+                "for a case-insensitive wildcard search)."
             ),
             title="name",
         ),
@@ -177,7 +176,7 @@ async def search(
 ) -> list[WorkGroupModel]:
     clauses = [Filter(field="school.name", op=Operator.EQ, value=school)]
     if workgroup_name:
-        clauses.append(_str_filter("name", f"{school}-{workgroup_name}"))
+        clauses.append(_str_filter("name", f"{school}-{workgroup_name}", case_insensitive=True))
     query = SearchQuery(where=And(clauses=tuple(clauses)) if len(clauses) > 1 else clauses[0])
     logger.debug("v2 workgroup search query: %r", query)
     groups = [
