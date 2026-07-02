@@ -18,8 +18,9 @@ currently no fast, isolated unit-test layer for these particular router
 helper functions. This task creates one.
 
 Also relevant: D8 (UDM-property wildcard filters become case-insensitive
-too) and D9 (accept `*` as a wildcard consistently, including in
-`school_get`/`school_exists`/`school.name` join filters).
+too) and D9 (school/OU identifiers, including `school_get`/`school_exists`
+and `school.name` join filters, stay case-sensitive and exact — only
+free-text `name` search becomes case-insensitive).
 
 Depends on Tasks 001-004 having landed (or at least drafted) their
 `_str_filter` changes, since this task tests the resulting behavior.
@@ -67,9 +68,10 @@ Tasks 001-004 (tests the behavior they implement).
    digit-value (`Or(EQ, CONTAINS)`) and plain-string (`CONTAINS`) branches
    remain unchanged.
 4. For `school.py`'s `school_get`/`school_exists` and `workgroup.py`/
-   `school_class.py`'s `school.name` join filter: assert they now produce
-   `MATCHES_CI` filters, and that a literal `*` in the value is treated as a
-   wildcard (per D9).
+   `school_class.py`'s `school.name` join filter: assert they still produce
+   case-sensitive, exact-match `Filter(op=Operator.EQ, ...)` filters,
+   byte-for-byte unchanged from before this story (per D9) — a regression
+   test that these stay untouched.
 
 ## Acceptance criteria
 
@@ -80,8 +82,9 @@ Tasks 001-004 (tests the behavior they implement).
   explicit regression test.
 - The D8 change (UDM-property wildcard filters → `MATCHES_CI`) and its
   boundary (CONTAINS/digit branches unchanged) both have explicit tests.
-- The D9 change (`*` accepted as wildcard in `school_get`/`school_exists`/
-  `school.name` join filters) has an explicit test.
+- D9's invariant (`school_get`/`school_exists`/`school.name` join filters
+  stay case-sensitive/exact, unaffected by this story) has an explicit
+  regression test.
 
 ## Validation / test steps
 

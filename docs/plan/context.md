@@ -129,8 +129,10 @@ code itself is not touched.
   unindexed `ILIKE` already runs in production today for these point lookups.
   This is the concrete, already-live instance of the bug the ticket describes.
 - Both `search()` docstrings for the `school` query param currently say "case
-  sensitive, exact match, required" — this text goes stale once these
-  endpoints become case-insensitive and must be updated.
+  sensitive, exact match, required" — this stays accurate: per D9 the
+  `school.name` join filter (and `school_get`/`school_exists` in `school.py`)
+  remain case-sensitive/exact, since they identify a specific school rather
+  than being a free-text search field.
 
 `record_uid`/`source_uid` filters are explicitly **out of scope** — they must
 stay case-sensitive (external system correlation identifiers, not part of the

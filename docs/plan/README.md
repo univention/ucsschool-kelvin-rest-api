@@ -17,9 +17,9 @@ for why things are shaped the way they are.
 | ID | Title | Status | Area |
 |----|-------|--------|------|
 | [001](tasks/001-user-router-case-insensitive-filters.md) | User router: case-insensitive filters + email wildcard/CI | done | Router |
-| [002](tasks/002-school-router-case-insensitive-filters.md) | School router: case-insensitive filters | not started | Router |
-| [003](tasks/003-workgroup-router-case-insensitive-filters.md) | Workgroup router: case-insensitive filters | not started | Router |
-| [004](tasks/004-school-class-router-case-insensitive-filters.md) | School-class router: case-insensitive filters | not started | Router |
+| [002](tasks/002-school-router-case-insensitive-filters.md) | School router: case-insensitive filters | done | Router |
+| [003](tasks/003-workgroup-router-case-insensitive-filters.md) | Workgroup router: case-insensitive filters | done | Router |
+| [004](tasks/004-school-class-router-case-insensitive-filters.md) | School-class router: case-insensitive filters | done | Router |
 | [005](tasks/005-migration-fixed-trigram-indexes.md) | Migration: fixed `pg_trgm` GIN indexes | not started | Migration |
 | [006](tasks/006-indexed-udm-properties-config-module.md) | Indexed-UDM-properties config module | not started | Config |
 | [007](tasks/007-migration-configurable-udm-property-indexes.md) | Migration: configurable UDM-property GIN indexes | not started | Migration |

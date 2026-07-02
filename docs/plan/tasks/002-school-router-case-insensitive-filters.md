@@ -1,11 +1,12 @@
 # Task 002 — School router: case-insensitive filters
 
-**Status:** not started
+**Status:** done
 
 ## Objective
 
-Make the v2 school-search `name` filter, and the exact-lookup endpoints
-`school_get`/`school_exists`, case-insensitive.
+Make the v2 school-search `name` filter case-insensitive. `school_get`/
+`school_exists` are exact-lookup-by-identifier endpoints and stay
+case-sensitive and exact — unchanged by this task (see D9).
 
 ## Context
 
@@ -13,8 +14,9 @@ See [`../context.md`](../context.md) for full background, and Task 001
 (`docs/plan/tasks/001-user-router-case-insensitive-filters.md`) for the
 reference `_str_filter` change this task mirrors.
 
-Relevant decisions: [`../decisions.md`](../decisions.md) D1, D5, D9 (accept
-`*` as a wildcard consistently, including in `school_get`/`school_exists`).
+Relevant decisions: [`../decisions.md`](../decisions.md) D1, D5, D9 (school/OU
+identifiers, including `school_get`/`school_exists`, stay case-sensitive and
+exact — only free-text `name` search becomes case-insensitive).
 
 Current code (`kelvin-api/ucsschool/kelvin/routers/v2/school.py`):
 
@@ -48,17 +50,18 @@ Filter(field="name", op=Operator.EQ, value=school_name)
   has the `case_insensitive` parameter (added as part of Task 001). Skip the
   "copy `_str_filter`" step below — only the call-site changes remain.
 - Update `search()`'s call site to pass `case_insensitive=True`.
-- Switch `school_get` and `school_exists`'s direct `Filter(..., EQ, ...)` to
-  `make_wildcard_filter("name", school_name, case_insensitive=True)` (needs
-  `make_wildcard_filter` imported from `ucsschool_objects` again in this
-  file — it was removed when the local `_str_filter` that used it was
-  hoisted out).
+- `school_get`/`school_exists` are **out of scope** (per D9, reversed from an
+  earlier direction) — their `Filter(field="name", op=Operator.EQ,
+  value=school_name)` construction stays exactly as it is today. No
+  `make_wildcard_filter` import is needed in this file for them.
 
 ## Non-goals
 
 - Any change to `query_filter.py`/`query.py` — already capable.
 - Anything about `School.display_name` or other School fields not in scope
   per `../decisions.md` D2.
+- `school_get`/`school_exists` (per D9 — these are exact-lookup-by-identifier
+  endpoints, not free-text search, and stay case-sensitive/exact).
 
 ## Dependencies
 
@@ -73,20 +76,15 @@ None functionally, but do Task 001 first for a consistent reference pattern.
    ```python
    query = SearchQuery(where=_str_filter("name", name_filter, case_insensitive=True)) if name_filter else None
    ```
-3. Update `school_get` and `school_exists` (per D9 — `*` is accepted as a
-   wildcard here too, consistent with the rest of the story):
-   ```python
-   SearchQuery(where=make_wildcard_filter("name", school_name, case_insensitive=True))
-   ```
-   (import `make_wildcard_filter` if not already imported in this file — it
-   already is, per the existing `_str_filter`).
+3. Leave `school_get` and `school_exists` untouched (per D9 — they're
+   exact-lookup-by-identifier endpoints, not free-text search).
 
 ## Acceptance criteria
 
 - School-name list search is case-insensitive, wildcard behavior preserved
   otherwise.
-- `school_get`/`school_exists` find a school regardless of case in the path
-  parameter, and treat a literal `*` in `school_name` as a wildcard (per D9).
+- `school_get`/`school_exists` remain case-sensitive, exact-match lookups —
+  byte-for-byte unchanged from before this story (per D9).
 
 ## Validation / test steps
 

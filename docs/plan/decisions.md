@@ -220,35 +220,38 @@ decision only affects the `"*" in value` wildcard branch).
 
 ---
 
-## D9 — Accept `*` as a wildcard consistently, including in "exact-lookup" endpoints
+## D9 — School/OU identifiers stay case-sensitive & exact; only free-text `name` search becomes case-insensitive (supersedes initial "wildcard everywhere" direction)
 
-**Decision:** `school_get`/`school_exists` (`school.py`) and the
-`school.name` join filter in `workgroup.py`/`school_class.py`'s `search()`
-switch to `make_wildcard_filter(field, value, case_insensitive=True)`, the
-same helper used everywhere else in this story — even though these
-particular values come from path parameters or a required query parameter
-rather than free-text search input.
+**Decision:** `school_get`/`school_exists` (`school.py`) keep their original
+`Filter(field="name", op=Operator.EQ, value=school_name)` construction —
+case-sensitive, exact match, no wildcard. Likewise, the `school.name` join
+filter in `workgroup.py`/`school_class.py`'s `search()` (built from the
+required `school` query param) keeps `Filter(field="school.name",
+op=Operator.EQ, value=school)` — case-sensitive, exact match, no wildcard —
+and its docstring keeps the "case sensitive, exact match, required" wording.
+Only the free-text `name`-search fields (school list search's `name_filter`,
+and `workgroup_name`/`class_name` in `workgroup.py`/`school_class.py`) get
+`case_insensitive=True` via `_str_filter`, per D1.
 
-**Rationale:** User's explicit choice, consistent with the existing precedent
-in `workgroup.py`/`school_class.py`'s `get()` endpoints, which already treat
-`*` as a wildcard in the `name` field today. Using one helper everywhere
-avoids introducing a second, bespoke "case-insensitive but wildcard-disabled"
-code path purely for these call sites. UCS OU/school naming rules already
-disallow `*` in practice, making the theoretical risk (a school/OU name
-containing a literal `*` being misinterpreted as a wildcard) low.
+**Rationale:** User's explicit choice. The school/OU name is a stable
+identifier — a path parameter in `school_get`/`school_exists`, and in
+`workgroup.py`/`school_class.py`'s `search()` it's only used to scope the
+*actual* free-text search (the case-insensitive workgroup/class `name`) to
+one school. The OU itself isn't a search field a caller fuzzes or varies the
+case of; it identifies a specific object, so it doesn't need case-insensitive
+or wildcard matching.
 
-**Alternatives considered:** Escaping any literal `*` before calling
-`make_wildcard_filter` for these specific call sites, or introducing a
-dedicated case-insensitive-exact-only helper — rejected as unnecessary
-complexity given the naming-rule constraint and the existing `get()`-endpoint
-precedent.
+**Note:** An earlier direction (see git history) had these same call sites
+switching to `make_wildcard_filter(..., case_insensitive=True)` for
+consistency with the rest of the story. That direction was reversed in favor
+of the identifier-vs-search-field distinction above before Tasks 002-004
+were completed.
 
-**Consequences:** Tasks 002-004 can proceed without a conditional branch —
-`make_wildcard_filter(..., case_insensitive=True)` is used uniformly across
-all four router files for every field touched by this story (`name`,
-`firstname`, `lastname`, `email`, `schools.name`/`school.name`). If UCS OU
-naming rules ever change to permit `*`, this would need revisiting — noted
-here for future reference.
+**Consequences:** Tasks 002-004 scope narrows to only the free-text `name`
+call sites. `school_get`/`school_exists` and the `school.name`/`school`
+join-filter call sites are untouched by this story — no `make_wildcard_filter`
+import needed for them, and their docstrings/behavior are byte-for-byte
+unchanged.
 
 ---
 
