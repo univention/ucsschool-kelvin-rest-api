@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from sqlalchemy.ext.asyncio import AsyncSession
-    from ucsschool_objects.core.domain.models import UnsetType
     from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 
 QueryExpr: TypeAlias = Filter | And | Or | Not
@@ -46,7 +45,7 @@ class SupportsLoadOptions(Protocol):
 
 class PublicIdCarrier(Protocol):
     @property
-    def public_id(self) -> UUID | UnsetType:  # pragma: no cover
+    def public_id(self) -> UUID:  # pragma: no cover
         ...
 
 

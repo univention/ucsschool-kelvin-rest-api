@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from typing import cast
-from uuid import UUID
-
 import pytest
 from tests.core.domain.helpers.model_builders import (
     role as build_role,
@@ -24,7 +21,7 @@ def test_roles_raises_when_memberships_unloaded() -> None:
 def test_roles_returns_empty_tuple_when_no_roles() -> None:
     school = build_school()
     membership = SchoolMembership(school=school, is_primary=True, roles=set(), groups=set())
-    user = build_user(school_memberships={cast(UUID, school.public_id): membership})
+    user = build_user(school_memberships={school.public_id: membership})
     assert user.roles == set()
 
 
@@ -40,8 +37,8 @@ def test_roles_deduplicates_across_memberships() -> None:
     )
     user = build_user(
         school_memberships={
-            cast(UUID, m1.school.public_id): m1,
-            cast(UUID, m2.school.public_id): m2,
+            m1.school.public_id: m1,
+            m2.school.public_id: m2,
         }
     )
     result = user.roles

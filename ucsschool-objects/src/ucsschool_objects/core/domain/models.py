@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, TypeAlias, TypeVar, cast
+from typing import TYPE_CHECKING, Callable, TypeAlias, TypeVar, cast, final
 
 if TYPE_CHECKING:
     from datetime import date
@@ -47,6 +47,7 @@ def is_loaded(instance: object, field_name: str) -> bool:
     return not isinstance(field_value, UnloadedType)
 
 
+@final
 class School:
     __serialize_fields__ = (
         "public_id",
@@ -74,7 +75,7 @@ class School:
         home_share_file_server: str | None | UnloadedType = UNLOADED,
         udm_properties: dict[str, object] | UnloadedType = UNLOADED,
     ) -> None:
-        self.public_id = public_id
+        self._public_id = public_id
         self._record_uid = record_uid
         self._source_uid = source_uid
         self._name = name
@@ -90,6 +91,21 @@ class School:
         return cls(
             public_id=public_id,
         )
+
+    @property
+    def public_id(self) -> UUID:
+        if isinstance(self._public_id, UnsetType):
+            raise ValueError("School.public_id is not set.")
+        return self._public_id
+
+    @public_id.setter
+    def public_id(self, value: UUID) -> None:
+        if not isinstance(self._public_id, UnsetType):
+            raise ValueError("School.public_id is already set.")
+        self._public_id = value
+
+    def is_unset(self) -> bool:
+        return isinstance(self._public_id, UnsetType)
 
     @property
     def record_uid(self) -> str:
@@ -184,14 +200,17 @@ class School:
         self._udm_properties = value
 
     def __hash__(self) -> int:
-        return hash(self.public_id)
+        return hash(self._public_id)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, School):
             return NotImplemented
+        if other.is_unset() or self.is_unset():
+            raise ValueError("Cannot compare School instances with unset public_id.")
         return self.public_id == other.public_id
 
 
+@final
 class Role:
     __serialize_fields__ = (
         "public_id",
@@ -205,7 +224,7 @@ class Role:
         name: str | UnloadedType = UNLOADED,
         display_name: dict[str, str] | UnloadedType = UNLOADED,
     ) -> None:
-        self.public_id = public_id
+        self._public_id = public_id
         self._name = name
         self._display_name = display_name
 
@@ -216,6 +235,21 @@ class Role:
         )
 
     @property
+    def public_id(self) -> UUID:
+        if isinstance(self._public_id, UnsetType):
+            raise ValueError("Role.public_id is not set.")
+        return self._public_id
+
+    @public_id.setter
+    def public_id(self, value: UUID) -> None:
+        if not isinstance(self._public_id, UnsetType):
+            raise ValueError("Role.public_id is already set.")
+        self._public_id = value
+
+    def is_unset(self) -> bool:
+        return isinstance(self._public_id, UnsetType)
+
+    @property
     def name(self) -> str:
         return _require_loaded(self._name, object_type="Role", field_name="name")
 
@@ -224,14 +258,17 @@ class Role:
         return _require_loaded(self._display_name, object_type="Role", field_name="display_name")
 
     def __hash__(self) -> int:
-        return hash(self.public_id)
+        return hash(self._public_id)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Role):
             return NotImplemented
+        if other.is_unset() or self.is_unset():
+            raise ValueError("Cannot compare Role instances with unset public_id.")
         return self.public_id == other.public_id
 
 
+@final
 class Group:
     __serialize_fields__ = (
         "public_id",
@@ -269,7 +306,7 @@ class Group:
         description: str | None | UnloadedType = UNLOADED,
         udm_properties: dict[str, object] | UnloadedType = UNLOADED,
     ) -> None:
-        self.public_id = public_id
+        self._public_id = public_id
         self._record_uid = record_uid
         self._source_uid = source_uid
         self._name = name
@@ -290,6 +327,21 @@ class Group:
         return cls(
             public_id=public_id,
         )
+
+    @property
+    def public_id(self) -> UUID:
+        if isinstance(self._public_id, UnsetType):
+            raise ValueError("Group.public_id is not set.")
+        return self._public_id
+
+    @public_id.setter
+    def public_id(self, value: UUID) -> None:
+        if not isinstance(self._public_id, UnsetType):
+            raise ValueError("Group.public_id is already set.")
+        self._public_id = value
+
+    def is_unset(self) -> bool:
+        return isinstance(self._public_id, UnsetType)
 
     @property
     def record_uid(self) -> str:
@@ -420,14 +472,17 @@ class Group:
         self._udm_properties = value
 
     def __hash__(self) -> int:
-        return hash(self.public_id)
+        return hash(self._public_id)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Group):
             return NotImplemented
+        if other.is_unset() or self.is_unset():
+            raise ValueError("Cannot compare Group instances with unset public_id.")
         return self.public_id == other.public_id
 
 
+@final
 class SchoolMembership:
     __serialize_fields__ = (
         "school",
@@ -468,6 +523,7 @@ class SchoolMembership:
         )
 
 
+@final
 class User:
     __serialize_fields__ = (
         "public_id",
@@ -503,7 +559,7 @@ class User:
         expiration_date: date | None | UnloadedType = None,
         udm_properties: dict[str, object] | UnloadedType = UNLOADED,
     ) -> None:
-        self.public_id = public_id
+        self._public_id = public_id
         self._record_uid = record_uid
         self._source_uid = source_uid
         self._name = name
@@ -517,6 +573,21 @@ class User:
         self._birthday = birthday
         self._expiration_date = expiration_date
         self._udm_properties = udm_properties
+
+    @property
+    def public_id(self) -> UUID:
+        if isinstance(self._public_id, UnsetType):
+            raise ValueError("User.public_id is not set.")
+        return self._public_id
+
+    @public_id.setter
+    def public_id(self, value: UUID) -> None:
+        if not isinstance(self._public_id, UnsetType):
+            raise ValueError("User.public_id is already set.")
+        self._public_id = value
+
+    def is_unset(self) -> bool:
+        return isinstance(self._public_id, UnsetType)
 
     @property
     def record_uid(self) -> str:
@@ -639,11 +710,13 @@ class User:
         self._udm_properties = value
 
     def __hash__(self) -> int:
-        return hash(self.public_id)
+        return hash(self._public_id)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, User):
             return NotImplemented
+        if other.is_unset() or self.is_unset():
+            raise ValueError("Cannot compare User instances with unset public_id.")
         return self.public_id == other.public_id
 
     @classmethod

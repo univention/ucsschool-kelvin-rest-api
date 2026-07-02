@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import TYPE_CHECKING
 
 import pytest
 from tests.core.domain.helpers.model_builders import (
@@ -19,6 +20,25 @@ from ucsschool_objects import (
     User,
 )
 from ucsschool_objects.core.domain.models import is_loaded
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    DomainEntity = School | Role | Group | User
+
+
+def _unset_user() -> User:
+    return User(
+        record_uid=UNLOADED,
+        source_uid=UNLOADED,
+        name=UNLOADED,
+        firstname=UNLOADED,
+        lastname=UNLOADED,
+        active=UNLOADED,
+        school_memberships=UNLOADED,
+        legal_wards=UNLOADED,
+        legal_guardians=UNLOADED,
+    )
 
 
 def _assert_public_reads_raise(entity: object, *field_names: str) -> None:
@@ -278,3 +298,78 @@ def test_school_membership_equality_detects_different_loaded_fields() -> None:
 def test_model_eq_returns_not_implemented_for_other_types(entity: object) -> None:
     eq_result = entity.__eq__(object())
     assert eq_result is NotImplemented
+
+
+@pytest.mark.parametrize(
+    "unset_factory",
+    [
+        pytest.param(School, id="school"),
+        pytest.param(Role, id="role"),
+        pytest.param(Group, id="group"),
+        pytest.param(_unset_user, id="user"),
+    ],
+)
+def test_public_id_setter_assigns_once_when_unset(
+    unset_factory: Callable[[], DomainEntity],
+) -> None:
+    entity = unset_factory()
+    assert entity.is_unset() is True
+    with pytest.raises(ValueError, match=rf"{type(entity).__name__}\.public_id is not set"):
+        _ = entity.public_id
+
+    new_id = uuid.uuid4()
+    entity.public_id = new_id
+
+    assert entity.is_unset() is False
+    assert entity.public_id == new_id
+
+
+@pytest.mark.parametrize(
+    "minimal_factory",
+    [
+        pytest.param(School.minimal, id="school"),
+        pytest.param(Role.minimal, id="role"),
+        pytest.param(Group.minimal, id="group"),
+        pytest.param(User.minimal, id="user"),
+    ],
+)
+def test_public_id_setter_raises_when_already_set(
+    minimal_factory: Callable[[uuid.UUID], DomainEntity],
+) -> None:
+    entity = minimal_factory(uuid.uuid4())
+    with pytest.raises(ValueError, match=rf"{type(entity).__name__}\.public_id is already set"):
+        entity.public_id = uuid.uuid4()
+
+
+@pytest.mark.parametrize(
+    ("cls", "unset_factory", "minimal_factory"),
+    [
+        pytest.param(School, School, School.minimal, id="school"),
+        pytest.param(Role, Role, Role.minimal, id="role"),
+        pytest.param(Group, Group, Group.minimal, id="group"),
+        pytest.param(User, _unset_user, User.minimal, id="user"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("self_unset", "other_unset"),
+    [
+        pytest.param(True, False, id="self-unset"),
+        pytest.param(False, True, id="other-unset"),
+        pytest.param(True, True, id="both-unset"),
+    ],
+)
+def test_equality_raises_when_either_side_is_unset(
+    cls: type[DomainEntity],
+    unset_factory: Callable[[], DomainEntity],
+    minimal_factory: Callable[[uuid.UUID], DomainEntity],
+    self_unset: bool,
+    other_unset: bool,
+) -> None:
+    self_entity = unset_factory() if self_unset else minimal_factory(uuid.uuid4())
+    other_entity = unset_factory() if other_unset else minimal_factory(uuid.uuid4())
+
+    with pytest.raises(
+        ValueError,
+        match=rf"Cannot compare {cls.__name__} instances with unset public_id",
+    ):
+        _ = self_entity == other_entity
