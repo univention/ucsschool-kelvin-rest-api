@@ -27,7 +27,7 @@
 
 import logging
 from functools import lru_cache
-from typing import List, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response, status
 from ucsschool_objects import (
@@ -98,19 +98,24 @@ async def _school_to_model(
     )
 
 
-@router.get("/", response_model=List[SchoolModel])
+@router.get("/", response_model=list[SchoolModel])
 async def search(
     request: Request,
-    name_filter: Optional[str] = Query(
-        None,
-        alias="name",
-        description="List schools with this name. '*' can be used for an inexact search. (optional)",
-        title="name",
-    ),
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
-) -> List[SchoolModel]:
+    name_filter: Annotated[
+        str | None,
+        Query(
+            None,
+            alias="name",
+            description=(
+                "List schools with this name. '*' can be used for an inexact search. " "(optional)"
+            ),
+            title="name",
+        ),
+    ],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+) -> list[SchoolModel]:
     query = SearchQuery(where=_str_filter("name", name_filter)) if name_filter else None
     logger.debug("v2 school search query: %r", query)
     schools = list(await session.schools.search(query))
@@ -121,14 +126,16 @@ async def search(
 @router.get("/{school_name}", response_model=SchoolModel)
 async def school_get(
     request: Request,
-    school_name: str = Path(
-        ...,
-        description="School (OU) with this name.",
-        title="name",
-    ),
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
+    school_name: Annotated[
+        str,
+        Path(
+            description="School (OU) with this name.",
+            title="name",
+        ),
+    ],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
 ) -> SchoolModel:
     results = list(
         await session.schools.search(
@@ -146,13 +153,15 @@ async def school_get(
 
 @router.head("/{school_name}")
 async def school_exists(
-    school_name: str = Path(
-        ...,
-        description="School (OU) with this name.",
-        title="name",
-    ),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
+    school_name: Annotated[
+        str,
+        Path(
+            description="School (OU) with this name.",
+            title="name",
+        ),
+    ],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
 ):
     results = list(
         await session.schools.search(

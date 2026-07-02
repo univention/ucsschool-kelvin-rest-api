@@ -27,7 +27,7 @@
 
 import logging
 from functools import lru_cache
-from typing import List, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 from ucsschool_objects import (
@@ -135,25 +135,35 @@ async def _group_to_school_class_model(
     )
 
 
-@router.get("/", response_model=List[SchoolClassModel])
+@router.get("/", response_model=list[SchoolClassModel])
 async def search(
     request: Request,
-    school: str = Query(
-        ...,
-        description="Name of school (``OU``) in which to search for classes "
-        "(**case sensitive, exact match, required**).",
-        min_length=2,
-    ),
-    class_name: Optional[str] = Query(
-        None,
-        alias="name",
-        description="List classes with this name. (optional, ``*`` can be used for an inexact search).",
-        title="name",
-    ),
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
-) -> List[SchoolClassModel]:
+    school: Annotated[
+        str,
+        Query(
+            ...,
+            description=(
+                "Name of school (``OU``) in which to search for classes "
+                "(**case sensitive, exact match, required**)."
+            ),
+            min_length=2,
+        ),
+    ],
+    class_name: Annotated[
+        str | None,
+        Query(
+            None,
+            alias="name",
+            description=(
+                "List classes with this name. (optional, ``*`` can be used for an inexact search)."
+            ),
+            title="name",
+        ),
+    ],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+) -> list[SchoolClassModel]:
     clauses = [Filter(field="school.name", op=Operator.EQ, value=school)]
     if class_name:
         clauses.append(_str_filter("name", f"{school}-{class_name}"))
@@ -171,11 +181,11 @@ async def search(
 @router.get("/{school}/{class_name}", response_model=SchoolClassModel)
 async def get(
     request: Request,
-    class_name: str = Path(..., description="Name of the school class to fetch."),
-    school: str = Path(..., description="Name of the school (OU)."),
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
+    class_name: Annotated[str, Path(description="Name of the school class to fetch.")],
+    school: Annotated[str, Path(description="Name of the school (OU).")],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
 ) -> SchoolClassModel:
     full_name = f"{school}-{class_name}"
     results = [
