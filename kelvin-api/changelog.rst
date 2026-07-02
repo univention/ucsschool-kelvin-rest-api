@@ -5,7 +5,7 @@
 Changelog
 =========
 
-v3.3.1 (2026-06-15)
+v3.3.1 (2026-07-02)
 -------------------
 * Fixed: After a restart of the LDAP server, the first login request could be delayed by several seconds because the LDAP library waited before every reconnection attempt, including the first one.
   The first reconnection attempt is now performed immediately, so a stale connection to an already-reachable LDAP server reconnects without delay (:uv:bug:`58263`).
