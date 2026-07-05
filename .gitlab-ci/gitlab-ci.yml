@@ -27,7 +27,6 @@ include:
       - fragments/appcenter.yaml
       - fragments/openstack.yaml
   - local: .gitlab-ci/SonarQube.yml
-  - local: .gitlab-ci/ai-review.yml
 
 stages:
   - prepare
