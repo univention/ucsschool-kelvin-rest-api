@@ -1,6 +1,7 @@
 # Dev-only OpenTelemetry Collector config for exploring Kelvin's OTLP metrics.
-# Receives OTLP/HTTP on :4318 and prints every received metric to stdout, so you
-# can watch them with `docker compose logs -f otel-collector`.
+# Receives OTLP/HTTP on :4318, prints every received metric to stdout (watch with
+# `docker compose logs -f otel-collector`), and re-exposes them on :8889 for
+# Prometheus to scrape.
 receivers:
   otlp:
     protocols:
@@ -10,9 +11,14 @@ receivers:
 exporters:
   debug:
     verbosity: detailed
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    # Turn resource attributes (service.name, service.version) into metric labels.
+    resource_to_telemetry_conversion:
+      enabled: true
 
 service:
   pipelines:
     metrics:
       receivers: [otlp]
-      exporters: [debug]
+      exporters: [prometheus]
