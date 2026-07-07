@@ -81,11 +81,81 @@ def setup_meter_provider(app: FastAPI, logger: logging.Logger) -> None:
     provider = MeterProvider(resource=resource, metric_readers=[reader])
     metrics.set_meter_provider(provider)
     app.state.otel_meter_provider = provider
-    logger.info("OpenTelemetry HTTP metrics exporter configured.")
+
+    # Outbound UDM REST calls go through aiohttp; this global patch emits an
+    # http.client.duration histogram for every request (no router changes needed).
+    from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
+
+    AioHttpClientInstrumentor().instrument(meter_provider=provider)
+    logger.info("OpenTelemetry HTTP metrics exporter configured (server + UDM client).")
+
+
+# SQL statement keywords we expose as the low-cardinality `db.operation` attribute;
+# anything else is bucketed as OTHER so raw statement text never becomes a label.
+_SQL_OPERATIONS = frozenset(
+    {"SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "ALTER", "COMMIT", "ROLLBACK", "BEGIN"}
+)
+
+
+def _sql_operation(statement: str) -> str:
+    stmt = (statement or "").lstrip()
+    if not stmt:
+        return "OTHER"
+    first = stmt.split(None, 1)[0].upper()
+    return first if first in _SQL_OPERATIONS else "OTHER"
+
+
+def instrument_sqlalchemy_metrics(app: FastAPI, engine, logger: logging.Logger) -> None:
+    """Instrument the DB engine for metrics. Call from lifespan startup (per worker).
+
+    ``engine`` is the async engine built by ``build_engine``; instrumentation is applied
+    to its underlying sync engine. Emits the connection-pool gauge
+    (``db.client.connections.usage``) via ``SQLAlchemyInstrumentor`` plus a custom
+    ``db.client.query.duration`` histogram (ms, tagged with ``db.operation``) recorded
+    from cursor-execute events, since the instrumentor itself only spans queries.
+    """
+    if not metrics_enabled():
+        return
+
+    import time
+
+    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+    from sqlalchemy import event
+
+    provider = getattr(app.state, "otel_meter_provider", None)
+    sync_engine = engine.sync_engine
+
+    SQLAlchemyInstrumentor().instrument(engine=sync_engine, meter_provider=provider)
+
+    meter = provider.get_meter(__name__)
+    query_duration = meter.create_histogram(
+        "db.client.query.duration", unit="ms", description="Duration of database queries."
+    )
+
+    def _before(conn, cursor, statement, parameters, context, executemany):
+        conn.info.setdefault("_otel_query_start", []).append(time.perf_counter())
+
+    def _after(conn, cursor, statement, parameters, context, executemany):
+        stack = conn.info.get("_otel_query_start")
+        if not stack:
+            return
+        elapsed_ms = (time.perf_counter() - stack.pop()) * 1000.0
+        query_duration.record(elapsed_ms, {"db.operation": _sql_operation(statement)})
+
+    event.listen(sync_engine, "before_cursor_execute", _before)
+    event.listen(sync_engine, "after_cursor_execute", _after)
+    logger.info("OpenTelemetry SQLAlchemy metrics enabled.")
 
 
 def shutdown_meter_provider(app: FastAPI) -> None:
-    """Flush and shut down the meter provider if telemetry was enabled."""
+    """Uninstrument outbound instrumentors, then flush and shut down the meter provider."""
+    if metrics_enabled():
+        from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
+        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+
+        AioHttpClientInstrumentor().uninstrument()
+        SQLAlchemyInstrumentor().uninstrument()
+
     provider = getattr(app.state, "otel_meter_provider", None)
     if provider is not None:
         provider.shutdown()

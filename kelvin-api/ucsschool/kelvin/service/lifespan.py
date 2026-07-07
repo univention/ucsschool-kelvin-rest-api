@@ -13,7 +13,7 @@ from ..config import UDM_MAPPING_CONFIG, load_configurations
 from ..database import get_database_url
 from ..import_config import get_import_config
 from .log import setup_logging
-from .telemetry import setup_meter_provider, shutdown_meter_provider
+from .telemetry import instrument_sqlalchemy_metrics, setup_meter_provider, shutdown_meter_provider
 
 
 def load_configs(logger: logging.Logger) -> None:
@@ -35,6 +35,7 @@ def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AsyncItera
         log_version(app, logger)
         settings = DatabaseSettings(url=get_database_url())
         engine = build_engine(settings)
+        instrument_sqlalchemy_metrics(app, engine, logger)
         app.state.storage_session_factory = build_kelvin_storage_session_factory(engine)
         yield
         await engine.dispose()
