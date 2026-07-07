@@ -13,6 +13,11 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
 )
 
 from .consumer import KelvinConnectorEventHandler, KelvinConsumerModule
+from .telemetry import (
+    instrument_log_metrics,
+    instrument_sqlalchemy_metrics,
+    setup_meter_provider,
+)
 
 
 def main():
@@ -32,6 +37,9 @@ def main():
         logger.critical("Invalid log level provided: {}", KELVIN_CONNECTOR_LOG_LEVEL)
         sys.exit(1)
 
+    meter_provider = setup_meter_provider(logger)
+    instrument_log_metrics(meter_provider, logger)
+
     LDAP_SERVER_TYPE = os.environ.get("LDAP_SERVER_TYPE", None)
     if LDAP_SERVER_TYPE is None or LDAP_SERVER_TYPE != "master":
         logger.critical(f"Connector cannot run on {LDAP_SERVER_TYPE=}.")
@@ -49,6 +57,7 @@ def main():
         sys.exit(1)
 
     engine = build_engine(settings)
+    instrument_sqlalchemy_metrics(engine, meter_provider, logger)
     storage_factory = build_kelvin_storage_session_factory(engine)
     synchronization_manager = SynchronizationManager(
         storage_factory=storage_factory,
@@ -65,4 +74,8 @@ def main():
         config_dir=CONFIG_DIR,
     )
 
-    asyncio.run(consumer.consume_loop())
+    try:
+        asyncio.run(consumer.consume_loop())
+    finally:
+        if meter_provider is not None:
+            meter_provider.shutdown()

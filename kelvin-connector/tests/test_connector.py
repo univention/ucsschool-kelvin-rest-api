@@ -74,3 +74,22 @@ def test_main_happy_path(good_env):
     assert kwargs["name"] == "kelvin-connector"
     assert kwargs["provisioning_url"] == "https://provisioning.example.com/univention/provisioning"
     mock_asyncio_run.assert_called_once()
+
+
+def test_main_shuts_down_meter_provider_when_enabled(good_env):
+    """When telemetry is enabled, the meter provider is shut down on exit (flush)."""
+    provider = MagicMock()
+    with (
+        patch("kelvin_connector.connector.build_settings", return_value=MagicMock()),
+        patch("kelvin_connector.connector.build_engine", return_value=MagicMock()),
+        patch("kelvin_connector.connector.build_kelvin_storage_session_factory"),
+        patch("kelvin_connector.connector.SynchronizationManager"),
+        patch("kelvin_connector.connector.KelvinConnectorEventHandler"),
+        patch("kelvin_connector.connector.KelvinConsumerModule"),
+        patch("kelvin_connector.connector.setup_meter_provider", return_value=provider),
+        patch("kelvin_connector.connector.instrument_log_metrics"),
+        patch("kelvin_connector.connector.instrument_sqlalchemy_metrics"),
+        patch("kelvin_connector.connector.asyncio.run"),
+    ):
+        main()
+    provider.shutdown.assert_called_once()

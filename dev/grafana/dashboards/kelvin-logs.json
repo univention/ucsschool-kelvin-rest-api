@@ -28,7 +28,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(kelvin_log_records_total[1m])) by (level)",
+          "expr": "sum(rate(kelvin_log_records_total{service_name=\"kelvin-api\"}[1m])) by (level)",
           "legendFormat": "{{level}}"
         }
       ]
@@ -50,7 +50,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(kelvin_log_records_total{level=~\"WARNING|ERROR|CRITICAL\"}[10m])) by (level)",
+          "expr": "sum(increase(kelvin_log_records_total{service_name=\"kelvin-api\", level=~\"WARNING|ERROR|CRITICAL\"}[10m])) by (level)",
           "legendFormat": "{{level}}",
           "instant": true
         }
@@ -67,7 +67,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(kelvin_log_records_total{level=~\"WARNING|ERROR|CRITICAL\"}[5m])) by (component)",
+          "expr": "sum(rate(kelvin_log_records_total{service_name=\"kelvin-api\", level=~\"WARNING|ERROR|CRITICAL\"}[5m])) by (component)",
           "legendFormat": "{{component}}"
         }
       ]

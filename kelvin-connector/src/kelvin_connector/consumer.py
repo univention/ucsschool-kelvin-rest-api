@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import enum
 import re
+import time
 from typing import TYPE_CHECKING
 
 from kelvin_connector.models import (
@@ -37,6 +38,7 @@ from pydantic import ValidationError
 from typing_extensions import override
 
 from .ports import SynchronizationManagerProtocol
+from .telemetry import event_labels, event_metrics
 
 if TYPE_CHECKING:  # pragma: no cover
     from types import TracebackType
@@ -299,44 +301,63 @@ class KelvinConsumerModule(ConsumerModule):
     ) -> None:
         super().__init__(handler, *args, **kwargs)
         self.max_deliveries = max_deliveries
+        # No-op instruments until a MeterProvider is installed in main().
+        self._events_counter, self._event_duration = event_metrics()
 
     @override
     async def process_one_event(self, long_polling_timeout: int = DEFAULT_LONG_POLLING_TIMEOUT) -> None:
         event = await self._fetch_event(long_polling_timeout)
         if not event:
             # If the queue is empty, long polling timed out without new events.
+            # Not a real message, so it is not recorded as a processed event.
             self.logger.debug("Long polling timeout, no more events.")
             return
 
-        seq_num = event["sequence_number"]
-        self.logger.debug(f"Event {seq_num} has been fetched.")
-        if not await self.handler.is_relevant(event):
-            self.logger.debug(f"Skipped and acknowledged event {seq_num} as requested.")
-            await self._acknowledge_event(event)
-            return
-
+        # Record processing duration and outcome for every fetched event. `outcome`
+        # is set at each branch below; the finally records once, even on the crash
+        # paths, so failures are captured before the process restarts.
+        start = time.perf_counter()
+        outcome = "not_handled"
         try:
-            handled = await self.handler.handle_event(event)
-        except ValidationError:
-            self.logger.critical(f"Dropping malformed event {seq_num}: {event!r}")
-            await self._acknowledge_event(event)
-            return
-        except Exception:
-            num_delivered = event["num_delivered"]
-            if num_delivered < self.max_deliveries:
-                self.logger.error(
-                    f"Event {seq_num} failed on delivery {num_delivered}/{self.max_deliveries}; "
-                    "crashing without acknowledgement, the event will be redelivered."
-                )
-                raise
-            self.logger.critical(
-                f"Dropping event {seq_num} after {num_delivered} failed deliveries: {event!r}"
-            )
-            await self._acknowledge_event(event)
-            raise
+            seq_num = event["sequence_number"]
+            self.logger.debug(f"Event {seq_num} has been fetched.")
+            if not await self.handler.is_relevant(event):
+                self.logger.debug(f"Skipped and acknowledged event {seq_num} as requested.")
+                await self._acknowledge_event(event)
+                outcome = "skipped"
+                return
 
-        if handled:
-            self.logger.debug(f"Event {seq_num} has been processed successfully.")
-            await self._acknowledge_event(event)
-        else:
-            self.logger.debug(f"Event {seq_num} has not been processed.")
+            try:
+                handled = await self.handler.handle_event(event)
+            except ValidationError:
+                self.logger.critical(f"Dropping malformed event {seq_num}: {event!r}")
+                await self._acknowledge_event(event)
+                outcome = "dropped_malformed"
+                return
+            except Exception:
+                num_delivered = event["num_delivered"]
+                if num_delivered < self.max_deliveries:
+                    self.logger.error(
+                        f"Event {seq_num} failed on delivery {num_delivered}/{self.max_deliveries}; "
+                        "crashing without acknowledgement, the event will be redelivered."
+                    )
+                    outcome = "retry"
+                    raise
+                self.logger.critical(
+                    f"Dropping event {seq_num} after {num_delivered} failed deliveries: {event!r}"
+                )
+                await self._acknowledge_event(event)
+                outcome = "dropped_exhausted"
+                raise
+
+            if handled:
+                self.logger.debug(f"Event {seq_num} has been processed successfully.")
+                await self._acknowledge_event(event)
+                outcome = "success"
+            else:
+                self.logger.debug(f"Event {seq_num} has not been processed.")
+                outcome = "not_handled"
+        finally:
+            attributes = {"outcome": outcome, **event_labels(event)}
+            self._event_duration.record((time.perf_counter() - start) * 1000.0, attributes)
+            self._events_counter.add(1, attributes)

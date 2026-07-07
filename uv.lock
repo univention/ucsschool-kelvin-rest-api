@@ -780,6 +780,9 @@ version = "0.1.0"
 source = { editable = "kelvin-connector" }
 dependencies = [
     { name = "loguru" },
+    { name = "opentelemetry-exporter-otlp-proto-http" },
+    { name = "opentelemetry-instrumentation-sqlalchemy" },
+    { name = "opentelemetry-sdk" },
     { name = "provisioning-consumer-lib" },
     { name = "pydantic" },
     { name = "python-ldap" },
@@ -799,6 +802,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "loguru", specifier = ">=0.7.3" },
+    { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.27.0" },
+    { name = "opentelemetry-instrumentation-sqlalchemy", specifier = ">=0.48b0" },
+    { name = "opentelemetry-sdk", specifier = ">=1.27.0" },
     { name = "provisioning-consumer-lib", specifier = ">=0.9.7" },
     { name = "pydantic", specifier = ">=1.10.26" },
     { name = "python-ldap", specifier = ">=3.4.4" },

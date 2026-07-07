@@ -68,10 +68,18 @@ services:
       - ./_vm_config/postgresql-kelvin.secret:/etc/ucsschool/kelvin/postgresql-kelvin.secret:ro
     stdin_open: true
     tty: true
+    depends_on:
+      - otel-collector
     environment:
       LDAP_SERVER_TYPE: "${LDAP_SERVER_TYPE}"
       PROVISIONING_FQDN: "${LDAP_SERVER_NAME}"
       KELVIN_HEALTH_URL: "http://kelvin:8911/health"
+      # OpenTelemetry metrics (dev exploration), exported to the shared collector.
+      UCSSCHOOL_KELVIN_OTEL_METRICS_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      OTEL_SERVICE_NAME: "kelvin-connector"
+      OTEL_METRIC_EXPORT_INTERVAL: "5000"
     env_file:
       - _vm_config/env
     extra_hosts:

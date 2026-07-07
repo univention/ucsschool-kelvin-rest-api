@@ -60,7 +60,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, sum(rate(db_client_query_duration_milliseconds_bucket[5m])) by (le, db_operation))",
+          "expr": "histogram_quantile(0.95, sum(rate(db_client_query_duration_milliseconds_bucket{service_name=\"kelvin-api\"}[5m])) by (le, db_operation))",
           "legendFormat": "{{db_operation}}"
         }
       ]
@@ -76,7 +76,7 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(db_client_connections_usage) by (state)",
+          "expr": "sum(db_client_connections_usage{service_name=\"kelvin-api\"}) by (state)",
           "legendFormat": "{{state}}"
         }
       ]
