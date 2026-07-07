@@ -1,0 +1,18 @@
+# Dev-only OpenTelemetry Collector config for exploring Kelvin's OTLP metrics.
+# Receives OTLP/HTTP on :4318 and prints every received metric to stdout, so you
+# can watch them with `docker compose logs -f otel-collector`.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [debug]

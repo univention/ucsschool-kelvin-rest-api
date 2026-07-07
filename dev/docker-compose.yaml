@@ -23,6 +23,13 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - 4318:4318
   connector:
     image: ucsschool-kelvin-connector:dev
     pull_policy: build
@@ -66,6 +73,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -77,6 +86,15 @@ services:
       - 8911:8911
     env_file:
       - _vm_config/env
+    environment:
+      # OpenTelemetry HTTP metrics (dev exploration). Set the enable flag to "false"
+      # to confirm the off path. The exporter targets the otel-collector service,
+      # which prints received metrics to its stdout.
+      UCSSCHOOL_KELVIN_OTEL_METRICS_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      OTEL_SERVICE_NAME: "kelvin-api"
+      OTEL_METRIC_EXPORT_INTERVAL: "5000"
     extra_hosts:
       - "${LDAP_MASTER}:${TARGET}"
     hostname: "${HOSTNAME}"
