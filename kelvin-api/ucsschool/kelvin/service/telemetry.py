@@ -87,7 +87,64 @@ def setup_meter_provider(app: FastAPI, logger: logging.Logger) -> None:
     from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
 
     AioHttpClientInstrumentor().instrument(meter_provider=provider)
+    instrument_log_metrics(app, logger)
     logger.info("OpenTelemetry HTTP metrics exporter configured (server + UDM client).")
+
+
+class _LogRecordCounter(logging.Handler):
+    """Logging handler that counts every record it receives into an OTel counter.
+
+    Attached to the root logger plus every non-propagating logger (see
+    instrument_log_metrics), so it sees each record that passed its logger's level
+    filter (per-logger levels are set in setup_logging). It never raises: a metrics
+    handler must not be able to break application logging.
+    """
+
+    def __init__(self, counter) -> None:
+        super().__init__(level=logging.NOTSET)
+        self._counter = counter
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            self._counter.add(
+                1,
+                {
+                    "level": record.levelname,
+                    "component": (record.name or "root").split(".", 1)[0],
+                },
+            )
+        except Exception:  # pragma: no cover - never disrupt logging
+            pass
+
+
+def instrument_log_metrics(app: FastAPI, logger: logging.Logger) -> None:
+    """Count emitted log records by level/component into `kelvin.log.records`.
+
+    Call from lifespan startup after the meter provider exists. No-op when disabled.
+    """
+    if not metrics_enabled():
+        return
+
+    provider = getattr(app.state, "otel_meter_provider", None)
+    counter = provider.get_meter(__name__).create_counter(
+        "kelvin.log.records", unit="{record}", description="Log records emitted, by level."
+    )
+    handler = _LogRecordCounter(counter)
+
+    # Attach to the root logger plus every non-propagating logger. uvicorn configures
+    # `uvicorn` and `uvicorn.access` with propagate=False, so their records (e.g. INFO
+    # access logs) never reach root; attaching at each propagate=False boundary counts
+    # them exactly once (propagation stops there, so there is no double count with root).
+    root = logging.getLogger()
+    targets = [root]
+    for existing in list(root.manager.loggerDict.values()):
+        if isinstance(existing, logging.Logger) and not existing.propagate:
+            targets.append(existing)
+    for target in targets:
+        target.addHandler(handler)
+    app.state.otel_log_handler = handler
+    app.state.otel_log_handler_targets = targets
+    logger.info("OpenTelemetry log-record metrics enabled on %d loggers.", len(targets))
 
 
 # SQL statement keywords we expose as the low-cardinality `db.operation` attribute;
@@ -155,6 +212,11 @@ def shutdown_meter_provider(app: FastAPI) -> None:
 
         AioHttpClientInstrumentor().uninstrument()
         SQLAlchemyInstrumentor().uninstrument()
+
+    log_handler = getattr(app.state, "otel_log_handler", None)
+    if log_handler is not None:
+        for target in getattr(app.state, "otel_log_handler_targets", [logging.getLogger()]):
+            target.removeHandler(log_handler)
 
     provider = getattr(app.state, "otel_meter_provider", None)
     if provider is not None:

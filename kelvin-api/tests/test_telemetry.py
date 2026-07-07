@@ -188,3 +188,73 @@ def test_aiohttp_client_metrics_record_duration(monkeypatch):
         assert any(name.startswith("http.client") for name in metrics), list(metrics)
     finally:
         AioHttpClientInstrumentor().uninstrument()
+
+
+def test_log_metrics_count_records_by_level_and_component(monkeypatch):
+    """instrument_log_metrics counts emitted log records into kelvin.log.records,
+    tagged with level and the top-level logger component."""
+    monkeypatch.setenv(ENABLE_ENV, "true")
+    from opentelemetry.sdk.metrics import MeterProvider
+    from opentelemetry.sdk.metrics.export import InMemoryMetricReader
+
+    reader = InMemoryMetricReader()
+    provider = MeterProvider(metric_readers=[reader])
+
+    app = _fresh_app()
+    app.state.otel_meter_provider = provider
+    telemetry.instrument_log_metrics(app, logger)
+    handler = app.state.otel_log_handler
+    try:
+        rec_logger = logging.getLogger("ucsschool.kelvin.telemetry_test")
+        rec_logger.setLevel(logging.DEBUG)
+        rec_logger.warning("a warning")
+        rec_logger.warning("another warning")
+        rec_logger.error("an error")
+
+        points = _metrics_by_name(reader).get("kelvin.log.records", [])
+        counts = {
+            (dp.attributes.get("level"), dp.attributes.get("component")): dp.value for dp in points
+        }
+        assert counts.get(("WARNING", "ucsschool")) == 2, counts
+        assert counts.get(("ERROR", "ucsschool")) == 1, counts
+    finally:
+        for target in app.state.otel_log_handler_targets:
+            target.removeHandler(handler)
+
+
+def test_log_metrics_count_non_propagating_loggers(monkeypatch):
+    """Records from non-propagating loggers (like uvicorn.access, propagate=False) are
+    counted once, even though they never reach the root logger."""
+    monkeypatch.setenv(ENABLE_ENV, "true")
+    from opentelemetry.sdk.metrics import MeterProvider
+    from opentelemetry.sdk.metrics.export import InMemoryMetricReader
+
+    reader = InMemoryMetricReader()
+    provider = MeterProvider(metric_readers=[reader])
+
+    # Emulate uvicorn's setup: a non-propagating logger with its own sink, created
+    # before instrument_log_metrics runs (which scans for propagate=False loggers).
+    access = logging.getLogger("uvicorn.access")
+    saved_propagate = access.propagate
+    access.propagate = False
+    access.setLevel(logging.INFO)
+    access.addHandler(logging.NullHandler())
+
+    app = _fresh_app()
+    app.state.otel_meter_provider = provider
+    telemetry.instrument_log_metrics(app, logger)
+    handler = app.state.otel_log_handler
+    try:
+        assert access in app.state.otel_log_handler_targets  # attached at the boundary
+        access.info("GET /ucsschool/kelvin/v1/roles/ HTTP/1.1 200")
+
+        points = _metrics_by_name(reader).get("kelvin.log.records", [])
+        counts = {
+            (dp.attributes.get("level"), dp.attributes.get("component")): dp.value for dp in points
+        }
+        # counted exactly once, with component derived from the logger name
+        assert counts.get(("INFO", "uvicorn")) == 1, counts
+    finally:
+        for target in app.state.otel_log_handler_targets:
+            target.removeHandler(handler)
+        access.propagate = saved_propagate
