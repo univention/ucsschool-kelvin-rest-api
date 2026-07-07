@@ -7,6 +7,8 @@ from starlette.routing import Match, Mount, Route
 from timing_asgi import TimingClient, TimingMiddleware
 from timing_asgi.integrations import StarletteScopeToName
 
+from .telemetry import instrument_fastapi_metrics
+
 
 class PrintTimings(TimingClient):
     def __init__(self, logger: logging.Logger):
@@ -45,3 +47,7 @@ def add_middlewares(app: FastAPI, logger: logging.Logger) -> None:
         client=PrintTimings(logger),
         metric_namer=StarletteScopeToNamePatched(prefix="kelvin_app", starlette_app=app),
     )
+    # Must run before the app is first served: FastAPIInstrumentor patches
+    # Starlette's lazily-built middleware stack. The MeterProvider itself is
+    # installed later, per worker, from the lifespan (see service/telemetry.py).
+    instrument_fastapi_metrics(app, logger)

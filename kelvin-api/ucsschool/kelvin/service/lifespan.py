@@ -13,6 +13,7 @@ from ..config import UDM_MAPPING_CONFIG, load_configurations
 from ..database import get_database_url
 from ..import_config import get_import_config
 from .log import setup_logging
+from .telemetry import setup_meter_provider, shutdown_meter_provider
 
 
 def load_configs(logger: logging.Logger) -> None:
@@ -28,6 +29,7 @@ def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AsyncItera
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         setup_logging()
+        setup_meter_provider(app, logger)
         load_configs(logger)
         get_import_config()
         log_version(app, logger)
@@ -36,5 +38,6 @@ def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AsyncItera
         app.state.storage_session_factory = build_kelvin_storage_session_factory(engine)
         yield
         await engine.dispose()
+        shutdown_meter_provider(app)
 
     return lifespan

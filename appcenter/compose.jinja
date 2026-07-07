@@ -27,6 +27,12 @@ print(hostname)
       UCSSCHOOL_KELVIN_DB_URI_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.uri
       UCSSCHOOL_KELVIN_DB_USERNAME_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.username
       UCSSCHOOL_KELVIN_DB_PASSWORD_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.secret
+      # OpenTelemetry HTTP metrics (off by default). Enable via the UCR variable
+      # ucsschool/kelvin/otel_metrics_enabled=true, then point the exporter at your
+      # collector by setting the standard OTEL_* environment variables here, e.g.:
+      #   OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      #   OTEL_SERVICE_NAME: kelvin-api
+      #   OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
   provisioning:
     image: {{ IMAGE_TAG_CONNECTOR }}
     security_opt:

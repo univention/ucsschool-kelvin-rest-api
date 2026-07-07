@@ -36,6 +36,12 @@ Description[de] = Bei Installation oder Aktualisierung prüft Kelvin, ob der Sta
 InitialValue = false
 Scope = outside
 
+[ucsschool/kelvin/otel_metrics_enabled]
+Type = Bool
+Description = Enable export of OpenTelemetry HTTP metrics via OTLP. The exporter is configured through the standard OTEL_* environment variables (e.g. OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_SERVICE_NAME). Defaults to disabled.
+Description[de] = Aktiviert den Export von OpenTelemetry-HTTP-Metriken über OTLP. Der Exporter wird über die Standard-Umgebungsvariablen OTEL_* konfiguriert (z. B. OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_SERVICE_NAME). Standardmäßig deaktiviert.
+InitialValue = false
+
 [ucsschool/kelvin/db/uri]
 Type = String
 Description = The Kelvin database URI, without username and password. For example: 'postgresql://FQDN:5432/kelvin?sslmode=require'.
