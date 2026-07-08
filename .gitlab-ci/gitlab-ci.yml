@@ -16,6 +16,9 @@ include:
           optional: true
         - job: build_changelog_html
       appcenter_file_dir: "appcenter/"
+  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.8.0"
+    inputs:
+      stage: tests
   - project: "univention/dev/docs/sphinx-docker"
     file: "pipeline/sphinx.yml"
   - project: univention/infrastructure/docker-services
