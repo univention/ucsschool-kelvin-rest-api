@@ -27,7 +27,7 @@
 
 import logging
 from functools import lru_cache
-from typing import List, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 from ucsschool_objects import (
@@ -153,27 +153,37 @@ async def _group_to_workgroup_model(
     )
 
 
-@router.get("/", response_model=List[WorkGroupModel])
+@router.get("/", response_model=list[WorkGroupModel])
 async def search(
     request: Request,
-    school: str = Query(
-        ...,
-        description="Name of school (``OU``) in which to search for workgroups "
-        "(**case sensitive, exact match, required**).",
-        min_length=2,
-    ),
-    workgroup_name: Optional[str] = Query(
-        None,
-        alias="name",
-        description=(
-            "List workgroups with this name. " "(optional, ``*`` can be used for an inexact search)."
+    school: Annotated[
+        str,
+        Query(
+            ...,
+            description=(
+                "Name of school (``OU``) in which to search for workgroups "
+                "(**case sensitive, exact match, required**)."
+            ),
+            min_length=2,
         ),
-        title="name",
-    ),
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
-) -> List[WorkGroupModel]:
+    ],
+    workgroup_name: Annotated[
+        str | None,
+        Query(
+            None,
+            alias="name",
+            description=(
+                "List workgroups with this name. "
+                "(optional, ``*`` can be used "
+                "for an inexact search)."
+            ),
+            title="name",
+        ),
+    ],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+) -> list[WorkGroupModel]:
     clauses = [Filter(field="school.name", op=Operator.EQ, value=school)]
     if workgroup_name:
         clauses.append(_str_filter("name", f"{school}-{workgroup_name}"))
@@ -189,11 +199,11 @@ async def search(
 @router.get("/{school}/{workgroup_name}", response_model=WorkGroupModel)
 async def get(
     request: Request,
-    workgroup_name: str = Path(..., description="Name of the workgroup to fetch."),
-    school: str = Path(..., description="Name of the school (OU)."),
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
+    workgroup_name: Annotated[str, Path(description="Name of the workgroup to fetch.")],
+    school: Annotated[str, Path(description="Name of the school (OU).")],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
 ) -> WorkGroupModel:
     full_name = f"{school}-{workgroup_name}"
     results = [
