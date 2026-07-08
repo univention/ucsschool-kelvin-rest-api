@@ -3,7 +3,6 @@ from __future__ import annotations
 import uuid
 from datetime import date
 from typing import cast
-from uuid import UUID
 
 import pytest
 from tests.core.domain.helpers.model_builders import (
@@ -146,7 +145,7 @@ def test_group_setters_update_values() -> None:
 
 def test_user_setters_update_values() -> None:
     school = build_school("school-a")
-    school_id = cast(UUID, school.public_id)
+    school_id = school.public_id
     membership = SchoolMembership(school=school, is_primary=True, roles=set(), groups=set())
     user = User.minimal(uuid.uuid4())
 
@@ -183,8 +182,8 @@ def test_school_membership_equality_notimplemented_with_other_types() -> None:
 def test_user_groups_union_across_memberships() -> None:
     school1 = build_school("school-1")
     school2 = build_school("school-2")
-    school1_id = cast(UUID, school1.public_id)
-    school2_id = cast(UUID, school2.public_id)
+    school1_id = school1.public_id
+    school2_id = school2.public_id
     shared_group = build_school_class("shared")
     only_first = build_school_class("only-first")
     only_second = build_school_class("only-second")

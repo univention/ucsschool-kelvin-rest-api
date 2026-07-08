@@ -379,7 +379,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             }
         result: dict[UUID, SchoolMembership] = {}
         for school in schools:
-            assert not isinstance(school.public_id, UnsetType)
+            assert not school.is_unset()
 
             school_role_names = {r.role for r in roles if r.school == school.name}
 
@@ -1073,7 +1073,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 return
             raise SynchronizationException(f"Unable to find school with name={school_name} in database.")
         school = schools[0]
-        if isinstance(school.public_id, UnsetType):
+        if school.is_unset():
             raise ValueError(f"Unexpected UnsetType in {school}")
 
         logger.debug("Setting {} servers for school {!r} to {}", kind, school_name, sorted(hosts))

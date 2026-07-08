@@ -208,8 +208,6 @@ def to_user(model: UserModel) -> User:
         school_memberships = {}
         for membership in (_to_school_membership(m) for m in model.school_memberships):
             school_public_id = membership.school.public_id
-            if not isinstance(school_public_id, UUID):
-                raise ValueError("Mapped school membership has no UUID school public_id.")
             school_memberships[school_public_id] = membership
 
     legal_wards: set[User] | UnloadedType = UNLOADED
