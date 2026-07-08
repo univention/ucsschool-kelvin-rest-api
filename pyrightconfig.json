@@ -1,4 +1,5 @@
 {
   "venvPath": ".",
-  "pythonVersion": "3.11"
+  "pythonVersion": "3.11",
+  "reportImplicitStringConcatenation": "none"
 }

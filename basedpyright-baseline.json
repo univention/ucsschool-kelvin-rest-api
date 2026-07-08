@@ -1402,14 +1402,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 11,
-                    "endColumn": 46,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 4,
@@ -7662,14 +7654,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 36,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownVariableType",
                 "range": {
                     "startColumn": 8,
@@ -10235,14 +10219,6 @@
                     "startColumn": 19,
                     "endColumn": 43,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 41,
-                    "endColumn": 30,
-                    "lineCount": 2
                 }
             },
             {
@@ -18684,14 +18660,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 23,
-                    "endColumn": 53,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 4,
@@ -18857,14 +18825,6 @@
                     "startColumn": 11,
                     "endColumn": 24,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 23,
-                    "endColumn": 57,
-                    "lineCount": 2
                 }
             },
             {
@@ -21854,14 +21814,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 23,
-                    "endColumn": 53,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 4,
@@ -23166,14 +23118,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 27,
-                    "endColumn": 61,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 4,
@@ -23363,14 +23307,6 @@
                     "startColumn": 11,
                     "endColumn": 24,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 23,
-                    "endColumn": 57,
-                    "lineCount": 2
                 }
             },
             {
@@ -31216,14 +31152,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 23,
-                    "endColumn": 53,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 4,
@@ -58496,14 +58424,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 23,
-                    "endColumn": 75,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 11,
@@ -58789,14 +58709,6 @@
                     "startColumn": 11,
                     "endColumn": 24,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 23,
-                    "endColumn": 71,
-                    "lineCount": 2
                 }
             },
             {
@@ -63486,14 +63398,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 27,
-                    "endColumn": 57,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 4,
@@ -65926,14 +65830,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 23,
-                    "endColumn": 57,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 4,
@@ -66227,14 +66123,6 @@
                     "startColumn": 15,
                     "endColumn": 35,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 27,
-                    "endColumn": 61,
-                    "lineCount": 2
                 }
             }
         ],
@@ -67266,14 +67154,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 38,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 70,
@@ -67474,27 +67354,11 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 42,
-                    "lineCount": 3
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 37,
                     "endColumn": 47,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 42,
-                    "lineCount": 3
                 }
             },
             {
@@ -69128,14 +68992,6 @@
                     "endColumn": 27,
                     "lineCount": 1
                 }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 50,
-                    "lineCount": 2
-                }
             }
         ],
         "./kelvin-api/ucsschool/kelvin/routers/v1/doc.py": [
@@ -70410,14 +70266,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 103,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportCallInDefaultInitializer",
                 "range": {
                     "startColumn": 29,
@@ -71140,14 +70988,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 87,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportDeprecated",
                 "range": {
                     "startColumn": 32,
@@ -71164,27 +71004,11 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 54,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportCallInDefaultInitializer",
                 "range": {
                     "startColumn": 22,
                     "endColumn": 5,
                     "lineCount": 7
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 33,
-                    "lineCount": 2
                 }
             },
             {
@@ -73710,14 +73534,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 42,
-                    "lineCount": 3
-                }
-            },
-            {
                 "code": "reportArgumentType",
                 "range": {
                     "startColumn": 51,
@@ -73851,14 +73667,6 @@
                     "startColumn": 24,
                     "endColumn": 33,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 23,
-                    "endColumn": 51,
-                    "lineCount": 3
                 }
             },
             {
@@ -74920,14 +74728,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 85,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportDeprecated",
                 "range": {
                     "startColumn": 32,
@@ -74944,27 +74744,11 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 54,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportCallInDefaultInitializer",
                 "range": {
                     "startColumn": 26,
                     "endColumn": 5,
                     "lineCount": 7
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 33,
-                    "lineCount": 2
                 }
             },
             {
@@ -77398,14 +77182,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 59,
-                    "lineCount": 3
-                }
-            },
-            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 35,
@@ -77419,14 +77195,6 @@
                     "startColumn": 60,
                     "endColumn": 70,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 84,
-                    "lineCount": 3
                 }
             }
         ],
@@ -95928,14 +95696,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 18,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownVariableType",
                 "range": {
                     "startColumn": 12,
@@ -99376,14 +99136,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 47,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 15,
@@ -99445,14 +99197,6 @@
                     "startColumn": 82,
                     "endColumn": 99,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 23,
-                    "lineCount": 2
                 }
             },
             {
@@ -99573,14 +99317,6 @@
                     "startColumn": 12,
                     "endColumn": 14,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 15,
-                    "lineCount": 6
                 }
             },
             {
@@ -106196,14 +105932,6 @@
                     "endColumn": 25,
                     "lineCount": 1
                 }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 59,
-                    "lineCount": 3
-                }
             }
         ],
         "./ucs-school-import/modules/ucsschool/importer/configuration.py": [
@@ -106336,14 +106064,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 48,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownVariableType",
                 "range": {
                     "startColumn": 8,
@@ -106357,14 +106077,6 @@
                     "startColumn": 8,
                     "endColumn": 15,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 60,
-                    "lineCount": 2
                 }
             },
             {
@@ -110250,14 +109962,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 65,
-                    "lineCount": 3
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 73,
@@ -110596,14 +110300,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 17,
-                    "endColumn": 43,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 8,
@@ -110625,14 +110321,6 @@
                     "startColumn": 8,
                     "endColumn": 9,
                     "lineCount": 8
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 17,
-                    "endColumn": 40,
-                    "lineCount": 2
                 }
             },
             {
@@ -110644,27 +110332,11 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 17,
-                    "endColumn": 72,
-                    "lineCount": 4
-                }
-            },
-            {
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 8,
                     "endColumn": 9,
                     "lineCount": 8
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 17,
-                    "endColumn": 37,
-                    "lineCount": 2
                 }
             },
             {
@@ -110676,14 +110348,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 17,
-                    "endColumn": 49,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 8,
@@ -110692,27 +110356,11 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 17,
-                    "endColumn": 27,
-                    "lineCount": 3
-                }
-            },
-            {
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 8,
                     "endColumn": 9,
                     "lineCount": 8
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 17,
-                    "endColumn": 37,
-                    "lineCount": 4
                 }
             },
             {
@@ -110737,14 +110385,6 @@
                     "startColumn": 16,
                     "endColumn": 35,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 83,
-                    "lineCount": 2
                 }
             },
             {
@@ -111932,14 +111572,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 35,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownArgumentType",
                 "range": {
                     "startColumn": 43,
@@ -111961,14 +111593,6 @@
                     "startColumn": 65,
                     "endColumn": 75,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 16,
-                    "lineCount": 5
                 }
             },
             {
@@ -112760,14 +112384,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 76,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownArgumentType",
                 "range": {
                     "startColumn": 24,
@@ -113101,14 +112717,6 @@
                     "startColumn": 54,
                     "endColumn": 69,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 76,
-                    "lineCount": 2
                 }
             },
             {
@@ -113513,14 +113121,6 @@
                     "startColumn": 8,
                     "endColumn": 9,
                     "lineCount": 6
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 17,
-                    "endColumn": 74,
-                    "lineCount": 2
                 }
             },
             {
@@ -114368,14 +113968,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 88,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownArgumentType",
                 "range": {
                     "startColumn": 20,
@@ -114413,14 +114005,6 @@
                     "startColumn": 20,
                     "endColumn": 41,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 85,
-                    "lineCount": 2
                 }
             },
             {
@@ -115594,22 +115178,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 60,
-                    "lineCount": 2
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 34,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 51,
@@ -115674,27 +115242,11 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 40,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnnecessaryComparison",
                 "range": {
                     "startColumn": 12,
                     "endColumn": 32,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 61,
-                    "lineCount": 2
                 }
             },
             {
@@ -116066,14 +115618,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 24,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownArgumentType",
                 "range": {
                     "startColumn": 47,
@@ -116135,14 +115679,6 @@
                     "startColumn": 24,
                     "endColumn": 39,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 39,
-                    "lineCount": 2
                 }
             },
             {
@@ -118332,14 +117868,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 46,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportTypeCommentUsage",
                 "range": {
                     "startColumn": 41,
@@ -118929,14 +118457,6 @@
                     "startColumn": 17,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 75,
-                    "lineCount": 2
                 }
             },
             {
@@ -119652,14 +119172,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 32,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownArgumentType",
                 "range": {
                     "startColumn": 33,
@@ -119793,14 +119305,6 @@
                     "startColumn": 59,
                     "endColumn": 64,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 28,
-                    "endColumn": 49,
-                    "lineCount": 2
                 }
             },
             {
@@ -119964,14 +119468,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 50,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 15,
@@ -120100,14 +119596,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 85,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 16,
@@ -120185,14 +119673,6 @@
                     "startColumn": 43,
                     "endColumn": 47,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 77,
-                    "lineCount": 2
                 }
             },
             {
@@ -120545,14 +120025,6 @@
                     "startColumn": 17,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 36,
-                    "lineCount": 2
                 }
             },
             {
@@ -121452,14 +120924,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 34,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 16,
@@ -121745,14 +121209,6 @@
                     "startColumn": 17,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 34,
-                    "lineCount": 3
                 }
             },
             {
@@ -123224,14 +122680,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 35,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 12,
@@ -124465,14 +123913,6 @@
                     "startColumn": 54,
                     "endColumn": 66,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 63,
-                    "lineCount": 2
                 }
             }
         ],
@@ -129922,22 +129362,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 49,
-                    "lineCount": 2
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 68,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnnecessaryComparison",
                 "range": {
                     "startColumn": 7,
@@ -133466,14 +132890,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 42,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 23,
@@ -133498,27 +132914,11 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 79,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownArgumentType",
                 "range": {
                     "startColumn": 34,
                     "endColumn": 53,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 70,
-                    "lineCount": 2
                 }
             },
             {
@@ -133543,14 +132943,6 @@
                     "startColumn": 38,
                     "endColumn": 79,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 73,
-                    "lineCount": 2
                 }
             },
             {
@@ -133905,14 +133297,6 @@
                     "startColumn": 36,
                     "endColumn": 99,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 33,
-                    "lineCount": 2
                 }
             },
             {
@@ -135740,14 +135124,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 74,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 16,
@@ -137087,14 +136463,6 @@
                     "startColumn": 46,
                     "endColumn": 52,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 4,
-                    "endColumn": 48,
-                    "lineCount": 2
                 }
             },
             {
@@ -138868,14 +138236,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 9,
-                    "endColumn": 14,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportDeprecated",
                 "range": {
                     "startColumn": 26,
@@ -139041,22 +138401,6 @@
                     "startColumn": 14,
                     "endColumn": 24,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 9,
-                    "endColumn": 14,
-                    "lineCount": 2
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 9,
-                    "endColumn": 14,
-                    "lineCount": 2
                 }
             },
             {
@@ -139361,22 +138705,6 @@
                     "startColumn": 4,
                     "endColumn": 14,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 9,
-                    "endColumn": 23,
-                    "lineCount": 2
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 9,
-                    "endColumn": 45,
-                    "lineCount": 2
                 }
             },
             {
@@ -143304,14 +142632,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 54,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 25,
@@ -143920,14 +143240,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 34,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 23,
@@ -144149,14 +143461,6 @@
                     "startColumn": 17,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 59,
-                    "lineCount": 2
                 }
             },
             {
@@ -144504,14 +143808,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 59,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 12,
@@ -144741,14 +144037,6 @@
                     "startColumn": 17,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 57,
-                    "lineCount": 2
                 }
             },
             {
@@ -145165,14 +144453,6 @@
                     "startColumn": 17,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 59,
-                    "lineCount": 2
                 }
             },
             {
@@ -147320,14 +146600,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 41,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 32,
@@ -148434,14 +147706,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 42,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportAttributeAccessIssue",
                 "range": {
                     "startColumn": 24,
@@ -148690,14 +147954,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 34,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownArgumentType",
                 "range": {
                     "startColumn": 20,
@@ -148706,27 +147962,11 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 34,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownArgumentType",
                 "range": {
                     "startColumn": 16,
                     "endColumn": 17,
                     "lineCount": 4
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 58,
-                    "lineCount": 2
                 }
             },
             {
@@ -154306,14 +153546,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 40,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportReturnType",
                 "range": {
                     "startColumn": 30,
@@ -154914,14 +154146,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 23,
-                    "lineCount": 5
-                }
-            },
-            {
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 16,
@@ -155154,14 +154378,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 49,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportDeprecated",
                 "range": {
                     "startColumn": 55,
@@ -155215,14 +154431,6 @@
                     "startColumn": 17,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 27,
-                    "lineCount": 2
                 }
             },
             {
@@ -155591,14 +154799,6 @@
                     "startColumn": 8,
                     "endColumn": 39,
                     "lineCount": 34
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 20,
-                    "lineCount": 2
                 }
             },
             {
@@ -156218,14 +155418,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 63,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 16,
@@ -156343,14 +155535,6 @@
                     "startColumn": 17,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 66,
-                    "lineCount": 2
                 }
             },
             {
@@ -156498,14 +155682,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 70,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 16,
@@ -156599,14 +155775,6 @@
                     "startColumn": 17,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 56,
-                    "lineCount": 2
                 }
             },
             {
@@ -158630,14 +157798,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 44,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportOptionalMemberAccess",
                 "range": {
                     "startColumn": 28,
@@ -160422,14 +159582,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 44,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 31,
@@ -160454,14 +159606,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 49,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportOptionalMemberAccess",
                 "range": {
                     "startColumn": 51,
@@ -160475,14 +159619,6 @@
                     "startColumn": 20,
                     "endColumn": 21,
                     "lineCount": 4
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 34,
-                    "lineCount": 2
                 }
             },
             {
@@ -160523,14 +159659,6 @@
                     "startColumn": 20,
                     "endColumn": 43,
                     "lineCount": 4
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 37,
-                    "lineCount": 2
                 }
             },
             {
@@ -160603,14 +159731,6 @@
                     "startColumn": 20,
                     "endColumn": 43,
                     "lineCount": 4
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 37,
-                    "lineCount": 2
                 }
             },
             {
@@ -162894,14 +162014,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 53,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 12,
@@ -162979,14 +162091,6 @@
                     "startColumn": 8,
                     "endColumn": 19,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 35,
-                    "lineCount": 5
                 }
             },
             {
@@ -163170,14 +162274,6 @@
                 "range": {
                     "startColumn": 9,
                     "endColumn": 13,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 31,
-                    "endColumn": 93,
                     "lineCount": 1
                 }
             },
@@ -170560,14 +169656,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 77,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownVariableType",
                 "range": {
                     "startColumn": 15,
@@ -170765,14 +169853,6 @@
                     "startColumn": 15,
                     "endColumn": 22,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 57,
-                    "lineCount": 2
                 }
             },
             {
@@ -171704,14 +170784,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 28,
-                    "endColumn": 51,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 28,
@@ -172165,14 +171237,6 @@
                     "startColumn": 36,
                     "endColumn": 51,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 28,
-                    "endColumn": 78,
-                    "lineCount": 4
                 }
             },
             {
@@ -176149,22 +175213,6 @@
                     "startColumn": 5,
                     "endColumn": 31,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 4,
-                    "endColumn": 101,
-                    "lineCount": 2
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 4,
-                    "endColumn": 62,
-                    "lineCount": 3
                 }
             },
             {
@@ -182032,14 +181080,6 @@
                     "endColumn": 60,
                     "lineCount": 1
                 }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 23,
-                    "lineCount": 2
-                }
             }
         ],
         "./ucs-school-lib/modules/ucsschool/lib/tests/performance.py": [
@@ -185796,27 +184836,11 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 91,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 8,
                     "endColumn": 9,
                     "lineCount": 4
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 91,
-                    "lineCount": 2
                 }
             },
             {
@@ -195305,14 +194329,6 @@
                     "startColumn": 19,
                     "endColumn": 43,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 41,
-                    "endColumn": 30,
-                    "lineCount": 2
                 }
             },
             {
@@ -212222,27 +211238,11 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 56,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 46,
                     "endColumn": 59,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 32,
-                    "lineCount": 2
                 }
             }
         ],
@@ -214712,14 +213712,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 29,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 40,
@@ -215681,14 +214673,6 @@
                     "startColumn": 60,
                     "endColumn": 66,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 61,
-                    "lineCount": 2
                 }
             },
             {
@@ -222236,14 +221220,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 17,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownArgumentType",
                 "range": {
                     "startColumn": 8,
@@ -225868,14 +224844,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 11,
-                    "endColumn": 63,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportTypeCommentUsage",
                 "range": {
                     "startColumn": 51,
@@ -225969,14 +224937,6 @@
                     "startColumn": 46,
                     "endColumn": 56,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 93,
-                    "lineCount": 2
                 }
             },
             {
@@ -226892,14 +225852,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 29,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 63,
@@ -226977,14 +225929,6 @@
                     "startColumn": 20,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 48,
-                    "lineCount": 2
                 }
             },
             {
@@ -227942,14 +226886,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 29,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 68,
@@ -228038,14 +226974,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 29,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 69,
@@ -228067,14 +226995,6 @@
                     "startColumn": 83,
                     "endColumn": 84,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 29,
-                    "lineCount": 2
                 }
             },
             {
@@ -228150,14 +227070,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 29,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 67,
@@ -228227,14 +227139,6 @@
                     "startColumn": 20,
                     "endColumn": 23,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 48,
-                    "lineCount": 2
                 }
             },
             {
@@ -229702,14 +228606,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 89,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 8,
@@ -230368,16 +229264,6 @@
                 }
             }
         ],
-        "./ucsschool-objects/src/ucsschool_objects/core/domain/errors.py": [
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 64,
-                    "lineCount": 2
-                }
-            }
-        ],
         "./ucsschool-objects/src/ucsschool_objects/core/domain/json.py": [
             {
                 "code": "reportUnnecessaryCast",
@@ -230930,25 +229816,7 @@
                 }
             }
         ],
-        "./ucsschool-objects/src/ucsschool_objects/core/domain/validators.py": [
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 86,
-                    "lineCount": 2
-                }
-            }
-        ],
         "./ucsschool-objects/src/ucsschool_objects/database_models.py": [
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 19,
-                    "endColumn": 60,
-                    "lineCount": 2
-                }
-            },
             {
                 "code": "reportUnusedParameter",
                 "range": {
@@ -243162,14 +242030,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 59,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
                     "startColumn": 4,
@@ -243255,14 +242115,6 @@
                     "startColumn": 4,
                     "endColumn": 17,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 76,
-                    "lineCount": 2
                 }
             },
             {
@@ -244682,14 +243534,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 39,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 8,
@@ -244967,14 +243811,6 @@
                     "startColumn": 4,
                     "endColumn": 17,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 98,
-                    "lineCount": 3
                 }
             },
             {
@@ -249967,14 +248803,6 @@
                     "startColumn": 153,
                     "endColumn": 157,
                     "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 26,
-                    "lineCount": 2
                 }
             },
             {
