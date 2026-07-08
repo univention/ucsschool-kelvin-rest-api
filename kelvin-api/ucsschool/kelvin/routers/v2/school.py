@@ -101,20 +101,19 @@ async def _school_to_model(
 @router.get("/", response_model=list[SchoolModel])
 async def search(
     request: Request,
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
     name_filter: Annotated[
         str | None,
         Query(
-            None,
             alias="name",
             description=(
                 "List schools with this name. '*' can be used for an inexact search. (optional)"
             ),
             title="name",
         ),
-    ],
-    logger: Annotated[logging.Logger, Depends(get_logger)],
-    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
-    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+    ] = None,
 ) -> list[SchoolModel]:
     query = SearchQuery(where=_str_filter("name", name_filter)) if name_filter else None
     logger.debug("v2 school search query: %r", query)

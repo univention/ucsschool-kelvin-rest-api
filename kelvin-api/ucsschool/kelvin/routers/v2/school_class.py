@@ -149,20 +149,19 @@ async def search(
             min_length=2,
         ),
     ],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
     class_name: Annotated[
         str | None,
         Query(
-            None,
             alias="name",
             description=(
                 "List classes with this name. (optional, ``*`` can be used for an inexact search)."
             ),
             title="name",
         ),
-    ],
-    logger: Annotated[logging.Logger, Depends(get_logger)],
-    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
-    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+    ] = None,
 ) -> list[SchoolClassModel]:
     clauses = [Filter(field="school.name", op=Operator.EQ, value=school)]
     if class_name:

@@ -167,10 +167,12 @@ async def search(
             min_length=2,
         ),
     ],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
     workgroup_name: Annotated[
         str | None,
         Query(
-            None,
             alias="name",
             description=(
                 "List workgroups with this name. "
@@ -179,10 +181,7 @@ async def search(
             ),
             title="name",
         ),
-    ],
-    logger: Annotated[logging.Logger, Depends(get_logger)],
-    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
-    _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+    ] = None,
 ) -> list[WorkGroupModel]:
     clauses = [Filter(field="school.name", op=Operator.EQ, value=school)]
     if workgroup_name:
