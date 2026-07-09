@@ -125,6 +125,27 @@ main() {
       exit 1
     fi
 
+    # Kelvin's join script sets up a provisioning subscription and therefore
+    # needs the Provisioning Service app in the domain. We used to declare this
+    # via 'RequiredAppsInDomain' in the ini, but that pulls provisioning-service
+    # into kelvin's own install/upgrade transaction; since it has its own
+    # settings, the appcenter then aborts with a hard-to-grasp "Automatically
+    # added App ... has its own settings" error (install_base.py). We drop the
+    # declarative dependency and replicate its domain-installed check here
+    # instead -- using the exact same LDAP filter the appcenter uses for
+    # RequiredAppsInDomain (see resolve_dependencies() in appcenter utils.py):
+    # an appcenter/app object for provisioning-service installed on at least
+    # one server. Note univentionAppID is stored as "<id>_<version>", hence the
+    # "_*" wildcard.
+    if ! univention-ldapsearch -LLL \
+        "(&(univentionObjectType=appcenter/app)(univentionAppInstalledOnServer=*)(univentionAppID=provisioning-service_*))" dn \
+        2>/dev/null | grep -q '^dn:'
+    then
+      message="The application 'UCS@school Kelvin REST API' requires the 'Provisioning Service' app to be installed in the domain. Please install it (e.g. 'univention-app install provisioning-service' on the Primary Directory Node) before installing or updating Kelvin."
+      echo "$message" > "$errorfile"
+      exit 1
+    fi
+
     if ! [ -e "$KELVIN_IMPORTUSER_HOOKS_PATH" ]; then
         mkdir -pv -m 755 "$KELVIN_IMPORTUSER_HOOKS_PATH"
     fi
