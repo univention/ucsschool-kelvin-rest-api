@@ -6,13 +6,6 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from tests.core.domain.helpers.model_builders import (
-    role as build_role,
-    school as build_school,
-    school_class as build_school_class,
-    user as build_user,
-    workgroup as build_workgroup,
-)
 from ucsschool_objects import (
     UNLOADED,
     Group,
@@ -22,6 +15,14 @@ from ucsschool_objects import (
     User,
 )
 from ucsschool_objects.core.domain.models import is_loaded
+
+from .helpers.model_builders import (
+    role as build_role,
+    school as build_school,
+    school_class as build_school_class,
+    user as build_user,
+    workgroup as build_workgroup,
+)
 
 
 def _assert_public_reads_raise(entity: object, *field_names: str) -> None:

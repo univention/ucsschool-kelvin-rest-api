@@ -11,7 +11,8 @@ from ucsschool_objects.core.adapters.sqlalchemy import SQLAlchemyUserManager
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import (
+
+    from ...test_types import (
         AsyncSchoolFactory as SchoolFactory,
         AsyncSchoolMembershipFactory as SchoolMembershipFactory,
         AsyncUserFactory as UserFactory,

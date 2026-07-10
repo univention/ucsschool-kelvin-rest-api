@@ -34,11 +34,12 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import (
+    from ucsschool_objects.core.domain.ports.manager import Manager
+
+    from ...test_types import (
         AsyncGroupFactory as GroupFactory,
         AsyncGroupTypeFactory as GroupTypeFactory,
     )
-    from ucsschool_objects.core.domain.ports.manager import Manager
 
 
 FieldInvalidFilter = (

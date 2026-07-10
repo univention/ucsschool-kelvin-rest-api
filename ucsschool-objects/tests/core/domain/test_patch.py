@@ -7,14 +7,15 @@ import copy
 import uuid
 
 import pytest
-from tests.core.domain.helpers.model_builders import (
+from ucsschool_objects.core.domain.models import SchoolMembership, User
+from ucsschool_objects.core.domain.patch import _create_patch, _patch_ops, track_changes
+
+from .helpers.model_builders import (
     role as build_role,
     school as build_school,
     school_class as build_school_class,
     user as build_user,
 )
-from ucsschool_objects.core.domain.models import SchoolMembership, User
-from ucsschool_objects.core.domain.patch import _create_patch, _patch_ops, track_changes
 
 # --- _create_patch ---
 

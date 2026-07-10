@@ -8,7 +8,15 @@ from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 import pytest
-from tests.core.contracts.contract_test_support import (
+from ucsschool_objects import And, Filter, Not, Operator, Or, SearchQuery, SortSpec
+from ucsschool_objects.core.adapters.sqlalchemy import (
+    SQLAlchemyGroupManager,
+    SQLAlchemyRoleManager,
+    SQLAlchemySchoolManager,
+    SQLAlchemyUserManager,
+)
+
+from .contract_test_support import (
     GroupQueryFactories,
     GroupQuerySetup,
     QueryExpectation,
@@ -20,17 +28,12 @@ from tests.core.contracts.contract_test_support import (
     UserQueryFactories,
     UserQuerySetup,
 )
-from ucsschool_objects import And, Filter, Not, Operator, Or, SearchQuery, SortSpec
-from ucsschool_objects.core.adapters.sqlalchemy import (
-    SQLAlchemyGroupManager,
-    SQLAlchemyRoleManager,
-    SQLAlchemySchoolManager,
-    SQLAlchemyUserManager,
-)
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import (
+    from ucsschool_objects.core.domain.ports.manager import Manager
+
+    from ...test_types import (
         AsyncGroupFactory as GroupFactory,
         AsyncGroupTypeFactory as GroupTypeFactory,
         AsyncRoleFactory as RoleFactory,
@@ -38,7 +41,6 @@ if TYPE_CHECKING:
         AsyncSchoolMembershipFactory as SchoolMembershipFactory,
         AsyncUserFactory as UserFactory,
     )
-    from ucsschool_objects.core.domain.ports.manager import Manager
 
 
 async def _setup_school_eq_case(factories: SchoolQueryFactories) -> QueryExpectation:

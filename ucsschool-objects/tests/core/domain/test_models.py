@@ -9,11 +9,6 @@ from typing import cast
 from uuid import UUID
 
 import pytest
-from tests.core.domain.helpers.model_builders import (
-    school as build_school,
-    school_class as build_school_class,
-    user as build_user,
-)
 from ucsschool_objects import (
     UNLOADED,
     Group,
@@ -27,6 +22,12 @@ from ucsschool_objects.core.domain.models import (
     domain_object_properties,
     get_properties,
     is_loaded,
+)
+
+from .helpers.model_builders import (
+    school as build_school,
+    school_class as build_school_class,
+    user as build_user,
 )
 
 

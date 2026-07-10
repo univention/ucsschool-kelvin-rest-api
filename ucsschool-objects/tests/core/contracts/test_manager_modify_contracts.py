@@ -46,7 +46,9 @@ from ucsschool_objects.database_models import (
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import (
+    from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
+
+    from ...test_types import (
         AsyncGroupFactory,
         AsyncGroupTypeFactory,
         AsyncRoleFactory,
@@ -54,7 +56,6 @@ if TYPE_CHECKING:
         AsyncSchoolMembershipFactory,
         AsyncUserFactory,
     )
-    from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 
 # ---------------------------------------------------------------------------
 # Helpers

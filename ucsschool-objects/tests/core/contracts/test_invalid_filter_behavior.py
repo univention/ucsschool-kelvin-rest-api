@@ -28,7 +28,8 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import AsyncSchoolFactory as SchoolFactory, AsyncUserFactory as UserFactory
+
+    from ...test_types import AsyncSchoolFactory as SchoolFactory, AsyncUserFactory as UserFactory
 
 
 @pytest.mark.asyncio

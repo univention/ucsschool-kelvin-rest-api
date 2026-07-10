@@ -10,7 +10,8 @@ from sqlalchemy.exc import IntegrityError
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import AsyncSchoolFactory, AsyncSchoolMembershipFactory, AsyncUserFactory
+
+    from ..test_types import AsyncSchoolFactory, AsyncSchoolMembershipFactory, AsyncUserFactory
 
 
 async def test_one_primary_school_only(

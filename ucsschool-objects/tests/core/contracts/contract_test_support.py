@@ -12,7 +12,7 @@ from ucsschool_objects import SearchQuery, SortSpec
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from tests.test_types import (
+    from ...test_types import (
         AsyncGroupFactory,
         AsyncGroupTypeFactory,
         AsyncRoleFactory,

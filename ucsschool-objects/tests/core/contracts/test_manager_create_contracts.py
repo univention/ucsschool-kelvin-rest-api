@@ -13,14 +13,6 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
-from tests.test_types import (
-    AsyncGroupFactory,
-    AsyncGroupTypeFactory,
-    AsyncRoleFactory,
-    AsyncSchoolFactory,
-    AsyncSchoolMembershipFactory,
-    AsyncUserFactory,
-)
 from ucsschool_objects import (
     UNLOADED,
     UNSET,
@@ -43,6 +35,15 @@ from ucsschool_objects.database_models import (
     School as SchoolModel,
     SchoolMembership as SchoolMembershipModel,
     User as UserModel,
+)
+
+from ...test_types import (
+    AsyncGroupFactory,
+    AsyncGroupTypeFactory,
+    AsyncRoleFactory,
+    AsyncSchoolFactory,
+    AsyncSchoolMembershipFactory,
+    AsyncUserFactory,
 )
 
 if TYPE_CHECKING:

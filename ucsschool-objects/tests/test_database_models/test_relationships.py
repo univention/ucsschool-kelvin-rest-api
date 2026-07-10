@@ -23,7 +23,8 @@ if TYPE_CHECKING:
     from typing import Any
 
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import ModelFactory
+
+    from ..test_types import ModelFactory
 
 
 @pytest.mark.parametrize(

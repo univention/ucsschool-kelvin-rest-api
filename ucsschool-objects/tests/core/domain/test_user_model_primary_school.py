@@ -7,11 +7,12 @@ from typing import cast
 from uuid import UUID
 
 import pytest
-from tests.core.domain.helpers.model_builders import school as build_school, user as build_user
 from ucsschool_objects import (
     UNLOADED,
     SchoolMembership,
 )
+
+from .helpers.model_builders import school as build_school, user as build_user
 
 
 def test_primary_school_raises_when_memberships_unloaded() -> None:

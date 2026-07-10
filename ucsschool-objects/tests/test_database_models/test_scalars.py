@@ -12,7 +12,8 @@ from sqlalchemy.exc import IntegrityError
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import ModelFactory, RecordSourceFactory
+
+    from ..test_types import ModelFactory, RecordSourceFactory
 
 
 @pytest.mark.parametrize(

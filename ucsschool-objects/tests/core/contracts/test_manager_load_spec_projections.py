@@ -31,7 +31,9 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import (
+    from ucsschool_objects.core.domain.ports.manager import Manager
+
+    from ...test_types import (
         AsyncGroupFactory as GroupFactory,
         AsyncGroupTypeFactory as GroupTypeFactory,
         AsyncRoleFactory as RoleFactory,
@@ -39,7 +41,6 @@ if TYPE_CHECKING:
         AsyncSchoolMembershipFactory as SchoolMembershipFactory,
         AsyncUserFactory as UserFactory,
     )
-    from ucsschool_objects.core.domain.ports.manager import Manager
 
 
 SCHOOL_LOAD_ATTRS = (

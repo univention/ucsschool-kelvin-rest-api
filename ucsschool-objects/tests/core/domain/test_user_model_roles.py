@@ -7,14 +7,15 @@ from typing import cast
 from uuid import UUID
 
 import pytest
-from tests.core.domain.helpers.model_builders import (
-    role as build_role,
-    school as build_school,
-    user as build_user,
-)
 from ucsschool_objects import (
     UNLOADED,
     SchoolMembership,
+)
+
+from .helpers.model_builders import (
+    role as build_role,
+    school as build_school,
+    user as build_user,
 )
 
 

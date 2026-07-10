@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
-from tests.core.domain.helpers.model_builders import role as build_role, school as build_school
 from ucsschool_objects import SchoolMembership
+
+from .helpers.model_builders import role as build_role, school as build_school
 
 
 def test_school_membership_holds_roles() -> None:

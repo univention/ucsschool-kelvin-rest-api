@@ -139,7 +139,7 @@ async def compare_lib_api_user(  # noqa: C901
                 assert value == lib_user_value
 
 
-def compare_ldap_json_obj(dn, json_resp, url_fragment):  # noqa: C901
+def compare_ldap_json_obj(dn: str, json_resp: dict[str, Any], _: str) -> None:  # noqa: C901
     lo, pos = univention.admin.uldap.getAdminConnection()
     ldap_obj = lo.get(dn)
     for attr, value in json_resp.items():

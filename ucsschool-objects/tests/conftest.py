@@ -16,7 +16,16 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 from testcontainers.postgres import PostgresContainer  # type: ignore[import-untyped]
-from tests.test_types import (
+from ucsschool_objects.database_models import (
+    Base,
+    Group,
+    Role,
+    School,
+    SchoolMembership,
+    User,
+)
+
+from .test_types import (
     AsyncGroupFactory,
     AsyncGroupTypeFactory,
     AsyncRoleFactory,
@@ -28,14 +37,6 @@ from tests.test_types import (
     RoleDataFactory,
     SchoolDataFactory,
     UserDataFactory,
-)
-from ucsschool_objects.database_models import (
-    Base,
-    Group,
-    Role,
-    School,
-    SchoolMembership,
-    User,
 )
 
 POSTGRES_TEST_URL_ENV = "CORELIB_POSTGRES_TEST_URL"

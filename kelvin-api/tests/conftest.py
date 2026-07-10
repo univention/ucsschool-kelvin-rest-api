@@ -1125,7 +1125,7 @@ def log_http_502():
 
 
 @pytest.fixture
-def retry_http_502(log_http_502):
+def retry_http_502(log_http_502) -> Callable[..., requests.Response]:
     def _func(request_method: Callable[..., requests.Response], *args, **kwargs) -> requests.Response:
         retries = 5
         while retries > 0:

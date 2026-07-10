@@ -6,9 +6,10 @@ from __future__ import annotations
 import uuid
 from datetime import date
 
-from tests.core.domain.helpers.model_builders import school as build_school
 from ucsschool_objects.core.domain.json import normalise, to_json
 from ucsschool_objects.core.domain.models import UNLOADED, UNSET
+
+from .domain.helpers.model_builders import school as build_school
 
 
 def testnormalise_sorts_flat_list() -> None:

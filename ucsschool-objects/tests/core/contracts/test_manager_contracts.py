@@ -6,12 +6,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 
 import pytest
-from tests.core.contracts.contract_test_support import (
-    ManagerContractFactories,
-    ManagerSearchExpectation,
-    ManagerSetup,
-    NamedRecord,
-)
 from ucsschool_objects import (
     Filter,
     Operator,
@@ -25,18 +19,26 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyUserManager,
 )
 
+from .contract_test_support import (
+    ManagerContractFactories,
+    ManagerSearchExpectation,
+    ManagerSetup,
+    NamedRecord,
+)
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from sqlalchemy.ext.asyncio import AsyncSession
-    from tests.test_types import (
+    from ucsschool_objects.core.domain.ports.manager import Manager
+
+    from ...test_types import (
         AsyncGroupFactory as GroupFactory,
         AsyncGroupTypeFactory as GroupTypeFactory,
         AsyncRoleFactory as RoleFactory,
         AsyncSchoolFactory as SchoolFactory,
         AsyncUserFactory as UserFactory,
     )
-    from ucsschool_objects.core.domain.ports.manager import Manager
 
 
 async def _setup_school_manager_case(factories: ManagerContractFactories) -> ManagerSearchExpectation:
