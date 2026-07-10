@@ -129,9 +129,21 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         log_label: str,
     ) -> list[str]:
         dn_to_id = await mapper.dns_to_public_ids(object_type, dns)
-        for dn in dns:
-            if dn not in dn_to_id:
-                logger.debug("{} DN {!r} not yet in mapper, skipping", log_label, dn)
+        missing_dns = [dn for dn in dns if dn not in dn_to_id]
+        if missing_dns:
+            logger.info(
+                "{} of {} {}(s) not yet in mapper, skipping those references",
+                len(missing_dns),
+                len(dns),
+                log_label,
+            )
+            for dn in missing_dns:
+                logger.debug(
+                    "{} DN {!r} not yet in mapper, skipping reference; "
+                    + "the link is established when its own event arrives",
+                    log_label,
+                    dn,
+                )
         return [str(uid) for uid in dn_to_id.values()]
 
     async def _fetch_users_by_dns(
@@ -144,11 +156,23 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         known_ids = await self._dns_to_known_ids(mapper, ObjectType.USER, dns, label)
         if not known_ids:
             return set()
-        return set(
+        users = set(
             await storage.users.search(
                 SearchQuery(Filter(field="public_id", op=Operator.IN, value=known_ids))
             )
         )
+        found_ids = {str(user.public_id) for user in users}
+        missing_ids = sorted(set(known_ids) - found_ids)
+        if missing_ids:
+            logger.warning(
+                "{} of {} {}(s) mapped but the user object is not in the Kelvin Database; "
+                + "skipping: {}",
+                len(missing_ids),
+                len(known_ids),
+                label,
+                missing_ids,
+            )
+        return users
 
     async def _fetch_groups_by_dns(
         self,
@@ -160,11 +184,23 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         known_ids = await self._dns_to_known_ids(mapper, ObjectType.GROUP, dns, label)
         if not known_ids:
             return set()
-        return set(
+        groups = set(
             await storage.groups.search(
                 SearchQuery(Filter(field="public_id", op=Operator.IN, value=known_ids))
             )
         )
+        found_ids = {str(group.public_id) for group in groups}
+        missing_ids = sorted(set(known_ids) - found_ids)
+        if missing_ids:
+            logger.warning(
+                "{} of {} {}(s) mapped but the group object is not in the Kelvin Database; "
+                + "skipping: {}",
+                len(missing_ids),
+                len(known_ids),
+                label,
+                missing_ids,
+            )
+        return groups
 
     async def _fetch_members_by_dns(
         self,
@@ -203,10 +239,18 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             )
         )
         found_ids = {str(member.public_id) for member in members}
-        for missing_id in sorted(set(known_ids) - found_ids):
-            logger.warning(
+        missing_ids = sorted(set(known_ids) - found_ids)
+        if missing_ids:
+            logger.info(
+                "{} of {} member(s) have no membership for school {!r} yet, skipping",
+                len(missing_ids),
+                len(known_ids),
+                school.name,
+            )
+        for missing_id in missing_ids:
+            logger.trace(
                 "Member {} has no membership for school {!r} (yet), skipping; "
-                "the link is established when the member's own event arrives",
+                + "the link is established when the member's own event arrives",
                 missing_id,
                 school.name,
             )
@@ -217,7 +261,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
     ) -> set[Role]:
         if not role_names:
             return set()
-        return set(
+        roles = set(
             await storage.roles.search(
                 SearchQuery(
                     Or(
@@ -228,6 +272,12 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 )
             )
         )
+        missing_names = sorted(role_names - {r.name for r in roles})
+        if missing_names:
+            logger.debug(
+                "Role(s) {!r} not found in the Kelvin Database, skipping those references", missing_names
+            )
+        return roles
 
     async def _fetch_roles_by_entries(
         self, role_entries: list[UcsschoolRole], storage: KelvinStorageSession
@@ -261,6 +311,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                     break
         if primary_id is None and schools:
             primary_id = schools[0].public_id
+            logger.debug(
+                "No school matched the DN's primary OU {!r}; using {!r} as primary",
+                primary_school,
+                schools[0].name,
+            )
 
         all_role_names = {r.role for r in roles}
         roles_by_name: dict[str, Role] = {}
@@ -932,6 +987,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
     async def _handle_host_group_change(
         self, event: HostGroupModifyEvent | HostGroupCreateEvent, storage: KelvinStorageSession
     ) -> None:
+        logger.debug(
+            "Processing host group {!r} with {} host(s)",
+            event.new.properties.name,
+            len(event.new.properties.hosts),
+        )
         # The host group lists its members by DN; the cache stores server
         # hostnames (the leaf cn), matching what the v1 API resolves via
         # computer_dn2name. Otherwise schools would expose raw DNs.
@@ -961,7 +1021,9 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         )
         if not schools:
             if missing_school_ok:
-                logger.debug("School {!r} not in cache, nothing to clear for host group", school_name)
+                logger.debug(
+                    "School {!r} not in the Kelvin Database, nothing to clear for host group", school_name
+                )
                 return
             raise SynchronizationException(f"Unable to find school with name={school_name} in database.")
         school = schools[0]
