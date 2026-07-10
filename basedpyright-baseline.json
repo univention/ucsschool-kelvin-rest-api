@@ -78558,14 +78558,6 @@
                 }
             },
             {
-                "code": "reportImplicitStringConcatenation",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 77,
-                    "lineCount": 2
-                }
-            },
-            {
                 "code": "reportUnnecessaryCast",
                 "range": {
                     "startColumn": 16,
