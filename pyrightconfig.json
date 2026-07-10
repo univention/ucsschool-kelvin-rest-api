@@ -1,12 +1,54 @@
 {
   "venvPath": ".",
   "pythonVersion": "3.11",
-  "reportImplicitStringConcatenation": "none",
   "exclude": [
     "**/node_modules",
     "**/__pycache__",
     "**/.*",
     "appcenter/tests/stubs",
     "build_docs.py"
+  ],
+  "reportImplicitStringConcatenation": "none",
+  "reportUnusedCallResult": "none",
+  "executionEnvironments": [
+    {
+      "root": "kelvin-api/tests",
+      "reportAny": "hint",
+      "reportExplicitAny": "hint",
+      "reportUnknownLambdaType": "hint",
+      "reportUnusedParameter": "hint"
+    },
+    {
+      "root": "ucsschool-objects/tests",
+      "extraPaths": ["ucsschool-objects"],
+      "reportAny": "hint",
+      "reportExplicitAny": "hint",
+      "reportUnknownLambdaType": "hint",
+      "reportUnusedParameter": "hint"
+    },
+    {
+      "root": "kelvin-connector/tests",
+      "reportAny": "hint",
+      "reportExplicitAny": "hint",
+      "reportUnknownLambdaType": "hint",
+      "reportUnusedParameter": "hint"
+    },
+    {
+      "root": "ucs-school-import/tests",
+      "reportAny": "hint",
+      "reportExplicitAny": "hint",
+      "reportUnknownLambdaType": "hint",
+      "reportUnusedParameter": "hint"
+    },
+    {
+      "root": "appcenter/tests",
+      "reportAny": "hint",
+      "reportExplicitAny": "hint",
+      "reportUnknownLambdaType": "hint",
+      "reportUnusedParameter": "hint"
+    },
+    {
+      "root": "."
+    }
   ]
 }
