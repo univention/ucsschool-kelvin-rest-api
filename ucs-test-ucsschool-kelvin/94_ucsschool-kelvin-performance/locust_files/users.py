@@ -31,6 +31,17 @@ class GetUser(KelvinClient):
             _ = self.request("get", url, response_codes=[200])
 
 
+class SearchUsers(KelvinClient):
+    @task
+    def search_users(self):
+        school = self.test_data.random_school()
+        username = self.test_data.random_user(school)
+        prefix = username[: max(1, len(username) // 2)]
+        with self.client.rename_request(URL_NAME):
+            url = f"{self.base_url}/users/?school={school}&name={prefix}*"
+            _ = self.request("get", url, response_codes=[200])
+
+
 class HeadUser(KelvinClient):
     @task
     def head_user(self):
