@@ -19,6 +19,17 @@ class GetAllClasses(KelvinClient):
             _ = self.request("get", url, response_codes=[200])
 
 
+class SearchClasses(KelvinClient):
+    @task
+    def search_classes(self):
+        school = self.test_data.random_school()
+        school_class = self.test_data.random_class(school)
+        prefix = school_class[: max(1, len(school_class) // 2)]
+        with self.client.rename_request(URL_NAME):
+            url = f"{self.base_url}/classes/?school={school}&name={prefix}*"
+            _ = self.request("get", url, response_codes=[200])
+
+
 class GetClass(KelvinClient):
     @task
     def get_class(self):

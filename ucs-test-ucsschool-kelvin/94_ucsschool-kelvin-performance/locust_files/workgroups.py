@@ -19,6 +19,17 @@ class GetAllWorkGroups(KelvinClient):
             _ = self.request("get", url, response_codes=[200])
 
 
+class SearchWorkGroups(KelvinClient):
+    @task
+    def search_workgroups(self):
+        school = self.test_data.random_school()
+        work_group = self.test_data.random_workgroup(school)
+        prefix = work_group[: max(1, len(work_group) // 2)]
+        with self.client.rename_request(URL_NAME):
+            url = f"{self.base_url}/workgroups/?school={school}&name={prefix}*"
+            _ = self.request("get", url, response_codes=[200])
+
+
 class GetWorkGroup(KelvinClient):
     @task
     def get_workgroup(self):
