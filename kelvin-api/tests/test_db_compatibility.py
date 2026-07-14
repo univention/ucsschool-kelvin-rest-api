@@ -15,6 +15,15 @@ async def _mock_storage_session():
     yield MagicMock()
 
 
+@pytest.fixture(autouse=True)
+def _clear_fence_engine_cache():
+    from ucsschool.kelvin.service.dependency import _fence_engine
+
+    _fence_engine.cache_clear()
+    yield
+    _fence_engine.cache_clear()
+
+
 @pytest.fixture
 def client():
     app.dependency_overrides[get_storage_session] = _mock_storage_session
