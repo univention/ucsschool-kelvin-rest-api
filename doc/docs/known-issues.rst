@@ -38,3 +38,19 @@ When it is, there will be `Python UDM REST API Client`_ entries in the response 
 The format of the JSON response in the *body will not change*.
 
 .. _Python UDM REST API Client: https://github.com/univention/python-udm-rest-api-client
+
+
+Where ``v2`` reads can be slower than ``v1``
+--------------------------------------------
+The ``v2`` read and search endpoints (``GET``, ``HEAD``) answer from a local, pre-replicated
+database instead of querying the :ref:`UDM REST API <udm-rest-api>` and LDAP directly.
+For most resources (listing or fetching users, classes, workgroups and schools) this is
+considerably faster than ``v1``.
+
+There are, however, a few endpoints where ``v2`` is *slower* than ``v1``:
+
+* listing roles (``GET /roles/``) and retrieving a single role (``GET /roles/{name}``), and
+* checking a school for existence (``HEAD /schools/{name}``).
+
+Under typical situations, the absolute response times for these endpoints remain small,
+and the difference is only noticeable in direct ``v1``-versus-``v2`` comparisons.
