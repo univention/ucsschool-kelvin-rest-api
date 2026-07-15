@@ -778,7 +778,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "loguru", specifier = ">=0.7.3" },
-    { name = "provisioning-consumer-lib", specifier = ">=0.9.7" },
+    { name = "provisioning-consumer-lib", specifier = ">=0.9.9" },
     { name = "pydantic", specifier = ">=1.10.26" },
     { name = "python-ldap", specifier = ">=3.4.4" },
     { name = "requests", specifier = ">=2.32.4" },
@@ -929,6 +929,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/3a/05/a1dae3dffd1116099471c643b8924f5aa6524411dc6c63fdae648c4f1aca/loguru-0.7.3.tar.gz", hash = "sha256:19480589e77d47b8d85b2c827ad95d49bf31b0dcde16593892eb51dd18706eb6", size = 63559, upload-time = "2024-12-06T11:20:56.608Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/29/0348de65b8cc732daa3e33e67806420b2ae89bdce2b04af740289c5c6c8c/loguru-0.7.3-py3-none-any.whl", hash = "sha256:31a33c10c8e1e10422bfd431aeb5d351c7cf7fa671e3c4df004162264b28220c", size = 61595, upload-time = "2024-12-06T11:20:54.538Z" },
+]
+
+[[package]]
+name = "loguru-mypy"
+version = "0.0.4"
+source = { registry = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3c/f5/7dfc190f5bae9fc35c80605277db44657687d298ea7400e43a3f7a742ad3/loguru-mypy-0.0.4.tar.gz", hash = "sha256:1f1767d7737f1825295ce147f7e751f91837f5759b3c2f41801adc65691aeed4", size = 5922, upload-time = "2021-04-11T21:41:08.491Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a5/e3/548c57da3aa48bf7f72dd7c86103dc1b6c767dd0928a1409d5c6048c87f6/loguru_mypy-0.0.4-py3-none-any.whl", hash = "sha256:98e044be509887a314e683a1e851813310b396be48388c1fe4de97a2eac99d4d", size = 5446, upload-time = "2021-04-11T21:41:07.536Z" },
 ]
 
 [[package]]
@@ -1427,17 +1439,18 @@ wheels = [
 
 [[package]]
 name = "provisioning-consumer-lib"
-version = "0.9.7"
+version = "0.9.9"
 source = { registry = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "ldap3" },
     { name = "loguru" },
+    { name = "loguru-mypy" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/files/9f85aad6ef297e2f64e95919273e1687114189b253195f173c1e6607e867e40f/provisioning_consumer_lib-0.9.7.tar.gz", hash = "sha256:9f85aad6ef297e2f64e95919273e1687114189b253195f173c1e6607e867e40f" }
+sdist = { url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/files/b3a42fcac25946032681c193d2333576fee8a0e7a01ea2065c338a9679fdc88f/provisioning_consumer_lib-0.9.9.tar.gz", hash = "sha256:b3a42fcac25946032681c193d2333576fee8a0e7a01ea2065c338a9679fdc88f" }
 wheels = [
-    { url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/files/6e0acfbc00519ce1546f134cd80c137c9b04ed32b1a12e1f393bc8e4686c73b9/provisioning_consumer_lib-0.9.7-py3-none-any.whl", hash = "sha256:6e0acfbc00519ce1546f134cd80c137c9b04ed32b1a12e1f393bc8e4686c73b9" },
+    { url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/files/79dcd82512cbee3a0d4f93e74e0c7545f00e2e86cdb1afd4a1efbe23c1b5ea8b/provisioning_consumer_lib-0.9.9-py3-none-any.whl", hash = "sha256:79dcd82512cbee3a0d4f93e74e0c7545f00e2e86cdb1afd4a1efbe23c1b5ea8b" },
 ]
 
 [[package]]
