@@ -105,6 +105,45 @@ def _udm_properties(properties: BaseModel) -> dict[str, object]:
     return {key: value for key, value in serialized.items() if key not in _UDM_PROPERTIES_DENYLIST}
 
 
+# Groups the connector never syncs at the moment (see consumer._filter, which only accepts
+# school_class / workgroup / host-group events): the per-OU "Domain Users"
+# group, the OU role groups, and the cross-OU ouadmins groups. They never
+# enter the DN→ID mapper, so a "not yet in mapper" miss is logged for each on
+# every event unless they are skipped before the lookup. School classes,
+# workgroups and host groups match none of these patterns.
+_UNSYNCABLE_GROUP_CN_PREFIXES = (
+    "Domain Users ",
+    "schueler-",
+    "lehrer-",
+    "sorgeberechtigte-",
+    "mitarbeiter-",
+)
+
+
+def _is_unsyncable_group_dn(dn: str) -> bool:
+    # ouadmins groups are keyed on their container (their leaf cn is
+    # "admins-<OU>", which is not a reliable prefix).
+    if ",cn=ouadmins," in dn.lower():
+        return True
+    try:
+        parsed = DN(dn)
+        cn = parsed.rdn[1]
+        parent = parsed.parent
+    except ValueError:
+        return False  # unparseable DN: keep it, let the mapper decide
+    # Domain Users and the OU role groups sit directly under the OU's
+    # "cn=groups" container. School classes and workgroups are nested deeper
+    # (under "cn=klassen" / "cn=schueler"), so also requiring the container
+    # keeps a class/workgroup whose (relatively arbitrary) name happens to
+    # start with one of these prefixes from being skipped.
+    if parent is None:
+        return False
+    parent_attr, parent_value = parent.rdn
+    if (parent_attr.lower(), parent_value.lower()) != ("cn", "groups"):
+        return False
+    return cn.startswith(_UNSYNCABLE_GROUP_CN_PREFIXES)
+
+
 class SynchronizationException(Exception):
     pass
 
@@ -181,7 +220,13 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         mapper: DNIDMapper,
         storage: KelvinStorageSession,
     ) -> set[Group]:
-        known_ids = await self._dns_to_known_ids(mapper, ObjectType.GROUP, dns, label)
+        syncable_dns: list[str] = []
+        for dn in dns:
+            if _is_unsyncable_group_dn(dn):
+                logger.trace("Skipping unsyncable {} reference {!r}", label, dn)
+            else:
+                syncable_dns.append(dn)
+        known_ids = await self._dns_to_known_ids(mapper, ObjectType.GROUP, syncable_dns, label)
         if not known_ids:
             return set()
         groups = set(
@@ -1022,7 +1067,8 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         if not schools:
             if missing_school_ok:
                 logger.debug(
-                    "School {!r} not in the Kelvin Database, nothing to clear for host group", school_name
+                    "School {!r} not in the Kelvin Database, nothing to clear for host group",
+                    school_name,
                 )
                 return
             raise SynchronizationException(f"Unable to find school with name={school_name} in database.")

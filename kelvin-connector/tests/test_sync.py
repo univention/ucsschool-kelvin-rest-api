@@ -30,6 +30,7 @@ from kelvin_connector.models import (
 from kelvin_connector.sync import (
     DEFAULT_NUBUS_SOURCE_UID,
     SynchronizationException,
+    _is_unsyncable_group_dn,
     _school_ou_from_dn,
     _udm_properties,
 )
@@ -372,6 +373,54 @@ async def test_fetch_groups_by_dns_searches_by_known_ids(manager, mock_mapper, m
 
     result = await manager._fetch_groups_by_dns(["dn"], "Label", mock_mapper, mock_storage)
     assert result == {group}
+
+
+@pytest.mark.parametrize(
+    "dn,expected",
+    [
+        # Never synced: Domain Users + role groups directly under cn=groups.
+        ("cn=Domain Users school1,cn=groups,ou=school1,dc=school,dc=test", True),
+        ("cn=schueler-school1,cn=groups,ou=school1,dc=school,dc=test", True),
+        ("cn=lehrer-school1,cn=groups,ou=school1,dc=school,dc=test", True),
+        ("cn=sorgeberechtigte-school1,cn=groups,ou=school1,dc=school,dc=test", True),
+        ("cn=mitarbeiter-school1,cn=groups,ou=school1,dc=school,dc=test", True),
+        # Never synced: ouadmins, matched on its container.
+        ("cn=admins-demoschool,cn=ouadmins,cn=groups,dc=school,dc=test", True),
+        # Synced: school class and workgroup, nested below cn=groups.
+        ("cn=school1-1i,cn=klassen,cn=schueler,cn=groups,ou=school1,dc=school,dc=test", False),
+        ("cn=school1-wg,cn=schueler,cn=groups,ou=school1,dc=school,dc=test", False),
+        # A class/workgroup whose arbitrary name starts with a role prefix must
+        # still be kept: the container (cn=klassen / cn=schueler), not cn=groups,
+        # rules it out.
+        ("cn=lehrer-cool,cn=klassen,cn=schueler,cn=groups,ou=lehrer,dc=school,dc=test", False),
+        ("cn=schueler-wg,cn=schueler,cn=groups,ou=school1,dc=school,dc=test", False),
+        # Malformed DN and a DN with no parent: kept.
+        ("dn", False),
+        ("cn=lonely", False),
+    ],
+)
+def test_is_unsyncable_group_dn(dn: str, expected: bool):
+    assert _is_unsyncable_group_dn(dn) is expected
+
+
+async def test_fetch_groups_by_dns_skips_unsyncable_before_mapper(manager, mock_mapper, mock_storage):
+    uid = uuid.uuid4()
+    school = make_school()
+    group = make_group("testschool-group", school, uid=uid)
+    class_dn = "cn=school1-1i,cn=klassen,cn=schueler,cn=groups,ou=school1,dc=school,dc=test"
+    dns = [
+        class_dn,
+        "cn=Domain Users school1,cn=groups,ou=school1,dc=school,dc=test",
+        "cn=schueler-school1,cn=groups,ou=school1,dc=school,dc=test",
+        "cn=admins-demoschool,cn=ouadmins,cn=groups,dc=school,dc=test",
+    ]
+    mock_mapper.dns_to_public_ids.return_value = {class_dn: uid}
+    mock_storage.groups.search.return_value = [group]
+
+    result = await manager._fetch_groups_by_dns(dns, "Group", mock_mapper, mock_storage)
+
+    assert result == {group}
+    mock_mapper.dns_to_public_ids.assert_awaited_once_with(ObjectType.GROUP, [class_dn])
 
 
 def test_guardian_role_validator_accepts_pre_parsed_object():
