@@ -104,6 +104,35 @@ install_kelvin_postgresql_db() {
         "ucsschool/kelvin/db/username=$kelvin_db_username" \
         --run-script=no >/dev/null #dont log infos
 
+    install_kelvin_pg_hba
+
+}
+
+install_kelvin_pg_hba() {
+    local info_path=/etc/univention/templates/info/50-ucsschool-kelvin-rest-api.info
+    local tmpl11=/etc/univention/templates/files/etc/postgresql/11/main/pg_hba.conf.d/50-ucsschool-kelvin-rest-api.conf
+    local tmpl15=/etc/univention/templates/files/etc/postgresql/15/main/pg_hba.conf.d/50-ucsschool-kelvin-rest-api.conf
+
+    mkdir -p "$(dirname "$tmpl11")" "$(dirname "$tmpl15")"
+    cat > "$tmpl11" << 'EOF'
+{{ 'appcenter/includes/pg_hba/50-ucsschool-kelvin-rest-api.conf' | source }}
+EOF
+    cp "$tmpl11" "$tmpl15"
+    chmod 644 "$tmpl11" "$tmpl15"
+
+    cat > "$info_path" << 'EOF'
+{{ 'appcenter/includes/pg_hba/50-ucsschool-kelvin-rest-api.info' | source }}
+EOF
+    chmod 644 "$info_path"
+
+    # Register the freshly written .info and rebuild the pg_hba.conf multifiles.
+    # The template defaults to 0.0.0.0/0; access is guarded by the DB password.
+    ucr update
+    [ -e /etc/postgresql/11/main/pg_hba.conf ] && ucr commit /etc/postgresql/11/main/pg_hba.conf
+    [ -e /etc/postgresql/15/main/pg_hba.conf ] && ucr commit /etc/postgresql/15/main/pg_hba.conf
+
+    # Reload (not restart) so existing connections/init are not interrupted.
+    service postgresql reload || true
 }
 
 
@@ -123,6 +152,21 @@ remove_update_ca_hook() {
     rm /etc/ca-certificates/update.d/ucsschool-kelvin-rest-api
 }
 
+remove_kelvin_pg_hba() {
+    local info_path=/etc/univention/templates/info/50-ucsschool-kelvin-rest-api.info
+    local tmpl11=/etc/univention/templates/files/etc/postgresql/11/main/pg_hba.conf.d/50-ucsschool-kelvin-rest-api.conf
+    local tmpl15=/etc/univention/templates/files/etc/postgresql/15/main/pg_hba.conf.d/50-ucsschool-kelvin-rest-api.conf
+
+    # Nothing to do on hosts that never owned the database (template absent).
+    [ -e "$info_path" ] || return 0
+
+    rm -f "$tmpl11" "$tmpl15" "$info_path"
+    ucr update
+    [ -e /etc/postgresql/11/main/pg_hba.conf ] && ucr commit /etc/postgresql/11/main/pg_hba.conf
+    [ -e /etc/postgresql/15/main/pg_hba.conf ] && ucr commit /etc/postgresql/15/main/pg_hba.conf
+    service postgresql reload || true
+}
+
 case "$action" in
   install | upgrade)
     install_log_duplication
@@ -134,6 +178,7 @@ case "$action" in
     remove_log_duplication
     remove_log_rotation
     remove_update_ca_hook
+    remove_kelvin_pg_hba
     ;;
   settings)
     adjust_kelvin_posgresql_db_settings
