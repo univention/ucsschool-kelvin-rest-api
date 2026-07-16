@@ -649,3 +649,63 @@ async def test_query_sort_and_pagination_with_duplicate_sort_keys(
         )
     )
     assert str(page[0].public_id) == duplicate_public_ids[1]
+
+
+@pytest.mark.asyncio
+async def test_user_query_sort_and_pagination_deterministic(
+    db_session: AsyncSession, user_factory: UserFactory
+) -> None:
+    _ = await user_factory(name="u2")
+    _ = await user_factory(name="u1")
+    _ = await user_factory(name="u3")
+    manager = SQLAlchemyUserManager(db_session)
+
+    ordered = list(
+        await manager.search(sort_by=(SortSpec(field="name", ascending=True),), limit=10, offset=0)
+    )
+    assert [item.name for item in ordered] == ["u1", "u2", "u3"]
+
+    page = list(
+        await manager.search(sort_by=(SortSpec(field="name", ascending=True),), limit=2, offset=1)
+    )
+    assert [item.name for item in page] == ["u2", "u3"]
+
+
+@pytest.mark.asyncio
+async def test_group_query_sort_and_pagination_deterministic(
+    db_session: AsyncSession, group_factory: GroupFactory
+) -> None:
+    _ = await group_factory(name="g2")
+    _ = await group_factory(name="g1")
+    _ = await group_factory(name="g3")
+    manager = SQLAlchemyGroupManager(db_session)
+
+    ordered = list(
+        await manager.search(sort_by=(SortSpec(field="name", ascending=True),), limit=10, offset=0)
+    )
+    assert [item.name for item in ordered] == ["g1", "g2", "g3"]
+
+    page = list(
+        await manager.search(sort_by=(SortSpec(field="name", ascending=True),), limit=2, offset=1)
+    )
+    assert [item.name for item in page] == ["g2", "g3"]
+
+
+@pytest.mark.asyncio
+async def test_role_query_sort_and_pagination_deterministic(
+    db_session: AsyncSession, role_factory: RoleFactory
+) -> None:
+    _ = await role_factory(name="r2")
+    _ = await role_factory(name="r1")
+    _ = await role_factory(name="r3")
+    manager = SQLAlchemyRoleManager(db_session)
+
+    ordered = list(
+        await manager.search(sort_by=(SortSpec(field="name", ascending=True),), limit=10, offset=0)
+    )
+    assert [item.name for item in ordered] == ["r1", "r2", "r3"]
+
+    page = list(
+        await manager.search(sort_by=(SortSpec(field="name", ascending=True),), limit=2, offset=1)
+    )
+    assert [item.name for item in page] == ["r2", "r3"]
