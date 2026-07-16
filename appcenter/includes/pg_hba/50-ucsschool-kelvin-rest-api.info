@@ -1,0 +1,9 @@
+Type: subfile
+Multifile: etc/postgresql/11/main/pg_hba.conf
+Subfile: etc/postgresql/11/main/pg_hba.conf.d/50-ucsschool-kelvin-rest-api.conf
+Variables: ucsschool/kelvin/db/connection
+
+Type: subfile
+Multifile: etc/postgresql/15/main/pg_hba.conf
+Subfile: etc/postgresql/15/main/pg_hba.conf.d/50-ucsschool-kelvin-rest-api.conf
+Variables: ucsschool/kelvin/db/connection
