@@ -48,6 +48,9 @@ class PublicIdCarrier(Protocol):
     def public_id(self) -> UUID:  # pragma: no cover
         ...
 
+    def is_unset(self) -> bool:  # pragma: no cover
+        ...
+
 
 TSelect = TypeVar("TSelect", bound=SupportsLoadOptions)
 TModel = TypeVar("TModel", bound=Base)

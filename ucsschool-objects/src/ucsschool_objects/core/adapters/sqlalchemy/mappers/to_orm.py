@@ -137,8 +137,13 @@ def to_user_model(data: User) -> UserModel:
     return user_model
 
 
-def _extract_related_public_ids(references: Iterable[PublicIdCarrier]) -> list[UUID]:
-    return [reference.public_id for reference in references]
+def _extract_related_public_ids(references: Iterable[PublicIdCarrier], *, owner_name: str) -> list[UUID]:
+    public_ids: list[UUID] = []
+    for reference in references:
+        if reference.is_unset():
+            raise ValueError(f"{owner_name} entries must have a public_id.")
+        public_ids.append(reference.public_id)
+    return public_ids
 
 
 async def resolve_group_create_relations(
@@ -150,7 +155,7 @@ async def resolve_group_create_relations(
 
     school_model = await fetch_one_by_public_id(session, SchoolModel, data.school.public_id, "School")
 
-    member_user_public_ids = _extract_related_public_ids(data.members)
+    member_user_public_ids = _extract_related_public_ids(data.members, owner_name="Group.members")
     member_users_by_id = await bulk_fetch_by_public_id(
         session, UserModel, member_user_public_ids, "User"
     )
@@ -163,10 +168,14 @@ async def resolve_group_create_relations(
     role_ids = [role.public_id for role in data.member_roles if not role.is_unset()]
     roles_by_id = await bulk_fetch_by_public_id(session, RoleModel, role_ids, "Role")
 
-    sender_user_public_ids = _extract_related_public_ids(data.allowed_email_senders_users)
+    sender_user_public_ids = _extract_related_public_ids(
+        data.allowed_email_senders_users, owner_name="Group.allowed_email_senders_users"
+    )
     users_by_id = await bulk_fetch_by_public_id(session, UserModel, sender_user_public_ids, "User")
 
-    sender_group_public_ids = _extract_related_public_ids(data.allowed_email_senders_groups)
+    sender_group_public_ids = _extract_related_public_ids(
+        data.allowed_email_senders_groups, owner_name="Group.allowed_email_senders_groups"
+    )
     groups_by_id = await bulk_fetch_by_public_id(session, GroupModel, sender_group_public_ids, "Group")
 
     return GroupCreateRelations(
@@ -249,8 +258,17 @@ def _validate_membership_entry(
     if membership_school_id != school_id:
         raise ValueError("school_memberships keys must match membership school public_id.")
 
-    membership_role_ids = [role.public_id for role in membership.roles]
-    membership_group_ids = [group.public_id for group in membership.groups]
+    membership_role_ids: list[UUID] = []
+    for role in membership.roles:
+        if role.is_unset():
+            raise ValueError("All membership roles must provide public_id for create().")
+        membership_role_ids.append(role.public_id)
+
+    membership_group_ids: list[UUID] = []
+    for group in membership.groups:
+        if group.is_unset():
+            raise ValueError("All membership groups must provide public_id for create().")
+        membership_group_ids.append(group.public_id)
 
     return school_id, membership_role_ids, membership_group_ids
 
