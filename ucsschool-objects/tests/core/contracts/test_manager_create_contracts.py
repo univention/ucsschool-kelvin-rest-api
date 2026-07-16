@@ -429,6 +429,47 @@ async def _setup_group_create_minimal(
     )
 
 
+async def _setup_group_create_unset_member_role(
+    school_factory: AsyncSchoolFactory,
+    roles_factory: AsyncGroupTypeFactory,
+    role_factory: AsyncRoleFactory,
+    user_factory: AsyncUserFactory,
+    group_factory: AsyncGroupFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> GroupCreateExpectation:
+    school_model = await school_factory(name="group-school-unset-member-role")
+    group_role_model = await roles_factory(name="group-type-unset-member-role")
+    role_model = await role_factory(name="group-role-unset-member-role")
+
+    group = Group(
+        public_id=uuid.uuid4(),
+        record_uid="rec-group-unset-member-role",
+        udm_properties={},
+        source_uid="src-group-unset-member-role",
+        name="group-unset-member-role",
+        display_name="Group Unset Member Role",
+        create_share=False,
+        description=None,
+        roles={_build_role_reference(group_role_model.public_id, name=group_role_model.name)},
+        allowed_email_senders_users=set(),
+        allowed_email_senders_groups=set(),
+        members=set(),
+        member_roles={
+            _build_role_reference(role_model.public_id, name=role_model.name),
+            Role(name="unset-member-role", display_name={"en": "Unset"}),
+        },
+        school=_build_school_reference(school_model.public_id, name=school_model.name),
+        email=None,
+    )
+    return GroupCreateExpectation(
+        group=group,
+        expected_role_names={role_model.name},
+        expected_member_user_names=set(),
+        expected_sender_user_names=set(),
+        expected_sender_group_names=set(),
+    )
+
+
 async def _setup_group_create_missing_roles(
     school_factory: AsyncSchoolFactory,
     roles_factory: AsyncGroupTypeFactory,
@@ -768,6 +809,7 @@ async def _setup_group_create_missing_member_membership(
     [
         pytest.param(_setup_group_create_full, id="full"),
         pytest.param(_setup_group_create_minimal, id="minimal-empty-relations"),
+        pytest.param(_setup_group_create_unset_member_role, id="unset-member-role-skipped"),
     ],
 )
 async def test_group_manager_create_success(
@@ -958,6 +1000,66 @@ async def _setup_user_create_minimal(
         expected_role_names=set(),
         expected_ward_names=set(),
         expected_guardian_names=set(),
+    )
+
+
+async def _setup_user_create_unset_ward_and_guardian(
+    school_factory: AsyncSchoolFactory,
+    role_factory: AsyncRoleFactory,
+    group_factory: AsyncGroupFactory,
+    user_factory: AsyncUserFactory,
+) -> UserCreateExpectation:
+    ward_model = await user_factory(name="user-ward-unset-mix")
+    guardian_model = await user_factory(name="user-guardian-unset-mix")
+
+    user = User(
+        public_id=uuid.uuid4(),
+        record_uid="rec-user-unset-mix",
+        udm_properties={},
+        source_uid="src-user-unset-mix",
+        name="user-create-unset-mix",
+        firstname="Create",
+        lastname="UnsetMix",
+        active=True,
+        school_memberships={},
+        legal_wards={
+            _build_user_reference(ward_model.public_id, name=ward_model.name),
+            User(
+                record_uid="rec-unset-ward",
+                udm_properties={},
+                source_uid="src-unset-ward",
+                name="unset-ward",
+                firstname="Unset",
+                lastname="Ward",
+                active=True,
+                school_memberships={},
+                legal_wards=set(),
+                legal_guardians=set(),
+            ),
+        },
+        legal_guardians={
+            _build_user_reference(guardian_model.public_id, name=guardian_model.name),
+            User(
+                record_uid="rec-unset-guardian",
+                udm_properties={},
+                source_uid="src-unset-guardian",
+                name="unset-guardian",
+                firstname="Unset",
+                lastname="Guardian",
+                active=True,
+                school_memberships={},
+                legal_wards=set(),
+                legal_guardians=set(),
+            ),
+        },
+        email=None,
+    )
+    return UserCreateExpectation(
+        user=user,
+        expected_school_names=set(),
+        expected_role_names=set(),
+        expected_ward_names={ward_model.name},
+        expected_guardian_names={guardian_model.name},
     )
 
 
@@ -1291,6 +1393,10 @@ async def _setup_user_create_membership_group_without_public_id(
         pytest.param(
             _setup_user_create_unloaded_relations,
             id="unloaded-relations-auto-public-id",
+        ),
+        pytest.param(
+            _setup_user_create_unset_ward_and_guardian,
+            id="unset-ward-and-guardian-skipped",
         ),
     ],
 )
