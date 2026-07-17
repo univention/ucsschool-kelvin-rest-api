@@ -13,13 +13,14 @@ from dataclasses import asdict, dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable
+from urllib.parse import parse_qs, urlparse
 
 import psutil
+import psycopg
 import pytest
 from diskcache import Index
 
 import univention.testing.ucr
-from univention.admin.uldap import getAdminConnection
 from univention.testing.umc import Client
 
 BASE_DIR = Path("/var/lib/ucs-test-ucsschool-kelvin-performance")
@@ -34,6 +35,15 @@ KELVIN_HOST_FALLBACK = "primary.ucsschool.test"
 KELVIN_API_VERSION_ENV = "UCS_ENV_KELVIN_API_VERSION"
 TEST_DATA_PATH = "/var/lib/test-data"
 KELVIN_WORKER_COUNT = 4
+
+# Kelvin DB connection. On the host the config files live in this folder; the
+# UCSSCHOOL_KELVIN_DB_* environment variables (shared with kelvin-cache-seeder
+# and ucsschool_objects) are the fallback. See the Kelvin API's own
+# ``ucsschool/kelvin/database.py`` for the reference resolution.
+KELVIN_CONFIG_DIR = Path("/etc/ucsschool/kelvin")
+KELVIN_DB_URI_FILE = KELVIN_CONFIG_DIR / "postgresql-kelvin.uri"
+KELVIN_DB_SECRET_FILE = KELVIN_CONFIG_DIR / "postgresql-kelvin.secret"
+KELVIN_DB_USERNAME_FALLBACK = "ucsschool-kelvin-rest-api"
 
 
 def kelvin_url_base(api_version: str) -> str:
@@ -287,69 +297,136 @@ def check_expected_process_count():
     assert KELVIN_WORKER_COUNT == cpu_count
 
 
+def _read_file(path: Path) -> str | None:
+    with contextlib.suppress(OSError):
+        return path.read_text().strip()
+    return None
+
+
+def _resolve_secret(config_file: Path, env_var: str, env_file_var: str) -> str | None:
+    """Resolve a value: ``/etc/ucsschool/kelvin`` file first, then env, then env-pointed file."""
+    value = _read_file(config_file)
+    if value:
+        return value
+    value = os.environ.get(env_var)
+    if value:
+        return value
+    env_file = os.environ.get(env_file_var)
+    if env_file:
+        return _read_file(Path(env_file))
+    return None
+
+
+def _kelvin_db_connect_kwargs() -> dict[str, str]:
+    """Resolve Kelvin DB connection parameters for a synchronous ``psycopg`` connect.
+
+    The config files under ``/etc/ucsschool/kelvin/`` take precedence; the
+    ``UCSSCHOOL_KELVIN_DB_*`` environment variables (as used by
+    ``kelvin-cache-seeder``) and UCR are the fallbacks.
+    """
+    uri = _resolve_secret(
+        KELVIN_DB_URI_FILE, "UCSSCHOOL_KELVIN_DB_URI", "UCSSCHOOL_KELVIN_DB_URI_FILE"
+    ) or ucr.get("ucsschool/kelvin/db/uri")
+    if not uri:
+        raise RuntimeError(
+            "Could not determine the Kelvin DB URI (tried "
+            f"{KELVIN_DB_URI_FILE!s}, $UCSSCHOOL_KELVIN_DB_URI[_FILE] and UCR "
+            "ucsschool/kelvin/db/uri)."
+        )
+
+    password = _resolve_secret(
+        KELVIN_DB_SECRET_FILE, "UCSSCHOOL_KELVIN_DB_PASSWORD", "UCSSCHOOL_KELVIN_DB_PASSWORD_FILE"
+    )
+    if not password:
+        raise RuntimeError(
+            "Could not determine the Kelvin DB password (tried "
+            f"{KELVIN_DB_SECRET_FILE!s} and $UCSSCHOOL_KELVIN_DB_PASSWORD[_FILE])."
+        )
+
+    username = (
+        os.environ.get("UCSSCHOOL_KELVIN_DB_USERNAME")
+        or ucr.get("ucsschool/kelvin/db/username")
+        or KELVIN_DB_USERNAME_FALLBACK
+    )
+
+    parsed = urlparse(uri)
+    kwargs = {
+        "host": parsed.hostname,
+        "dbname": parsed.path.lstrip("/"),
+        "user": username,
+        "password": password,
+    }
+    if parsed.port:
+        kwargs["port"] = str(parsed.port)
+    # Forward query params such as ``sslmode=require`` straight to libpq.
+    for key, values in parse_qs(parsed.query).items():
+        kwargs[key] = values[-1]
+    return kwargs
+
+
+def _fetch_grouped(cur: "psycopg.Cursor", query: str, role: str) -> dict[str, list[str]]:
+    """Run ``query`` (yielding ``(school, name)`` rows) for ``role``; bucket by school."""
+    grouped: dict[str, list[str]] = {}
+    cur.execute(query, (role,))
+    for school, name in cur.fetchall():
+        grouped.setdefault(school, []).append(name)
+    return grouped
+
+
 @pytest.fixture(scope="session", autouse=True)
 def create_test_data():
     if Path(TEST_DATA_PATH).exists():
         return
     db = Index(TEST_DATA_PATH)
-    lo, _ = getAdminConnection()
-    result = lo.search("(&(ou=school*)(ucsschoolRole=school:school*))", attr=("ou",))
-    schools = [school["ou"][0].decode() for _, school in result]
+
+    user_query = """
+        SELECT s.name, u.name
+        FROM "user" u
+        JOIN school_membership sm ON sm.user_id = u.id
+        JOIN school s ON s.id = sm.school_id
+        JOIN school_membership_role_association smra ON smra.school_membership_id = sm.id
+        JOIN role r ON r.id = smra.role_id
+        WHERE r.name = %s
+    """
+    group_query = """
+        SELECT s.name, g.name
+        FROM "group" g
+        JOIN school s ON s.id = g.school_id
+        JOIN group_role_association gra ON gra.group_id = g.id
+        JOIN role r ON r.id = gra.role_id
+        WHERE r.name = %s
+    """
+
+    with psycopg.connect(**_kelvin_db_connect_kwargs()) as conn, conn.cursor() as cur:
+        cur.execute("SELECT name FROM school")
+        schools = [name for (name,) in cur.fetchall()]
+
+        students = _fetch_grouped(cur, user_query, "student")
+        teachers = _fetch_grouped(cur, user_query, "teacher")
+        staffs = _fetch_grouped(cur, user_query, "staff")
+        legal_guardians = _fetch_grouped(cur, user_query, "legal_guardian")
+        school_classes = _fetch_grouped(cur, group_query, "school_class")
+        workgroups = _fetch_grouped(cur, group_query, "workgroup")
+
     db["schools"] = schools
 
     for school in schools:
-        school_data = {}
-        result = lo.search(
-            "(&(ucsschoolRole=student:school*))",
-            attr=("uid",),
-            base=f"ou={school},{ucr.get('ldap/base')}",
-        )
-        students = [student["uid"][0].decode() for _, student in result]
-        school_data["students"] = students
-
-        result = lo.search(
-            "(&(ucsschoolRole=teacher:school*))",
-            attr=("uid",),
-            base=f"ou={school},{ucr.get('ldap/base')}",
-        )
-        teachers = [teacher["uid"][0].decode() for _, teacher in result]
-        school_data["teachers"] = teachers
-
-        result = lo.search(
-            "(&(ucsschoolRole=staff:school*))", attr=("uid",), base=f"ou={school},{ucr.get('ldap/base')}"
-        )
-        staffs = [staff["uid"][0].decode() for _, staff in result]
-        school_data["staffs"] = staffs
-
-        result = lo.search(
-            "(&(ucsschoolRole=legal_guardian:school*))",
-            attr=("uid",),
-            base=f"ou={school},{ucr.get('ldap/base')}",
-        )
-        legal_guardians = [legal_guardian["uid"][0].decode() for _, legal_guardian in result]
-        school_data["legal_guardians"] = legal_guardians
-
-        users = []
-        users.extend(students)
-        users.extend(teachers)
-        users.extend(staffs)
-        users.extend(legal_guardians)
-        school_data["users"] = users
-
-        result = lo.search(
-            f"(&(ucsschoolRole=school_class:school:{school}))",
-            attr=("cn",),
-            base=f"ou={school},{ucr.get('ldap/base')}",
-        )
-        school_classes = [school_class["cn"][0].decode().split("-", 1)[1] for _, school_class in result]
-        school_data["school_classes"] = school_classes
-
-        result = lo.search(
-            f"(&(ucsschoolRole=workgroup:school:{school}))",
-            attr=("cn",),
-            base=f"ou={school},{ucr.get('ldap/base')}",
-        )
-        workgroups = [work_group["cn"][0].decode().split("-", 1)[1] for _, work_group in result]
-        school_data["workgroups"] = workgroups
-
-        db[school] = school_data
+        school_students = students.get(school, [])
+        school_teachers = teachers.get(school, [])
+        school_staffs = staffs.get(school, [])
+        school_guardians = legal_guardians.get(school, [])
+        db[school] = {
+            "students": school_students,
+            "teachers": school_teachers,
+            "staffs": school_staffs,
+            "legal_guardians": school_guardians,
+            "users": [
+                *school_students,
+                *school_teachers,
+                *school_staffs,
+                *school_guardians,
+            ],
+            # ``group.name`` is stored as ``<school>-<shortname>``; keep only the shortname.
+            "school_classes": [name.split("-", 1)[1] for name in school_classes.get(school, [])],
+            "workgroups": [name.split("-", 1)[1] for name in workgroups.get(school, [])],
+        }
