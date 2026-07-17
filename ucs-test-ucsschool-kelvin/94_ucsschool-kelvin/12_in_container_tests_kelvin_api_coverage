@@ -8,10 +8,12 @@
 APP="ucsschool-kelvin-rest-api"
 MIN_COVERAGE=70
 
+# Create the coverage dir first so the artifact fetch (scp -r) never hard-fails
+# on a missing dir; a missing .coverage still surfaces as a failure of this test.
 declare -a CMD=(sh -c "
 cd /kelvin/kelvin-api &&
-ls -la .coverage &&
 mkdir -p /var/lib/univention-appcenter/apps/$APP/data/coverage &&
+ls -la .coverage &&
 coverage html --directory=/var/lib/univention-appcenter/apps/$APP/data/coverage &&
 coverage report --show-missing --fail-under=$MIN_COVERAGE")
 
