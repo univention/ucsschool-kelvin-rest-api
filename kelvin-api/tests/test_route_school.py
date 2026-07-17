@@ -270,28 +270,41 @@ async def test_head(
     delete_ou_using_ssh,
     delete_ou_cleanup,
     api_version,
+    retry_until_replicated,
 ):
     ou_name = random_ou_name()
+    url = f"{URL_KELVIN_BASE}/{api_version}/schools/{ou_name}"
     if exists:
         await create_ou_using_python(ou_name=ou_name, cache=False)
-    response = client.head(f"{URL_KELVIN_BASE}/{api_version}/schools/{ou_name}", headers=auth_header)
-    if exists:
-        assert response.status_code == 200
-        assert not response.text
-    else:
-        assert response.status_code == 404
+
+    async def _check_initial():
+        response = client.head(url, headers=auth_header)
+        if exists:
+            assert response.status_code == 200
+            assert not response.text
+        else:
+            assert response.status_code == 404
+
+    # The v2 cache is populated asynchronously by the connector, so poll until
+    # it reflects the OU's state (no-op on the first attempt for v1).
+    await retry_until_replicated(_check_initial)
+
     # Test that the cache gets cleared
     if exists:
         await delete_ou_using_ssh(ou_name, docker_host_name)
         await delete_ou_cleanup(ou_name)
     else:
         await create_ou_using_python(ou_name=ou_name, cache=False)
-    response = client.head(f"{URL_KELVIN_BASE}/{api_version}/schools/{ou_name}", headers=auth_header)
-    if exists:
-        assert response.status_code == 404
-        assert not response.text
-    else:
-        assert response.status_code == 200
+
+    async def _check_after():
+        response = client.head(url, headers=auth_header)
+        if exists:
+            assert response.status_code == 404
+            assert not response.text
+        else:
+            assert response.status_code == 200
+
+    await retry_until_replicated(_check_after)
 
 
 @pytest.mark.asyncio
