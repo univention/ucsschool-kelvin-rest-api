@@ -241,28 +241,28 @@ def to_user(model: UserModel) -> User:
 def school_from_patch(patched: SchoolPatchDict, public_id: UUID) -> School:
     return School(
         public_id=public_id,
-        record_uid=patched["record_uid"],
-        source_uid=patched["source_uid"],
-        name=patched["name"],
-        display_name=patched["display_name"],
-        educational_servers=set(patched["educational_servers"]),
-        administrative_servers=set(patched["administrative_servers"]),
-        class_share_file_server=patched["class_share_file_server"],
-        home_share_file_server=patched["home_share_file_server"],
+        record_uid=patched.get("record_uid", ""),
+        source_uid=patched.get("source_uid", ""),
+        name=patched.get("name", ""),
+        display_name=patched.get("display_name", ""),
+        educational_servers=set(patched.get("educational_servers", [])),
+        administrative_servers=set(patched.get("administrative_servers", [])),
+        class_share_file_server=patched.get("class_share_file_server"),
+        home_share_file_server=patched.get("home_share_file_server"),
     )
 
 
 def group_from_patch(patched: GroupPatchDict, public_id: UUID) -> Group:
     return Group(
         public_id=public_id,
-        record_uid=patched["record_uid"],
-        source_uid=patched["source_uid"],
-        name=patched["name"],
-        display_name=patched["display_name"],
-        create_share=patched["create_share"],
-        roles=cast(set[Role], patched["roles"]),
-        email=patched["email"],
-        description=patched["description"],
+        record_uid=patched.get("record_uid", ""),
+        source_uid=patched.get("source_uid", ""),
+        name=patched.get("name", ""),
+        display_name=patched.get("display_name", ""),
+        create_share=patched.get("create_share", False),
+        roles=cast(set[Role], patched.get("roles")),
+        email=patched.get("email"),
+        description=patched.get("description"),
         school=UNLOADED,
         members=UNLOADED,
         member_roles=UNLOADED,
@@ -272,17 +272,17 @@ def group_from_patch(patched: GroupPatchDict, public_id: UUID) -> Group:
 
 
 def user_from_patch(patched: UserPatchDict, public_id: UUID) -> User:
-    birthday_val = patched["birthday"]
-    expiration_val = patched["expiration_date"]
+    birthday_val = patched.get("birthday")
+    expiration_val = patched.get("expiration_date")
     return User(
         public_id=public_id,
-        record_uid=patched["record_uid"],
-        source_uid=patched["source_uid"],
-        name=patched["name"],
-        firstname=patched["firstname"],
-        lastname=patched["lastname"],
-        email=patched["email"],
-        active=patched["active"],
+        record_uid=patched.get("record_uid", ""),
+        source_uid=patched.get("source_uid", ""),
+        name=patched.get("name", ""),
+        firstname=patched.get("firstname", ""),
+        lastname=patched.get("lastname", ""),
+        email=patched.get("email"),
+        active=patched.get("active", False),
         birthday=date.fromisoformat(birthday_val) if birthday_val is not None else None,
         expiration_date=date.fromisoformat(expiration_val) if expiration_val is not None else None,
         school_memberships=UNLOADED,

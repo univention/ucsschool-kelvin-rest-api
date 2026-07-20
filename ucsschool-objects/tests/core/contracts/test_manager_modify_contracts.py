@@ -34,6 +34,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import SchoolMembership
 from ucsschool_objects.core.domain.patch import _create_patch, track_changes
+from ucsschool_objects.core.domain.patch_types import SchoolPatchDict, UserPatchDict, as_patch_dict
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     School as SchoolModel,
@@ -73,7 +74,7 @@ def _bare_school(**overrides: object) -> SchoolModel:
     return SchoolModel(**data)
 
 
-def _school_patched(**overrides: object) -> dict[str, object]:
+def _school_patched(**overrides: object) -> SchoolPatchDict:
     base: dict[str, object] = {
         "record_uid": "rec",
         "source_uid": "src",
@@ -86,7 +87,7 @@ def _school_patched(**overrides: object) -> dict[str, object]:
         "udm_properties": {},
     }
     base.update(overrides)
-    return base
+    return as_patch_dict(base, SchoolPatchDict)
 
 
 def _bare_user(**overrides: object) -> UserModel:
@@ -105,7 +106,7 @@ def _bare_user(**overrides: object) -> UserModel:
     return UserModel(**data)
 
 
-def _user_patched(**overrides: object) -> dict[str, object]:
+def _user_patched(**overrides: object) -> UserPatchDict:
     base: dict[str, object] = {
         "record_uid": "rec",
         "source_uid": "src",
@@ -119,7 +120,7 @@ def _user_patched(**overrides: object) -> dict[str, object]:
         "udm_properties": {},
     }
     base.update(overrides)
-    return base
+    return as_patch_dict(base, UserPatchDict)
 
 
 async def _load_group_full(session: AsyncSession, public_id: UUID) -> GroupModel:

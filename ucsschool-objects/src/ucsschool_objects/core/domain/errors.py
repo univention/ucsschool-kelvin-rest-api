@@ -178,3 +178,15 @@ class NotFound(CorelibError):
         self.object_type = object_type
         self.public_id = public_id
         super().__init__(f"{object_type} with public_id={public_id!r} was not found.")
+
+
+class PatchShapeMismatch(CorelibError):
+    """Raised when a patched dict is missing keys required by its expected patch TypedDict."""
+
+    patch_type: str
+    missing_keys: frozenset[str]
+
+    def __init__(self, patch_type: str, missing_keys: frozenset[str]) -> None:
+        self.patch_type = patch_type
+        self.missing_keys = missing_keys
+        super().__init__(f"{patch_type} is missing required keys: {sorted(missing_keys)}")

@@ -30,7 +30,7 @@ from ucsschool_objects.core.domain.errors import NotFound, UnsupportedOperation
 from ucsschool_objects.core.domain.json import to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import Group
-from ucsschool_objects.core.domain.patch_types import GroupPatchDict
+from ucsschool_objects.core.domain.patch_types import GroupPatchDict, as_patch_dict
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
 from ucsschool_objects.core.domain.validators import GroupValidator
@@ -81,46 +81,46 @@ async def _apply_group_patch(
     current: GroupPatchDict,
     session: AsyncSession,
 ) -> None:
-    model.record_uid = patched["record_uid"]
-    model.source_uid = patched["source_uid"]
-    model.name = patched["name"]
-    model.display_name = patched["display_name"]
-    model.email = patched["email"]
-    model.has_share = patched["create_share"]
-    model.description = patched["description"]
-    model.udm_properties = patched["udm_properties"]
+    model.record_uid = patched.get("record_uid", "")
+    model.source_uid = patched.get("source_uid", "")
+    model.name = patched.get("name", "")
+    model.display_name = patched.get("display_name", "")
+    model.email = patched.get("email")
+    model.has_share = patched.get("create_share", False)
+    model.description = patched.get("description")
+    model.udm_properties = patched.get("udm_properties", {})
 
     await sync_collection(
         session,
-        cast(list[PublicIdInput], patched["member_roles"]),
-        cast(list[PublicIdInput], current["member_roles"]),
+        cast(list[PublicIdInput], patched.get("member_roles", [])),
+        cast(list[PublicIdInput], current.get("member_roles", [])),
         RoleModel,
         lambda values: setattr(model, "member_roles", values),
     )
     await _sync_group_members(
         session,
         model,
-        cast(list[PublicIdInput], patched["members"]),
-        cast(list[PublicIdInput], current["members"]),
+        cast(list[PublicIdInput], patched.get("members", [])),
+        cast(list[PublicIdInput], current.get("members", [])),
     )
     await sync_collection(
         session,
-        cast(list[PublicIdInput], patched["allowed_email_senders_users"]),
-        cast(list[PublicIdInput], current["allowed_email_senders_users"]),
+        cast(list[PublicIdInput], patched.get("allowed_email_senders_users", [])),
+        cast(list[PublicIdInput], current.get("allowed_email_senders_users", [])),
         UserModel,
         lambda values: setattr(model, "allowed_email_senders_users", values),
     )
     await sync_collection(
         session,
-        cast(list[PublicIdInput], patched["allowed_email_senders_groups"]),
-        cast(list[PublicIdInput], current["allowed_email_senders_groups"]),
+        cast(list[PublicIdInput], patched.get("allowed_email_senders_groups", [])),
+        cast(list[PublicIdInput], current.get("allowed_email_senders_groups", [])),
         GroupModel,
         lambda values: setattr(model, "allowed_email_senders_groups", values),
     )
     await sync_collection(
         session,
-        cast(list[PublicIdInput], patched["roles"]),
-        cast(list[PublicIdInput], current["roles"]),
+        cast(list[PublicIdInput], patched.get("roles", [])),
+        cast(list[PublicIdInput], current.get("roles", [])),
         RoleModel,
         lambda values: setattr(model, "roles", values),
     )
@@ -128,8 +128,8 @@ async def _apply_group_patch(
         session,
         "Group",
         "school",
-        cast(PublicIdInput | None, patched["school"]),
-        cast(PublicIdInput | None, current["school"]),
+        cast(PublicIdInput | None, patched.get("school")),
+        cast(PublicIdInput | None, current.get("school")),
         SchoolModel,
         lambda value: setattr(model, "school", cast(SchoolModel, value)),
     )
@@ -340,10 +340,10 @@ class SQLAlchemyGroupManager(Manager[Group]):
             raise NotFound(object_type="Group", public_id=str(public_id))
 
         group = to_group(result)
-        target = cast(GroupPatchDict, apply_patch(operations=operations, current_domain_obj=group))
+        target = apply_patch(operations=operations, current_domain_obj=group, patch_type=GroupPatchDict)
         GroupValidator.validate(group_from_patch(target, result.public_id))
 
-        source = cast(GroupPatchDict, to_json(group))
+        source = as_patch_dict(to_json(group), GroupPatchDict)
         await _apply_group_patch(result, target, source, self._session)
 
     async def delete(self, public_id: UUID) -> None:

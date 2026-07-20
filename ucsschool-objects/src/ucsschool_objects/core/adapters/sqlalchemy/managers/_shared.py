@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, Protocol, Self, TypeAlias, TypeVar, cast
@@ -19,6 +20,7 @@ from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import _require_loaded  # pyright: ignore[reportPrivateUsage]
 from ucsschool_objects.core.domain.models import DomainObject, UnloadedType
+from ucsschool_objects.core.domain.patch_types import as_patch_dict
 from ucsschool_objects.core.domain.query import And, Filter, Not, Or
 from ucsschool_objects.database_models import (
     Base,
@@ -52,6 +54,7 @@ class PublicIdCarrier(Protocol):
 
 TSelect = TypeVar("TSelect", bound=SupportsLoadOptions)
 TModel = TypeVar("TModel", bound=Base)
+TPatchDict = TypeVar("TPatchDict", bound=Mapping[str, object])
 PublicIdCarrierDict: TypeAlias = dict[str, object]
 PublicIdInput: TypeAlias = PublicIdCarrier | PublicIdCarrierDict
 
@@ -102,14 +105,16 @@ def apply_patch(
     *,
     operations: Sequence[JSONPathOperation],
     current_domain_obj: DomainObject,
-) -> PatchDict:
-    """Apply JSON Patch operations to a domain object and return the patched dict."""
+    patch_type: type[TPatchDict],
+) -> TPatchDict:
+    """Apply JSON Patch operations to a domain object, verifying the result matches `patch_type`."""
     current_dict = to_json(current_domain_obj)
     # NOTE lib jsonpatch is untyped
-    return cast(
+    patched = cast(
         PatchDict,
         JsonPatch(list(operations)).apply(current_dict),  # pyright: ignore[reportUnknownMemberType]
     )
+    return as_patch_dict(patched, patch_type)
 
 
 def _public_id_column(model_class: type[TModel]) -> InstrumentedAttribute[UUID]:

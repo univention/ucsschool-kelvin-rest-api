@@ -31,15 +31,15 @@ if TYPE_CHECKING:
 
 
 def _apply_school_patch(model: SchoolModel, patched: SchoolPatchDict) -> None:
-    model.record_uid = patched["record_uid"]
-    model.source_uid = patched["source_uid"]
-    model.name = patched["name"]
-    model.display_name = patched["display_name"]
-    model.class_share_file_server = patched["class_share_file_server"]
-    model.home_share_file_server = patched["home_share_file_server"]
-    model.educational_servers = list(patched["educational_servers"])
-    model.administrative_servers = list(patched["administrative_servers"])
-    model.udm_properties = patched["udm_properties"]
+    model.record_uid = patched.get("record_uid", "")
+    model.source_uid = patched.get("source_uid", "")
+    model.name = patched.get("name", "")
+    model.display_name = patched.get("display_name", "")
+    model.class_share_file_server = patched.get("class_share_file_server")
+    model.home_share_file_server = patched.get("home_share_file_server")
+    model.educational_servers = list(patched.get("educational_servers", []))
+    model.administrative_servers = list(patched.get("administrative_servers", []))
+    model.udm_properties = patched.get("udm_properties", {})
 
 
 class SQLAlchemySchoolManager(Manager[School]):
@@ -135,7 +135,9 @@ class SQLAlchemySchoolManager(Manager[School]):
             raise NotFound(object_type="School", public_id=str(public_id))
 
         school = to_school(result)
-        target = cast(SchoolPatchDict, apply_patch(operations=operations, current_domain_obj=school))
+        target = apply_patch(
+            operations=operations, current_domain_obj=school, patch_type=SchoolPatchDict
+        )
         SchoolValidator.validate(school_from_patch(target, result.public_id))
         _apply_school_patch(result, target)
 

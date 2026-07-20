@@ -31,7 +31,11 @@ from ucsschool_objects.core.domain.errors import NotFound, UnsupportedOperation
 from ucsschool_objects.core.domain.json import to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import User
-from ucsschool_objects.core.domain.patch_types import MembershipPatchDict, UserPatchDict
+from ucsschool_objects.core.domain.patch_types import (
+    MembershipPatchDict,
+    UserPatchDict,
+    as_patch_dict,
+)
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
 from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
 from ucsschool_objects.core.domain.validators import UserValidator
@@ -153,18 +157,18 @@ async def _apply_user_patch(
     operations: Sequence[JSONPathOperation],
 ) -> None:
     modifies_memberships, modifies_guardians, modifies_wards = _check_modify_operations(operations)
-    model.record_uid = patched["record_uid"]
-    model.source_uid = patched["source_uid"]
-    model.name = patched["name"]
-    model.firstname = patched["firstname"]
-    model.lastname = patched["lastname"]
-    model.email = patched["email"]
-    model.active = patched["active"]
-    birthday_val = patched["birthday"]
+    model.record_uid = patched.get("record_uid", "")
+    model.source_uid = patched.get("source_uid", "")
+    model.name = patched.get("name", "")
+    model.firstname = patched.get("firstname", "")
+    model.lastname = patched.get("lastname", "")
+    model.email = patched.get("email")
+    model.active = patched.get("active", False)
+    birthday_val = patched.get("birthday")
     model.birthday = date.fromisoformat(birthday_val) if birthday_val is not None else None
-    exp_val = patched["expiration_date"]
+    exp_val = patched.get("expiration_date")
     model.expiration_date = date.fromisoformat(exp_val) if exp_val is not None else None
-    model.udm_properties = patched["udm_properties"]
+    model.udm_properties = patched.get("udm_properties", {})
 
     if modifies_memberships:
         await _apply_membership_relation_changes(
@@ -481,10 +485,10 @@ class SQLAlchemyUserManager(Manager[User]):
             raise NotFound(object_type="User", public_id=str(public_id))
 
         user = to_user(result)
-        target = cast(UserPatchDict, apply_patch(operations=operations, current_domain_obj=user))
+        target = apply_patch(operations=operations, current_domain_obj=user, patch_type=UserPatchDict)
         UserValidator.validate(user_from_patch(target, result.public_id))
 
-        source = cast(UserPatchDict, to_json(user))
+        source = as_patch_dict(to_json(user), UserPatchDict)
         await _apply_user_patch(result, target, source, self._session, operations)
 
     async def delete(self, public_id: UUID) -> None:
