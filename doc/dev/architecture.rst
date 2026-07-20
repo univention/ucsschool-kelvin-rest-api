@@ -8,18 +8,88 @@ Architecture
 System overview
 ---------------
 
-* 🚧 What does the system look like from a bird's eye view?
-* 🚧 Which external systems are involved (PostgreSQL, Guardian, Keycloak?, UDM REST, Provisioning service)?
-* 🚧 How do the components interact?
-* 🚧 C4 context diagram? (system within context)
-* 🚧 C4 container diagram? (API, DB, Kelvin Connector, Provisioning Service, ...)
+Kelvin is a single FastAPI application that mounts two API versions. ``v1``
+reads and writes through the UDM REST API (and occasionally LDAP directly).
+``v2`` keeps the ``v1`` write path but serves reads and searches from a local
+PostgreSQL cache. The cache is filled by two writers: synchronously by Kelvin's
+own write path, and asynchronously by the *Kelvin Connector*, which applies
+LDAP change events from the Nubus Provisioning service (see
+:doc:`synchronisation`).
+
+.. mermaid::
+   :caption: Container view of Kelvin ``v2``.
+
+   graph TB
+       Client["HTTP client"]
+       subgraph Kelvin["Kelvin app host (Primary / Backup)"]
+           API["Kelvin REST API<br/>(FastAPI, kelvin-api/)"]
+           Connector["Kelvin Connector<br/>(kelvin-connector/)"]
+           DB[("PostgreSQL<br/>read cache")]
+       end
+       subgraph Nubus["Nubus"]
+           UDM["UDM REST API"]
+           LDAP[("OpenLDAP")]
+           Prov["Provisioning<br/>service"]
+       end
+
+       Client -->|"HTTPS / JSON"| API
+       API -->|"write path (v1 + v2 writes)"| UDM
+       API -->|"read path (v2)"| DB
+       API -.->|"direct read / auth bind"| LDAP
+       UDM --> LDAP
+       LDAP -->|"change events"| Prov
+       Prov -->|"consume events"| Connector
+       Connector -->|"upsert / delete"| DB
+
+External systems involved:
+
+* **UDM REST API** (Nubus) — the write path; also used by ``v2`` write
+  operations.
+* **OpenLDAP** (Nubus) — the source of truth; accessed directly for
+  authentication binds, group-membership lookups, and some attributes.
+* **Nubus Provisioning service** — the event source the Kelvin Connector
+  consumes.
+* **PostgreSQL** — the ``v2`` read cache (see :doc:`database`).
+
+Authentication uses a self-issued HS256 JWT verified against OpenLDAP; there is
+no external OIDC / Keycloak dependency today, and the Guardian-based permission
+system is only a planned use case (:doc:`usecases/uc011_permission_system`).
 
 Components
 ----------
 
-* 🚧 What layers are there (router, service, repository)?
-* 🚧 What are the responsibilities of each layer?
-* 🚧 What is the data flow for a typical request?
+Within the FastAPI application the layers are:
+
+Routers (``kelvin-api/ucsschool/kelvin/routers/``)
+   HTTP endpoints, request/response models, and query-parameter parsing, split
+   into ``v1/`` and ``v2/`` subpackages.
+
+Service (``kelvin-api/ucsschool/kelvin/service/``)
+   Cross-cutting concerns: the ASGI lifespan, middleware (correlation id,
+   timing), exception handlers, and request dependencies (auth, storage-session,
+   DB-compatibility check).
+
+Domain / persistence (``ucsschool-objects``)
+   The ``v2`` read path. A ports-and-adapters library whose SQLAlchemy adapter
+   maps UCS\@school objects to the PostgreSQL cache. The FastAPI app obtains a
+   storage-session factory from ``app.state`` (populated by the lifespan) and
+   uses per-entity managers to query it.
+
+UCS\@school libraries (``ucs-school-lib``, ``ucs-school-import``)
+   The write path (and the whole ``v1`` path). They talk to the UDM REST API
+   and persist to OpenLDAP.
+
+Data flow for a typical request:
+
+* **A ``v2`` read** (``GET``/``HEAD``): router → auth + DB-compatibility
+  dependency → storage session → SQLAlchemy query against PostgreSQL → the
+  ``ucsschool-objects`` domain object is transformed into the ``v1`` response
+  shape and returned. The
+  UCS\@school libraries are not involved, so read-hooks do not run.
+* **A ``v2`` write** (``POST``/``PATCH``/``PUT``/``DELETE``): the ``v2`` router
+  reuses the ``v1`` handler, which goes through the UCS\@school import library →
+  UDM REST API → OpenLDAP, and stores the response in the cache before
+  returning.
 
 Data model
 ----------
@@ -249,13 +319,80 @@ See `Issue #208 <https://git.knut.univention.de/univention/dev/education/ucsscho
 Architecture of Authentication & Authorization
 ----------------------------------------------
 
-* 🚧 How does the auth flow work (API token? OIDC?)?
-* 🚧 How are group memberships checked?
-* 🚧 What roles/permissions are there?
-* 🚧 Sequence diagram for auth flow
+Authentication is a self-issued **JWT bearer token** flow (OAuth2 password
+grant). There is no external OIDC / Keycloak provider: Kelvin verifies the
+credentials against OpenLDAP itself and signs its own token.
+
+* The client posts credentials to ``POST /ucsschool/kelvin/token``.
+* Kelvin looks up the user's DN and **binds to OpenLDAP with the supplied
+  credentials** to verify the password.
+* On success it issues an **HS256** JWT (PyJWT) signed with a symmetric secret
+  read from a file on the app host. The token embeds the username, the
+  ``kelvin_admin`` / ``kelvin_reader`` flags, the user's schools and roles, and
+  an ``exp`` (default 60 minutes).
+* On every subsequent request the ``Authorization: Bearer`` token is decoded
+  with the same secret, and the user is re-loaded from LDAP.
+
+Authorization is by membership in two LDAP groups, checked at token-issue time:
+
+``ucsschool-kelvin-rest-api-admins``
+   full read and write access (``kelvin_admin``).
+
+``ucsschool-kelvin-rest-api-readers``
+   read-only access — ``GET`` / ``HEAD`` (``kelvin_reader``).
+
+A user in neither group cannot obtain a usable token; a reader calling a write
+endpoint is rejected. Denials return **401** (not 403). Regardless of the
+authenticated user, Kelvin performs its UDM/LDAP operations as the ``cn=admin``
+account — the group membership is the only authorization layer today. A
+finer-grained, Guardian-based permission model is a planned use case
+(:doc:`usecases/uc011_permission_system`).
+
+.. mermaid::
+
+   sequenceDiagram
+       actor Client as HTTP Client
+       participant Kelvin as Kelvin REST API
+       participant LDAP as OpenLDAP
+
+       Client->>Kelvin: POST /token (username, password)
+       Kelvin->>LDAP: bind with credentials + read group membership
+       LDAP-->>Kelvin: ok (admin / reader flags)
+       Kelvin-->>Client: 200 {access_token: <HS256 JWT>}
+
+       Client->>Kelvin: GET /v2/... (Authorization: Bearer <jwt>)
+       Kelvin->>Kelvin: decode + verify JWT, check group
+       Kelvin-->>Client: 200 OK / 401 Unauthorized
+
+Relevant code: ``kelvin-api/ucsschool/kelvin/token_auth.py`` (JWT issue/verify,
+dependency gates ``get_kelvin_admin`` / ``get_kelvin_reader``) and
+``ldap.py`` (credential bind, group lookup). See also :doc:`api-reference`.
 
 Interfaces
 ----------
 
-* 🚧 Which protocols/formats are used?
-* 🚧 What dependencies on external systems exist?
+Kelvin talks to the following external systems:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 2 2 3
+
+   * - System
+     - Protocol / format
+     - Role
+   * - UDM REST API (Nubus)
+     - HTTPS / JSON
+     - the write path; ``v2`` write operations. Kelvin acts as ``cn=admin``.
+   * - OpenLDAP (Nubus)
+     - LDAP (``ldap3`` / ``uldap3``)
+     - authentication binds, group-membership lookups, and direct reads for
+       attributes not exposed by UDM.
+   * - Nubus Provisioning service
+     - HTTPS / JSON (provisioning-consumer library)
+     - the event source consumed by the Kelvin Connector.
+   * - PostgreSQL
+     - SQL (async SQLAlchemy + psycopg)
+     - the ``v2`` read cache.
+
+The client-facing interface is HTTPS/JSON, documented via the generated OpenAPI
+specification (see :doc:`api-reference`).
