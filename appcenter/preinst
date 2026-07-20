@@ -33,6 +33,10 @@ KELVIN_IMPORTUSER_HOOKS_PATH="/var/lib/ucs-school-import/kelvin-hooks"
 KELVIN_SCHOOL_LIB_HOOKS_PATH="/var/lib/ucs-school-lib/kelvin-hooks"
 KELVIN_CONFIG_PATH="/etc/ucsschool/kelvin"
 
+# Minimum version of the Provisioning Service app that must be installed
+# somewhere in the domain for Kelvin's provisioning subscription to work.
+MIN_PROVISIONING_VERSION="2.2"
+
 ################################################################################
 # Helper and setup functions (kept free of side effects on source)
 ################################################################################
@@ -94,6 +98,63 @@ set_kelvin_docker_env_trusted_proxy_ips() {
     ucr set "$UCR_PARAM_KEY=${current_params} ${trusted_proxy_env}"
 }
 
+# check_provisioning_service_version [min_version]
+#
+# Kelvin's join script sets up a provisioning subscription and therefore needs
+# the Provisioning Service app in the domain. We used to declare this via
+# 'RequiredAppsInDomain' in the ini, but that pulls provisioning-service into
+# kelvin's own install/upgrade transaction; since it has its own settings, the
+# appcenter then aborts with a hard-to-grasp "Automatically added App ... has
+# its own settings" error (install_base.py). We drop the declarative dependency
+# and replicate its domain-installed check here instead -- using the exact same
+# LDAP filter the appcenter uses for RequiredAppsInDomain (see
+# resolve_dependencies() in appcenter utils.py): an appcenter/app object for
+# provisioning-service installed on at least one server. Note univentionAppID is
+# stored as "<id>_<version>"; the installed version is exposed separately as
+# univentionAppVersion, which we read here to enforce a minimum version.
+#
+# The version comparison reuses the appcenter's own comparator (LooseVersion)
+# rather than a brittle shell/sort comparison; there is no 'univention-app'
+# subcommand that compares two version strings. It is the same comparator the
+# appcenter uses for RequiredAppVersionUpgrade et al.
+#
+# Arguments:
+#   $1 - minimum version to require (defaults to $MIN_PROVISIONING_VERSION)
+#
+# Returns:
+#   0 - a provisioning-service >= the minimum is installed in the domain
+#   1 - provisioning-service is not installed anywhere in the domain
+#   2 - provisioning-service is installed, but every version is too old
+check_provisioning_service_version() {
+    local min_version="${1:-$MIN_PROVISIONING_VERSION}"
+
+    local versions
+    versions="$(univention-ldapsearch -LLL \
+        "(&(univentionObjectType=appcenter/app)(univentionAppInstalledOnServer=*)(univentionAppID=provisioning-service_*))" \
+        univentionAppVersion \
+        2>/dev/null | sed -n 's/^univentionAppVersion: //p')"
+
+    if [ -z "$versions" ]; then
+        return 1
+    fi
+
+    # Feed the versions on stdin (one per line) so values containing spaces
+    # (e.g. "5.2 v3", which LooseVersion supports) survive intact.
+    if printf '%s\n' "$versions" | python3 -c '
+import sys
+
+from univention.appcenter.app import LooseVersion
+
+required = LooseVersion(sys.argv[1])
+versions = [LooseVersion(line.strip()) for line in sys.stdin if line.strip()]
+sys.exit(0 if any(version >= required for version in versions) else 1)
+' "$min_version"; then
+        return 0
+    fi
+
+    return 2
+}
+
 ################################################################################
 # Main logic wrapped in a function to keep sourcing side-effect free
 ################################################################################
@@ -125,26 +186,22 @@ main() {
       exit 1
     fi
 
-    # Kelvin's join script sets up a provisioning subscription and therefore
-    # needs the Provisioning Service app in the domain. We used to declare this
-    # via 'RequiredAppsInDomain' in the ini, but that pulls provisioning-service
-    # into kelvin's own install/upgrade transaction; since it has its own
-    # settings, the appcenter then aborts with a hard-to-grasp "Automatically
-    # added App ... has its own settings" error (install_base.py). We drop the
-    # declarative dependency and replicate its domain-installed check here
-    # instead -- using the exact same LDAP filter the appcenter uses for
-    # RequiredAppsInDomain (see resolve_dependencies() in appcenter utils.py):
-    # an appcenter/app object for provisioning-service installed on at least
-    # one server. Note univentionAppID is stored as "<id>_<version>", hence the
-    # "_*" wildcard.
-    if ! univention-ldapsearch -LLL \
-        "(&(univentionObjectType=appcenter/app)(univentionAppInstalledOnServer=*)(univentionAppID=provisioning-service_*))" dn \
-        2>/dev/null | grep -q '^dn:'
-    then
-      message="The application 'UCS@school Kelvin REST API' requires the 'Provisioning Service' app to be installed in the domain. Please install it (e.g. 'univention-app install provisioning-service' on the Primary Directory Node) before installing or updating Kelvin."
-      echo "$message" > "$errorfile"
-      exit 1
-    fi
+    check_provisioning_service_version
+    case "$?" in
+        0)
+            : # a recent-enough Provisioning Service is installed in the domain
+            ;;
+        1)
+            message="The application 'UCS@school Kelvin REST API' requires the 'Provisioning Service' app to be installed in the domain. Please install it (e.g. 'univention-app install provisioning-service' on the Primary Directory Node) before installing or updating Kelvin."
+            echo "$message" > "$errorfile"
+            exit 1
+            ;;
+        *)
+            message="The application 'UCS@school Kelvin REST API' requires the 'Provisioning Service' app in at least version ${MIN_PROVISIONING_VERSION} to be installed in the domain. Please install or upgrade it (e.g. 'univention-app upgrade provisioning-service' on the Primary Directory Node) before installing or updating Kelvin."
+            echo "$message" > "$errorfile"
+            exit 1
+            ;;
+    esac
 
     if ! [ -e "$KELVIN_IMPORTUSER_HOOKS_PATH" ]; then
         mkdir -pv -m 755 "$KELVIN_IMPORTUSER_HOOKS_PATH"
