@@ -1,5 +1,11 @@
 {
   "venvPath": ".",
   "pythonVersion": "3.11",
-  "reportImplicitStringConcatenation": "none"
+  "reportImplicitStringConcatenation": "none",
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "appcenter/tests/stubs"
+  ]
 }
