@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 if [ "$LDAP_SERVER_TYPE" != "master" ]; then
     echo "Kelvin connector will only run on server type master (LDAP_SERVER_TYPE=\"$LDAP_SERVER_TYPE\")" >&2
