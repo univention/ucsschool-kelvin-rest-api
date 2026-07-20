@@ -181,12 +181,24 @@ class NotFound(CorelibError):
 
 
 class PatchShapeMismatch(CorelibError):
-    """Raised when a patched dict is missing keys required by its expected patch TypedDict."""
+    """Raised when a patched dict's keys don't match its expected patch TypedDict's shape."""
 
     patch_type: str
     missing_keys: frozenset[str]
+    undefined_keys: frozenset[str]
 
-    def __init__(self, patch_type: str, missing_keys: frozenset[str]) -> None:
+    def __init__(
+        self,
+        patch_type: str,
+        missing_keys: frozenset[str],
+        undefined_keys: frozenset[str],
+    ) -> None:
         self.patch_type = patch_type
         self.missing_keys = missing_keys
-        super().__init__(f"{patch_type} is missing required keys: {sorted(missing_keys)}")
+        self.undefined_keys = undefined_keys
+        parts: list[str] = []
+        if missing_keys:
+            parts.append(f"is missing required keys: {sorted(missing_keys)}")
+        if undefined_keys:
+            parts.append(f"has undefined keys: {sorted(undefined_keys)}")
+        super().__init__(f"{patch_type} {'; '.join(parts)}")

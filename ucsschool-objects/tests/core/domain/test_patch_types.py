@@ -32,7 +32,7 @@ def test_as_patch_dict_accepts_exact_required_keys() -> None:
     assert result == _SCHOOL_PATCH
 
 
-def test_as_patch_dict_accepts_superset_of_required_keys() -> None:
+def test_as_patch_dict_accepts_public_id_field() -> None:
     data: dict[str, object] = {**_SCHOOL_PATCH, "public_id": "some-uuid"}
     result = as_patch_dict(data, SchoolPatchDict)
     assert result is data
@@ -62,5 +62,16 @@ def test_as_patch_dict_raises_on_missing_required_key() -> None:
         _ = as_patch_dict({}, _RequiredKeysDict)
     assert excinfo.value.patch_type == "_RequiredKeysDict"
     assert excinfo.value.missing_keys == frozenset({"name", "display_name"})
+    assert excinfo.value.undefined_keys == frozenset()
     assert "name" in str(excinfo.value)
     assert "display_name" in str(excinfo.value)
+
+
+def test_as_patch_dict_raises_on_undefined_key() -> None:
+    data: dict[str, object] = {**_SCHOOL_PATCH, "not_a_field": "oops"}
+    with pytest.raises(PatchShapeMismatch) as excinfo:
+        _ = as_patch_dict(data, SchoolPatchDict)
+    assert excinfo.value.patch_type == "SchoolPatchDict"
+    assert excinfo.value.missing_keys == frozenset()
+    assert excinfo.value.undefined_keys == frozenset({"not_a_field"})
+    assert "not_a_field" in str(excinfo.value)

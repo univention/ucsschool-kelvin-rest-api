@@ -11,19 +11,27 @@ T = TypeVar("T", bound=Mapping[str, object])
 
 
 def as_patch_dict(data: Mapping[str, object], patch_type: type[T]) -> T:
-    """Verify `data` carries every key `patch_type` requires, then return it typed as `patch_type`.
+    """Verify `data`'s keys exactly match `patch_type`'s shape, then return it typed as `patch_type`.
 
-    `data` is the full serialized domain object (e.g. it also carries `public_id`),
-    a superset of the patch dict's fields, so only missing required keys are an error.
+    Every key required by `patch_type` must be present, and every key in `data` must be a field
+    defined on `patch_type` — unknown keys (e.g. typos) are rejected rather than silently ignored.
     """
     required: frozenset[str] = getattr(patch_type, "__required_keys__", frozenset())
+    optional: frozenset[str] = getattr(patch_type, "__optional_keys__", frozenset())
+    allowed = required | optional
     missing = required - data.keys()
-    if missing:
-        raise PatchShapeMismatch(patch_type=patch_type.__name__, missing_keys=frozenset(missing))
+    undefined = data.keys() - allowed
+    if missing or undefined:
+        raise PatchShapeMismatch(
+            patch_type=patch_type.__name__,
+            missing_keys=frozenset(missing),
+            undefined_keys=frozenset(undefined),
+        )
     return cast(T, data)
 
 
 class SchoolPatchDict(TypedDict, total=False):
+    public_id: str
     record_uid: str
     source_uid: str
     name: str
@@ -36,6 +44,7 @@ class SchoolPatchDict(TypedDict, total=False):
 
 
 class GroupPatchDict(TypedDict, total=False):
+    public_id: str
     record_uid: str
     source_uid: str
     name: str
@@ -59,6 +68,7 @@ class MembershipPatchDict(TypedDict, total=False):
 
 
 class UserPatchDict(TypedDict, total=False):
+    public_id: str
     record_uid: str
     source_uid: str
     name: str
