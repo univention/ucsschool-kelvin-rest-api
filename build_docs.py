@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 """Render the Kelvin REST API's readme and changelog from reStructuredText.
 
 A single Sphinx build produces every HTML artifact the project needs, so the

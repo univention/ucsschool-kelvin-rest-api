@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Univention GmbH
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 # UCS@school Kelvin REST API
 
 This repository contains the code for the UCS@school Kelvin REST API application.
