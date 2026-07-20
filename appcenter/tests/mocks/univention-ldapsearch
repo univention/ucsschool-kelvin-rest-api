@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#
+# Mock for `univention-ldapsearch` used by the preinst bats tests.
+#
+# It ignores the actual filter/attribute arguments and simply emits whatever
+# LDIF has been placed in the MOCK_LDAP_OUTPUT environment variable. This lets a
+# test simulate "not installed" (empty), "one server", "several servers", etc.
+#
+# The invocation is logged to MOCK_CALLS (if set) so tests can assert the
+# expected LDAP search was performed, mirroring the `ucr` mock.
+
+if [ -n "$MOCK_CALLS" ]; then
+    printf 'univention-ldapsearch %s\n' "$*" >> "$MOCK_CALLS"
+fi
+
+printf '%s' "$MOCK_LDAP_OUTPUT"
