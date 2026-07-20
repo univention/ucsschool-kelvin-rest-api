@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 """Public query model for filtering, logical composition, and sorting.
 
 The types in this module define a small expression tree used by read APIs.

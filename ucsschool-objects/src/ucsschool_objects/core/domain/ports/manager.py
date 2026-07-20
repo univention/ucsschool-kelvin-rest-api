@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 """Port definitions for domain object retrieval and mutation.
 
 This module exposes protocol contracts that concrete adapters implement

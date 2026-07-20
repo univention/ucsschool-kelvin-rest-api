@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from __future__ import annotations
 
 from tests.core.domain.helpers.model_builders import role as build_role, school as build_school

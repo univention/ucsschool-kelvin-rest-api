@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 """Tests for nested field detection and join injection in query_filter module."""
 from __future__ import annotations
 

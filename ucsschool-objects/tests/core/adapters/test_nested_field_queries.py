@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 """Tests for nested field query support in SQLAlchemy managers."""
 from __future__ import annotations
 

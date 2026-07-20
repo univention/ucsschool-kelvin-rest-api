@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+#
 # pyright: reportUnusedFunction=false
 # Private helpers are imported by sibling modules, so they can look unused here.
 

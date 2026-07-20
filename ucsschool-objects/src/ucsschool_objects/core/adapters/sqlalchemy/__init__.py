@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 """Client-facing re-exports for the SQLAlchemy backend.
 
 Intended for ``ucsschool_objects`` *clients* (composition roots, FastAPI

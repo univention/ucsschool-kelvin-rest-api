@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Univention GmbH
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 # Kelvin Core Library
 
 The core library provides a persistence-agnostic business layer for read and search access to School, Group, Role, and User domain objects.

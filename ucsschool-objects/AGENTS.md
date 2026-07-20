@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Univention GmbH
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 # AGENTS.md — ucsschool-objects
 
 Internal library that backs Kelvin `v2`'s SQL read cache.

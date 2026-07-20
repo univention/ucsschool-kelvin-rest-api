@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 import copy
 from collections.abc import Sequence
 from typing import Generic, Self, TypeVar, cast

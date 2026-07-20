@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 """Execution-level tests for ``Operator.MATCHES_CI`` against the SQLite test DB.
 
 Note: SQLite's ``LIKE`` is inherently case-insensitive for ASCII text, so most
