@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 .PHONY: clean clean-test clean-pyc clean-build docs help
 .DEFAULT_GOAL := help
 

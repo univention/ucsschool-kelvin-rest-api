@@ -1,11 +1,5 @@
-# Copyright 2026 Univention GmbH
-#
-# http://www.univention.de/
-#
-# All rights reserved.
-#
-# The source code of this program is made available
-# under the terms of the GNU AGPL V3.
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 from unittest.mock import MagicMock, patch
 

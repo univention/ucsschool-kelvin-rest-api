@@ -1,1 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from . import role, school, school_class, user, workgroup  # noqa: F401
