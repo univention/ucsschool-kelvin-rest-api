@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 #
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+#
 # UCS@school HTTP-API import documentation documentation build configuration file, created by
 # sphinx-quickstart on Wed Apr 25 08:43:24 2018.
 #

@@ -1,6 +1,8 @@
 #!/usr/bin/make -f
 # Downloaded from http://plantuml.com/
 # Direct download URL http://sourceforge.net/projects/plantuml/files/plantuml.jar/download
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 FORMATS := png svg
 INPUT := import-pyhooks.md

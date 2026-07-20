@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2026 Univention GmbH
+.. SPDX-License-Identifier: AGPL-3.0-only
+
 Hooks
 =====
 
@@ -17,4 +20,3 @@ The order in which (hook) code is executed during an import job:
 
 .. image:: import-pyhooks.svg
    :alt: Hook execution sequence.
-
