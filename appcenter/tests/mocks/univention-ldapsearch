@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 #
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+#
 # Mock for `univention-ldapsearch` used by the preinst bats tests.
 #
 # It ignores the actual filter/attribute arguments and simply emits whatever

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 setup_provisioning_subscriptions() {
     local subscription_name="${SUBSCRIPTION_NAME:-kelvin-connector}"
     local app_provisioning_config_file="${APP_PROVISIONING_CONFIG_FILE:-/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/provisioning_config.json}"

@@ -1,5 +1,8 @@
 #!/usr/bin/env bats
 
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 setup() {
   # Mock bin directory placed in front of PATH
   export MOCK_BIN="appcenter/tests/mocks"
