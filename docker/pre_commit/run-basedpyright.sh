@@ -37,7 +37,26 @@ for arg in "$@"; do
     args+=" $(printf '%q' "$arg")"
 done
 
+# `uv sync` below fetches internal dependencies (e.g.
+# univention-configuration-registry) from git.knut.univention.de, which is only
+# resolvable inside Univention's network and not published in public DNS.
+# Containers on Docker's default bridge network cannot resolve it, so the sync
+# fails with a DNS error. The host can resolve it (via internal DNS / VPN), so
+# resolve it here and inject a static hosts entry into the container; TLS still
+# uses the real hostname (SNI/Host header), so the certificate stays valid.
+# Override with GIT_KNUT_IP if host resolution is unavailable.
+git_knut_host="git.knut.univention.de"
+git_knut_ip="${GIT_KNUT_IP:-$(getent hosts "$git_knut_host" | awk '{ print $1; exit }' || true)}"
+
+add_host_args=()
+if [[ -n "$git_knut_ip" ]]; then
+    add_host_args=(--add-host "${git_knut_host}:${git_knut_ip}")
+else
+    echo "WARNING: could not resolve ${git_knut_host}; the container may fail to fetch internal dependencies." >&2
+fi
+
 docker run --rm \
+    "${add_host_args[@]}" \
     -v "$PWD:/src" \
     -w /src \
     "$image" \
