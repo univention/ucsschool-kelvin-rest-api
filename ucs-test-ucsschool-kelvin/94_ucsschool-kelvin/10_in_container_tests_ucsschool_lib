@@ -6,6 +6,8 @@
 ## bugs: []
 ## external-junit: /tmp/kelvin-ucsschool-lib_in_container_integration_tests.xml
 
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
 
 APP="ucsschool-kelvin-rest-api"
 

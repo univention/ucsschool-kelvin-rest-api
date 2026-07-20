@@ -7,6 +7,9 @@
 ## timeout: 7200
 ## external-junit: /tmp/kelvin_api_in_container_integration_tests.xml
 
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 APP="ucsschool-kelvin-rest-api"
 
 declare -a CMD=(sh -c "

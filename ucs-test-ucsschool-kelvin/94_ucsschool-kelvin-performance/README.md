@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Univention GmbH
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 # Performance Tests for the Kelvin REST API
 
 The performance Debian package contains Univention pytest tests,
@@ -13,4 +18,3 @@ and one of the locust files in `locust_files/`.
 Results are stored in `/var/lib/ucs-test-ucsschool-kelvin-performance/results/`.
 The `*_stats.csv` files stored there are then used by the pytest tests to evaluate if the endpoint
 fulfills the performance requirements.
-

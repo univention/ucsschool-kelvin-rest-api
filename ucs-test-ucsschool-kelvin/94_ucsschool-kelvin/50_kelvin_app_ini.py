@@ -5,6 +5,9 @@
 ## tags: [ucs_school_kelvin]
 ## exposure: safe
 
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 import itertools
 import re
 import tempfile

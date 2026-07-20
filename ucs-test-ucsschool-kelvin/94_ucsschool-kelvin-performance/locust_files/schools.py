@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from locust import task
 from ucs_test_ucsschool_kelvin_performance.base import KelvinClient
 
