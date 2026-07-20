@@ -723,7 +723,7 @@ async def test_get_returns_exam_user(
     assert response.status_code == 200, response.reason
     json_resp = response.json()
     assert json_resp["name"] == exam_user["username"]
-    assert json_resp["ucsschool_roles"] == exam_user["ucsschoolRole"]
+    assert sorted(json_resp["ucsschool_roles"]) == sorted(exam_user["ucsschoolRole"])
     assert f"cn=examusers,ou={school}" in json_resp["dn"]
 
 
@@ -3700,7 +3700,7 @@ async def test_create_custom_ucsschool_roles(
     )
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
-    assert set(response_json["ucsschool_roles"]) == set(expected_ucsschool_roles)
+    assert sorted(response_json["ucsschool_roles"]) == sorted(expected_ucsschool_roles)
 
 
 @pytest.mark.asyncio
@@ -3774,8 +3774,10 @@ async def test_modify_custom_ucsschool_roles(
         )
     assert response.status_code == 200, f"{response.__dict__!r}"
     response_json = response.json()
-    assert set(response_json["ucsschool_roles"]) == set(ucsschool_roles_expected)
-    assert set(response_json["roles"]) == set([f"{url_fragment_https}/roles/{role_}" for role_ in roles])
+    assert sorted(response_json["ucsschool_roles"]) == sorted(ucsschool_roles_expected)
+    assert sorted(response_json["roles"]) == sorted(
+        [f"{url_fragment_https}/roles/{role_}" for role_ in roles]
+    )
     # one more with school change
     ucsschool_roles_to_set = ["test_1:nextcon:where", f"student:school:{school}", f"foo:bar:{school}"]
     ucsschool_roles_expected = ["test_1:nextcon:where", f"foo:bar:{school}"] + [
@@ -3808,8 +3810,10 @@ async def test_modify_custom_ucsschool_roles(
         )
     assert response.status_code == 200, f"{response.__dict__!r}"
     response_json = response.json()
-    assert set(response_json["ucsschool_roles"]) == set(ucsschool_roles_expected)
-    assert set(response_json["roles"]) == set([f"{url_fragment_https}/roles/{role_}" for role_ in roles])
+    assert sorted(response_json["ucsschool_roles"]) == sorted(ucsschool_roles_expected)
+    assert sorted(response_json["roles"]) == sorted(
+        [f"{url_fragment_https}/roles/{role_}" for role_ in roles]
+    )
     assert response_json["school"] == f"{url_fragment_https}/schools/{school2}"
 
 
@@ -3869,8 +3873,8 @@ async def test_modify_custom_ucsschool_roles_with_role_change(
         )
     assert response.status_code == 200, f"{response.__dict__!r}"
     response_json = response.json()
-    assert set(response_json["ucsschool_roles"]) == set(ucsschool_roles_expected)
-    assert response_json["roles"] == [f"{url_fragment_https}/roles/{role_change}"]
+    assert sorted(response_json["ucsschool_roles"]) == sorted(ucsschool_roles_expected)
+    assert sorted(response_json["roles"]) == sorted([f"{url_fragment_https}/roles/{role_change}"])
 
 
 @pytest.mark.asyncio
