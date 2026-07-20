@@ -7,7 +7,38 @@ Changelog
 
 v4.0.0 (TBD)
 ------------
+This is a major release of the UCS\@school Kelvin REST API application (version 4.0.0) that introduces the version 2 of the Kelvin API (API version 2) as a **preview** alongside the unchanged version 1 API.
+
+.. important::
+
+   The version 2 API is a **preview and not intended for production use**.
+   Version 1 remains the stable, maintained and recommended API for production.
+   Version 1 is unaffected by the changes described below and continues to work as before.
+   Unless a difference is noted here, the version 2 API behaves like version 1.
+
+* Added: Version 2 of the Kelvin API. Unlike version 1, which reads every request live from LDAP/UDM, version 2 serves read and search requests from a PostgreSQL-backed database (the *Kelvin DB*) that is kept in sync via the Provisioning API. This improves performance for read-heavy workloads and gives more control over indexing and data integrity, at the cost of new infrastructure and eventual consistency (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#251`, Epic :spelling:ignore:`univention&968`).
+* Added: A new Kelvin connector that subscribes to the Provisioning API and mirrors schools, groups and users into the Kelvin DB that backs the version 2 API. The connector currently runs only on the Primary Directory Node. Consequently, for the version 2 API to work on a Backup Directory Node, Kelvin must also be installed on the Primary Directory Node.
 * Added: Versioned API routing for ``/ucsschool/kelvin/v1`` and ``/ucsschool/kelvin/v2`` with separate OpenAPI documents and docs endpoints. The service docs at ``/ucsschool/kelvin/docs`` now provide a landing page to switch between both API versions (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#194`).
+* Changed: New dependencies are required for version 2. The UCS host must be updated to at least UCS ``5.2-6 errata515``. PostgreSQL is installed automatically as an app dependency, and the **Provisioning Service** app must be present in the domain. The Provisioning Service is *not* installed automatically; Kelvin's ``preinst`` checks for it and aborts the installation or upgrade early with an actionable message if it is missing (Issue :spelling:ignore:`univention/dev/education/ucsschool-kelvin-rest-api#234`).
+* Added: New configuration options for the version 2 stack, covering the Kelvin DB connection and the Provisioning API subscription used to keep it in sync.
+* **Breaking change (version 2 endpoints only):** Python hooks are **not** executed on read requests in version 2. Write hooks still run for now but may be removed in a future release. Version 1 continues to run all hooks as before.
+* Note: Reads in version 2 are eventually consistent. After a write it can take a moment (usually in the range of 1 to 2 seconds) for the Kelvin DB to reflect the change.
+* Known issue: The log level of the Kelvin connector cannot be adjusted yet.
+* Known issue: There is no dedicated way to check whether the initial synchronization has finished. As a workaround, either create a new user and wait until it appears in the version 2 API — because the synchronization is ordered, all previously existing objects are present once the new user shows up — or watch the connector logs with ``docker logs ucsschool-kelvin-rest-api_provisioning_1`` and wait until there are periods where no new events are received.
+
+**Upgrade instructions**
+
+Before installing or upgrading Kelvin to version 4, update the UCS host to at least UCS ``5.2-6 errata515``.
+
+Then install the Provisioning Service app in the domain, for example on the Primary Directory Node:
+
+.. code-block:: console
+
+    $ univention-app install provisioning-service
+
+PostgreSQL is pulled in automatically as an app dependency. If the Provisioning Service is not present, the Kelvin installation or upgrade aborts early with a message describing the missing dependency.
+
+After the installation, the connector performs an initial synchronization of all existing schools, groups and users into the database. This runs in the background and can take a while, especially in large environments. The version 2 API only returns complete results once this initial synchronization has finished.
 
 v3.3.1 (2026-07-02)
 -------------------
