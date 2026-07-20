@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2026 Univention GmbH
+.. SPDX-License-Identifier: AGPL-3.0-only
+
 .. list-table:: Attributes of ``UserUDMProperties``
    :header-rows: 1
    :widths: 1 1 1 3 3

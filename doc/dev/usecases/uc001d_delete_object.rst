@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2026 Univention GmbH
+.. SPDX-License-Identifier: AGPL-3.0-only
+
 .. _uc001d_delete_object:
 
 .. preview-start
