@@ -60,7 +60,8 @@ COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 ARG KELVIN_BUILD_VERSION="999.0.0"
-RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked --all-packages --group dev
+RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked --all-packages --group dev --group build
+RUN $VIRTUAL_ENV/bin/python3 kelvin-api/build_static_docs.py
 RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
 
 
@@ -77,6 +78,7 @@ COPY uv.lock .
 COPY pyproject.toml .
 COPY docker/start-kelvin.sh .
 COPY kelvin-api ./kelvin-api
+COPY --from=builder /kelvin/kelvin-api/static ./kelvin-api/static
 COPY alembic ./alembic
 COPY pyproject.toml .
 COPY ucs-school-import ./ucs-school-import
@@ -91,7 +93,6 @@ COPY ucs-school-import/modules/ucsschool/lib/create_ou.py ucs-school-lib/modules
 COPY kelvin-api/usr/share/ucs-school-import/checks/*.py /usr/share/ucs-school-import/checks/
 COPY kelvin-api/empty_configs /var/lib/ucs-school-import/configs
 COPY kelvin-api/usr/share/ucs-school-import/configs/kelvin_defaults.json /usr/share/ucs-school-import/configs/
-
 
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 HEALTHCHECK --interval=5s --timeout=3s --start-period=60s --retries=5 \

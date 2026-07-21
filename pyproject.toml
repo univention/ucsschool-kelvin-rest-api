@@ -100,6 +100,9 @@ dev = [
     "eralchemy[graphviz]>=1.6.0",
     "mypy>=1.20.1",
 ]
+build = [
+    "docutils>=0.21.2",
+]
 
 [tool.pytest.ini_options]
 addopts = "--verbose --showlocals -p no:warnings --asyncio-mode=auto"

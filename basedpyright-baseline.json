@@ -2428,6 +2428,16 @@
                 }
             }
         ],
+        "./kelvin-api/build_static_docs.py": [
+            {
+                "code": "reportUnknownVariableType",
+                "range": {
+                    "startColumn": 26,
+                    "endColumn": 38,
+                    "lineCount": 1
+                }
+            }
+        ],
         "./kelvin-api/tests/conftest.py": [
             {
                 "code": "reportDeprecated",
