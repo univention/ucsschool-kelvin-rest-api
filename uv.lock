@@ -1269,7 +1269,6 @@ dependencies = [
     { name = "async-property" },
     { name = "cachetools" },
     { name = "diskcache" },
-    { name = "docutils" },
     { name = "fastapi" },
     { name = "gunicorn" },
     { name = "httpx" },
@@ -1295,6 +1294,9 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+build = [
+    { name = "docutils" },
+]
 dev = [
     { name = "coverage" },
     { name = "factory-boy" },
@@ -1315,7 +1317,6 @@ requires-dist = [
     { name = "async-property", specifier = ">=0.2.2" },
     { name = "cachetools", specifier = ">=6.1.0" },
     { name = "diskcache", specifier = ">=5.6.3" },
-    { name = "docutils", specifier = ">=0.21.2" },
     { name = "fastapi", specifier = ">=0.95.2,<0.98.0" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "httpx", specifier = "<0.28.0" },
@@ -1341,6 +1342,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+build = [{ name = "docutils", specifier = ">=0.21.2" }]
 dev = [
     { name = "coverage", specifier = "~=6.5.0" },
     { name = "coverage", specifier = ">=5.3" },
