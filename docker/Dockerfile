@@ -86,6 +86,7 @@ COPY kelvin-api/usr/share/ucs-school-import/checks/*.py /usr/share/ucs-school-im
 COPY kelvin-api/empty_configs /var/lib/ucs-school-import/configs
 COPY kelvin-api/usr/share/ucs-school-import/configs/kelvin_defaults.json /usr/share/ucs-school-import/configs/
 
+RUN $VIRTUAL_ENV/bin/python3 kelvin-api/build_static_docs.py
 
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENTRYPOINT ["/kelvin/start-kelvin.sh"]
