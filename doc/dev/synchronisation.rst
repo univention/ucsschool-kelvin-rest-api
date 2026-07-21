@@ -94,4 +94,3 @@ Conflict handling
 * 🚧 What happens when simultaneous changes are made in both directions?
 * 🚧 What conflict resolution strategy applies (last write wins, merge, manual)?
 * 🚧 How are conflicts logged? How are customers notified?
-
