@@ -261,7 +261,7 @@ integration-tests:
   when: manual
   allow_failure: True
   variables:
-    TARGET_VERSION: "5.2-4"
+    TARGET_VERSION: "5.2-6"
     OPENSTACK_CFG_FILE: ".gitlab-ci/branch_tests.cfg"
   script:
     - mkdir results
