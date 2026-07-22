@@ -17,9 +17,9 @@ It does not live inside the FastAPI application.
 Why is there a Kelvin connector?
 --------------------------------
 
-* The **Kelvin v2 API** is optimised for fast reads against the Kelvin
+* The **Kelvin v2 API** is optimized for fast reads against the Kelvin
   database.
-* The **Kelvin database** is a denormalised projection of the authoritative
+* The **Kelvin database** is a denormalized projection of the authoritative
   state in Nubus (UDM / OpenLDAP). It is *not* the source of truth.
 * Direct reads from LDAP at API request time would defeat the performance
   goal of v2.
