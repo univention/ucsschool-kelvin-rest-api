@@ -33,7 +33,7 @@
 #  Join script that runs on the docker host.
 #
 
-VERSION=11
+VERSION=12
 
 APP_ID="ucsschool-kelvin-rest-api"
 ADMIN_GROUP="$APP_ID-admins"
