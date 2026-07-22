@@ -60,9 +60,19 @@ COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 ARG KELVIN_BUILD_VERSION="999.0.0"
-RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked --all-packages --group dev --group build
-RUN $VIRTUAL_ENV/bin/python3 kelvin-api/build_static_docs.py
+RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked --all-packages --group dev
 RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
+
+
+# Render readme.rst and changelog.rst into the static HTML served by the API.
+# Reuses the documentation image so the Univention Sphinx roles resolve without
+# mirroring the doc toolchain into this project (build_docs.py explains why).
+FROM gitregistry.knut.univention.de/univention/dev/docs/sphinx-docker/base@sha256:f4ae0cd320a7752163d5677e47d0bfbc44255cdc810c7b62ae854b7245294946 AS docs-builder
+WORKDIR /kelvin
+RUN pip install --no-cache-dir lxml
+COPY build_docs.py .
+COPY kelvin-api/changelog.rst kelvin-api/readme.rst ./kelvin-api/
+RUN python3 build_docs.py
 
 
 FROM base AS kelvin-prod
@@ -78,7 +88,7 @@ COPY uv.lock .
 COPY pyproject.toml .
 COPY docker/start-kelvin.sh .
 COPY kelvin-api ./kelvin-api
-COPY --from=builder /kelvin/kelvin-api/static ./kelvin-api/static
+COPY --from=docs-builder /kelvin/kelvin-api/static/changelog.html /kelvin/kelvin-api/static/readme.html ./kelvin-api/static/
 COPY alembic ./alembic
 COPY pyproject.toml .
 COPY ucs-school-import ./ucs-school-import

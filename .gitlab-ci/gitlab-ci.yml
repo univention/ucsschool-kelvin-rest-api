@@ -226,10 +226,10 @@ build_docker_image_connector:
 
 build_changelog_html:
   stage: build
-  image: gitregistry.knut.univention.de/univention/dev/docs/sphinx-docker/base:latest
+  image: gitregistry.knut.univention.de/univention/dev/docs/sphinx-docker/base@sha256:f4ae0cd320a7752163d5677e47d0bfbc44255cdc810c7b62ae854b7245294946
   script:
     - pip install lxml
-    - ./build_appcenter_changelog.py
+    - ./build_docs.py
   artifacts:
     paths:
       - changelog.html

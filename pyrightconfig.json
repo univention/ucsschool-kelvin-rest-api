@@ -6,6 +6,7 @@
     "**/node_modules",
     "**/__pycache__",
     "**/.*",
-    "appcenter/tests/stubs"
+    "appcenter/tests/stubs",
+    "build_docs.py"
   ]
 }

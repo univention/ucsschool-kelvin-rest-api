@@ -53,7 +53,7 @@ repos:
         entry: bandit -c .bandit
         language_version: python3.11
         additional_dependencies: ["pbr"]
-        exclude: ^kelvin-api/tests/|^ucs-school-lib/modules/ucsschool/lib/tests/|^build_appcenter_changelog.py
+        exclude: ^kelvin-api/tests/|^ucs-school-lib/modules/ucsschool/lib/tests/|^build_docs.py
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.3.0
     hooks:
@@ -74,7 +74,7 @@ repos:
         name: basedpyright (relative to baseline, native)
         language: system
         entry: |
-          sh -c 'uv sync --group build && uv pip install basedpyright==1.39.8 && uv run basedpyright \
+          sh -c 'uv sync && uv pip install basedpyright==1.39.8 && uv run basedpyright \
             --project pyrightconfig.json \
             --baselinefile basedpyright-baseline.json \
             --baselinemode=auto' --
