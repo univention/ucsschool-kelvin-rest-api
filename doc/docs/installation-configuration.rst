@@ -17,6 +17,50 @@ This can be done either through the UMC module *Univention App Center* or on the
 
     $ univention-app install ucsschool-kelvin-rest-api
 
+Prerequisites
+^^^^^^^^^^^^^
+
+.. versionadded:: 4.0.0
+
+   With Kelvin 4.0.0, the version 2 API introduces two new infrastructure dependencies.
+
+* **PostgreSQL** is pulled in automatically as an app dependency. No manual action is
+  required; see :ref:`configuration-database` for the database that is created.
+* The `Provisioning Service
+  <https://docs.software-univention.de/nubus-kubernetes-architecture/latest/en/components/provisioning-service.html>`_
+  app must be present in the domain (version minimum: 2.2). It backs the synchronization that keeps the version 2
+  API's Kelvin DB up to date. The Provisioning Service is **not** installed automatically.
+  Install it before installing or upgrading Kelvin, for example, on the Primary Directory
+  Node:
+
+  .. code-block:: console
+
+      $ univention-app install provisioning-service
+
+
+.. _upgrade-to-4:
+
+Upgrade to Kelvin 4.0.0
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Kelvin 4.0.0 introduces the version 2 API as a **preview**. Version 1 is unaffected by
+the upgrade and continues to work as before.
+
+Before upgrading, make sure the Provisioning Service is installed in the domain (see
+:ref:`Prerequisites <prerequisites>`). If it is missing, the upgrade aborts early before
+any changes are made.
+
+After the upgrade, the :ref:`Kelvin connector <overview-v2-architecture>` performs an
+**initial synchronization** of all existing schools, groups, and users into the PostgreSQL
+database that backs the version 2 API. This runs in the background and can take a while,
+especially in large environments. The version 2 API only returns complete results once
+this initial synchronization has finished.
+
+.. note::
+
+   There is no dedicated way yet to check whether the initial synchronization has
+   finished; see :doc:`known-issues` for a workaround.
+
 The join script :file:`50ucsschool-kelvin-rest-api.inst` should run automatically.
 To verify if it succeeded, open the *Domain join* UMC module or run:
 
@@ -220,7 +264,7 @@ To add custom initialization code, ``__init__()`` can be implemented the followi
             # From here on self.lo, self.logger and self.ucr are available.
             # You code here.
 
-To activate a hook, or or a change to a hook, restart the *UCS\@school Kelvin REST API* Docker container:
+To activate a hook, or a change to a hook, restart the *UCS\@school Kelvin REST API* Docker container:
 
 .. code-block:: console
 
@@ -230,12 +274,14 @@ To activate a hook, or or a change to a hook, restart the *UCS\@school Kelvin RE
 Further reading about the UCS\@school hooks is available for German readers in :ref:`pyhooks` in :cite:t:`uv-ucsschool-manual`.
 Please note that the example in that text is for the synchronous variant, missing the ``async/await`` keywords and not using the UDM REST API client. Compare with the examples linked in this chapter.
 
+.. _configuration-database:
+
 Database settings
 ^^^^^^^^^^^^^^^^^
 
-.. versionadded:: 4.0
+.. versionadded:: 4.0.0
 
-   With Kelvin 4.0, the Kelvin REST API requires a PostgreSQL database.
+   With Kelvin 4.0.0, the Kelvin REST API requires a PostgreSQL database.
 
 
 When you install Kelvin on a primary or backup node, a PostgreSQL database named
@@ -260,6 +306,20 @@ you need to change the Kelvin app settings on all nodes manually.
 
 The database schema, that is supplied by Kelvin, can change on app upgrades.
 Kelvin is checking the database revision on runtime and will throw an error if it is not compatible.
+
+.. _configuration-provisioning-subscription:
+
+Provisioning subscription
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 4.0.0
+
+The :ref:`Kelvin connector <overview-v2-architecture>` keeps the version 2 database in
+sync by subscribing to the Provisioning Service. This subscription is set up automatically
+during the join and only on the Primary Directory Node. Its configuration is stored in the
+file :file:`provisioning/provisioning_config.json` in the app's configuration directory
+(:file:`/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/`). Under normal
+operation there is nothing to configure here manually.
 
 File locations
 --------------
