@@ -32,6 +32,44 @@ To be more precise, let's take a look at the topology picture, starting with the
 #. When the client requests a resource (including a valid token in the transmission), the *UCS\@school Kelvin REST API* server will use its *UDM REST API client* component to access the UDM REST API on the DC master.
 #. The UDM REST API will then query the OpenLDAP server to retrieve the required information or make the requested changes.
 
+.. _overview-v2-architecture:
+
+Version 2 architecture
+----------------------
+
+.. versionadded:: 4.0.0
+
+.. important::
+
+   The version 2 API is a **preview and not intended for production use**.
+   Version 1 remains the stable, maintained, and recommended API for production.
+
+The version 1 API described above reads every request live from LDAP through the UDM REST
+API. The **version 2** API works differently: read and search requests (``GET``, ``HEAD``)
+are served from a PostgreSQL-backed cache instead of querying LDAP directly. This improves
+performance for read-heavy workloads, at the cost of new infrastructure and eventual
+consistency. Write requests (``POST``, ``PUT``, ``PATCH``, ``DELETE``) still go through the
+UDM REST API just like in version 1.
+
+Two additional components participate in the version 2 API:
+
+* the Kelvin DB, a **PostgreSQL** database, which stores schools, groups, and users (see
+  :ref:`configuration-database`)
+* the **Kelvin connector**, which subscribes to the `Provisioning Service
+  <https://docs.software-univention.de/nubus-kubernetes-architecture/latest/en/components/provisioning-service.html>`_
+  and mirrors changes into that database (see
+  :ref:`configuration-provisioning-subscription`)
+
+.. note::
+
+   The Kelvin connector runs **only on the Primary Directory Node**.
+   Consequently, for the version 2 API to work on a Backup Directory Node, Kelvin must
+   also be installed on the Primary Directory Node.
+
+**Eventual consistency:** because reads are served from the Kelvin DB and writes go through
+UDM, reads in version 2 are eventually consistent. After a write it can take a moment
+(usually in the range of 1 to 2 seconds) for the cache to reflect the change.
+
 .. _`Python client`: https://kelvin-rest-api-client.readthedocs.io/en/latest/
 .. _`Open Policy Agent`: https://www.openpolicyagent.org/
 .. _`UDM REST API client`: https://udm-rest-client.readthedocs.io/en/latest/
