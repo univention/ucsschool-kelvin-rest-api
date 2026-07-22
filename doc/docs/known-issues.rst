@@ -44,7 +44,7 @@ Where ``v2`` reads can be slower than ``v1``
 --------------------------------------------
 The ``v2`` read and search endpoints (``GET``, ``HEAD``) answer from a local, pre-replicated
 database instead of querying the :ref:`UDM REST API <udm-rest-api>` and LDAP directly.
-For most resources (listing or fetching users, classes, workgroups and schools) this is
+For most resources (listing or fetching users, classes, workgroups, and schools) this is
 considerably faster than ``v1``.
 
 There are, however, a few endpoints where ``v2`` is *slower* than ``v1``:
@@ -54,3 +54,28 @@ There are, however, a few endpoints where ``v2`` is *slower* than ``v1``:
 
 Under typical situations, the absolute response times for these endpoints remain small,
 and the difference is only noticeable in direct ``v1``-versus-``v2`` comparisons.
+
+
+Kelvin connector log level cannot be adjusted
+---------------------------------------------
+The log level of the Kelvin connector, which keeps the version 2 database in sync, cannot
+be adjusted yet.
+
+
+No indicator for the initial synchronization
+--------------------------------------------
+After installing or upgrading to Kelvin 4.0.0, the Kelvin connector performs an initial
+synchronization of all existing schools, groups, and users into the database that backs the
+version 2 API (see :ref:`upgrade-to-4`). There is no dedicated way yet to check
+whether this initial synchronization has finished.
+
+As a workaround, either:
+
+* create a new user and wait until it appears in the version 2 API. Because the
+  synchronization is ordered, all previously existing objects are present once the new user
+  shows up; or
+* watch the connector logs and wait until log activity subsides:
+
+  .. code-block:: console
+
+      $ docker logs ucsschool-kelvin-rest-api_provisioning_1
