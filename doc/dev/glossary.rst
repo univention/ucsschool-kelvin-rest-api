@@ -5,12 +5,12 @@
 Glossary
 ========
 
-Explanation of domain-specific terms and abbreviations.
+This glossary explains domain-specific terms and abbreviations.
 
 .. glossary::
 
    UCS
-      Univention Corporate Server — a Debian-based Linux distribution with an
+      Univention Corporate Server—a Debian-based Linux distribution with an
       integrated identity and access management system (Nubus).
 
    Nubus
@@ -23,7 +23,7 @@ Explanation of domain-specific terms and abbreviations.
       for the educational sector.
 
    UDM
-      Univention Directory Manager — Nubus's data model and Python library over
+      Univention Directory Manager—Nubus's data model and Python library over
       OpenLDAP.
 
    UDM REST API
@@ -36,7 +36,7 @@ Explanation of domain-specific terms and abbreviations.
       attributes not exposed by UDM.
 
    Kelvin
-      The UCS\@school Kelvin REST API — the HTTP frontend for managing
+      The UCS\@school Kelvin REST API—the HTTP frontend for managing
       UCS\@school objects (``kelvin-api/``).
 
    Kelvin Connector
@@ -45,7 +45,7 @@ Explanation of domain-specific terms and abbreviations.
       Provisioning service (``kelvin-connector/``). See :doc:`synchronisation`.
 
    ``ucsschool-objects``
-      The ``v2`` read-cache library — a persistence-agnostic, ports-and-adapters
+      The ``v2`` read-cache library—a persistence-agnostic, ports-and-adapters
       package with a SQLAlchemy/PostgreSQL adapter. It has no UDM, LDAP, FastAPI
       or Pydantic dependencies (``ucsschool-objects/``).
 
@@ -56,7 +56,7 @@ Explanation of domain-specific terms and abbreviations.
       <https://docs.software-univention.de/manual/5.2/en/domain-ldap/nubus-provisioning-service.html>`_.
 
    Role
-      A function a user has in a school, e.g. ``teacher``, ``student``,
+      A function a user has in a school, for example ``teacher``, ``student``,
       ``staff`` or ``school_admin``. Roles are a fixed set in Kelvin.
 
    School
@@ -68,7 +68,7 @@ Explanation of domain-specific terms and abbreviations.
       the school's timetable.
 
    Workgroup
-      A group within a school that is not a school class, e.g. a project or club.
+      A group within a school that is not a school class, for example a project or club.
 
    Read cache
       The PostgreSQL database introduced in ``v2`` from which read and search
@@ -82,5 +82,5 @@ Explanation of domain-specific terms and abbreviations.
       ``v2``.
 
    JWT
-      JSON Web Token — the bearer token used to authenticate to the API. Kelvin
+      JSON Web Token—the bearer token used to authenticate to the API. Kelvin
       issues a self-signed HS256 JWT from its token endpoint.

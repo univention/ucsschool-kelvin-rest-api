@@ -10,7 +10,7 @@ All non-functional requirements should be listed and named, so it's easier to re
 Performance
 -----------
 
-Operation Classes
+Operation classes
 ^^^^^^^^^^^^^^^^^
 
 This chapter defines the operation classes used to specify performance, timing, and synchronization requirements.
@@ -18,7 +18,7 @@ This chapter defines the operation classes used to specify performance, timing, 
 Unless stated otherwise, all performance targets assume steady-state operation under normal production workload conditions.
 
 
-DB Access Operations
+DB access operations
 """"""""""""""""""""
 
 These are **internal operation classes** (not API-facing) but extremely useful as **supporting quality requirements**.
@@ -58,7 +58,7 @@ DB - Write (Batch / Bulk)
 Batched inserts/updates (e.g. sync, resync, migrations).
 
 
-API Operations
+API operations
 """"""""""""""
 
 Read - Single Resource
@@ -114,7 +114,7 @@ Full replacement of an existing resource.
 
 *Example:* ``PUT /ucsschool/kelvin/v2/workgroups/{school}/{workgroup_name}``
 
-Sync Operations of Nubus ↔ UCS@school
+Sync operations of Nubus ↔ UCS@school
 """""""""""""""""""""""""""""""""""""
 
 Sync - Propagation Delay (Regular / Background)
@@ -208,23 +208,25 @@ for structural changes (e.g. partitioning, sharding, or architectural refactorin
 
 - Dataset scale (shared logical model):
 
-  - Schools: ``42.000``
+  - Schools: ``42,000``
 
-  - Groups: ``920.000``
-    - Classes: ``500.000`` (27 students per class)
-    - Working groups: ``420.000`` (10 per school)
+  - Groups: ``920,000``
 
-  - Users: ``34.140.000``
-    - students: ``12.000.000``
-    - legal guardians: ``21.000.000`` (1.7 × students)
-    - teachers: ``800.000`` (1 per 15 students)
-    - admins: ``130.000`` (3 per school)
-    - staff: ``210.000`` (5 per school)
+    - Classes: ``500,000`` (27 students per class)
+    - Working groups: ``420,000`` (10 per school)
+
+  - Users: ``34,140,000``
+
+    - students: ``12,000,000``
+    - legal guardians: ``21,000,000`` (1.7 × students)
+    - teachers: ``800,000`` (1 per 15 students)
+    - admins: ``130,000`` (3 per school)
+    - staff: ``210,000`` (5 per school)
 
 - Infra sizing:
 
   - ``1`` Primary Directory Node
-  - ``42.000`` Replica Directory Nodes (one per school)
+  - ``42,000`` Replica Directory Nodes (one per school)
   - ``20`` Backup Directory Nodes
 
     This dataset is retained for future-proof performance tests in later iterations.
@@ -245,23 +247,25 @@ and stakeholder alignment.
 
 - Dataset scale (shared logical model):
 
-  - Schools: ``6.000``
+  - Schools: ``6,000``
 
-  - Groups: ``172.000``
-    - Classes: ``112.000`` (27 students per class)
-    - Working groups: ``60.000`` (10 per school)
+  - Groups: ``172,000``
 
-  - Users: ``8.250.000``
-    - students: ``3.000.000``
-    - legal guardians: ``5.000.000`` (1.7 x students)
-    - teachers: ``200.000`` (1 per 14 students)
-    - admins: ``20.000`` (3 per school)
-    - staff: ``30.000`` (5 per school)
+    - Classes: ``112,000`` (27 students per class)
+    - Working groups: ``60,000`` (10 per school)
+
+  - Users: ``8,250,000``
+
+    - students: ``3,000,000``
+    - legal guardians: ``5,000,000`` (1.7 × students)
+    - teachers: ``200,000`` (1 per 14 students)
+    - admins: ``20,000`` (3 per school)
+    - staff: ``30,000`` (5 per school)
 
 - Infra sizing:
 
   - ``1`` Primary Directory Node
-  - ``6.000`` Replica Directory Nodes (one per school)
+  - ``6,000`` Replica Directory Nodes (one per school)
   - ``8`` Backup Directory Nodes
 
 SERVER_DEV (S)
@@ -281,16 +285,18 @@ to detect relative changes and regressions over time.
 
   - Schools: ``550``
 
-  - Groups: ``18.000``
-    - Classes: ``12.000`` (27 students per class)
-    - Working groups: ``5.500`` (10 per school)
+  - Groups: ``18,000``
 
-  - Users: ``835.000``
-    - students: ``300.000``
-    - legal guardians: ``510.000`` (1.7 × students)
-    - teachers: ``20.000`` (1 per 15 students)
-    - admins: ``1.700`` (3 per school)
-    - staff: ``2.800`` (5 per school)
+    - Classes: ``12,000`` (27 students per class)
+    - Working groups: ``5,500`` (10 per school)
+
+  - Users: ``835,000``
+
+    - students: ``300,000``
+    - legal guardians: ``510,000`` (1.7 × students)
+    - teachers: ``20,000`` (1 per 15 students)
+    - admins: ``1,700`` (3 per school)
+    - staff: ``2,800`` (5 per school)
 
 - Infra sizing:
 
@@ -302,7 +308,7 @@ to detect relative changes and regressions over time.
 Performance targets
 ^^^^^^^^^^^^^^^^^^^
 
-DB Access Operation (SERVER_MEDIUM; draft)
+DB access operation (SERVER_MEDIUM; draft)
 """"""""""""""""""""""""""""""""""""""""""
 
     *About "draft": First define numbers with stakeholders. Then prototype and challenge them.*
@@ -320,7 +326,7 @@ DB Access Operation (SERVER_MEDIUM; draft)
 +---------------------------------------+------------+--------------+--------------+-------------------------------------+
 
 
-API Operations (SERVER_MEDIUM; draft)
+API operations (SERVER_MEDIUM; draft)
 """""""""""""""""""""""""""""""""""""
 
     *About "draft": First define numbers with stakeholders. Then prototype and challenge them.*
@@ -345,7 +351,7 @@ assuming approximately 50-100 concurrent API requests.
 +-------------------------------------+---------+--------------+--------------+-----------------------------+
 
 
-Sync Operations Nubus ↔ UCS@school (SERVER_MEDIUM; draft)
+Sync operations Nubus ↔ UCS@school (SERVER_MEDIUM; draft)
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
     *About "draft": First define numbers with stakeholders. Then prototype and challenge them.*

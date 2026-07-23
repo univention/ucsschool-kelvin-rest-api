@@ -7,13 +7,13 @@ Functional requirements
 
 All functional requirements should be listed and named, so it's easier to reference them later on.
 
-Core Capabilities
+Core capabilities
 -----------------
 
 * 🚧 What must the API be able to do?
 * 🚧 What CRUD operations are required for which resources?
 
-Business Rules
+Business rules
 --------------
 
 * 🚧 What domain-specific rules must be enforced?
@@ -21,8 +21,8 @@ Business Rules
 
 .. _fr-authentication-and-authorization:
 
-Authentication & Authorization
-------------------------------
+Authentication and authorization
+--------------------------------
 
 * 🚧 Who can access what?
 * 🚧 What actions require which permissions?
@@ -34,7 +34,7 @@ Synchronization
 * 🚧 What triggers a sync?
 * 🚧 What is the expected latency?
 
-Data Management
+Data management
 ---------------
 
 * 🚧 What data retention rules apply?
@@ -46,7 +46,7 @@ Integration
 * 🚧 What external systems must be supported?
 * 🚧 What data formats are required?
 
-Functional Requirements Example
+Functional requirements example
 -------------------------------
 
 .. code-block:: text

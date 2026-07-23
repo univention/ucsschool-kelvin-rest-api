@@ -2,20 +2,20 @@
 ..
 .. SPDX-License-Identifier: AGPL-3.0-only
 
-Developer docu for building the UCS\@school Kelvin REST API
-===========================================================
+Developer documentation for building the UCS\@school Kelvin REST API
+====================================================================
 
-HTML is built using a Univention's docker container with Sphinx
+The HTML is built with a Univention Docker container that runs Sphinx.
 
 Initial docs
 ------------
 
 You can render the content of ``docs`` and ``dev`` by using the following commands::
 
-    $ cd ucsschool-lelvin-rest-api/doc
+    $ cd ucsschool-kelvin-rest-api/doc
     $ make html
 
-You don't have to do this anymore. This is here just for documentations sake.
+You don't have to do this anymore. This is here for documentation's sake.
 
 Autobuild HTML docs during development
 --------------------------------------
@@ -30,7 +30,8 @@ Start a Docker container that will build and serve the docs at http://127.0.0.1:
 
 To stop the container hit ``Ctrl-C``.
 
-Further information about the tooling for documentation can be found [here](https://git.knut.univention.de/univention/dev/docs/sphinx-docker)
+For more information about the documentation tooling, see the `sphinx-docker
+repository <https://git.knut.univention.de/univention/dev/docs/sphinx-docker>`_.
 
 Publish HTML documentation
 --------------------------
@@ -62,5 +63,6 @@ in the `downstream repository pipeline
 running after the successful merge. You find the link to that pipeline in the
 successful merged merge request.
 
-Check the [staged documentation](http://univention-repository.knut.univention.de/download/docs/).
+Check the `staged documentation
+<http://univention-repository.knut.univention.de/download/docs/>`_.
 You have to press a deploy button to publish the documentation.

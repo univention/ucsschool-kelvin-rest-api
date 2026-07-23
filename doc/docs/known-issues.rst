@@ -52,7 +52,7 @@ There are, however, a few endpoints where ``v2`` is *slower* than ``v1``:
 * listing roles (``GET /roles/``) and retrieving a single role (``GET /roles/{name}``), and
 * checking a school for existence (``HEAD /schools/{name}``).
 
-Under typical situations, the absolute response times for these endpoints remain small,
+In typical situations, the absolute response times for these endpoints remain small,
 and the difference is only noticeable in direct ``v1``-versus-``v2`` comparisons.
 
 

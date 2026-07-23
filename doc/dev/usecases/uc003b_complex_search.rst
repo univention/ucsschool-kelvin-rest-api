@@ -16,7 +16,7 @@ An actor searches for objects using one or more of the following criteria:
 - Attribute filters (exact match on one or more fields)
 - Wildcard and substring matching on string fields
 - Full-text search across indexed text fields
-- Nested or relational filters (e.g. all users belonging to a specific class)
+- Nested or relational filters (for example all users belonging to a specific class)
 - Logical operators (``AND``, ``OR``, ``NOT``) to combine filter conditions
 
 Results are paginated and sorted.
@@ -27,7 +27,7 @@ Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Actor submits a search request with one or more filter expressions and optional ``page``, ``page_size``, and ``sort`` parameters
 2. System validates and parses the filter expressions (field names, operators, values)
@@ -35,14 +35,14 @@ Main Flow
 4. System executes the query against the database using indexed filters
 5. System returns the paginated result set together with pagination metadata (total count, current page, page size)
 
-Alternative Flows
+Alternative flows
 ^^^^^^^^^^^^^^^^^
 
 **4a. No objects match the search criteria:**
    1. System returns ``200 OK`` with an empty result list and a total count of 0
    2. Use case ends
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 **2a. Validation or filter parsing fails:**
@@ -59,7 +59,7 @@ Postconditions
 ^^^^^^^^^^^^^^
 - Audit log entry created
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::

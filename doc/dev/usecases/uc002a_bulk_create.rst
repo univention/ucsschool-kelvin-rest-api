@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-002a: Bulk Create Object<uc002a_bulk_create>`
+:ref:`UC-002a: Bulk create object<uc002a_bulk_create>`
 ------------------------------------------------------
 
 :Actor: All actors
@@ -21,7 +21,7 @@ Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Actor submits object ids
 2. System validates input data
@@ -30,14 +30,14 @@ Main Flow
 5. System publishes ``object.created`` event for each object
 6. Sync service receives event and creates objects in directory service
 
-Alternative Flows
+Alternative flows
 ^^^^^^^^^^^^^^^^^
 
 **5a. Directory service unavailable:**
    1. Events are queued for retry
    2. Main flow continues (eventual consistency)
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 **2a. Validation fails:**
@@ -47,17 +47,17 @@ Exception Flows
    1. System returns 403 Forbidden
    2. Use case ends
 **4a. Database returns an integrity error:**
-   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
+   1. System checks which constraint failed (for example unique constraints like username or email already exists)
    2. System returns 409 Conflict with error details
    3. Use case ends
 
 Postconditions
 ^^^^^^^^^^^^^^
 - Objects are created in database
-- Object creations will be synchronized to directory service (eventually)
+- Object creations are synchronized to directory service (eventually)
 - Audit log entry created
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::

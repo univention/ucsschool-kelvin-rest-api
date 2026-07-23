@@ -35,7 +35,7 @@ Preconditions
 - UDM-to-School synchronization process is running
 - Actor is authenticated against the API version they are using
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Actor creates, updates, or deletes an object through Kelvin V1
 2. Kelvin V1 persists the change in LDAP via UDM REST API
@@ -43,7 +43,7 @@ Main Flow
 4. UDM-to-School process transforms the UDM object into a School object and writes it to the School database
 5. Another actor (or the same actor) reads the object through Kelvin V2 and sees the updated data
 
-Alternative Flows
+Alternative flows
 ^^^^^^^^^^^^^^^^^
 
 **5a. Synchronization temporarily delayed:**
@@ -51,7 +51,7 @@ Alternative Flows
    2. Object is not yet visible (or still shows old state) through Kelvin V2
    3. Eventually (once the queue is processed) the object becomes visible
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 **3a. UDM-to-School process is unavailable:**
@@ -61,7 +61,7 @@ Exception Flows
 
 **4a. Change violates a constraint in the School database:**
    1. The UDM-to-School process attempts to apply the change
-   2. The School database rejects it (e.g. constraint violation)
+   2. The School database rejects it (for example constraint violation)
    3. The rejection is logged and accessible to administrators
    4. The object remains in its previous state in the School database
 
@@ -71,7 +71,7 @@ Postconditions
 - Synchronization failures are logged and accessible to administrators
 - Audit log entries created in both API versions
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::

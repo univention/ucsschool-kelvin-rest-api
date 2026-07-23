@@ -10,8 +10,8 @@ that mounts two API versions side by side. ``v2`` keeps the ``v1`` endpoints and
 data shape but serves reads from the SQL cache and runs no read-hooks
 (see :doc:`introduction` and :doc:`architecture`).
 
-This chapter documents the conventions. The authoritative, always-current
-contract is the generated OpenAPI specification (see `OpenAPI and interactive
+This chapter documents the conventions. The authoritative OpenAPI specification
+is the generated OpenAPI specification (see `OpenAPI and interactive
 docs`_ below).
 
 Conventions
@@ -93,7 +93,7 @@ HTTP methods
      - create
    * - ``PATCH``
      - 200
-     - partial update (JSON body; **not** RFC-6902 JSON-Patch)
+     - partial update (JSON body; **not** RFC 6902 JSON-Patch)
    * - ``PUT``
      - 200
      - complete replace
@@ -111,7 +111,7 @@ Filtering, sorting, pagination
   filter language. For example, users can be filtered by ``school``, ``name``,
   ``firstname``, ``lastname``, ``email``, ``record_uid``, ``source_uid``,
   ``birthday``, ``expiration_date`` and ``disabled``, plus any configured
-  mapped UDM property (e.g. ``?uidNumber=12345``). Class and workgroup searches
+  mapped UDM property (for example ``?uidNumber=12345``). Class and workgroup searches
   **require** the ``school`` parameter.
 * **Case-insensitive wildcard search**: ``name``, ``school``, ``firstname``,
   ``lastname`` and ``email`` are matched case-insensitively, and ``*`` acts as a
@@ -124,7 +124,7 @@ Filtering, sorting, pagination
 .. attention::
 
    ``v2`` search has **no pagination** — no ``limit`` / ``offset`` / ``page``
-   parameters. User search caps results at 10 000 internally and sorts in
+   parameters. User search caps results at 10,000 internally and sorts in
    Python. This is a known limitation worth designing around for large result
    sets.
 
@@ -169,15 +169,15 @@ Authorization is by membership in two LDAP groups:
 
 A user in neither group cannot obtain a usable token. If a user is in both, the
 admin group wins. See :doc:`usecases/uc012_read_only_kelvin` and the end-user
-`authentication docs
+`authentication documentation
 <https://docs.software-univention.de/ucsschool-kelvin-rest-api/authentication-authorization.html>`_.
 
 .. note::
 
-   Authorization failures (e.g. a reader calling a write endpoint) return
+   Authorization failures (for example a reader calling a write endpoint) return
    **401 Unauthorized**, not 403. All operations are executed against
    UDM/LDAP as the ``cn=admin`` account regardless of the authenticated user;
-   the group membership is the only authorization layer today. A finer-grained,
+   the group membership is the only authorization layer. A finer-grained,
    Guardian-based permission system is a planned use case
    (:doc:`usecases/uc011_permission_system`).
 
@@ -222,7 +222,7 @@ Error handlers are registered in
    * UCS\@school validation errors and *object not found* use
      ``{"message": "<string>"}``.
 
-   Clients should not assume a single field.
+   Clients must not assume a single field.
 
 OpenAPI and interactive docs
 ----------------------------

@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-002b: Bulk Update Object<uc002b_bulk_update>`
+:ref:`UC-002b: Bulk update object<uc002b_bulk_update>`
 ------------------------------------------------------
 
 :Actor: All actors
@@ -18,7 +18,7 @@ Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Actor submits object data
 2. System validates input data
@@ -27,14 +27,14 @@ Main Flow
 5. System publishes ``object.updated`` event for each object
 6. Sync service receives event and updates objects in directory service
 
-Alternative Flows
+Alternative flows
 ^^^^^^^^^^^^^^^^^
 
 **5a. Directory service unavailable:**
    1. Events are queued for retry
    2. Main flow continues (eventual consistency)
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 **2a. Validation fails:**
@@ -44,17 +44,17 @@ Exception Flows
    1. System returns 403 Forbidden
    2. Use case ends
 **4a. Database returns an integrity error:**
-   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
+   1. System checks which constraint failed (for example unique constraints like username or email already exists)
    2. System returns 409 Conflict with error details
    3. Use case ends
 
 Postconditions
 ^^^^^^^^^^^^^^
 - Objects are updated in database
-- Object changes will be synchronized to directory service (eventually)
+- Object changes are synchronized to directory service (eventually)
 - Audit log entry created
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::

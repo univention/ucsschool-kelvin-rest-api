@@ -77,7 +77,7 @@ The dev stack starts three services:
 Other useful targets
 ^^^^^^^^^^^^^^^^^^^^^
 
-Run ``make`` (or ``make help``) for the current, self-documenting list.
+Run ``make`` (or ``make help``) for the self-documenting list.
 
 ``make build-docker-image``
    Build the production image
@@ -193,7 +193,7 @@ Code style and static checks run through
 
 .. note::
 
-   There is **no Ruff** in the stack despite what an older doc scaffold might
+   There is **no Ruff** in the stack despite what an older documentation scaffold might
    suggest — formatting/linting is ``isort`` + ``black`` + ``flake8``, typing is
    ``mypy`` (strict, ``ucsschool-objects`` only) + ``basedpyright``.
 
@@ -265,12 +265,12 @@ Test database
   ``LIKE`` / ``ILIKE`` semantics differ from PostgreSQL.
 * **PostgreSQL via** ``testcontainers`` (``PostgresContainer("postgres:15",
   driver="psycopg")``) — used for the behavior that depends on real PostgreSQL
-  (e.g. the case-insensitive trigram search). **Skipped in CI** to avoid Docker
+  (for example the case-insensitive trigram search). **Skipped in CI** to avoid Docker
   registry pull limits, unless ``CORELIB_POSTGRES_TEST_URL`` is provided.
 
 Coverage
 ^^^^^^^^
 
-``ucsschool-objects`` and ``kelvin-connector`` require **100 % branch
+``ucsschool-objects`` and ``kelvin-connector`` require **100% branch
 coverage** (CI runs with ``--cov-fail-under=100``). ``kelvin-api`` and
 ``ucs-school-lib`` use configurable CI coverage thresholds.

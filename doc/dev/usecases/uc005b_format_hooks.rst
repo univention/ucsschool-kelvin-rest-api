@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-005b: Format Hooks<uc005b_format_hooks>`
+:ref:`UC-005b: Format hooks<uc005b_format_hooks>`
 -------------------------------------------------
 
 :Actor: Administrators

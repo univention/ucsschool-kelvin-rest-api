@@ -66,7 +66,7 @@ from ``/etc/ucsschool/kelvin/postgresql-kelvin.secret``.
 
 .. note::
 
-   There are currently two independent URL builders — ``get_database_url()`` in
+   There are two independent URL builders — ``get_database_url()`` in
    ``kelvin-api/ucsschool/kelvin/database.py`` (API runtime) and ``_get_url()`` /
    ``build_settings()`` in ``ucsschool-objects`` (used by the corelib and
    Alembic). They read overlapping but differently-named environment variables
@@ -113,7 +113,7 @@ Tables
 ``group``
    A group (school class or workgroup). Unique ``name`` and ``email``;
    ``has_share``; FK ``school_id`` → ``school.id``; self-referential M:N
-   relations for allowed e-mail senders.
+   relations for allowed email senders.
 
 ``user``
    A person and their account. Unique ``name`` (username) and ``email``;
@@ -121,7 +121,7 @@ Tables
    ``legal_guardians`` / ``legal_wards``; JSON ``udm_properties``.
 
 ``role``
-   e.g. ``teacher``, ``student``, ``staff``, ``school_admin``.
+   for example ``teacher``, ``student``, ``staff``, ``school_admin``.
    Nine default rows are seeded by the initial migration; ``display_name`` is a
    localized JSON object.
 
@@ -151,7 +151,7 @@ Tables
 
    The ``UserUDMProperties`` / ``GroupUDMProperties`` / ``SchoolUDMProperties``
    entities described in :doc:`architecture` are **not** separate tables yet.
-   UDM properties currently live inline as a ``udm_properties`` JSON/JSONB
+   UDM properties live inline as a ``udm_properties`` JSON/JSONB
    column on each core table.
 
 Constraints and indexes
@@ -194,7 +194,7 @@ PostgreSQL can index-scan.
 
    The indexes are built with a plain ``CREATE INDEX`` (not
    ``CONCURRENTLY``), which briefly locks writes while the index builds.
-   Large deployments may want to switch to ``CREATE INDEX CONCURRENTLY`` inside
+   Large deployments might want to switch to ``CREATE INDEX CONCURRENTLY`` inside
    an ``op.get_context().autocommit_block()``.
 
 Migrations
@@ -206,7 +206,7 @@ The physical schema is evolved with `Alembic <https://alembic.sqlalchemy.org/>`_
   under ``[tool.alembic]`` (only ``script_location = "%(here)s/alembic"``).
   Alembic is therefore invoked as ``alembic --config pyproject.toml …``.
 * Migration scripts live in ``alembic/versions/``. After the squash into a
-  single init revision there is currently **exactly one** revision
+  single init revision there is **exactly one** revision
   (``e49791148e25_init_tables.py``, ``down_revision = None``).
 
 .. note::
@@ -214,8 +214,8 @@ The physical schema is evolved with `Alembic <https://alembic.sqlalchemy.org/>`_
    The ``v2`` cache is not yet deployed in production, so the initial migration
    is still edited in place rather than layered with follow-up revisions.
 
-Generating a migration
-^^^^^^^^^^^^^^^^^^^^^^^^
+Generate a migration
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: shell
 
@@ -234,8 +234,8 @@ compose stack running).
    in the init revision this is the default-role seed insert
    (``op.bulk_insert``) and the ``pg_trgm`` extension plus GIN trigram indexes.
 
-Applying migrations at startup
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apply migrations at startup
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The container entrypoint runs ``alembic --config pyproject.toml upgrade head``
 before starting Gunicorn/Uvicorn (``docker/start-kelvin.sh``).
@@ -254,8 +254,8 @@ Rollback
 Rollback uses the standard ``alembic --config pyproject.toml downgrade``.
 The init revision's ``downgrade()`` drops the trigram indexes first, then all
 tables in reverse dependency order.
-It deliberately does **not** drop the ``pg_trgm`` extension, because a future
-dynamic UDM-property-index migration may depend on it and dropping a shared
+It deliberately does **not** drop the ``pg_trgm`` extension, because a
+dynamic UDM-property-index migration might depend on it and dropping a shared
 extension inside a linear migration chain is unsafe.
 
 Queries
@@ -272,7 +272,7 @@ The SQLAlchemy adapter translates that tree into SQL in
 
 Performance-critical query paths:
 
-#. **Case-insensitive wildcard filtering (``ILIKE``)** on the name-like columns
+#. **Case-insensitive wildcard filtering (ILIKE)** on the name-like columns
    of users, schools and groups — the primary hot path, backed by the pg_trgm
    GIN indexes above. User wildcards (``*``) are translated to SQL ``%`` while
    literal LIKE metacharacters in user input are escaped, so wildcards work
@@ -287,7 +287,7 @@ Performance-critical query paths:
    the related memberships / schools / groups / roles, gated by a ``LoadSpec``.
    The base ORM relationships are ``lazy="raise"``, so accidentally accessing an
    unloaded relation raises instead of silently emitting a lazy query.
-#. **JSON/JSONB filtering on ``udm_properties``**, compiled per-dialect
+#. **JSON/JSONB filtering on udm_properties**, compiled per-dialect
    (``jsonb_exists`` / ``->>`` on PostgreSQL, ``json_each`` / ``JSON_EXTRACT``
    on SQLite). These columns are **not** covered by the trigram indexes, so
    heavy filtering on ``udm_properties`` is not yet index-accelerated.

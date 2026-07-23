@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-005a: User Hooks<uc005a_user_hooks>`
+:ref:`UC-005a: User hooks<uc005a_user_hooks>`
 ---------------------------------------------
 
 :Actor: Administrators, Operators

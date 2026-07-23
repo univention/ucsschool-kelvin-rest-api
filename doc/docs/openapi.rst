@@ -9,7 +9,7 @@ Interactive API browser
 -----------------------
 The *UCS\@school Kelvin REST API* offers two web interfaces to explore the API graphically:
 
-* The `Swagger`_ UI at ``https://<fqdn>/ucsschool/kelvin/docs`` (includes a selector for ``V1`` and ``V2``)
+* The `Swagger`_ UI at ``https://<fqdn>/ucsschool/kelvin/docs`` (includes a selector for ``v1`` and ``v2``)
 * The `Swagger`_ UI for a specific version:
 
   * ``https://<fqdn>/ucsschool/kelvin/v1/docs``
@@ -27,9 +27,9 @@ The OpenAPI specifications can be downloaded at:
 * ``https://<fqdn>/ucsschool/kelvin/v2/openapi.json``
 
 .. note::
-  In its current state, version 2 of the Kelvin API behaves the same as version 1,
+  Version 2 of the Kelvin API behaves the same as version 1,
   with the exception that no hooks are executed on ``GET`` requests.
-  This is due to the fact, that version 2 reads data from a separate database,
+  This is because version 2 reads data from a separate database,
   which is provisioned asynchronously.
 
 The service also provides versioned aliases that are used by the combined Swagger page:

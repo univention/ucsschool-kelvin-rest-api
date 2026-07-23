@@ -4,7 +4,7 @@
 
 
 *********
-Use Cases
+Use cases
 *********
 
 * 🚧 Actor: Who initiates this use case (user role, external system, scheduler)?
@@ -17,19 +17,19 @@ Use Cases
 * 🚧 Business Rules: What domain rules apply during this use case?
 
 
-Actor List
+Actor list
 ==========
 
 1. Administrators
 
    Human administrators who manage UCS\@school domain data (users, groups, schools).
    They may work through a GUI (UMC modules) or automate tasks through direct HTTP
-   API usage or command line interface provided by Kelvin.
+   API usage or command-line interface provided by Kelvin.
 
 2. UCS\@school bulk import software
 
    The UCS\@school import interface (CLI) used for bulk provisioning from external
-   source data (e.g., CSV). It reads and normalizes records, generates unique
+   source data (for example, CSV). It reads and normalizes records, generates unique
    usernames and email addresses, calculates changes (add/modify/delete), and
    applies them automatically.
 
@@ -43,7 +43,7 @@ Actor List
 
    The person or team operating the Kelvin REST API service.
 
-   Typical responsibilities include installation/updates, configuration (e.g. log
+   Typical responsibilities include installation/updates, configuration (for example log
    level, token validity), certificate/CA management, monitoring, and incident
    response via service log files (see
    https://docs.software-univention.de/ucsschool-kelvin-rest-api/installation-configuration.html and
@@ -77,7 +77,7 @@ Actor List
    considered a peer data source whose writes must be reflected in the School
    database and vice versa.
 
-Single Object CRUD
+Single object CRUD
 ==================
 
 .. note::
@@ -109,7 +109,7 @@ Single Object CRUD
    :end-before: .. preview-end
 
 
-Bulk Operations
+Bulk operations
 ===============
 
 
@@ -178,7 +178,7 @@ Migration
    :end-before: .. preview-end
 
 
-Other Notable Use Cases
+Other notable use cases
 =======================
 
 .. include:: usecases/uc007_password_change.rst
@@ -202,7 +202,7 @@ Other Notable Use Cases
    :end-before: .. preview-end
 
 
-Use Case Details
+Use case details
 ================
 
 .. toctree::

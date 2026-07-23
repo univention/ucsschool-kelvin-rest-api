@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-005c: Config Hooks<uc005c_config_hooks>`
+:ref:`UC-005c: Config hooks<uc005c_config_hooks>`
 -------------------------------------------------
 
 :Actor: Administrators

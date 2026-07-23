@@ -6,7 +6,7 @@ gitlab
 json
 keyset
 lastname
-openAPI
+OpenAPI
 permalink
 plantuml
 Postcondition
@@ -39,7 +39,6 @@ backends
 basedpyright
 bandit
 conftest
-denormalized
 denylist
 docstring
 gunicorn

@@ -14,20 +14,20 @@ It is a separate Python package (``kelvin-connector``, see
 It does not live inside the FastAPI application.
 
 
-Why is there a Kelvin connector?
+Why is there a Kelvin Connector?
 --------------------------------
 
 * The **Kelvin v2 API** is optimized for fast reads against the Kelvin
   database.
 * The **Kelvin database** is a denormalized projection of the authoritative
   state in Nubus (UDM / OpenLDAP). It is *not* the source of truth.
-* Direct reads from LDAP at API request time would defeat the performance
+* Direct reads from LDAP at API request time defeats the performance
   goal of v2.
-* Writes from Kelvin v1 land in LDAP via UDM REST (legacy path) and must
+* Writes from Kelvin v1 land in LDAP through UDM REST (legacy path) and must
   still be observable through Kelvin v2 (read-your-writes within v2, and
   cross-version read consistency).
-* Direct writes against UDM (bypassing Kelvin, e.g. from administrators
-  using the UMC) must also be reflected in the Kelvin database.
+* Direct writes against UDM (bypassing Kelvin, for example from administrators
+  using the Univention Management Console (UMC)) must also be reflected in the Kelvin database.
 
 The connector closes this loop by consuming a stream of LDAP change events
 from the Provisioning API and applying them to the Kelvin database.
@@ -122,7 +122,7 @@ deliberate order — ``container/ou``, then ``groups/group``, then ``users/user`
 .. note::
 
    The connector only runs on the Primary Directory Node
-   (``LDAP_SERVER_TYPE=master``). On other roles its start script simply sleeps.
+   (``LDAP_SERVER_TYPE=master``). On other roles its start script sleeps.
    In production it runs as its own container (compose service ``provisioning``);
    in the local dev stack it is the ``connector`` service (see
    :doc:`development`).
@@ -208,7 +208,7 @@ Two details worth knowing:
 * The full UDM properties are stored verbatim except for a denylist
   (``jpegPhoto``, ``password``), so a change to the read-time mapped-property
   configuration needs no resync.
-* References (group members, legal wards / guardians, e-mail senders) are
+* References (group members, legal wards / guardians, email senders) are
   resolved through a persisted **DN → public_id mapping**. An unresolved
   reference is *skipped with a log line*, not treated as an error — the link is
   established when the referenced object's own event arrives.
@@ -224,7 +224,7 @@ Consequently the effective strategy is **"LDAP always wins" / last-event-wins
 per object**, ordered by the Provisioning ``sequence_number``. When applying a
 modify, the connector replaces the object's reference collections wholesale from
 the event's full state rather than merging. Simultaneous changes therefore do
-not produce a merge or a conflict record: the latest authoritative event simply
+not produce a merge or a conflict record: the latest authoritative event
 overwrites the cached row.
 
 .. note::

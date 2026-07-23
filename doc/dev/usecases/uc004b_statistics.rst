@@ -24,7 +24,7 @@ Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Caller requests statistics via ``GET /stats``
 2. System verifies that the caller has permission to read statistics
@@ -32,7 +32,7 @@ Main Flow
 4. System returns the counters for successful and unsuccessful operations per
    time window (minute, hour, day)
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 **2a. Actor does not have permission:**
@@ -46,7 +46,7 @@ Postconditions
 ^^^^^^^^^^^^^^
 - No state is changed
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::

@@ -4,8 +4,8 @@
 
 .. UCS@school Kelvin API Developer documentation master file
 
-Welcome to UCS\@school Kelvin API's Developer documentation!
-============================================================
+UCS\@school Kelvin REST API developer documentation
+===================================================
 
 .. toctree::
    :maxdepth: 2

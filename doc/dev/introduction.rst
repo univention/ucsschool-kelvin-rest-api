@@ -29,7 +29,7 @@ It solves two problems:
   searches are served from a local SQL cache instead of round-tripping to
   LDAP / the UDM REST API on every request.
 
-Typical clients / consumers are:
+Typical clients and consumers are:
 
 * the official `Python client <https://kelvin-rest-api-client.readthedocs.io/en/latest/>`_,
 * the UCS\@school import mechanism and UMC modules acting as HTTP clients,
@@ -77,7 +77,7 @@ First request
 ^^^^^^^^^^^^^
 
 All resource endpoints require a bearer token. Retrieve one from the token
-endpoint (OAuth2 password form), then call a resource:
+endpoint (OAuth 2.0 password form), then call a resource:
 
 .. code-block:: console
 

@@ -52,7 +52,7 @@ External systems involved:
 * **PostgreSQL** — the ``v2`` read cache (see :doc:`database`).
 
 Authentication uses a self-issued HS256 JWT verified against OpenLDAP; there is
-no external OIDC / Keycloak dependency today, and the Guardian-based permission
+no external OpenID Connect (OIDC) / Keycloak dependency, and the Guardian-based permission
 system is only a planned use case (:doc:`usecases/uc011_permission_system`).
 
 Components
@@ -81,12 +81,12 @@ UCS\@school libraries (``ucs-school-lib``, ``ucs-school-import``)
 
 Data flow for a typical request:
 
-* **A ``v2`` read** (``GET``/``HEAD``): router → auth + DB-compatibility
+* **A v2 read** (``GET``/``HEAD``): router → auth + DB-compatibility
   dependency → storage session → SQLAlchemy query against PostgreSQL → the
   ``ucsschool-objects`` domain object is transformed into the ``v1`` response
   shape and returned. The
   UCS\@school libraries are not involved, so read-hooks do not run.
-* **A ``v2`` write** (``POST``/``PATCH``/``PUT``/``DELETE``): the ``v2`` router
+* **A v2 write** (``POST``/``PATCH``/``PUT``/``DELETE``): the ``v2`` router
   reuses the ``v1`` handler, which goes through the UCS\@school import library →
   UDM REST API → OpenLDAP, and stores the response in the cache before
   returning.
@@ -108,8 +108,8 @@ User
 
 .. note::
 
-   The Kelvin API requires ``source_uid`` and ``record_uid``. When a user is provisioned by the connector however
-   it is possibly that he won't have a value for these two attributes. In that case, ``"nubus"`` is the ``source_uid``
+   The Kelvin API requires ``source_uid`` and ``record_uid``. When a user is provisioned by the Kelvin Connector, however,
+   it is possible that they won't have a value for these two attributes. In that case, ``"nubus"`` is the ``source_uid``
    and ``record_uid`` is equal to the ``univentionObjectIdentifier``/``public_id``.
 
 .. include:: architecture/user-relations.rst
@@ -122,7 +122,7 @@ User
 Role
 """"
 
-   A role, e.g. teacher, student, legal guardian or admin.
+   A role, for example teacher, student, legal guardian, or admin.
 
 .. include:: architecture/role-attributes.rst
 
@@ -131,13 +131,13 @@ Role
 .. note::
 
    The assignment of a role to a group means that the members of that group inherit the role.
-   The details of this relationship is not yet worked out and not documented here.
+   The details of this relationship are not yet worked out and are not documented here.
 
 .. attention::
 
    A role does not have a corresponding object in the Nubus database. Roles in Nubus are saved as strings
    on the ``guardianRole`` multi-value attribute. Thus, the ``public_id`` does not correspond to any
-   ``univentionObjectIdentifier`` in Nubus. However, the ``public_id`` might be refer to the identifier of a
+   ``univentionObjectIdentifier`` in Nubus. However, the ``public_id`` might refer to the identifier of a
    role in the Guardian application.
 
 School
@@ -159,10 +159,10 @@ SchoolMembership
 
    1. A user must have at least one school membership.
    2. A user must have exactly one primary school membership.
-   3. A user must have at least one role in a school he is a member of.
+   3. A user must have at least one role in a school they are a member of.
 
    These constraints are not yet completely enforced in this model:
-   A school less user can be created, this has to be prevented in the application
+   A schoolless user can be created; this must be prevented in the application
    layer.
 
 
@@ -204,7 +204,7 @@ Not yet implemented in ``SQLAlchemy``.
 .. include:: architecture/school-udm-properties-relations.rst
 
 
-Entity-Relationship diagram
+Entity-relationship diagram
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. mermaid:: architecture/er.mmd
@@ -227,7 +227,7 @@ Localized attributes are stored in a JSON object, where the keys are the languag
      "de": "Deutsch"
    }
 
-Future Entities
+Future entities
 ^^^^^^^^^^^^^^^
 
 .. attention::
@@ -237,7 +237,7 @@ Future Entities
 SchoolAuthority
 """""""""""""""
 
-   A school authority manages 0 or more schools.
+   A school authority manages zero or more schools.
 
 .. list-table:: Attributes
    :header-rows: 1
@@ -316,10 +316,10 @@ See `Issue #208 <https://git.knut.univention.de/univention/dev/education/ucsscho
      - 1:1
      - A user relation **contains** exactly one child
 
-Architecture of Authentication & Authorization
-----------------------------------------------
+Architecture of authentication and authorization
+------------------------------------------------
 
-Authentication is a self-issued **JWT bearer token** flow (OAuth2 password
+Authentication is a self-issued **JWT bearer token** flow (OAuth 2.0 password
 grant). There is no external OIDC / Keycloak provider: Kelvin verifies the
 credentials against OpenLDAP itself and signs its own token.
 
@@ -344,7 +344,7 @@ Authorization is by membership in two LDAP groups, checked at token-issue time:
 A user in neither group cannot obtain a usable token; a reader calling a write
 endpoint is rejected. Denials return **401** (not 403). Regardless of the
 authenticated user, Kelvin performs its UDM/LDAP operations as the ``cn=admin``
-account — the group membership is the only authorization layer today. A
+account — the group membership is the only authorization layer. A
 finer-grained, Guardian-based permission model is a planned use case
 (:doc:`usecases/uc011_permission_system`).
 

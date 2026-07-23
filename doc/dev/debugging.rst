@@ -70,8 +70,8 @@ Log levels
 The connector's levels are meaningful when debugging sync:
 ``TRACE``/``DEBUG`` = per-event flow and lookups, ``INFO`` = each successful
 create/modify/delete and each skipped-as-irrelevant event, ``WARNING`` =
-recoverable inconsistencies (e.g. object recreated on a modify), ``ERROR`` =
-an event failed and will be redelivered, ``CRITICAL`` = an event was dropped
+recoverable inconsistencies (for example object recreated on a modify), ``ERROR`` =
+an event failed and is redelivered, ``CRITICAL`` = an event was dropped
 after exhausting its delivery budget, or a fatal startup error.
 
 Correlation IDs
@@ -148,8 +148,8 @@ singletons for the LDAP config and loggers. The connector's DN → public_id
 mapping is **not** an in-memory cache — it is persisted in SQL and is the usual
 place to look when a reference "cannot be found".
 
-Debugging the sync flow
-^^^^^^^^^^^^^^^^^^^^^^^^
+Debug the sync flow
+^^^^^^^^^^^^^^^^^^^
 
 * Watch the connector container's logs; raise ``KELVIN_CONNECTOR_LOG_LEVEL`` to
   ``DEBUG`` or ``TRACE`` for per-event detail. Every event logs its
@@ -159,7 +159,7 @@ Debugging the sync flow
   (``LDAP_SERVER_TYPE=master``); elsewhere it sleeps and does nothing.
 * Confirm the subscription is set up: the ``provisioning_config.json`` file must
   exist in the connector's conf directory, and the ``kelvin-connector``
-  subscription must be registered and prefilled. The queue can be inspected via
+  subscription must be registered and prefilled. The queue can be inspected through
   the Provisioning REST API
   (``/v1/subscriptions/kelvin-connector/messages/next``).
 * Startup gating: ``docker/start-connector.sh`` blocks until

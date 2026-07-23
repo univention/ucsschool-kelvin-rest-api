@@ -2,20 +2,20 @@
 ..
 .. SPDX-License-Identifier: AGPL-3.0-only
 
-Application Lifecycle
+Application lifecycle
 =====================
 
 
 Kelvin Database
 ---------------
 
-When a new Kelvin Application is installed on a backup or primary node, the app settings
-will prompt the App center to automatically create a database named
+When a new Kelvin app is installed on a Backup Directory Node or Primary Directory Node, the app settings
+prompt the App Center to automatically create a database named
 ``ucsschool-kelvin-rest-api`` on that node.
 
-The ``configure_host`` App center script manages a ``settings/data`` object which is
+The ``configure_host`` App Center script manages a ``settings/data`` object that is
 used by subsequent installations on nodes in the same domain to connect to the same database.
-The first installation determines the the active database unless the App settings are explicitly
+The first installation determines the active database unless the app settings are explicitly
 changed to use a different database.
 
 .. code-block:: bash
@@ -27,7 +27,7 @@ changed to use a different database.
 .. code-block:: bash
    :caption: Manual modification for testing
 
-   udm settings/data modify --dn 'cn=ucsschool-kelvin-rest-api,cn=data,cn=univention,dc=ucsschool,dc=test' --set data="$(bzip2 < test.json | base64)
+   udm settings/data modify --dn 'cn=ucsschool-kelvin-rest-api,cn=data,cn=univention,dc=ucsschool,dc=test' --set data="$(bzip2 < test.json | base64)"
 
 .. code-block:: json
    :caption: Example contents of an ``ucsschool-kelvin-rest-api`` ``settings/data`` object
@@ -69,9 +69,9 @@ changed to use a different database.
        App3 -.->|connects to| DB2
 
 
-When an application is removed from a node, the ``uinst`` App center script will
-delete the installation from the ``settings/data`` object``. If the last installation is removed,
-the ``settings/data`` object will be deleted.
+When an application is removed from a node, the ``uinst`` App Center script
+deletes the installation from the ``settings/data`` object. If the last installation is removed,
+the ``settings/data`` object is deleted.
 
-Note that the app settings are saved for the Application by the App center, so when the app is reinstalled,
-the current node may not be the one that hosts the active database by default.
+Note that the App Center saves the app settings for the app, so when the app is reinstalled,
+the node might not be the one that hosts the active database by default.

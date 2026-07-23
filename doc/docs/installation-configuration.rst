@@ -284,28 +284,27 @@ Database settings
    With Kelvin 4.0.0, the Kelvin REST API requires a PostgreSQL database.
 
 
-When you install Kelvin on a primary or backup node, a PostgreSQL database named
+When you install Kelvin on a Primary Directory Node or Backup Directory Node, a PostgreSQL database named
 ``ucsschool-kelvin-rest-api`` is created by the App Center.
-This database is used by the Kelvin Application unless otherwise configured.
+The Kelvin app uses this database unless otherwise configured.
 
-There are three app settings that control the database connection: ``ucsschool/kelvin/db/uri``
-``ucsschool/kelvin/db/username`` and ``ucsschool/kelvin/db/password``. The URI has to be of the form
+There are three app settings that control the database connection: ``ucsschool/kelvin/db/uri``,
+``ucsschool/kelvin/db/username``, and ``ucsschool/kelvin/db/password``. The URI must be of the form
 :samp:`postgresql://{host}:{port}/{database}?{options}`, for example ``postgresql://primary.school.test:5432/kelvin?sslmode=require``.
 
 When you install Kelvin on multiple nodes,
-the database which has been created by the very
-first app installation will be used by all other Kelvin applications.
+all other Kelvin apps use the database that the first app installation creates.
 
 When you have existing Kelvin installations and want to use a different database,
 you need to change the Kelvin app settings on all nodes manually.
 
 .. code-block:: console
-   :caption: An example of how to change the database URL via the command line.
+   :caption: Changing the database URL from the command line
 
    univention-app configure ucsschool-kelvin-rest-api --set ucsschool/kelvin/db/uri="postgresql://backup1.school.test:5432/kelvin?sslmode=require"
 
-The database schema, that is supplied by Kelvin, can change on app upgrades.
-Kelvin is checking the database revision on runtime and will throw an error if it is not compatible.
+The database schema that Kelvin supplies can change during app upgrades.
+Kelvin checks the database revision at runtime and returns an error if it isn't compatible.
 
 .. _configuration-provisioning-subscription:
 

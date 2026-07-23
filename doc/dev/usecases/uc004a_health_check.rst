@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-004a: Health Check<uc004a_health_check>`
+:ref:`UC-004a: Health check<uc004a_health_check>`
 -------------------------------------------------
 
 :Actor: API Operator (monitoring systems, load balancers)
@@ -16,7 +16,7 @@ The endpoint returns the status of each individual health check so that operator
 and monitoring systems can determine whether the service is functioning correctly
 and is ready to serve requests.
 
-The following checks are performed:
+The service performs the following checks:
 
 - **Database connectivity**: The service can reach and query the database.
 - **Directory service connectivity**: The service can reach the directory service.
@@ -29,7 +29,7 @@ Preconditions
 ^^^^^^^^^^^^^
 - No authentication required (health check endpoints are publicly accessible)
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Caller requests the health status via ``GET /health``
 2. System runs all health checks in parallel
@@ -38,14 +38,14 @@ Main Flow
 5. If one or more checks fail, system returns ``503 Service Unavailable`` with the
    list of check results, indicating which checks failed
 
-Alternative Flows
+Alternative flows
 ^^^^^^^^^^^^^^^^^
 
 **2a. A health check times out:**
    1. The timed-out check is marked as failed with a ``timeout`` status
    2. Main flow continues at step 3
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 *None. The endpoint always returns a response; failures are expressed as
@@ -55,7 +55,7 @@ Postconditions
 ^^^^^^^^^^^^^^
 - No state is changed
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::

@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-001d: Update Object<uc001d_delete_object>`
+:ref:`UC-001d: Delete object<uc001d_delete_object>`
 ---------------------------------------------------
 
 :Actor: All actors
@@ -19,7 +19,7 @@ Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Actor submits object id
 2. System validates input data
@@ -28,14 +28,14 @@ Main Flow
 5. System publishes ``object.deleted`` event
 6. Sync service receives event and deletes object in directory service
 
-Alternative Flows
+Alternative flows
 ^^^^^^^^^^^^^^^^^
 
 **5a. Directory service unavailable:**
    1. Event is queued for retry
    2. Main flow continues (eventual consistency)
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 **2a. Validation fails:**
@@ -45,17 +45,17 @@ Exception Flows
    1. System returns 403 Forbidden
    2. Use case ends
 **4a. Database returns an integrity error:**
-   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
+   1. System checks which constraint failed (for example unique constraints like username or email already exists)
    2. System returns 409 Conflict with error details
    3. Use case ends
 
 Postconditions
 ^^^^^^^^^^^^^^
 - Object is deleted in database
-- Object deletions will be synchronized to directory service (eventually)
+- Object deletions are synchronized to directory service (eventually)
 - Audit log entry created
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::
@@ -81,7 +81,7 @@ Sequence Diagram
        SyncService ->> DirectoryService: Delete object
 
 
-Special Use Cases
+Special use cases
 =================
 
 These use cases are special cases of the main CRUD use cases.

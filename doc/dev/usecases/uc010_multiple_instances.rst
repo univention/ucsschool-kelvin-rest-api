@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-010: Operating Multiple Instances<uc010_multiple_instances>`
+:ref:`UC-010: Operating multiple instances<uc010_multiple_instances>`
 ---------------------------------------------------------------------
 
 :Actor: Operators

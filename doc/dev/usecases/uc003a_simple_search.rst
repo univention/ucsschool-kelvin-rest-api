@@ -12,13 +12,14 @@
 :Priority: Must-have
 
 An actor retrieves a paginated and sorted list of objects without additional filter criteria.
-... preview-end
+
+.. preview-end
 
 Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Actor requests a list of objects with optional ``page``, ``page_size``, and ``sort`` parameters
 2. System validates the pagination and sorting parameters
@@ -26,7 +27,7 @@ Main Flow
 4. System retrieves the requested page of objects from the database, applying the requested sort order
 5. System returns the result set together with pagination metadata (total count, current page, page size)
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 **2a. Validation fails:**
@@ -40,7 +41,7 @@ Postconditions
 ^^^^^^^^^^^^^^
 - Audit log entry created
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::

@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-002c: Bulk Delete Object<uc002c_bulk_delete>`
+:ref:`UC-002c: Bulk delete object<uc002c_bulk_delete>`
 ------------------------------------------------------
 
 :Actor: All actors
@@ -19,7 +19,7 @@ Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Actor submits object ids
 2. System validates input data
@@ -28,14 +28,14 @@ Main Flow
 5. System publishes ``object.deleted`` event for each object
 6. Sync service receives event and deletes objects in directory service
 
-Alternative Flows
+Alternative flows
 ^^^^^^^^^^^^^^^^^
 
 **5a. Directory service unavailable:**
    1. Events are queued for retry
    2. Main flow continues (eventual consistency)
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 **2a. Validation fails:**
@@ -52,10 +52,10 @@ Exception Flows
 Postconditions
 ^^^^^^^^^^^^^^
 - Objects are deleted in database
-- Object deletions will be synchronized to directory service (eventually)
+- Object deletions are synchronized to directory service (eventually)
 - Audit log entry created
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::

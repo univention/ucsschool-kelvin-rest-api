@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-001a: Create Object<uc001a_create_object>`
+:ref:`UC-001a: Create object<uc001a_create_object>`
 ---------------------------------------------------
 
 :Actor: All actors
@@ -19,7 +19,7 @@ Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Actor submits object data
 2. System validates input data
@@ -29,14 +29,14 @@ Main Flow
 6. Sync service receives event and creates object in directory service
 7. System returns created object with assigned ID
 
-Alternative Flows
+Alternative flows
 ^^^^^^^^^^^^^^^^^
 
 **5a. Directory service unavailable:**
    1. Event is queued for retry
    2. Main flow continues (eventual consistency)
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 **2a. Validation fails:**
@@ -46,17 +46,17 @@ Exception Flows
    1. System returns 403 Forbidden
    2. Use case ends
 **4a. Database returns an integrity error:**
-   1. System checks which constraint failed (e.g. unique constraints like username or email already exists)
+   1. System checks which constraint failed (for example unique constraints like username or email already exists)
    2. System returns 409 Conflict with error details
    3. Use case ends
 
 Postconditions
 ^^^^^^^^^^^^^^
 - Object exists in database
-- Object will be synchronized to directory service (eventually)
+- Object is synchronized to directory service (eventually)
 - Audit log entry created
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::

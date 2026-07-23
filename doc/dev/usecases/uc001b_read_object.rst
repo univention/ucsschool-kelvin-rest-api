@@ -5,7 +5,7 @@
 
 .. preview-start
 
-:ref:`UC-001b: Read Object<uc001b_read_object>`
+:ref:`UC-001b: Read object<uc001b_read_object>`
 -----------------------------------------------
 
 :Actor: All actors
@@ -19,14 +19,14 @@ Preconditions
 ^^^^^^^^^^^^^
 - Actor is authenticated
 
-Main Flow
+Main flow
 ^^^^^^^^^
 1. Actor requests object data
 2. System validates input data (ID)
 3. System verifies that actor has permission to read the object
 4. System retrieves object from database
 
-Exception Flows
+Exception flows
 ^^^^^^^^^^^^^^^
 
 **2a. Validation fails:**
@@ -43,7 +43,7 @@ Postconditions
 ^^^^^^^^^^^^^^
 - Audit log entry created
 
-Sequence Diagram
+Sequence diagram
 ^^^^^^^^^^^^^^^^
 
 .. mermaid::

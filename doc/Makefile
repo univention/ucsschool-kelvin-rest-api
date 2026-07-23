@@ -12,8 +12,8 @@ SPHINXOPTS ?= "-q -W --keep-going"
 DOCKER_REGISTRY := gitregistry.knut.univention.de
 SPHINX_DOCKER_BASE = $(DOCKER_REGISTRY)/univention/dev/docs/sphinx-docker/base:latest
 SPHINX_DOCKER_FULL = $(DOCKER_REGISTRY)/univention/dev/docs/sphinx-docker/pdf:latest
-DOCKER_USER_CMD := docker run --rm -tii -v "$(mkfile_dir)..:/project" -w /project/doc --network=host -u "$(USER_ID)"
-DOCKER_CMD := docker run --rm -tii -v "$(mkfile_dir)..:/project" -w /project/doc --network=host
+DOCKER_USER_CMD := docker run --rm -ti -v "$(mkfile_dir)..:/project" -w /project/doc --network=host -u "$(USER_ID)"
+DOCKER_CMD := docker run --rm -ti -v "$(mkfile_dir)..:/project" -w /project/doc --network=host
 
 # Uses the default Sphinx environment in a Docker image to run the needed tools for Sphinx.
 # Use this make target, when you want to update all po files in the documentation.
@@ -34,7 +34,7 @@ latexpdf:
 	$(DOCKER_CMD) $(SPHINX_DOCKER_FULL) /bin/bash -c 'for d in $(DIRS);do make -C "$$d" -e SPHINXOPTS="$(SPHINXOPTS)" "$@"; done'
 
 livehtml-%:
-	$(DOCKER_USER_CMD) -ti --name "$@" ""$(SPHINX_DOCKER_BASE) make -C "$*" -e SPHINXOPTS="$(SPHINXOPTS)" livehtml;
+	$(DOCKER_USER_CMD) --name "$@" $(SPHINX_DOCKER_BASE) make -C "$*" -e SPHINXOPTS="$(SPHINXOPTS)" livehtml;
 
 %:
 	$(DOCKER_USER_CMD) $(SPHINX_DOCKER_BASE) /bin/bash -c 'for d in $(DIRS);do make -C "$$d" -e SPHINXOPTS="$(SPHINXOPTS)" "$@";done'

@@ -32,7 +32,7 @@ version = ""
 # The full version, including alpha/beta/rc tags
 release = os.environ.get("CI_COMMIT_SHORT_SHA")
 if not release:
-    release = subprocess.getoutput(["git", "rev-parse", "--short", "HEAD"]).strip()
+    release = subprocess.getoutput("git rev-parse --short HEAD").strip()
 if release:
     release = f"git-{release}"
 if not release or "usage:" in release:
