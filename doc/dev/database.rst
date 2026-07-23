@@ -5,7 +5,7 @@
 Database
 ========
 
-Kelvin ``v2`` adds an SQL database that serves as a *read cache* for
+Kelvin ``v2`` adds the Kelvin DB, an SQL database that serves as a *read cache* for
 UCS\@school objects.
 Read and search requests are answered from this database instead of querying
 LDAP / the UDM REST API,
@@ -13,7 +13,7 @@ which is the main reason ``v2`` reads are much faster than ``v1`` reads.
 The database is a denormalized projection of the authoritative state in Nubus
 (UDM / OpenLDAP);
 it is *not* the source of truth.
-See :doc:`synchronisation` for how the cache is kept consistent.
+See :doc:`synchronisation` for how the Kelvin DB is kept consistent.
 
 Engine and driver
 -----------------
@@ -145,7 +145,7 @@ Tables
    ``school_dn_public_id_mapping``, ``group_dn_public_id_mapping``,
    ``user_dn_public_id_mapping`` map each entity's ``public_id`` (UUID) to its
    LDAP/UDM ``dn`` (``String(4096)``, unique). They bridge the DN world of
-   LDAP/UDM to the cache's UUIDs.
+   LDAP/UDM to the Kelvin DB's UUIDs.
 
 .. note::
 
@@ -211,7 +211,7 @@ The physical schema is evolved with `Alembic <https://alembic.sqlalchemy.org/>`_
 
 .. note::
 
-   The ``v2`` cache is not yet deployed in production, so the initial migration
+   The ``v2`` Kelvin DB is not yet deployed in production, so the initial migration
    is still edited in place rather than layered with follow-up revisions.
 
 Generate a migration
@@ -261,7 +261,7 @@ extension inside a linear migration chain is unsafe.
 Queries
 -------
 
-The whole point of ``v2`` is fast reads served from this cache, so the query
+The whole point of ``v2`` is fast reads served from the Kelvin DB, so the query
 machinery is where the performance-critical paths live.
 The query DSL is defined in
 ``ucsschool-objects/src/ucsschool_objects/core/domain/query.py``

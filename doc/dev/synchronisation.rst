@@ -80,7 +80,7 @@ Sync architecture
 
 The connector is a **pure event → SQL projector**. It never reads back from UDM
 or LDAP: the Provisioning events carry the full ``new`` / ``old`` object state,
-and the connector only *writes* to the PostgreSQL cache through the
+and the connector only *writes* to the Kelvin DB through the
 ``ucsschool-objects`` library.
 
 It is structured as three layers (ports-and-adapters), mirroring the rest of the
@@ -98,7 +98,7 @@ project:
    policy, see `Reliability`_).
 
 ``sync.py``
-   ``SynchronizationManager`` — the actual cache mutations against the
+   ``SynchronizationManager`` — the actual Kelvin DB mutations against the
    ``ucsschool-objects`` domain models, each in its own database transaction.
 
 ``models.py``
@@ -117,7 +117,7 @@ The subscription itself is created out-of-band (not by the connector process) by
 ``kelvin-connector`` subscription on the Primary. The topics are subscribed in a
 deliberate order — ``container/ou``, then ``groups/group``, then ``users/user``
 — so that schools exist before the groups and users that reference them, with
-``request_prefill`` enabled to seed the cache with the current state.
+``request_prefill`` enabled to seed the Kelvin DB with the current state.
 
 .. note::
 
@@ -198,7 +198,7 @@ Event schema
 The payload models live in ``kelvin-connector/src/kelvin_connector/models.py``
 (``UserProperties``, ``GroupProperties``, ``SchoolProperties``,
 ``HostGroupProperties``). Objects are identified by their
-``univentionObjectIdentifier`` (a UUID), which becomes the cache's ``public_id``.
+``univentionObjectIdentifier`` (a UUID), which becomes the Kelvin DB's ``public_id``.
 Each event carries a timestamp and a ``sequence_number`` plus the ``new`` and
 ``old`` object state. Deletes use a permissive payload that only requires the
 identifier, because a deleted object's remaining fields may be malformed.
@@ -218,18 +218,18 @@ Conflict handling
 
 There is **no bidirectional conflict resolution, by design**. The model is
 strictly one-directional: LDAP / UDM is the single source of truth, and the
-connector only projects that state into the read cache.
+connector only projects that state into the Kelvin DB.
 
 Consequently the effective strategy is **"LDAP always wins" / last-event-wins
 per object**, ordered by the Provisioning ``sequence_number``. When applying a
 modify, the connector replaces the object's reference collections wholesale from
 the event's full state rather than merging. Simultaneous changes therefore do
 not produce a merge or a conflict record: the latest authoritative event
-overwrites the cached row.
+overwrites the row in the Kelvin DB.
 
 .. note::
 
    Because there is no conflict, there is no conflict detection, no conflict log,
-   and no customer notification. If a cache row ever diverges from LDAP, the
+   and no customer notification. If a Kelvin DB row ever diverges from LDAP, the
    remedy is a fresh event for that object (or a re-prefill of the subscription),
    not a conflict-resolution workflow.

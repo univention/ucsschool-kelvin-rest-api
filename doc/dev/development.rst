@@ -62,7 +62,7 @@ the running container automatically and take effect immediately; changes to
 The dev stack starts three services:
 
 ``postgres``
-   ``postgres:15-bookworm``, exposed on ``5432`` — the ``v2`` read cache.
+   ``postgres:15-bookworm``, exposed on ``5432`` — the ``v2`` Kelvin DB (read cache).
 
 ``kelvin``
    the FastAPI application (``docker/Dockerfile`` target ``kelvin-prod``),
@@ -70,7 +70,7 @@ The dev stack starts three services:
 
 ``connector``
    the Provisioning Consumer (``docker/Dockerfile`` target ``connector-prod``),
-   which syncs LDAP changes into the cache. Its subscription is created by
+   which syncs LDAP changes into the Kelvin DB. Its subscription is created by
    ``make setup-provisioning-subscription`` (run as a dependency of
    ``dev-server``).
 
@@ -111,7 +111,7 @@ workspace members.
        API test suite. This is the root project.
    * - ``kelvin-connector/``
      - The Provisioning Consumer that syncs Nubus/LDAP changes into the
-       ``v2`` cache (``src/kelvin_connector/``). See :doc:`synchronisation`.
+       ``v2`` Kelvin DB (``src/kelvin_connector/``). See :doc:`synchronisation`.
    * - ``ucsschool-objects/``
      - The ``v2`` read-cache library: a persistence-agnostic, ports-and-adapters
        domain layer with a SQLAlchemy/PostgreSQL adapter. Used by both the
@@ -126,7 +126,7 @@ workspace members.
    * - ``univention-lib-slim/``
      - Slim Univention utility library.
    * - ``alembic/``
-     - Database migrations for the ``v2`` cache (see :doc:`database`).
+     - Database migrations for the ``v2`` Kelvin DB (see :doc:`database`).
    * - ``dev/``
      - Local development tooling: ``docker-compose.yaml`` and the generated
        ``_vm_config/``.
@@ -147,7 +147,7 @@ The FastAPI entry point is ``kelvin-api/ucsschool/kelvin/main.py``.
 Routes are organized under ``kelvin-api/ucsschool/kelvin/routers/`` in two
 versioned subpackages, ``v1/`` and ``v2/``.
 The ``v1`` routes talk to the UDM REST API / LDAP per request; the ``v2`` read
-routes read from the PostgreSQL cache, while ``v2`` **write** routes reuse the
+routes read from the Kelvin DB, while ``v2`` **write** routes reuse the
 ``v1`` handlers. See :doc:`api-reference` and :doc:`architecture`.
 
 Coding guidelines

@@ -26,7 +26,7 @@ It solves two problems:
   UCS\@school import, and custom clients — can read and write them without
   talking to LDAP or UDM directly.
 * In ``v2`` it additionally solves the *read-performance* problem: reads and
-  searches are served from a local SQL cache instead of round-tripping to
+  searches are served from the local Kelvin DB instead of round-tripping to
   LDAP / the UDM REST API on every request.
 
 Typical clients and consumers are:
@@ -48,14 +48,14 @@ Versions
    Every request hits UDM / LDAP.
 
 ``v2``
-   Keeps the ``v1`` endpoints and data representation, but adds an SQL **read
-   cache** and drops support for read-hooks. Writes still go through the ``v1``
+   Keeps the ``v1`` endpoints and data representation, but adds the Kelvin DB
+   (an SQL **read cache**) and drops support for read-hooks. Writes still go through the ``v1``
    path (UCS\@school import → UDM REST API); read and search requests are served
-   from the cache. Because the read path no longer runs the UCS\@school
+   from the Kelvin DB. Because the read path no longer runs the UCS\@school
    libraries, their **read-hooks are not executed** in ``v2`` — a breaking
    behavioral change even though the data shape stays ``v1``-compatible.
 
-   The cache is kept eventually consistent with LDAP by a companion service, the
+   The Kelvin DB is kept eventually consistent with LDAP by a companion service, the
    *Kelvin Connector* (see :doc:`synchronisation`).
 
 Quick start

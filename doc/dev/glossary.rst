@@ -40,7 +40,7 @@ This glossary explains domain-specific terms and abbreviations.
       UCS\@school objects (``kelvin-api/``).
 
    Kelvin Connector
-      The Provisioning Consumer sidecar that keeps the ``v2`` SQL cache
+      The Provisioning Consumer sidecar that keeps the ``v2`` Kelvin DB
       eventually consistent with LDAP by applying change events from the Nubus
       Provisioning service (``kelvin-connector/``). See :doc:`synchronisation`.
 
@@ -70,11 +70,11 @@ This glossary explains domain-specific terms and abbreviations.
    Workgroup
       A group within a school that is not a school class, for example a project or club.
 
-   Read cache
+   Kelvin DB
       The PostgreSQL database introduced in ``v2`` from which read and search
-      requests are served instead of querying LDAP / UDM. A denormalized
-      projection of the authoritative LDAP state, not the source of truth. See
-      :doc:`database`.
+      requests are served instead of querying LDAP / UDM. It serves as a read
+      cache: a denormalized projection of the authoritative LDAP state, not the
+      source of truth. See :doc:`database`.
 
    Read-hook
       A UCS\@school (import) library hook run on read operations in ``v1``.

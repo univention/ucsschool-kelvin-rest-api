@@ -28,7 +28,7 @@ UDM REST API          OpenLDAP
   (Nubus)              (Nubus)
 ```
 
-Kelvin `v2` adds a read cache and a separate read path that bypasses the legacy libraries:
+Kelvin `v2` adds the Kelvin DB (a PostgreSQL read cache) and a separate read path that bypasses the legacy libraries:
 
 ```
 HTTP clients
@@ -40,12 +40,12 @@ Kelvin REST API   (FastAPI; kelvin-api/)
 ucsschool-objects   (ucsschool-objects/)
      │
      ▼
-SQL database   (PostgreSQL in production, SQLite in tests)
+Kelvin DB   (PostgreSQL in production, SQLite in tests)
      ▲
-     │ Cache writers:
+     │ Kelvin DB writers:
      │   1. Kelvin's write path stores each response before returning it.
      │   2. A Provisioning Consumer sidecar (`kelvin-connector/`) reacts to
-     │      LDAP change events from Nubus Provisioning to keep the cache
+     │      LDAP change events from Nubus Provisioning to keep the Kelvin DB
      │      eventually consistent with OpenLDAP, covering writes that bypass
      │      Kelvin.
 ```
@@ -62,7 +62,7 @@ See the project [`README.md`](./README.md) for the full v1 / v2 diagrams (ASCII 
 - **UCS@school import** (`ucs-school-import/`): Bulk-import mechanism built on top of the UCS@school library. Its data models inherit from the UCS@school library's models, adding attributes and functions. Kelvin uses both.
 - **Kelvin** (`kelvin-api/`): The REST API frontend. Data and control flow from the HTTP endpoints into UCS@school libraries (business logic), then to the UDM REST API, which persists data in LDAP.
 - **`ucsschool-objects`** (`ucsschool-objects/`): The Kelvin `v2` read-cache library. A persistence-agnostic, ports-and-adapters package with a SQLAlchemy adapter that stores UCS@school objects in PostgreSQL. It has no UDM, LDAP, FastAPI, or Pydantic dependencies — see [`ucsschool-objects/AGENTS.md`](ucsschool-objects/AGENTS.md) and [`ucsschool-objects/README.md`](ucsschool-objects/README.md).
-- **Provisioning Consumer** (`kelvin-connector/`): A sidecar process that runs alongside the Kelvin REST API container. It subscribes to the [Nubus Provisioning event system](https://docs.software-univention.de/manual/5.2/en/domain-ldap/nubus-provisioning-service.html#nubus-provisioning-service) and applies LDAP changes to the SQL cache via the `ucsschool-objects` library, so the cache stays eventually consistent with LDAP even when other clients write directly to UDM/OpenLDAP. **Implemented** (100 % test coverage enforced): it consumes events via the `provisioning-consumer-lib`, handles create/modify/delete for `users/user`, `groups/group` (school classes, workgroups, DC host groups) and `container/ou`, and is a pure event→SQL projector (it never reads back from UDM/LDAP). It runs only on the Primary (`docker/start-connector.sh`, gated on `LDAP_SERVER_TYPE=master`; Docker target `connector-prod`) — see `kelvin-connector/src/kelvin_connector/` (`connector.py`, `consumer.py`, `sync.py`).
+- **Provisioning Consumer** (`kelvin-connector/`): A sidecar process that runs alongside the Kelvin REST API container. It subscribes to the [Nubus Provisioning event system](https://docs.software-univention.de/manual/5.2/en/domain-ldap/nubus-provisioning-service.html#nubus-provisioning-service) and applies LDAP changes to the Kelvin DB via the `ucsschool-objects` library, so the Kelvin DB stays eventually consistent with LDAP even when other clients write directly to UDM/OpenLDAP. **Implemented** (100 % test coverage enforced): it consumes events via the `provisioning-consumer-lib`, handles create/modify/delete for `users/user`, `groups/group` (school classes, workgroups, DC host groups) and `container/ou`, and is a pure event→SQL projector (it never reads back from UDM/LDAP). It runs only on the Primary (`docker/start-connector.sh`, gated on `LDAP_SERVER_TYPE=master`; Docker target `connector-prod`) — see `kelvin-connector/src/kelvin_connector/` (`connector.py`, `consumer.py`, `sync.py`).
 
 > **Layer note**: Although it is technically a layer violation, Kelvin and UCS@school libraries sometimes access LDAP directly for performance or because an attribute is not exposed by the UDM REST API.
 
@@ -90,7 +90,7 @@ kelvin-api/                  Main Kelvin REST API (FastAPI app)
   tests/                     Pytest test suite
   changelog.rst              Release changelog (current: v3.3.0 TBD)
 
-kelvin-connector/            Provisioning Consumer (Nubus → SQL cache sidecar)
+kelvin-connector/            Provisioning Consumer (Nubus → Kelvin DB sidecar)
   src/                       Python package
   tests/                     Pytest suite
 
@@ -112,7 +112,7 @@ univention-lib-slim/                         Slim Univention utilities
 
 ucs-test-ucsschool-kelvin/   Integration tests
 
-alembic/                     Alembic migrations for the v2 SQL cache schema
+alembic/                     Alembic migrations for the v2 Kelvin DB schema
 dev/                         Local development docker-compose (used by `make dev-server`)
 
 doc/docs/                    Sphinx documentation
@@ -136,7 +136,7 @@ Useful Makefile targets (run `make` for the current list):
 ```bash
 make fetch-vm-data TARGET=<UCS host>   # pull UCS credentials/config for local dev
 make dev-server                        # start local Kelvin via docker compose (dev/docker-compose.yaml)
-make alembic-migration                 # generate a new alembic revision for the SQL cache
+make alembic-migration                 # generate a new alembic revision for the Kelvin DB
 make build-docker-image                # build the production Kelvin image (docker/Dockerfile)
 ```
 
@@ -198,8 +198,8 @@ Runtime and dev dependencies are declared in the root `pyproject.toml` (`[projec
 | `uvicorn` / `gunicorn` | latest | ASGI/WSGI servers |
 | `uldap3` | git source | private repo (`git.knut.univention.de/.../uldap3.git`) |
 | `openapi-client-udm` | tarball | vendored (`openapi-client-udm-1.0.2.tar.gz`) |
-| `psycopg[binary]` | `>=3.3.3` | PostgreSQL driver for the v2 cache |
-| `alembic` | `>=1.18.4` | SQL cache migrations |
+| `psycopg[binary]` | `>=3.3.3` | PostgreSQL driver for the v2 Kelvin DB |
+| `alembic` | `>=1.18.4` | Kelvin DB migrations |
 | `kelvin-connector`, `ucs-school-lib`, `ucs-school-import`, `ucsschool-objects`, `univention-directory-manager-modules` | workspace | resolved from this repo via `[tool.uv.workspace]` |
 
 ---
@@ -214,12 +214,12 @@ Runtime and dev dependencies are declared in the root `pyproject.toml` (`[projec
 
 ### Kelvin `v2` architecture
 
-- The SQL read cache stores UCS@school objects in the representation planned for future (`v3+`) releases. Kelvin `v2` transforms that representation into the `v1` shape before returning it, so the HTTP API stays backwards-compatible.
+- The Kelvin DB stores UCS@school objects in the representation planned for future (`v3+`) releases. Kelvin `v2` transforms that representation into the `v1` shape before returning it, so the HTTP API stays backwards-compatible.
 - Because the read path doesn't go through the UCS@school / UCS@school import libraries, their **read-hooks are no longer executed** in `v2` — a behavioral break worth flagging in any change that touches reads.
-- The cache is kept consistent in two ways:
-  - **Synchronous**: each write response is stored in the SQL database before being returned to the client.
+- The Kelvin DB is kept consistent in two ways:
+  - **Synchronous**: each write response is stored in the Kelvin DB before being returned to the client.
   - **Asynchronous**: the Provisioning Consumer (`kelvin-connector/`) sidecar applies LDAP change events from Nubus Provisioning, covering writes that bypass Kelvin (other UDM REST API clients or direct OpenLDAP writes). This writer is implemented and active.
-- Both writers go through the `ucsschool-objects` library. The SQLAlchemy ORM in `ucsschool-objects/src/ucsschool_objects/database_models.py` is the single source of truth for the cache table definitions; the physical schema is evolved via **Alembic** revisions in `alembic/` (root config: `[tool.alembic] script_location = "%(here)s/alembic"`; new revisions: `make alembic-migration`).
+- Both writers go through the `ucsschool-objects` library. The SQLAlchemy ORM in `ucsschool-objects/src/ucsschool_objects/database_models.py` is the single source of truth for the Kelvin DB table definitions; the physical schema is evolved via **Alembic** revisions in `alembic/` (root config: `[tool.alembic] script_location = "%(here)s/alembic"`; new revisions: `make alembic-migration`).
 - Architecture rules for `ucsschool-objects` are enforced by `tests/test_architecture.py` in that package (combined `pytestarch` + AST-based scan). Don't relax those rules to make a test pass — restructure the import.
 
 ---

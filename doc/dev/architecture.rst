@@ -10,8 +10,8 @@ System overview
 
 Kelvin is a single FastAPI application that mounts two API versions. ``v1``
 reads and writes through the UDM REST API (and occasionally LDAP directly).
-``v2`` keeps the ``v1`` write path but serves reads and searches from a local
-PostgreSQL cache. The cache is filled by two writers: synchronously by Kelvin's
+``v2`` keeps the ``v1`` write path but serves reads and searches from the local
+Kelvin DB, a PostgreSQL read cache. The Kelvin DB is filled by two writers: synchronously by Kelvin's
 own write path, and asynchronously by the *Kelvin Connector*, which applies
 LDAP change events from the Nubus Provisioning service (see
 :doc:`synchronisation`).
@@ -24,7 +24,7 @@ LDAP change events from the Nubus Provisioning service (see
        subgraph Kelvin["Kelvin app host (Primary / Backup)"]
            API["Kelvin REST API<br/>(FastAPI, kelvin-api/)"]
            Connector["Kelvin Connector<br/>(kelvin-connector/)"]
-           DB[("PostgreSQL<br/>read cache")]
+           DB[("Kelvin DB<br/>read cache")]
        end
        subgraph Nubus["Nubus"]
            UDM["UDM REST API"]
@@ -49,7 +49,7 @@ External systems involved:
   authentication binds, group-membership lookups, and some attributes.
 * **Nubus Provisioning service** — the event source the Kelvin Connector
   consumes.
-* **PostgreSQL** — the ``v2`` read cache (see :doc:`database`).
+* **PostgreSQL** — the ``v2`` Kelvin DB, a read cache (see :doc:`database`).
 
 Authentication uses a self-issued HS256 JWT verified against OpenLDAP; there is
 no external OpenID Connect (OIDC) / Keycloak dependency, and the Guardian-based permission
@@ -71,7 +71,7 @@ Service (``kelvin-api/ucsschool/kelvin/service/``)
 
 Domain / persistence (``ucsschool-objects``)
    The ``v2`` read path. A ports-and-adapters library whose SQLAlchemy adapter
-   maps UCS\@school objects to the PostgreSQL cache. The FastAPI app obtains a
+   maps UCS\@school objects to the Kelvin DB. The FastAPI app obtains a
    storage-session factory from ``app.state`` (populated by the lifespan) and
    uses per-entity managers to query it.
 
@@ -88,7 +88,7 @@ Data flow for a typical request:
   UCS\@school libraries are not involved, so read-hooks do not run.
 * **A v2 write** (``POST``/``PATCH``/``PUT``/``DELETE``): the ``v2`` router
   reuses the ``v1`` handler, which goes through the UCS\@school import library →
-  UDM REST API → OpenLDAP, and stores the response in the cache before
+  UDM REST API → OpenLDAP, and stores the response in the Kelvin DB before
   returning.
 
 Data model
@@ -392,7 +392,7 @@ Kelvin talks to the following external systems:
      - the event source consumed by the Kelvin Connector.
    * - PostgreSQL
      - SQL (async SQLAlchemy + psycopg)
-     - the ``v2`` read cache.
+     - the ``v2`` Kelvin DB, a read cache.
 
 The client-facing interface is HTTPS/JSON, documented via the generated OpenAPI
 specification (see :doc:`api-reference`).

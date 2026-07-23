@@ -124,10 +124,10 @@ cache, TTL from ``ucsschool/kelvin/cache_ttl``, default 300 s). Two pitfalls:
   before searching LDAP. (The ``HEAD`` eviction is the fix for the case where a
   ``HEAD`` request returned a stale cached result.)
 
-Cache row diverges from LDAP (``v2``)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Kelvin DB row diverges from LDAP (``v2``)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The read cache is self-healing: a modify event for a missing object recreates
+The Kelvin DB is self-healing: a modify event for a missing object recreates
 it, and deferred references resolve when the referenced object's own event
 arrives. If a row is persistently wrong, the remedy is a fresh Provisioning
 event for that object (or re-prefilling the subscription), not manual editing.

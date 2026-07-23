@@ -7,7 +7,7 @@ API reference
 
 Kelvin is a FastAPI application (``kelvin-api/ucsschool/kelvin/main.py``)
 that mounts two API versions side by side. ``v2`` keeps the ``v1`` endpoints and
-data shape but serves reads from the SQL cache and runs no read-hooks
+data shape but serves reads from the Kelvin DB and runs no read-hooks
 (see :doc:`introduction` and :doc:`architecture`).
 
 This chapter documents the conventions. The authoritative OpenAPI specification
