@@ -41,7 +41,9 @@ Then install the Provisioning Service app in the domain, for example on the Prim
 
 PostgreSQL is pulled in automatically as an app dependency. If the Provisioning Service is not present, the Kelvin installation or upgrade aborts early with a message describing the missing dependency.
 
-After the installation, the connector performs an initial synchronization of all existing schools, groups and users into the database. This runs in the background and can take a while, especially in large environments. The version 2 API only returns complete results once this initial synchronization has finished.
+Make sure there is enough free storage before upgrading. In our tests, the Kelvin DB requires around 1 GB of additional storage per 150,000 users in steady state. During the upgrade you should have around 10 GB free per 150,000 users to accommodate the initial prefill and the logs it produces.
+
+After the installation, the connector performs an initial synchronization of all existing schools, groups and users into the Kelvin DB. This runs in the background and can take a while, especially in large environments. The version 2 API only returns complete results once this initial synchronization has finished.
 
 v3.3.1 (2026-07-02)
 -------------------
