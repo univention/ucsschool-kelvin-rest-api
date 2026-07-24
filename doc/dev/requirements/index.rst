@@ -6,7 +6,7 @@ Requirements
 ============
 
 This section captures the requirements the UCS\@school Kelvin REST API must
-satisfy. It exists to give a single, referenceable source for what the system
+satisfy. It exists to give a single source of reference for what the system
 has to do and how well it has to do it, so that design decisions, use cases,
 and tests can point back to a named requirement.
 

@@ -41,7 +41,7 @@ no ``logrotate`` configuration. UCR variable
 value as enabled.
 
 In the App Center deployment, the API's access log is additionally routed on the
-Docker host: an rsyslog rule writes messages tagged ``ucsschool-kelvin-rest-api``
+Docker host: an ``rsyslog`` rule writes messages tagged ``ucsschool-kelvin-rest-api``
 to ``/var/log/univention/ucsschool-kelvin-rest-api/http.log``, and a generated
 ``logrotate`` configuration rotates that file. This host-side path doesn't exist
 in the local dev stack.
@@ -58,12 +58,12 @@ Log levels
      - Default
    * - REST API
      - UCR ``ucsschool/kelvin/log_level`` /
-       env ``UCSSCHOOL_KELVIN_LOG_LEVEL`` (``DEBUG``/``INFO``/``WARNING``/``ERROR``)
+       environment variable ``UCSSCHOOL_KELVIN_LOG_LEVEL`` (``DEBUG``/``INFO``/``WARNING``/``ERROR``)
      - ``ERROR`` on an unrecognized value; per-logger defaults in
        ``constants.py`` (``DEFAULT_LOG_LEVELS``) keep ``sqlalchemy`` /
        ``alembic`` at ``WARNING``
    * - Connector
-     - env ``KELVIN_CONNECTOR_LOG_LEVEL`` (loguru levels
+     - environment variable ``KELVIN_CONNECTOR_LOG_LEVEL`` (loguru levels
        ``TRACE``…``CRITICAL``)
      - ``DEBUG``
 
@@ -144,7 +144,7 @@ never expire within a worker's lifetime but are correctness-safe (they map
 stable values): the URL⇄name lookups in ``urls.py``
 (``cachetools.LRUCache``) and ``routers/v1/base.py`` (``functools.lru_cache``),
 the per-version OpenAPI schema cache (``routers/v1/doc.py``), and ``lru_cache``
-singletons for the LDAP config and loggers. The connector's DN → public_id
+singletons for the LDAP configuration and loggers. The connector's DN → public_id
 mapping is **not** an in-memory cache — it is persisted in SQL and is the usual
 place to look when a reference "cannot be found".
 

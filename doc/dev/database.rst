@@ -68,7 +68,7 @@ from ``/etc/ucsschool/kelvin/postgresql-kelvin.secret``.
 
    There are two independent URL builders — ``get_database_url()`` in
    ``kelvin-api/ucsschool/kelvin/database.py`` (API runtime) and ``_get_url()`` /
-   ``build_settings()`` in ``ucsschool-objects`` (used by the corelib and
+   ``build_settings()`` in ``ucsschool-objects`` (used by the core library and
    Alembic). They read overlapping but differently-named environment variables
    and are marked for merging (``# TODO: merge`` in ``session.py``).
 
@@ -237,7 +237,7 @@ compose stack running).
 Apply migrations at startup
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The container entrypoint runs ``alembic --config pyproject.toml upgrade head``
+The container entry point runs ``alembic --config pyproject.toml upgrade head``
 before starting Gunicorn/Uvicorn (``docker/start-kelvin.sh``).
 It first waits for the DB URI file to appear.
 Migration can be disabled with ``SKIP_UCSSCHOOL_KELVIN_DB_MIGRATION=true``.

@@ -134,7 +134,7 @@ workspace members.
      - Multi-stage ``Dockerfile`` (``kelvin-prod`` / ``connector-prod``) and
        container start scripts.
    * - ``appcenter/``
-     - Univention App Center packaging (jinja templates, install/remove
+     - Univention App Center packaging (Jinja templates, install/remove
        scripts, app settings, provisioning setup).
    * - ``ucs-test-ucsschool-kelvin/``
      - ``ucs-test`` integration / end-to-end suite that runs against an
@@ -185,11 +185,11 @@ Code style and static checks run through
      - runs against a committed baseline (baseline mode ``auto``).
    * - ``bandit``
      - ``.bandit``
-     - security scan; test dirs excluded.
+     - security scan; test directories excluded.
    * - ``pre-commit-hooks`` / ``pygrep-hooks``
      - —
-     - trailing-whitespace, large-files, JSON/YAML/XML checks, no-eval,
-       blanket-noqa, rst-backticks.
+     - ``trailing-whitespace``, ``large-files``, JSON/YAML/XML checks,
+       ``no-eval``, ``blanket-noqa``, ``rst-backticks``.
 
 .. note::
 
@@ -223,7 +223,7 @@ Two ``commit-msg`` hooks are enforced:
 .. note::
 
    When staging several commits at once, stage ``.pre-commit-config.yaml``
-   first — pre-commit aborts if that file is modified but unstaged.
+   first — pre-commit aborts if that file is modified but not staged.
 
 Testing
 -------

@@ -188,7 +188,7 @@ Not everything is cached. The relevance filter requires a ``ucsschoolRole`` and:
 * skips **exam users**,
 * skips groups that are neither school classes, workgroups, nor the DC host
   groups above,
-* skips unsyncable groups (per-OU ``Domain Users``, the role groups, ``ouadmins``).
+* skips groups that can't be synced (per-OU ``Domain Users``, the role groups, ``ouadmins``).
 
 Irrelevant events are acknowledged and skipped.
 

@@ -162,7 +162,7 @@ SchoolMembership
    3. A user must have at least one role in a school they are a member of.
 
    These constraints are not yet completely enforced in this model:
-   A schoolless user can be created; this must be prevented in the application
+   A user without a school can be created; this must be prevented in the application
    layer.
 
 
