@@ -781,9 +781,9 @@ async def test_create(
             assert user_udm.props.profilepath == r"%LOGONSERVER%\%USERNAME%\windows-profiles\default"
             school = await School.from_dn(School.cache(lib_users[0].school).dn, None, udm)
             home_share_file_server = school.home_share_file_server
-            assert (
-                home_share_file_server
-            ), f"No 'home_share_file_server' set for OU {lib_users[0].school!r}."
+            assert home_share_file_server, (
+                f"No 'home_share_file_server' set for OU {lib_users[0].school!r}."
+            )
             samba_home_path = rf"\\{school.get_name_from_dn(home_share_file_server)}\{lib_users[0].name}"
             assert user_udm.props.sambahome == samba_home_path
 
@@ -3572,9 +3572,9 @@ async def test_create_with_windows_reserved_name_raises(
 
     if windows_check == "true":
         assert response.status_code == 422, f"{response.__dict__!r}"
-        assert (
-            response.json()["detail"][0]["msg"] == "May not be a Windows reserved name"
-        ), response.json()["detail"]
+        assert response.json()["detail"][0]["msg"] == "May not be a Windows reserved name", (
+            response.json()["detail"]
+        )
         async with UDM(**udm_kwargs) as udm:
             lib_users = await User.get_all(udm, school, f"username={r_user.name}")
         assert len(lib_users) == 0
@@ -3897,8 +3897,7 @@ async def test_udm_error_forwarding_on_modify(
         "detail": [
             {
                 "loc": ["password"],
-                "msg": "Password policy error:"
-                " The password is too short, at least 8 characters needed!",
+                "msg": "Password policy error: The password is too short, at least 8 characters needed!",
                 "type": "UdmError:ModifyError",
             }
         ]

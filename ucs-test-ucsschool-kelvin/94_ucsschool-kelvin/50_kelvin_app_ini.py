@@ -55,7 +55,7 @@ def get_config(ini_url: str) -> ConfigParser:
 
 def shorten_url(url):  # type: (str) -> str
     url_split = url.split("/")
-    return f'{url_split[2].split(".", 1)[0]}...{url_split[-1]}'
+    return f"{url_split[2].split('.', 1)[0]}...{url_split[-1]}"
 
 
 # 20191002163130: 1.0.0

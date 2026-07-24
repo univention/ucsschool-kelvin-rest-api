@@ -97,7 +97,7 @@ async def test_modify_role(
     role_from, role_to = roles
     ou1, ou2 = await create_multiple_ous(2)
     dn, attr = await new_udm_user(ou1, role_from.name)
-    async with (UDM(**udm_kwargs) as udm):
+    async with UDM(**udm_kwargs) as udm:
         use_old_udm = await udm.get("users/user").get(dn)
         # add a school class also to staff users, so we can check if it is kept upon conversion to other
         # role

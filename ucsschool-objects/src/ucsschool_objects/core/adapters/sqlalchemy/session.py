@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.pool import StaticPool
+
 from ucsschool_objects.core.adapters.sqlalchemy.managers.group_manager import (
     SQLAlchemyGroupManager,
 )

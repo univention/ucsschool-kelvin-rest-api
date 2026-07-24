@@ -270,8 +270,7 @@ class UserCreateModel(UserBaseModel):
     legal_wards: List[str] = []
     legal_guardians: List[str] = []
 
-    class Config(UserBaseModel.Config):
-        ...
+    class Config(UserBaseModel.Config): ...
 
     @root_validator
     def not_no_school_and_schools(cls, values):
@@ -327,8 +326,7 @@ class UserCreateModel(UserBaseModel):
 
 
 class UserModel(UserBaseModel, APIAttributesMixin):
-    class Config(UserBaseModel.Config):
-        ...
+    class Config(UserBaseModel.Config): ...
 
     @classmethod
     def dn_to_url(cls, request: Request, dn: str) -> str:

@@ -199,8 +199,7 @@ class UcsSchoolBaseModel(LibModelHelperMixin):
     name: str
     school: HttpUrl
 
-    class Config(LibModelHelperMixin.Config):
-        ...
+    class Config(LibModelHelperMixin.Config): ...
 
     def as_lib_model(self, request: Request) -> UCSSchoolModel:
         kwargs = self._as_lib_model_kwargs(request)

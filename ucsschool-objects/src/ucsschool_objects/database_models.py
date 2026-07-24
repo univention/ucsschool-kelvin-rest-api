@@ -45,8 +45,7 @@ def _json_type() -> JSON:
     return JSON().with_variant(JSONB(), "postgresql")
 
 
-class Base(DeclarativeBase):
-    ...
+class Base(DeclarativeBase): ...
 
 
 ##########################

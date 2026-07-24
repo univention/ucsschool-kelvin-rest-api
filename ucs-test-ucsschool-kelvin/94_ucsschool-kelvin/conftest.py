@@ -365,10 +365,10 @@ def compare_import_user_and_resource(auth_header):
                 else:
                     import_user_val = getattr(import_user, k)
                     resource_val = v
-                assert (
-                    import_user_val == resource_val
-                ), "Value of attribute {!r} in {} is {!r} and in resource is {!r} ({!r}).".format(
-                    k, source, getattr(import_user, k), v, dn
+                assert import_user_val == resource_val, (
+                    "Value of attribute {!r} in {} is {!r} and in resource is {!r} ({!r}).".format(
+                        k, source, getattr(import_user, k), v, dn
+                    )
                 )
 
     return _func

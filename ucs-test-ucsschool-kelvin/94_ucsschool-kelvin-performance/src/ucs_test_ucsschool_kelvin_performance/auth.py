@@ -43,8 +43,7 @@ class AuthToken:
         return datetime.datetime.fromtimestamp(ts)
 
 
-class TokenError(Exception):
-    ...
+class TokenError(Exception): ...
 
 
 def retrieve_token(host: str, username: str, password: str) -> AuthToken:
@@ -64,6 +63,5 @@ def retrieve_token(host: str, username: str, password: str) -> AuthToken:
         return AuthToken.from_kelvin_response(response_json)
     except KeyError as exc:
         raise TokenError(
-            f"Fetching token for {username!r}: response did not have expected content: "
-            f"{response_json!r}"
+            f"Fetching token for {username!r}: response did not have expected content: {response_json!r}"
         ) from exc

@@ -171,10 +171,10 @@ def test_get(auth_header, lo):
                     "({!r}).".format(k, ldap_val, v_new, v, school.dn)
                 )
             else:
-                assert v == getattr(
-                    school, k
-                ), "Value of attribute {!r} in LDAP is {!r} and in resource is {!r} ({!r}).".format(
-                    k, getattr(school, k), v, school.dn
+                assert v == getattr(school, k), (
+                    "Value of attribute {!r} in LDAP is {!r} and in resource is {!r} ({!r}).".format(
+                        k, getattr(school, k), v, school.dn
+                    )
                 )
 
 
@@ -192,10 +192,10 @@ def test_create(auth_header, lo, schedule_delete_ou_at_end_of_session):
     logger.info("*** response.json()=%r", response.json())
     filter_s = filter_format("(&(objectClass=ucsschoolOrganizationalUnit)(ou=%s))", (attrs["name"],))
     res = lo.search(filter=filter_s)
-    assert (
-        len(res) == 1
-    ), "School {!r} not found: search with filter={!r} did not return 1 result:\n{}".format(
-        attrs["name"], filter_s, res
+    assert len(res) == 1, (
+        "School {!r} not found: search with filter={!r} did not return 1 result:\n{}".format(
+            attrs["name"], filter_s, res
+        )
     )
     school_attrs = res[0][1]
     assert {

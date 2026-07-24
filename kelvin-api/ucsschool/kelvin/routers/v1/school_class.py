@@ -151,8 +151,7 @@ async def search(
     class_name: str = Query(
         None,
         alias="name",
-        description="List classes with this name. (optional, ``*`` can be used "
-        "for an inexact search).",
+        description="List classes with this name. (optional, ``*`` can be used for an inexact search).",
         title="name",
     ),
     udm: UDM = Depends(udm_ctx),

@@ -156,7 +156,7 @@ def model_to_rst(
                     _bool_icon(col.primary_key),
                     _bool_icon(col.nullable),
                     uq_cell,
-                    _fmt_default(col)
+                    _fmt_default(col),
                     # _rst_escape(col.doc or ""),
                 ]
             )

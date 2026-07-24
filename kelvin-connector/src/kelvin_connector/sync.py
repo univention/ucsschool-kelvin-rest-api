@@ -6,26 +6,6 @@ import re
 from typing import cast, final
 from uuid import UUID
 
-from kelvin_connector.consumer import HOST_GROUP_NAME_RE
-from kelvin_connector.models import (
-    GroupCreateEvent,
-    GroupDeleteEvent,
-    GroupModifyEvent,
-    GroupProperties,
-    GuardianRole,
-    HostGroupCreateEvent,
-    HostGroupDeleteEvent,
-    HostGroupModifyEvent,
-    SchoolCreateEvent,
-    SchoolDeleteEvent,
-    SchoolModifyEvent,
-    UcsschoolRole,
-    UserCreateEvent,
-    UserDeleteEvent,
-    UserModifyEvent,
-    UserProperties,
-)
-from kelvin_connector.ports import DNIDMapperFactory, SynchronizationManagerProtocol
 from loguru import logger
 from provisioning_consumer_lib.dn import DN
 from pydantic import BaseModel
@@ -52,6 +32,27 @@ from ucsschool_objects import (
     User,
     track_changes,
 )
+
+from kelvin_connector.consumer import HOST_GROUP_NAME_RE
+from kelvin_connector.models import (
+    GroupCreateEvent,
+    GroupDeleteEvent,
+    GroupModifyEvent,
+    GroupProperties,
+    GuardianRole,
+    HostGroupCreateEvent,
+    HostGroupDeleteEvent,
+    HostGroupModifyEvent,
+    SchoolCreateEvent,
+    SchoolDeleteEvent,
+    SchoolModifyEvent,
+    UcsschoolRole,
+    UserCreateEvent,
+    UserDeleteEvent,
+    UserModifyEvent,
+    UserProperties,
+)
+from kelvin_connector.ports import DNIDMapperFactory, SynchronizationManagerProtocol
 
 DEFAULT_NUBUS_SOURCE_UID = "nubus"
 

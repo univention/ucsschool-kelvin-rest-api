@@ -63,8 +63,7 @@ logger = logging.getLogger(__name__)
 
 def log_retry_attempt(retry_state: RetryCallState) -> None:
     logger.warning(
-        "Retrying remove_from_groups_of_school after exception: %s. "
-        "Attempt %s. Next wait: %s seconds.",
+        "Retrying remove_from_groups_of_school after exception: %s. Attempt %s. Next wait: %s seconds.",
         retry_state.outcome.exception(),
         retry_state.attempt_number,
         retry_state.next_action.sleep if retry_state.next_action else None,
@@ -1106,7 +1105,7 @@ class UserTypeConverter:
                 user.get_staff_groups() + user.get_students_groups() + user.get_school_admin_groups()
             )
         else:
-            raise RuntimeError(f"Unknown class defined: {new_cls!r} " f"({type(new_cls)!r}).")
+            raise RuntimeError(f"Unknown class defined: {new_cls!r} ({type(new_cls)!r}).")
         # not beautiful, but keeps lower/upper case intact:
         rm_groups = set(g.lower() for g in rm_groups)
         if issubclass(new_cls, Staff):

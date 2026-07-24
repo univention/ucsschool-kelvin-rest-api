@@ -8,6 +8,7 @@ a known issue in FastAPI, see:
 
 https://github.com/fastapi/fastapi/discussions/14340
 """
+
 import json
 
 from fastapi.encoders import jsonable_encoder

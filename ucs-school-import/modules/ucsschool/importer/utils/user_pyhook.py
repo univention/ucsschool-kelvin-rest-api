@@ -6,6 +6,7 @@
 """
 Base class for all Python based User hooks.
 """
+
 from typing import TYPE_CHECKING, Dict, Union  # noqa: F401
 
 if TYPE_CHECKING:
@@ -14,8 +15,7 @@ if TYPE_CHECKING:
 from .import_pyhook import ImportPyHook
 
 
-class KelvinUserHook:
-    ...
+class KelvinUserHook: ...
 
 
 class UserPyHook(ImportPyHook, KelvinUserHook):

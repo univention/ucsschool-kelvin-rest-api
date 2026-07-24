@@ -6,6 +6,7 @@
 """
 Representation of a user read from a file.
 """
+
 import asyncio
 import datetime
 import re
@@ -147,9 +148,9 @@ class ImportUser(User):
     reader = lazy_object_proxy.Proxy(lambda: ImportUser.factory.make_reader())
     ldap_lo_ro = lazy_object_proxy.Proxy(lambda: get_readonly_connection()[0])
     ldap_lo_rw = lazy_object_proxy.Proxy(
-        lambda: get_readonly_connection()[0]
-        if ImportUser.config["dry_run"]
-        else get_admin_connection()[0]
+        lambda: (
+            get_readonly_connection()[0] if ImportUser.config["dry_run"] else get_admin_connection()[0]
+        )
     )
     _username_handler_cache: Dict[Tuple[int, bool], UsernameHandler] = {}
     _unique_email_handler_cache: Dict[bool, UsernameHandler] = {}
@@ -367,9 +368,7 @@ class ImportUser(User):
                     import_user=self,
                 )
 
-    async def create(
-        self, lo, validate=True, check_password_policies=False
-    ):  # type: (UDM, Optional[bool], Optional[bool]) -> bool
+    async def create(self, lo, validate=True, check_password_policies=False):  # type: (UDM, Optional[bool], Optional[bool]) -> bool
         """
         Create user object.
 
@@ -688,9 +687,7 @@ class ImportUser(User):
             except ValueError:
                 self.logger.error("Could not parse birthday.")
         elif self._schema_write_check("birthday", "birthday", "univentionBirthday"):
-            self.birthday = self.format_from_scheme(
-                "birthday", self.config["scheme"]["birthday"]
-            )  # type: str
+            self.birthday = self.format_from_scheme("birthday", self.config["scheme"]["birthday"])  # type: str
         elif self.old_user:
             self.birthday = self.old_user.birthday
         elif self.birthday == "":
@@ -995,9 +992,7 @@ class ImportUser(User):
         if self.record_uid:
             pass
         elif self._schema_write_check("record_uid", "record_uid", "ucsschoolRecordUID"):
-            self.record_uid = self.format_from_scheme(
-                "record_uid", self.config["scheme"]["record_uid"]
-            )  # type: str
+            self.record_uid = self.format_from_scheme("record_uid", self.config["scheme"]["record_uid"])  # type: str
         elif self.old_user:
             self.record_uid = self.old_user.record_uid
         return self.record_uid or ""

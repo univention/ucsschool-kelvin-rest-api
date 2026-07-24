@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
+
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
     compose_field_map,
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
+
     from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import FieldColumn
 
 

@@ -110,9 +110,9 @@ async def test_reader_token_accepted_on_get_endpoint(
     response = retry_http_502(
         requests.get, f"{url_fragment}{endpoint}", headers=auth_header, params=params
     )
-    assert (
-        response.status_code == expected_status_code
-    ), f"Reader should be allowed on GET {endpoint}. Got {response.status_code}: {response.text}"
+    assert response.status_code == expected_status_code, (
+        f"Reader should be allowed on GET {endpoint}. Got {response.status_code}: {response.text}"
+    )
 
 
 @must_run_in_container
@@ -126,9 +126,9 @@ async def test_reader_token_accepted_on_head_endpoint(
     """A reader JWT must receive 200 on a HEAD endpoint."""
     auth_header = await generate_auth_header(username="Administrator", is_admin=False, is_reader=True)
     response = retry_http_502(requests.head, f"{url_fragment}{endpoint}", headers=auth_header)
-    assert (
-        response.status_code == 200
-    ), f"Reader should be allowed on HEAD {endpoint}. Got {response.status_code}: {response.text}"
+    assert response.status_code == 200, (
+        f"Reader should be allowed on HEAD {endpoint}. Got {response.status_code}: {response.text}"
+    )
 
 
 @must_run_in_container
@@ -147,9 +147,9 @@ async def test_reader_token_rejected_on_post_endpoint(
     """A reader JWT must receive 401 on a POST endpoint."""
     auth_header = await generate_auth_header(username="Administrator", is_admin=False, is_reader=True)
     response = retry_http_502(requests.post, f"{url_fragment}{endpoint}", headers=auth_header)
-    assert (
-        response.status_code == 401
-    ), f"Reader should be rejected on POST {endpoint}. Got {response.status_code}: {response.text}"
+    assert response.status_code == 401, (
+        f"Reader should be rejected on POST {endpoint}. Got {response.status_code}: {response.text}"
+    )
 
 
 @must_run_in_container
@@ -171,9 +171,9 @@ async def test_reader_token_rejected_on_delete_endpoint(
         f"{url_fragment}{endpoint}",
         headers=auth_header,
     )
-    assert (
-        response.status_code == 401
-    ), f"Reader should be forbidden on DELETE {endpoint}. Got {response.status_code}: {response.text}"
+    assert response.status_code == 401, (
+        f"Reader should be forbidden on DELETE {endpoint}. Got {response.status_code}: {response.text}"
+    )
 
 
 @must_run_in_container
@@ -191,9 +191,9 @@ async def test_reader_token_rejected_on_patch_endpoint(
         f"{url_fragment}{endpoint}",
         headers=auth_header,
     )
-    assert (
-        response.status_code == 401
-    ), f"Reader should be forbidden on PATCH {endpoint}. Got {response.status_code}: {response.text}"
+    assert response.status_code == 401, (
+        f"Reader should be forbidden on PATCH {endpoint}. Got {response.status_code}: {response.text}"
+    )
 
 
 @must_run_in_container
@@ -211,6 +211,6 @@ async def test_reader_token_rejected_on_put_endpoint(
         f"{url_fragment}{endpoint}",
         headers=auth_header,
     )
-    assert (
-        response.status_code == 401
-    ), f"Reader should be forbidden on PUT {endpoint}. Got {response.status_code}: {response.text}"
+    assert response.status_code == 401, (
+        f"Reader should be forbidden on PUT {endpoint}. Got {response.status_code}: {response.text}"
+    )

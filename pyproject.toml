@@ -128,12 +128,16 @@ select = ["E", "F", "W", "I", "S"]
 ignore = ["E203", "E231", "E266", "S101", "S404"]
 
 [tool.ruff.lint.per-file-ignores]
-# Test and tooling paths bandit excluded via exclude_dirs in .bandit.
+# Test and tooling paths bandit excluded via its exclude_dirs / hook exclude.
 "**/tests/**" = ["S"]
 "ucs-test-ucsschool-kelvin/**" = ["S"]
 "build_appcenter_changelog.py" = ["S"]
+"build_docs.py" = ["S"]
 ".gitlab-ci/**" = ["S"]
-"doc/**" = ["S"]
+"**/doc/**" = ["S"]
+# Long doctest line: flake8 honoured the in-docstring "# noqa: E501",
+# but ruff ignores noqa directives inside string literals.
+"ucs-school-import/modules/ucsschool/importer/utils/username_handler.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["ucsschool", "udm_rest_client", "univention"]

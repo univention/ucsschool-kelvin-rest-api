@@ -8,8 +8,10 @@
 from udm_rest_client import UDM, CreateError
 from univention.admin.uldap import position as uldap_position
 
-from .attributes import Attribute  # noqa: F401
-from .attributes import ContainerPath
+from .attributes import (
+    Attribute,  # noqa: F401
+    ContainerPath,
+)
 from .base import UCSSchoolHelperAbstractClass
 from .utils import _, ucr
 

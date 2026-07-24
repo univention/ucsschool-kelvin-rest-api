@@ -5,13 +5,13 @@
 from functools import lru_cache
 from typing import AsyncGenerator
 
+from alembic.config import Config
+from alembic.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from fastapi import HTTPException, Request, status
 from sqlalchemy import create_engine
 from ucsschool_objects import KelvinStorageSession
 
-from alembic.config import Config
-from alembic.migration import MigrationContext
-from alembic.script import ScriptDirectory
 from ucsschool.kelvin.constants import ALEMBIC_CONFIG_FILE
 from ucsschool.kelvin.database import get_database_url
 

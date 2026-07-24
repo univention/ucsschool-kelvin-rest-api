@@ -13,7 +13,7 @@ from univention.udm.binary_props import Base64Bzip2BinaryProperty
 from univention.udm.exceptions import NoObject
 
 ucr = ConfigRegistry().load()
-fqdn = f'{ucr.get("hostname")}.{ucr.get("domainname")}'
+fqdn = f"{ucr.get('hostname')}.{ucr.get('domainname')}"
 ldap_base = ucr.get("ldap/base")
 superordinate = f"cn=univention,{ldap_base}"
 app_name = "ucsschool-kelvin-rest-api"

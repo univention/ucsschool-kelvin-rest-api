@@ -42,9 +42,7 @@ ucr.load()
 MIME_TYPE = magic.open(magic.MAGIC_MIME_TYPE)
 MIME_TYPE.load()
 __resource_client_class_registry = list()  # type: List[Client._ResourceClient]
-__resource_representation_class_registry = (
-    dict()
-)  # type: Dict[str, ResourceRepresentation._ResourceReprBase]
+__resource_representation_class_registry = dict()  # type: Dict[str, ResourceRepresentation._ResourceReprBase]
 
 
 def register_resource_client_class(cls):

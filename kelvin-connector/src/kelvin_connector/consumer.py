@@ -6,6 +6,17 @@ import enum
 import re
 from typing import TYPE_CHECKING, cast
 
+from loguru import logger
+from provisioning_consumer_lib import (
+    AttributeMapping,
+    ConsumerModule,
+    EventHandler,
+    UDMEventHandler,
+)
+from provisioning_consumer_lib.consumer import Metadata, QueryEventObject
+from pydantic import ValidationError
+from typing_extensions import override
+
 from kelvin_connector.models import (
     DeletePayload,
     GroupCreateEvent,
@@ -25,16 +36,6 @@ from kelvin_connector.models import (
     UserModifyEvent,
     UserPayload,
 )
-from loguru import logger
-from provisioning_consumer_lib import (
-    AttributeMapping,
-    ConsumerModule,
-    EventHandler,
-    UDMEventHandler,
-)
-from provisioning_consumer_lib.consumer import Metadata, QueryEventObject
-from pydantic import ValidationError
-from typing_extensions import override
 
 from .ports import SynchronizationManagerProtocol
 
@@ -76,7 +77,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
     @staticmethod
     def _filter(object_type: str, roles: list[str], seq_num: int, name: str = "") -> bool:
         match object_type:
-            case (ObjectType.GROUPS):
+            case ObjectType.GROUPS:
                 if any(
                     role.startswith("school_class") or role.startswith("workgroup") for role in roles
                 ):
@@ -91,7 +92,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     name,
                 )
                 return False
-            case (ObjectType.USERS):
+            case ObjectType.USERS:
                 # Exam users are temporary copies (created under cn=examusers
                 # for the duration of an exam, then deleted). They are
                 # intentionally not cached.
@@ -105,7 +106,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     )
                     return False
                 return True
-            case (ObjectType.OUS):
+            case ObjectType.OUS:
                 return True
             case _:
                 logger.info(

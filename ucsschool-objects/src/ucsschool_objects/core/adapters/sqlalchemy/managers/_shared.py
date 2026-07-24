@@ -17,11 +17,15 @@ from sqlalchemy.orm import Mapper, load_only
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.sql.elements import ColumnElement
+
 from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
-from ucsschool_objects.core.domain.models import _require_loaded  # pyright: ignore[reportPrivateUsage]
-from ucsschool_objects.core.domain.models import DomainObject, UnloadedType
+from ucsschool_objects.core.domain.models import (
+    DomainObject,
+    UnloadedType,
+    _require_loaded,  # pyright: ignore[reportPrivateUsage]
+)
 from ucsschool_objects.core.domain.query import And, Filter, Not, Or
 from ucsschool_objects.database_models import (
     Base,
@@ -33,6 +37,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from sqlalchemy.ext.asyncio import AsyncSession
+
     from ucsschool_objects.core.domain.models import UnsetType
     from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 

@@ -24,8 +24,7 @@ UCSSchoolModel = TypeVar(
 )
 
 
-class KelvinHook:
-    ...
+class KelvinHook: ...
 
 
 class Hook(PyHook, KelvinHook):

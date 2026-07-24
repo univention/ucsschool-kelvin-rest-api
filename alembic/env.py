@@ -6,13 +6,13 @@ import logging
 import time
 from contextlib import contextmanager
 
+from alembic.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from sqlalchemy import engine_from_config, pool, text
 from ucsschool_objects.core.adapters.sqlalchemy.session import build_settings
 from ucsschool_objects.database_models import Base
 
 from alembic import context
-from alembic.migration import MigrationContext
-from alembic.script import ScriptDirectory
 from ucsschool.kelvin.service.log import setup_logging
 
 setup_logging()

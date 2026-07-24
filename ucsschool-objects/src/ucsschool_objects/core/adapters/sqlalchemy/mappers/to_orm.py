@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 from sqlalchemy import select
+
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     bulk_fetch_by_public_id,
     check_nullable_value_presence,
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from sqlalchemy.ext.asyncio import AsyncSession
+
     from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import PublicIdCarrier
 
 

@@ -59,9 +59,9 @@ def normalize_value(value: Any) -> Any:
 def assert_responses_equal(v1_data: dict, v2_data: dict) -> None:
     for field, v1_val in v1_data.items():
         v2_val = v2_data.get(field)
-        assert normalize_value(v1_val) == normalize_value(
-            v2_val
-        ), f"{field!r}: v1={v1_val!r} != v2={v2_val!r}"
+        assert normalize_value(v1_val) == normalize_value(v2_val), (
+            f"{field!r}: v1={v1_val!r} != v2={v2_val!r}"
+        )
 
 
 async def _retry_until_replicated(check: Callable[[], None], timeout: int = 60, interval: int = 2):

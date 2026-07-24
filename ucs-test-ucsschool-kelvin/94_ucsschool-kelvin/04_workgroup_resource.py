@@ -146,10 +146,10 @@ def test_get(auth_header, lo, ucr_ldap_base, schoolenv):
             )
             assert workgroup.name == share_obj.props.name
         else:
-            assert v == getattr(
-                workgroup, k
-            ), "Value of attribute {!r} in LDAP is {!r} and in resource is {!r} ({!r}).".format(
-                k, getattr(workgroup, k), v, workgroup.dn
+            assert v == getattr(workgroup, k), (
+                "Value of attribute {!r} in LDAP is {!r} and in resource is {!r} ({!r}).".format(
+                    k, getattr(workgroup, k), v, workgroup.dn
+                )
             )
 
 
@@ -173,10 +173,10 @@ def test_create(auth_header, lo, schoolenv):
         ),
     )
     res = lo.search(filter=filter_s)
-    assert (
-        len(res) == 1
-    ), "Workgroup {!r} not found: search with filter={!r} did not return 1 result:\n{}".format(
-        attrs["name"], filter_s, res
+    assert len(res) == 1, (
+        "Workgroup {!r} not found: search with filter={!r} did not return 1 result:\n{}".format(
+            attrs["name"], filter_s, res
+        )
     )
     workgroup_attrs = res[0][1]
     assert {

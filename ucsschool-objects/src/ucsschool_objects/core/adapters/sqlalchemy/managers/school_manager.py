@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
+
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
     apply_patch,
@@ -29,6 +30,7 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
+
     from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import FieldColumn
     from ucsschool_objects.core.domain.json import PatchDict
 

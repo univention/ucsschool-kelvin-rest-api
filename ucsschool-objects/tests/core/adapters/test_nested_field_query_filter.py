@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 """Tests for nested field detection and join injection in query_filter module."""
+
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping as MappingABC

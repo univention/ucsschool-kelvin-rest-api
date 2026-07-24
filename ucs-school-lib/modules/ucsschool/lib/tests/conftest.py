@@ -907,7 +907,7 @@ def create_ou_using_ssh(
                 args["edu_name"],
                 args["admin_name"],
                 f"--sharefileserver={args['share_name']}",
-                f"--displayName=\"{args['display_name']}\"",
+                f'--displayName="{args["display_name"]}"',
                 f"--alter-dhcpd-base={str(args['alter_dhcpd_base']).lower()}",
             ]
         )
@@ -1021,9 +1021,9 @@ def wait_for_replication():
         filter_s, search_base = dn.split(",", 1)
         filter_s = f"({filter_s})"
         uldap_primary = uldap_admin_read_primary()
-        assert uldap_primary.search_dn(
-            search_filter=filter_s, search_base=search_base
-        ), f"DN {dn!r} not found on primary."
+        assert uldap_primary.search_dn(search_filter=filter_s, search_base=search_base), (
+            f"DN {dn!r} not found on primary."
+        )
         start = datetime.datetime.now()
         end = start + datetime.timedelta(seconds=timeout)
         uldap_local = uldap_admin_read_local()

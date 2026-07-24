@@ -7,7 +7,6 @@
 Singleton to the factory currently in use.
 """
 
-
 import importlib
 
 from .exceptions import InitialisationError

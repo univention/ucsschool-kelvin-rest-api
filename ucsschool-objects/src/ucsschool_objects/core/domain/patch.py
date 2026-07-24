@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Generic, Self, TypeVar, cast
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
+
 from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.models import (
     Group,
@@ -99,9 +100,7 @@ def _patch_ops(
         _collect_replace_ops(src_dict, dst_dict, field_path.split("/"), "", operations)
     # NOTE lib jsonpatch is untyped
     operations.extend(
-        JsonPatch.from_diff(
-            src_dict, dst_dict
-        ).patch  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+        JsonPatch.from_diff(src_dict, dst_dict).patch  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
     )
     return cast(Sequence[JSONPathOperation], JsonPatch(operations).patch)
 

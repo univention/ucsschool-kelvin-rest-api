@@ -10,6 +10,7 @@ load-bearing proof is the Postgres-backed tests (docs/plan/context.md Risk 1;
 docs/plan/tasks/011 and 012). The escaping assertions below are the exception:
 they're dialect-independent and meaningful regardless of the SQLite caveat.
 """
+
 from __future__ import annotations
 
 import pytest

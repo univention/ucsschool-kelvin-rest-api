@@ -16,18 +16,15 @@ KELVIN_USERNAME_FALLBACK = "Administrator"
 
 
 @overload
-def default_from_env(env: str, *, default: int) -> Callable[[], int]:
-    ...
+def default_from_env(env: str, *, default: int) -> Callable[[], int]: ...
 
 
 @overload
-def default_from_env(env: str, *, default: str) -> Callable[[], str]:
-    ...
+def default_from_env(env: str, *, default: str) -> Callable[[], str]: ...
 
 
 @overload
-def default_from_env(env: str, *, default: Path) -> Callable[[], Path]:
-    ...
+def default_from_env(env: str, *, default: Path) -> Callable[[], Path]: ...
 
 
 def default_from_env(env: str, *, default: int | str | Path) -> Callable[[], Path | int | str]:

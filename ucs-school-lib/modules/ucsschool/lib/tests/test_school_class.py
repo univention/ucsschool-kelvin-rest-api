@@ -152,7 +152,7 @@ async def test_move(create_multiple_ous, new_school_class_using_udm, udm_kwargs)
     async with UDM(**udm_kwargs) as udm:
         obj1 = await SchoolClass.from_dn(dn, old_school, udm)
         assert obj1.school == old_school
-        obj1.name = f"{new_school}-{obj1.name[len(old_school) + 1:]}"
+        obj1.name = f"{new_school}-{obj1.name[len(old_school) + 1 :]}"
         obj1.school = new_school
         success = await obj1.move(udm)
         assert success is False  # moving school classes is not allowed

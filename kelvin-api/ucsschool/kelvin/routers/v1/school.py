@@ -74,8 +74,7 @@ class SchoolCreateModel(LibModelHelperMixin):
 
 
 class SchoolModel(SchoolCreateModel, APIAttributesMixin):
-    class Config(SchoolCreateModel.Config):
-        ...
+    class Config(SchoolCreateModel.Config): ...
 
     @classmethod
     async def _from_lib_model_kwargs(cls, obj: School, request: Request, udm: UDM) -> Dict[str, Any]:
@@ -206,7 +205,7 @@ async def school_search(
     name_filter: str = Query(
         None,
         alias="name",
-        description="List schools with this name. '*' can be used for an " "inexact search. (optional)",
+        description="List schools with this name. '*' can be used for an inexact search. (optional)",
         title="name",
     ),
     logger: logging.Logger = Depends(get_logger),
