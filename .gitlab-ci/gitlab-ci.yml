@@ -193,6 +193,30 @@ docs-create-production-merge-request:
         - doc/docs/**/*
         - kelvin-api/changelog.rst
 
+# Publish the user-facing documentation (including the changelog) to GitLab
+# Pages. Reuses the HTML built by docs-html and serves it from the default
+# branch. This is independent of docs-create-production-merge-request, which
+# publishes to docs.software-univention.de.
+pages:
+  stage: production
+  image: $SPHINX_BASE
+  needs:
+    - job: docs-html
+      artifacts: true
+  variables:
+    BUILDDIR: "_build/$language"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
+  script:
+    - rm -rf public
+    - mv "$DOCS_DIR/$BUILDDIR/html" public
+  artifacts:
+    paths:
+      - public
+
 build_docker_image_kelvin:
   stage: build
   rules:
