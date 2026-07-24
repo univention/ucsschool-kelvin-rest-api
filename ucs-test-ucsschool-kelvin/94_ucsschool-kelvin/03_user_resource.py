@@ -15,6 +15,7 @@ import logging
 import random
 import time
 from multiprocessing import Pool
+from typing import Any
 from urllib.parse import urljoin
 
 import pytest
@@ -27,6 +28,7 @@ from univention.testing.ucsschool.kelvin_api import (
     api_call,
     create_remote_static,
     partial_update_remote_static,
+    retry_until_replicated,
 )
 from univention.testing.utils import wait_for_listener_replication, wait_for_s4connector_replication
 
@@ -677,8 +679,11 @@ def test_move_teacher_remove_primary_with_classes(
     url = urljoin(RESOURCE_URLS["users"], create_result["name"])
     assert resource_new["url"] == url
 
-    resource_new2 = api_call("get", url, headers=auth_header)
-    assert_equal_dicts(resource_new, resource_new2)
+    def _get_and_compare():
+        resource_new2: dict[str, Any] = api_call("get", url, headers=auth_header)
+        assert_equal_dicts(resource_new, resource_new2)
+
+    retry_until_replicated(_get_and_compare, timeout=31, interval=10)
 
     compare_import_user_and_resource(user, resource_new)
     logger.info("*** OK: LDAP <-> resource")

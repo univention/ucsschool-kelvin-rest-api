@@ -470,6 +470,24 @@ def retry_http_502(request_method, *args, **kwargs):
         return response
 
 
+def retry_until_replicated(check: Callable[[], None], timeout: int = 60, interval: int = 2) -> None:
+    """Repeat a fetch-and-compare until it passes or the deadline expires.
+
+    A resource may not yet reflect a preceding modification (eventual
+    consistency), so retry the whole fetch+compare and let the last attempt's
+    AssertionError surface.
+    """
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            check()
+            return
+        except AssertionError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(interval)
+
+
 def api_call(method, url, auth=None, headers=None, json_data=None):
     # type: (Text, Text, Optional[Any], Optional[Dict[Text, Any]], Optional[Dict[Text, Any]]) -> Dict[Text, Any]  # noqa: E501
     pid = os.getpid()

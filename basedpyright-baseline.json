@@ -213906,6 +213906,14 @@
                 }
             },
             {
+                "code": "reportUnknownVariableType",
+                "range": {
+                    "startColumn": 4,
+                    "endColumn": 26,
+                    "lineCount": 1
+                }
+            },
+            {
                 "code": "reportMissingImports",
                 "range": {
                     "startColumn": 5,
@@ -219716,24 +219724,24 @@
             {
                 "code": "reportUnknownVariableType",
                 "range": {
-                    "startColumn": 4,
-                    "endColumn": 17,
+                    "startColumn": 8,
+                    "endColumn": 21,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportExplicitAny",
+                "range": {
+                    "startColumn": 33,
+                    "endColumn": 36,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportUnknownArgumentType",
                 "range": {
-                    "startColumn": 23,
-                    "endColumn": 35,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownArgumentType",
-                "range": {
-                    "startColumn": 37,
-                    "endColumn": 50,
+                    "startColumn": 27,
+                    "endColumn": 39,
                     "lineCount": 1
                 }
             },
