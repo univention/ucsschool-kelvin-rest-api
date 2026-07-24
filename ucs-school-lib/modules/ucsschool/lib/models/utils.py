@@ -97,7 +97,7 @@ APP_ID = "ucsschool-kelvin-rest-api"
 APP_BASE_PATH = Path("/var/lib/univention-appcenter/apps", APP_ID)
 APP_CONFIG_BASE_PATH = APP_BASE_PATH / "conf"
 CN_ADMIN_PASSWORD_FILE = APP_CONFIG_BASE_PATH / "cn_admin.secret"
-MACHINE_PASSWORD_FILE = "/etc/machine.secret"  # nosec
+MACHINE_PASSWORD_FILE = "/etc/machine.secret"  # noqa: S105
 DEFAULT_UCS_SSL_CA_CERT = "/usr/local/share/ca-certificates/ucs.crt"
 
 _handler_cache: Dict[str, logging.Handler] = {}
@@ -283,7 +283,7 @@ def create_passwd(length: int = 8, dn: str = None, specials: str = "$%&*-+=:.?")
             try:
                 results, policies = policy_result(dn)
                 _pw_length_cache[dn] = int(results.get("univentionPWLength", ["8"])[0])
-            except Exception:  # nosec # TODO: replace with specific exceptions
+            except Exception:  # noqa: S110  # TODO: replace with specific exceptions
                 pass
         length = _pw_length_cache.get(dn, length)
 
@@ -293,7 +293,7 @@ def create_passwd(length: int = 8, dn: str = None, specials: str = "$%&*-+=:.?")
             try:
                 results, policies = policy_result(ou)
                 _pw_length_cache[ou] = int(results.get("univentionPWLength", ["8"])[0])
-            except Exception:  # nosec # TODO: replace with specific exceptions
+            except Exception:  # noqa: S110  # TODO: replace with specific exceptions
                 pass
         length = _pw_length_cache.get(ou, length)
 
@@ -506,7 +506,7 @@ def exec_cmd(
     assert all(isinstance(arg, string_types) for arg in cmd)
     kwargs["stdout"] = kwargs.get("stdout", subprocess.PIPE)
     kwargs["stderr"] = kwargs.get("stderr", subprocess.PIPE)
-    process = subprocess.Popen(cmd, **kwargs)  # nosec
+    process = subprocess.Popen(cmd, **kwargs)  # noqa: S603
     stdout, stderr = process.communicate()
     if isinstance(stderr, bytes):
         stderr = stderr.decode()

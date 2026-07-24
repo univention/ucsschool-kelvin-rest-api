@@ -118,13 +118,23 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-# E, W: pycodestyle; F: pyflakes; I: isort
-# (replaces the standalone black, isort and flake8 tools).
-select = ["E", "F", "W", "I"]
+# E, W: pycodestyle; F: pyflakes; I: isort; S: flake8-bandit
+# (replaces the standalone black, isort, flake8 and bandit tools).
+select = ["E", "F", "W", "I", "S"]
 # E203: whitespace before ':' (formatter-compatible)
 # E231: missing whitespace after ',', ';', or ':' (formatter-compatible)
 # E266: too many leading '#' for block comment (ucs-test metadata)
-ignore = ["E203", "E231", "E266"]
+# S101: assert used (was bandit skip B101)
+# S404: subprocess import (was bandit skip B404)
+ignore = ["E203", "E231", "E266", "S101", "S404"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test and tooling paths bandit excluded via exclude_dirs in .bandit.
+"**/tests/**" = ["S"]
+"ucs-test-ucsschool-kelvin/**" = ["S"]
+"build_appcenter_changelog.py" = ["S"]
+".gitlab-ci/**" = ["S"]
+"doc/**" = ["S"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["ucsschool", "udm_rest_client", "univention"]

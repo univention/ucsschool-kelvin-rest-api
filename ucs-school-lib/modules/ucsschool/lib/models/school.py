@@ -615,7 +615,7 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         cmd = ["udm", module, "remove", "--dn", dn]
         self.logger.info("*** Calling following command: %r", cmd)
         # TODO: OMG!!
-        retval = subprocess.call(cmd)  # nosec
+        retval = subprocess.call(cmd)  # noqa: S603
         if retval:
             msg = "*** ERROR: failed to remove UCS@school %s object: %s" % (module, dn)
             self.logger.error(msg)
@@ -931,8 +931,7 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         """
         if not ucr.is_true("ucsschool/import/generate/import/group", False):
             self.logger.info(
-                "creation of the Import Group has been disabled by"
-                "ucsschool/import/generate/import/group"
+                "creation of the Import Group has been disabled byucsschool/import/generate/import/group"
             )
             return
         ou = self.name

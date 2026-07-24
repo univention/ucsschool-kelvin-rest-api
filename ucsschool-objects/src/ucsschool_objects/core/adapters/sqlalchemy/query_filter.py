@@ -27,6 +27,7 @@ from sqlalchemy.sql.compiler import SQLCompiler
 from sqlalchemy.sql.elements import ColumnElement, literal
 from sqlalchemy.sql.sqltypes import Boolean
 from sqlalchemy.sql.type_api import TypeEngine
+
 from ucsschool_objects.core.domain.errors import (
     EmptyAndClause,
     EmptyOrClause,
@@ -209,7 +210,7 @@ def _compile_json_array_contains_sqlite(
     # Not injectable: column is a compiler-emitted column reference, path and
     # value are bind-parameter placeholders.
     return (
-        f"EXISTS (SELECT 1 FROM json_each({column}, {path})"  # nosec B608
+        f"EXISTS (SELECT 1 FROM json_each({column}, {path})"  # noqa: S608
         f" WHERE json_each.value = {value})"
     )
 
