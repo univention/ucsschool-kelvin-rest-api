@@ -103,6 +103,33 @@ dev = [
     "mypy>=1.20.1",
 ]
 
+[tool.ruff]
+line-length = 105
+target-version = "py311"
+extend-exclude = [
+    "venv*",
+    "univention-lib-slim",
+    "univention-directory-manager-modules-slim",
+    "kelvin-api/static",
+    "ucs-school-import/usr/share/ucs-school-import/scripts/ucs-school-import",
+    "doc/doc-common",
+    "docker/build",
+    "docker/ucs",
+]
+
+[tool.ruff.lint]
+# E, W: pycodestyle; F: pyflakes; I: isort
+# (replaces the standalone black, isort and flake8 tools).
+select = ["E", "F", "W", "I"]
+# E203: whitespace before ':' (formatter-compatible)
+# E231: missing whitespace after ',', ';', or ':' (formatter-compatible)
+# E266: too many leading '#' for block comment (ucs-test metadata)
+ignore = ["E203", "E231", "E266"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ucsschool", "udm_rest_client", "univention"]
+combine-as-imports = true
+
 [tool.pytest.ini_options]
 addopts = "--verbose --showlocals -p no:warnings --asyncio-mode=auto"
 

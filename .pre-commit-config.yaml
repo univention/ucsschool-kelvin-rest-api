@@ -14,49 +14,18 @@ repos:
       - id: check-yaml
         args: ["--unsafe"]
       - id: trailing-whitespace
-  - repo: https://github.com/timothycrosley/isort
-    rev: 7.0.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
     hooks:
-      - id: isort
-        entry: isort
-  - repo: https://github.com/psf/black
-    rev: 23.1.0
-    hooks:
-      - id: black
-        entry: black --config .black
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
-    hooks:
-      - id: flake8
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.20.0
-    hooks:
-      - id: mypy
-        files: ^ucsschool-objects
-        args: [--strict]
-        additional_dependencies:
-          [
-            "sqlalchemy",
-            "pytest",
-            "pytest-asyncio",
-            "testcontainers",
-            "pytestarch",
-            "jsonpatch",
-          ]
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
       - id: python-check-blanket-noqa
       - id: python-no-eval
       - id: rst-backticks
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.6
-    hooks:
-      - id: bandit
-        entry: bandit -c .bandit
-        language_version: python3.11
-        additional_dependencies: ["pbr"]
-        exclude: ^kelvin-api/tests/|^ucs-school-lib/modules/ucsschool/lib/tests/|^build_docs.py
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.3.0
     hooks:
