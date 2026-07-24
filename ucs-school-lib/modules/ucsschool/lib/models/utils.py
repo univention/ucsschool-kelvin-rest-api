@@ -274,28 +274,25 @@ def add_stream_logger_to_schoollib(
     return logger
 
 
+def _policy_pw_length(dn: str, default: int) -> int:
+    """Return the (cached) univentionPWLength from the password policy for *dn*."""
+    if not _pw_length_cache.get(dn):
+        try:
+            results, _ = policy_result(dn)
+            _pw_length_cache[dn] = int(results.get("univentionPWLength", ["8"])[0])
+        except Exception:  # noqa: S110  # TODO: replace with specific exceptions
+            pass
+    return _pw_length_cache.get(dn, default)
+
+
 def create_passwd(length: int = 8, dn: str = None, specials: str = "$%&*-+=:.?") -> str:
     assert length > 0
 
     if dn:
-        # get dn pw policy
-        if not _pw_length_cache.get(dn):
-            try:
-                results, policies = policy_result(dn)
-                _pw_length_cache[dn] = int(results.get("univentionPWLength", ["8"])[0])
-            except Exception:  # noqa: S110  # TODO: replace with specific exceptions
-                pass
-        length = _pw_length_cache.get(dn, length)
-
-        # get ou pw policy
+        # apply the dn's and its ou's password policies
+        length = _policy_pw_length(dn, length)
         ou = "ou=" + dn[dn.find("ou=") + 3 :]
-        if not _pw_length_cache.get(ou):
-            try:
-                results, policies = policy_result(ou)
-                _pw_length_cache[ou] = int(results.get("univentionPWLength", ["8"])[0])
-            except Exception:  # noqa: S110  # TODO: replace with specific exceptions
-                pass
-        length = _pw_length_cache.get(ou, length)
+        length = _policy_pw_length(ou, length)
 
     pw = list()
     specials_allowed = length // 5  # 20% specials in a password is enough
