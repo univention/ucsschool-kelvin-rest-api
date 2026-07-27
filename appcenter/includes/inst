@@ -26,7 +26,7 @@ UDM_CLIENT_UPDATE_SCRIPT="/var/lib/univention-appcenter/apps/$APP_ID/data/update
 
 
 main () {
-    docker exec $appcenter_apps_ucsschool_kelvin_rest_api_container /usr/bin/univention-config-registry set \
+    docker exec "$appcenter_apps_ucsschool_kelvin_rest_api_container" ucr set \
     ldap/server/name="$(ucr get ldap/server/name)" \
     ldap/server/port="$(ucr get ldap/server/port)" \
     dhcpd/ldap/base="$(ucr get dhcpd/ldap/base)" \
@@ -45,7 +45,8 @@ main () {
     ucsschool/ldap/default/container/exam="$(ucr get ucsschool/ldap/default/container/exam)" \
     groups/default/domainusers="$(ucr get groups/default/domainusers)" \
     ucsschool/ldap/default/dcs="$(ucr get ucsschool/ldap/default/dcs)" \
-    ucsschool/import/generate/policy/dhcp/dns/clearou="$(ucr get ucsschool/import/generate/policy/dhcp/dns/clearou)"
+    ucsschool/import/generate/policy/dhcp/dns/clearou="$(ucr get ucsschool/import/generate/policy/dhcp/dns/clearou)" \
+    || die "Failed to copy UCR variables into the Docker container."
 
     if ! [ -e "$TOKEN_SIGN_SECRET_FILE" ]; then
         echo "Storing token key in $TOKEN_SIGN_SECRET_FILE."
