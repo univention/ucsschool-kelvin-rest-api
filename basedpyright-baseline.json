@@ -211914,6 +211914,16 @@
                 }
             }
         ],
+        "./ucs-test-ucsschool-kelvin/94_ucsschool-kelvin/000_ucr_variables_synced_to_container.py": [
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 31,
+                    "lineCount": 1
+                }
+            }
+        ],
         "./ucs-test-ucsschool-kelvin/94_ucsschool-kelvin/00_api_root.py": [
             {
                 "code": "reportMissingImports",
