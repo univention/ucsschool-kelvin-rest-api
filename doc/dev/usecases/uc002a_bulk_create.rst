@@ -11,7 +11,7 @@
 :Actor: All actors
 :Priority: Should-have
 
-An actor deletes multiple objects.
+An actor creates multiple objects.
 If an object already exists, it is skipped.
 If an error occurs, no objects are created.
 

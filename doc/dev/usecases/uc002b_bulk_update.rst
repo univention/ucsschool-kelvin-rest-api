@@ -12,6 +12,7 @@
 :Priority: Should-have
 
 An actor updates multiple objects.
+
 .. preview-end
 
 Preconditions
