@@ -34,7 +34,7 @@ from tenacity import (
     stop_after_delay,
     wait_fixed,
 )
-from uldap3 import UCSUser
+from uldap3 import LdapRead, UCSUser
 from utils import ldap_modify_timestamps, wait_for_s4
 
 import ucsschool.kelvin.config
@@ -54,6 +54,7 @@ from ucsschool.lib.models.utils import (
     env_or_ucr,
     uldap_admin_read_local,
     uldap_admin_read_primary,
+    uldap_conf,
 )
 from udm_rest_client import UDM, UdmObject
 from univention.config_registry import ConfigRegistry
@@ -1035,9 +1036,19 @@ def reset_import_config_module():
 @pytest.fixture
 def check_password():
     async def _func(bind_dn: str, bind_pw: str) -> None:
-        on_primary = env_or_ucr("server/role") == "master"
-        uldap = uldap_admin_read_primary() if not on_primary else uldap_admin_read_local()
-        UCSUser.test_bind(ldap=uldap, dn=bind_dn, password=bind_pw)
+        # UCSUser.test_bind() always binds against `session.server_host` and ignores the
+        # `primary` flag of the LdapRead it is given, so point the connection settings at
+        # the primary instead. Binding locally on a backup fails until the user has been
+        # replicated into its LDAP.
+        conf = uldap_conf()
+        if conf.primary_fqdn and conf.primary_fqdn != conf.host_fqdn:
+            conf = conf.copy(
+                update={
+                    "host_fqdn": conf.primary_fqdn,
+                    "host_port": conf.primary_port or conf.host_port,
+                }
+            )
+        UCSUser.test_bind(ldap=LdapRead(settings=conf, admin=True), dn=bind_dn, password=bind_pw)
         logger.debug("Login success.")
 
     return _func

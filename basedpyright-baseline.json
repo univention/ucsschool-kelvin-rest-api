@@ -7231,7 +7231,7 @@
                 "code": "reportUnusedCallResult",
                 "range": {
                     "startColumn": 8,
-                    "endColumn": 67,
+                    "endColumn": 97,
                     "lineCount": 1
                 }
             },
