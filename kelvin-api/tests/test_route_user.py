@@ -18,6 +18,7 @@ from ldap.filter import filter_format
 from pydantic import HttpUrl, error_wrappers
 from uldap3 import BindError
 from uldap3.exceptions import ModifyError as UModifyError, NoObject as UNoObject
+from utils import wait_for_s4
 
 import ucsschool.kelvin.constants
 import univention.admin.uldap
@@ -185,21 +186,6 @@ def compare_ldap_json_obj(dn, json_resp, url_fragment):  # noqa: C901
                     assert ldap_obj[k][0].decode("utf-8") == v
                 if type(v) is int:
                     assert int(ldap_obj[k][0].decode("utf-8")) == v
-
-
-# Some tests need to wait for changes from s4, which runs every 5 seconds and first modifies
-# the samba entry and then afterward again the ldap entry - especially if changes happen to "disabled"
-# and "expiration_date". This waits either `max_time` seconds or until the ldap entry was changed again
-async def wait_for_s4(dn: str, max_time: int = 15) -> None:
-    lo = univention.admin.uldap.getAdminConnection()[0]
-    last_mod = lo.get(dn, attr=["modifyTimestamp"])
-    time = 0
-    while time <= max_time:
-        time += 1
-        await asyncio.sleep(1)
-        cur_mod = lo.get(dn, attr=["modifyTimestamp"])
-        if cur_mod != last_mod:
-            return
 
 
 @pytest.fixture
@@ -1481,7 +1467,6 @@ async def test_patch(
     school = await create_ou_using_python()
     user: ImportUser = await new_import_user(school, role.name, disabled=False)
     await check_password(user.dn, user.password)
-    await wait_for_s4(user.dn)
     logger.debug("OK: can login with old password")
     old_user_data = import_user_to_create_model_kwargs(user)
     user_create_model = await random_user_create_model(

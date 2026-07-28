@@ -35,6 +35,7 @@ from tenacity import (
     wait_fixed,
 )
 from uldap3 import UCSUser
+from utils import ldap_modify_timestamps, wait_for_s4
 
 import ucsschool.kelvin.config
 import ucsschool.kelvin.constants
@@ -521,6 +522,9 @@ def create_random_users(
         ou_name: str, roles: Dict[str, int], **data_kwargs
     ) -> List[UserCreateModel]:
         users = []
+        # Take the baseline right after each creation, so that an s4 round trip
+        # finishing while the remaining users are created is not missed.
+        s4_baselines: Dict[str, Any] = {}
         if "school" not in data_kwargs:
             data_kwargs["school"] = f"{url_fragment}/schools/{ou_name}"
         for role, amount in roles.items():
@@ -546,8 +550,10 @@ def create_random_users(
                     user_data.roles,
                     user_data.dict(),
                 )
+                s4_baselines.update(ldap_modify_timestamps([response.json()["dn"]]))
                 users.append(user_data)
                 schedule_delete_user_name_using_udm(user_data.name)
+        await wait_for_s4(s4_baselines)
         return users
 
     return _create_random_users
@@ -608,6 +614,7 @@ def new_import_user(new_school_user, udm_kwargs):
         **school_user_kwargs,
     ) -> ImportUser:
         lib_user: User = await new_school_user(school, role, udm_properties, **school_user_kwargs)
+        await wait_for_s4(lib_user.dn)
         async with UDM(**udm_kwargs) as udm:
             user = await ImportUser.from_dn(lib_user.dn, school, udm)
             user.password = lib_user.password
@@ -675,6 +682,7 @@ async def new_school_class_using_lib(ldap_base, new_school_class_using_lib_obj, 
             created_school_classes.append(sc.dn)
             logger.debug("Created new SchoolClass: %r", sc)
 
+        await wait_for_s4(sc.dn)
         return sc.dn, sc.to_dict()
 
     yield _func
@@ -713,6 +721,7 @@ async def new_workgroup_using_lib(ldap_base, new_workgroup_using_lib_obj, udm_kw
             created_workgroups.append(wg.dn)
             logger.debug("Created new WorkGroup: %r", wg)
 
+        await wait_for_s4(wg.dn)
         return wg.dn, wg.to_dict()
 
     yield _func
