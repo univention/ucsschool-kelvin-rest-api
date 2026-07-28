@@ -36,7 +36,10 @@ fi
 
 if [[ "$SKIP_UCSSCHOOL_KELVIN_DB_MIGRATION" != "true" ]]; then
     echo "Migration log:" >&2
-    alembic --config pyproject.toml upgrade head
+    if ! alembic --config pyproject.toml upgrade head; then
+        echo "ERROR: database migration failed, exiting" >&2
+        exit 1
+    fi
     echo "... migration done" >&2
 fi
 
