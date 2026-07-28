@@ -24,7 +24,7 @@ Main flow
 1. Actor submits object data
 2. System validates input data
 3. System verifies that actor has permission to update the objects
-4. System deletes object records from database
+4. System updates object records in database
 5. System publishes ``object.updated`` event for each object
 6. Sync service receives event and updates objects in directory service
 
@@ -61,7 +61,7 @@ Sequence diagram
 .. mermaid::
 
    sequenceDiagram
-       Admin ->>API: DELETE /<object>/bulk
+       Admin ->>API: PATCH /<object>/bulk
        API ->>API: Validate input
        break ValidationError
            API ->>Admin: 422 Unprocessable Content
@@ -70,12 +70,12 @@ Sequence diagram
        break PermissionError
            API ->>Admin: 403 Forbidden
        end
-       API ->>PostgreSQL: Delete object
+       API ->>PostgreSQL: Update object
        break IntegrityError
            API ->>Admin: 409 Conflict
        end
-       API ->>MessageBroker: Publish object.deleted events
+       API ->>MessageBroker: Publish object.updated events
        API ->>Admin: 200 OK
 
-       MessageBroker ->> SyncService: object.deleted
-       SyncService ->> DirectoryService: Delete objects
+       MessageBroker ->> SyncService: object.updated
+       SyncService ->> DirectoryService: Update objects

@@ -23,7 +23,7 @@ Preconditions
 
 Main flow
 ^^^^^^^^^
-1. Actor submits object ids
+1. Actor submits object data
 2. System validates input data
 3. System verifies that actor has permission to create the objects
 4. System creates object records in database
