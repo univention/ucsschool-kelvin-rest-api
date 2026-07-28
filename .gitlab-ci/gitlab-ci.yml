@@ -26,11 +26,67 @@ include:
   - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.8.0"
     inputs:
       stage: tests
+  # The two image builds. Version baked into the image: 0.0.0 on feature
+  # branches, 999.0.0 on main, the release tag on tags. The "release-" tag
+  # prefix is stripped by the version regex in ucsschool/kelvin/__init__.py.
+  # On tags the image goes to the public registry, while the build cache stays
+  # in the GitLab registry (cache_image).
+  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/buildkit@2"
+    inputs:
+      job_name: "build_docker_image_kelvin"
+      stage: build
+      dockerfile_path: "docker/Dockerfile"
+      build_target: "kelvin-prod"
+      image_name: "kelvin"
+      image_tag_env_name: "IMAGE_TAG_KELVIN"
+      registry_image: "$CI_REGISTRY_IMAGE/ucsschool-kelvin-rest-api"
+      cache_image: "$CI_REGISTRY_IMAGE/ucsschool-kelvin-rest-api/cache"
+      build_args: |
+        app_id=$APP_ID
+        commit=$CI_COMMIT_SHA
+        date=$CI_JOB_STARTED_AT
+        KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION
+      job_rules:
+        - if: "$CI_COMMIT_TAG"
+          variables:
+            REGISTRY: "artifacts.software-univention.de"
+            REGISTRY_IMAGE: "$REGISTRY/ucsschool/ucsschool-kelvin-rest-api"
+            KELVIN_BUILD_VERSION: "$CI_COMMIT_TAG"
+        - if: $CI_MERGE_REQUEST_ID
+          variables:
+            KELVIN_BUILD_VERSION: "0.0.0"
+        - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+          variables:
+            KELVIN_BUILD_VERSION: "999.0.0"
+  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/buildkit@2"
+    inputs:
+      job_name: "build_docker_image_connector"
+      stage: build
+      dockerfile_path: "docker/Dockerfile"
+      build_target: "connector-prod"
+      image_name: "connector"
+      image_tag_env_name: "IMAGE_TAG_CONNECTOR"
+      registry_image: "$CI_REGISTRY_IMAGE/ucsschool-kelvin-connector"
+      cache_image: "$CI_REGISTRY_IMAGE/ucsschool-kelvin-connector/cache"
+      build_args: |
+        app_id=$APP_ID
+        commit=$CI_COMMIT_SHA
+        date=$CI_JOB_STARTED_AT
+        KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION
+      job_rules:
+        - if: "$CI_COMMIT_TAG"
+          variables:
+            REGISTRY: "artifacts.software-univention.de"
+            REGISTRY_IMAGE: "$REGISTRY/ucsschool/ucsschool-kelvin-connector"
+            KELVIN_BUILD_VERSION: "$CI_COMMIT_TAG"
+        - if: $CI_MERGE_REQUEST_ID
+          variables:
+            KELVIN_BUILD_VERSION: "0.0.0"
+        - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+          variables:
+            KELVIN_BUILD_VERSION: "999.0.0"
   - project: "univention/dev/docs/sphinx-docker"
     file: "pipeline/sphinx.yml"
-  - project: univention/infrastructure/docker-services
-    file:
-      - kaniko.yml
   - project: univention/dev/tooling/ci-components
     file:
       - fragments/misc.yaml
@@ -216,54 +272,6 @@ pages:
   artifacts:
     paths:
       - public
-
-build_docker_image_kelvin:
-  stage: build
-  rules:
-    - if: "$CI_COMMIT_TAG"
-      variables:
-        REGISTRY: "artifacts.software-univention.de"
-        REGISTRY_IMAGE: "$REGISTRY/ucsschool/ucsschool-kelvin-rest-api"
-        KELVIN_BUILD_VERSION: "$CI_COMMIT_TAG"
-    - if: $CI_MERGE_REQUEST_ID
-    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
-      variables:
-        KELVIN_BUILD_VERSION: "999.0.0"
-  extends: .kaniko
-  variables:
-    # Version baked into the image: 0.0.0 on feature branches (this default),
-    # 999.0.0 on main, the release tag on tags (see rules above). The "release-"
-    # tag prefix is stripped by the version regex in ucsschool/kelvin/__init__.py.
-    KELVIN_BUILD_VERSION: "0.0.0"
-    IMAGE_TAG_ENV_NAME: "IMAGE_TAG_KELVIN"
-    KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/"
-    DOCKERFILE_PATH: docker/Dockerfile
-    CI_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE/ucsschool-kelvin-rest-api
-    KANIKO_ARGS: --target kelvin-prod --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg KELVIN_BUILD_VERSION="$KELVIN_BUILD_VERSION" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
-
-build_docker_image_connector:
-  stage: build
-  rules:
-    - if: "$CI_COMMIT_TAG"
-      variables:
-        REGISTRY: "artifacts.software-univention.de"
-        REGISTRY_IMAGE: "$REGISTRY/ucsschool/ucsschool-kelvin-connector"
-        KELVIN_BUILD_VERSION: "$CI_COMMIT_TAG"
-    - if: $CI_MERGE_REQUEST_ID
-    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
-      variables:
-        KELVIN_BUILD_VERSION: "999.0.0"
-  extends: .kaniko
-  variables:
-    # Version baked into the image: 0.0.0 on feature branches (this default),
-    # 999.0.0 on main, the release tag on tags (see rules above). The "release-"
-    # tag prefix is stripped by the version regex in ucsschool/kelvin/__init__.py.
-    KELVIN_BUILD_VERSION: "0.0.0"
-    IMAGE_TAG_ENV_NAME: "IMAGE_TAG_CONNECTOR"
-    KANIKO_BUILD_CONTEXT: "$CI_PROJECT_DIR/"
-    DOCKERFILE_PATH: docker/Dockerfile
-    CI_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE/ucsschool-kelvin-connector
-    KANIKO_ARGS: --target connector-prod --build-arg app_id="$APP_ID" --build-arg commit="$CI_COMMIT_SHA" --build-arg KELVIN_BUILD_VERSION="$KELVIN_BUILD_VERSION" --build-arg date="$CI_JOB_STARTED_AT" --cache=true --cache-repo $CI_REGISTRY_IMAGE/cache --cache-copy-layers
 
 build_changelog_html:
   stage: build
