@@ -75560,14 +75560,6 @@
             {
                 "code": "reportReturnType",
                 "range": {
-                    "startColumn": 11,
-                    "endColumn": 70,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportReturnType",
-                "range": {
                     "startColumn": 32,
                     "endColumn": 36,
                     "lineCount": 1
