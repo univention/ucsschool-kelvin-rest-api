@@ -60,7 +60,7 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
             "DEMOSCHOOL2": ["demoworkgroup2"]
         },
         "source_uid": "Kelvin",
-        "legal_guardians": ["uid=demo_parent,cn=sorgeberechtigte,cn=users,ou=DEMOSCHOOL,dc=uni,dc=ven"],
+        "legal_guardians": ["https://<fqdn>/ucsschool/kelvin/v1/users/demo_parent"],
         "legal_wards": [],
         "udm_properties": {
             "description": "An example user attending two school.",
@@ -96,8 +96,8 @@ The following JSON is an example User resource in the *UCS\@school Kelvin REST A
     "source_uid", "string", "Identifier of the upstream database the user was imported from. Defaults to ``Kelvin`` if unset.", "changing is strongly discouraged"
     "ucsschool_roles", "list", "List of ucsschool_roles strings auto-managed by the system and custom addition ucsschool_roles strings . ucsschool_role strings with context type school are ignored. Format is ``ROLE:CONTEXT_TYPE:CONTEXT``, for example: ``['"'myrole:mycontext:gym1'"', '"'student:school:gym1'"']``."
     "udm_properties", "nested object", "Object with UDM properties. For example: ``{'"'street'"': '"'Luise Av.'"', '"'phone'"': ['"'+49 30 321654987'"', '"'123 456 789'"']}``", "Must be configured, see below."
-    "legal_guardians", "list", "The users legal guardians. A list of URLs in the ``users`` resource.", ""
-    "legal_wards", "list", "The users legal wards. A list of URLs in the ``users`` resource.", ""
+    "legal_guardians", "list", "The legal guardians of a student. A list of URLs in the ``users`` resource.", "Only for the ``student`` role, see :ref:`users-legal-guardians`."
+    "legal_wards", "list", "The students that a legal guardian is responsible for. A list of URLs in the ``users`` resource.", "Only for the ``legal_guardian`` role, see :ref:`users-legal-guardians`."
 
 The ``password`` and ``kelvin_password_hashes`` attributes are not listed, because they cannot be retrieved, they can only be *set* when creating or modifying a user.
 UCS systems never store or send clear text passwords.
@@ -155,6 +155,33 @@ The attribute ``udm_properties`` is an object that can contain arbitrary UDM pro
 It must be configured in the file :file:`/var/lib/ucs-school-import/configs/kelvin.json`, or :file:`/etc/ucsschool/kelvin/mapped_udm_properties.json`;
 see :ref:`Configuration of user object management (import configuration)` and :ref:`configuration-udm-properties`.
 It must not contain UDM properties that are already available as regular attributes (like ``username`` → ``name``, ``mailPrimaryAddress`` → ``email``, ...).
+
+.. _users-legal-guardians:
+
+legal_guardians and legal_wards
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The ``legal_guardians`` attribute of a student holds the legal guardians of that student.
+The ``legal_wards`` attribute of a legal guardian holds the students that the guardian is responsible for.
+Each value in a request is either a username or a URL in the ``users`` resource.
+Responses always contain URLs.
+
+Set one direction of the relation.
+The API maintains the other one.
+The following request assigns the guardian ``demo_parent`` to the student ``demo_student``
+and adds ``demo_student`` to the ``legal_wards`` attribute of ``demo_parent``:
+
+.. code-block:: console
+
+    $ curl -i -k -X PATCH "https://<fqdn>/ucsschool/kelvin/v1/users/demo_student" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJh...." \
+        -d '{"legal_guardians": ["demo_parent"]}'
+
+Both attributes replace the complete list.
+An empty list in a PATCH request removes all guardians or wards, omitting the attribute keeps them.
+A student has at most 4 legal guardians, a legal guardian at most 10 legal wards.
+The API answers with HTTP ``400`` for an exceeded limit, for a username it can't resolve,
+and for an attribute set on a user with a different role.
 
 
 Users list and search
@@ -332,6 +359,7 @@ As an example, with the following being the content of :file:`/tmp/create_user.j
 
    The attribute ``legal_guardians`` can only be non-empty if the users role is ``student`` and
    the attribute ``legal_wards`` can only be non-empty if the users role is ``legal_guardian``.
+   For more information about both attributes, see :ref:`users-legal-guardians`.
 
 This ``curl`` command will create a user from the above data:
 
