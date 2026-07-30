@@ -10,6 +10,7 @@ ENV PIPX_BIN_DIR="/usr/local/bin"
 
 ARG UID=1000
 ARG GID=1000
+ARG BASEDPYRIGHT_VERSION=1.39.8
 
 RUN apt-get update && \
     apt-get install -y \
@@ -21,6 +22,7 @@ RUN apt-get update && \
       libldap2-dev \
       libsasl2-dev && \
     pipx install uv && \
+    pipx install "basedpyright==${BASEDPYRIGHT_VERSION}" && \
     groupadd --gid "${GID}" precommit && \
     useradd --create-home --shell /bin/bash --uid "${UID}" --gid "${GID}" precommit
 

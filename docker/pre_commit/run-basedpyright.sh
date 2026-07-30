@@ -72,6 +72,5 @@ docker run --rm \
 
       mkdir -p \"\$UV_CACHE_DIR\" \"\$HOME\" \"\$XDG_CACHE_HOME\" \"\$XDG_DATA_HOME\"
       uv sync --dev
-      uv pip install --python \$UV_PROJECT_ENVIRONMENT basedpyright==1.39.8
-      uv run --python 3.11 basedpyright --project pyrightconfig.json --pythonpath \$UV_PROJECT_ENVIRONMENT/bin/python $baseline_arg$args
+      basedpyright --project pyrightconfig.json --pythonpath \$UV_PROJECT_ENVIRONMENT/bin/python $baseline_arg$args
     "
