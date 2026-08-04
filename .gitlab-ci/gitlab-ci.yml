@@ -23,8 +23,9 @@ include:
           optional: true
         - job: build_changelog_html
       appcenter_file_dir: "appcenter/"
-  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.8.0"
+  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.13.1"
     inputs:
+      clear_previous_comments: true
       stage: tests
   # The two image builds. Version baked into the image: 0.0.0 on feature
   # branches, 999.0.0 on main, the release tag on tags. The "release-" tag
