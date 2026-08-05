@@ -19,11 +19,11 @@ This is a major release of the UCS\@school Kelvin REST API application that intr
    Version 1 is unaffected by the changes described below and continues to work as before.
    Unless a difference is noted here, the version 2 API behaves like version 1.
 
-* Added: Version 2 of the Kelvin API. Unlike version 1, which reads every request live from LDAP/UDM, version 2 serves read and search requests from a PostgreSQL-backed database (the *Kelvin DB*) that is kept in sync via the Provisioning API. This improves performance for read-heavy workloads and gives more control over indexing and data integrity, at the cost of new infrastructure and eventual consistency.
-* Added: A new Kelvin connector that subscribes to the Provisioning API and mirrors schools, groups and users into the Kelvin DB that backs the version 2 API. The connector currently runs only on the Primary Directory Node. Consequently, for the version 2 API to work on a Backup Directory Node, Kelvin must also be installed on the Primary Directory Node.
+* Added: Version 2 of the Kelvin API. Unlike version 1, which reads every request live from LDAP/UDM, version 2 serves read and search requests from a PostgreSQL-backed database (the *Kelvin DB*) that is kept in sync via the Provisioning Service API. This improves performance for read-heavy workloads and gives more control over indexing and data integrity, at the cost of new infrastructure and eventual consistency.
+* Added: A new Kelvin connector that subscribes to the Provisioning Service API and mirrors schools, groups and users into the Kelvin DB that backs the version 2 API. The connector currently runs only on the Primary Directory Node. Consequently, for the version 2 API to work on a Backup Directory Node, Kelvin must also be installed on the Primary Directory Node.
 * Added: Versioned API routing for ``/ucsschool/kelvin/v1`` and ``/ucsschool/kelvin/v2`` with separate OpenAPI documents and docs endpoints. The service docs at ``/ucsschool/kelvin/docs`` now provide a landing page to switch between both API versions.
-* Changed: New dependencies are required for version 2. The UCS host must be updated to at least UCS ``5.2-6 errata515``. PostgreSQL is installed automatically as an app dependency, and the **Provisioning Service** app must be present in the domain. The Provisioning Service is *not* installed automatically; Kelvin's ``preinst`` checks for it and aborts the installation or upgrade early with an actionable message if it is missing.
-* Added: New configuration options for the version 2 stack, covering the Kelvin DB connection and the Provisioning API subscription used to keep it in sync.
+* Changed: New dependencies are required for version 2. The UCS host must be updated to at least UCS ``5.2-6 errata515``. PostgreSQL is installed automatically as an app dependency, and the **Provisioning Service** app must be present in the domain. The Provisioning Service is *not* installed automatically; Kelvin's ``preinst`` checks for it and aborts the installation or upgrade early with an actionable message if it is missing. Please read the section "Upgrade instructions" below for further advice.
+* Added: New configuration options for the version 2 stack, covering the Kelvin DB connection and the Provisioning Service API subscription used to keep it in sync.
 * **Breaking change (version 2 endpoints only):** Python hooks are **not** executed on read requests in version 2. Write hooks still run for now but may be removed in a future release. Version 1 continues to run all hooks as before.
 * Fixed: The join script failed silently to copy the host's UCR variables into the Docker container.
 * Note: Reads in version 2 are eventually consistent. After a write it can take a moment (usually in the range of 1 to 2 seconds) for the Kelvin DB to reflect the change.
@@ -34,7 +34,8 @@ This is a major release of the UCS\@school Kelvin REST API application that intr
 
 Before installing or upgrading Kelvin to version 4, update the UCS host to at least UCS ``5.2-6 errata515``.
 
-Then install the Provisioning Service app in the domain, for example on the Primary Directory Node:
+The Provisioning Service app must be installed on the Primary Directory Node **and** on the same system on which the Kelvin API is or will be running.
+Complete the Provisioning Service app installation on those systems before installing or updating Kelvin, for example, using the following command:
 
 .. code-block:: console
 
