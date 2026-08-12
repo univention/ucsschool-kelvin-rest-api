@@ -106,8 +106,6 @@ stages:
   - release
   - cleanup
 
-# todo: add renovate
-
 variables:
   APP_BASE_VERSION: "999.0.0-staging"
   APP_UCS_VERSION: "5.2"
