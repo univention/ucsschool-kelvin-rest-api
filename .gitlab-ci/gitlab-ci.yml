@@ -92,7 +92,10 @@ include:
       - fragments/misc.yaml
       - fragments/appcenter.yaml
       - fragments/openstack.yaml
-  - local: .gitlab-ci/SonarQube.yml
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/sonarqube@2.12.0
+    inputs:
+      job_name: "build-sonar"
+      stage: build
 
 stages:
   - prepare
