@@ -19,7 +19,7 @@ workflow:
     - if: $RUN_RENOVATE == "yes"
 
 include:
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage-basedpyright@main
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage-basedpyright@2.12.0
     inputs:
       pipeline_stage: build
       python_paths: .
