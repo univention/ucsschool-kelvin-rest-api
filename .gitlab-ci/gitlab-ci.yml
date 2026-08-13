@@ -209,30 +209,18 @@ docs-merge-to-one-artifact:
     - job: docs-linkcheck
       artifacts: false
   rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-      changes:
+    - changes:
         - $DOCS_DIR/**/*
         - kelvin-api/changelog.rst
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
-      when: manual
 
 docs-review:
   extends: .sphinx-review-template
   needs:
     - job: docs-merge-to-one-artifact
   rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-      changes:
+    - changes:
         - $DOCS_DIR/**/*
         - kelvin-api/changelog.rst
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
-      when: manual
 
 # The template has inherit:variables:false to prevent the passing of pipeline
 # variables to downstream, and therefore $DOCS_DIR is not available here.
