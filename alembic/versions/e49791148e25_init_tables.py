@@ -14,12 +14,12 @@ The trigram indexes cover the fixed set of columns used for indexed
 case-insensitive wildcard search (`ILIKE`): user.name, user.firstname,
 user.lastname, user.email, school.name, group.name.
 
-Uses plain `CREATE INDEX` (not `CONCURRENTLY`) deliberately, matching this
-migration's raw-DDL style. This briefly locks writes to the affected tables
-while the indexes are built. Deployments with very large `user`/`school`/`group`
-tables should evaluate switching to `CREATE INDEX CONCURRENTLY` via
-`op.get_context().autocommit_block()` before running this in production,
-and validate that against the advisory-lock context manager in `alembic/env.py`.
+Uses plain `CREATE INDEX` (not `CONCURRENTLY`) deliberately. This briefly
+locks writes to the affected tables while the indexes are built. Deployments
+with very large `user`/`school`/`group` tables should evaluate switching to
+`CREATE INDEX CONCURRENTLY` via `op.get_context().autocommit_block()` before
+running this in production, and validate that against the advisory-lock
+context manager in `alembic/env.py`.
 
 Revision ID: e49791148e25
 Revises:
@@ -290,19 +290,22 @@ def upgrade() -> None:
     )
     # ### end Alembic commands ###
     op.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+    # GIN trigram indexes for case-insensitive wildcard (ILIKE) search.
     for index_name, table, column in _TRGM_INDEXES:
-        op.execute(
-            sa.text(
-                f"CREATE INDEX IF NOT EXISTS {index_name} "
-                f'ON "{table}" USING gin ("{column}" gin_trgm_ops)'
-            )
+        op.create_index(
+            index_name,
+            table,
+            [column],
+            if_not_exists=True,
+            postgresql_using="gin",
+            postgresql_ops={column: "gin_trgm_ops"},
         )
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    for index_name, _table, _column in _TRGM_INDEXES:
-        op.execute(sa.text(f"DROP INDEX IF EXISTS {index_name}"))
+    for index_name, table, _column in _TRGM_INDEXES:
+        op.drop_index(index_name, table_name=table, if_exists=True)
     # Intentionally not dropping the pg_trgm extension: a future dynamic
     # UDM-property-index migration may depend on it, and migrations run
     # linearly, so dropping a shared extension here is unsafe.

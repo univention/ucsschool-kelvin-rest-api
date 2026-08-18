@@ -182,10 +182,14 @@ enables the ``pg_trgm`` extension:
 
    op.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
    for index_name, table, column in _TRGM_INDEXES:
-       op.execute(sa.text(
-           f"CREATE INDEX IF NOT EXISTS {index_name} "
-           f'ON "{table}" USING gin ("{column}" gin_trgm_ops)'
-       ))
+       op.create_index(
+           index_name,
+           table,
+           [column],
+           if_not_exists=True,
+           postgresql_using="gin",
+           postgresql_ops={column: "gin_trgm_ops"},
+       )
 
 Without these indexes, ``ILIKE '%substr%'`` forces sequential scans; with them
 PostgreSQL can index-scan.
@@ -208,11 +212,6 @@ The physical schema is evolved with `Alembic <https://alembic.sqlalchemy.org/>`_
 * Migration scripts live in ``alembic/versions/``. After the squash into a
   single init revision there is **exactly one** revision
   (``e49791148e25_init_tables.py``, ``down_revision = None``).
-
-.. note::
-
-   The ``v2`` Kelvin DB is not yet deployed in production, so the initial migration
-   is still edited in place rather than layered with follow-up revisions.
 
 Generate a migration
 ^^^^^^^^^^^^^^^^^^^^^^
