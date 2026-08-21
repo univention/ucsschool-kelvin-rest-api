@@ -67,9 +67,16 @@ include:
 #
 # Not part of the component: publishing to a project's own Pages site is the one
 # thing the projects using it do differently, so it stays with the project.
-pages:
+#
+# The 'pages' keyword is what makes this a Pages job. It used to be the name:
+# a job called 'pages' was one by definition, which is deprecated, and left the
+# name load bearing -- renaming the job would silently have stopped publishing.
+# With the keyword the name is free, so it says what the job does.
+docs-pages:
   stage: production
   image: $SPHINX_BASE
+  pages:
+    publish: public
   needs:
     - job: "docs:html"
       artifacts: true
