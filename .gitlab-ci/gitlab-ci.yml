@@ -44,6 +44,9 @@ include:
       # is usually absent -- harmless, because allure only fails when *none* of
       # its patterns match anything.
       results_paths: "allure-results results"
+      # A nightly fills the history faster than the default 20 runs cover:
+      # keep about two months of trend instead of three weeks.
+      history_limit: "60"
       report_rules:
         - if: $CI_PIPELINE_SOURCE == "schedule"
           when: always
@@ -184,6 +187,10 @@ devdocs-html:
   variables:
     DOCS_DIR: $DEV_DOCS_DIR
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, so this
+    # would run every night with no change behind it.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - changes:
         - $DEV_DOCS_DIR/**/*
 
@@ -205,6 +212,10 @@ devdocs-linkcheck:
     DOCS_DIR: $DEV_DOCS_DIR
     GIT_DEPTH: 100
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, so this
+    # would run every night with no change behind it.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - changes:
         - $DEV_DOCS_DIR/**/*
 
@@ -213,12 +224,20 @@ devdocs-spelling:
   variables:
     DOCS_DIR: $DEV_DOCS_DIR
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, so this
+    # would run every night with no change behind it.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - changes:
         - $DEV_DOCS_DIR/**/*
 
 docs-html:
   extends: .sphinx-html-template
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, so this
+    # would run every night with no change behind it.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - changes:
         - $DOCS_DIR/**/*
         - kelvin-api/changelog.rst
@@ -228,6 +247,10 @@ docs-pdf:
   variables:
     GIT_DEPTH: 100
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, so this
+    # would run every night with no change behind it.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - changes:
         - $DOCS_DIR/**/*
         - kelvin-api/changelog.rst
@@ -237,6 +260,10 @@ docs-linkcheck:
   variables:
     GIT_DEPTH: 100
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, so this
+    # would run every night with no change behind it.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - changes:
         - $DOCS_DIR/**/*
         - kelvin-api/changelog.rst
@@ -244,6 +271,10 @@ docs-linkcheck:
 docs-spelling:
   extends: .sphinx-spelling-template
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, so this
+    # would run every night with no change behind it.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - changes:
         - $DOCS_DIR/**/*
         - kelvin-api/changelog.rst
@@ -290,6 +321,10 @@ docs-create-production-merge-request:
   needs:
     - job: docs-merge-to-one-artifact
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, and this has an
+    # effect outside it: opening a merge request against the production docs.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
       changes:
         - doc/docs/**/*
@@ -312,6 +347,11 @@ pages:
   variables:
     BUILDDIR: "_build/$language"
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, and this has an
+    # effect outside it: republishing the documentation and recording a
+    # production deployment.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - $DOCS_DIR/**/*
@@ -340,8 +380,16 @@ integration-tests:
   needs:
     - create_app_version
     - update_appcenter
-  when: manual
-  allow_failure: True
+  # Automatic in the nightly schedule, manual everywhere else. Three hours of
+  # OpenStack per run is too much for every push to main -- 20 pipelines in the
+  # last 30 days, five of them on a single day -- and an automatic job holds up
+  # every later stage until it finishes, the release jobs included. One evenly
+  # spaced run a night is also what the Allure trend wants, and its results
+  # reach the report through plain stage ordering, with nothing to retry.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - when: manual
+      allow_failure: true
   variables:
     TARGET_VERSION: "5.2-6"
     OPENSTACK_CFG_FILE: ".gitlab-ci/branch_tests.cfg"
@@ -536,6 +584,10 @@ ucs_test_deb_lint:
   variables:
     GIT_DEPTH: 100
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, so this
+    # would run every night with no change behind it.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - changes:
         - ucs-test-ucsschool-kelvin/**/*
   image:
@@ -572,6 +624,10 @@ ucs_test_deb_repo_import:
   variables:
     GIT_STRATEGY: none
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, and this has an
+    # effect outside it: importing the package into the build repository.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - ucs-test-ucsschool-kelvin/debian/changelog
@@ -595,6 +651,10 @@ ucs_test_deb_repo_build:
   variables:
     GIT_STRATEGY: none
   rules:
+    # 'rules: changes' always matches in a scheduled pipeline, and this has an
+    # effect outside it: building the package on the build system.
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes:
         - ucs-test-ucsschool-kelvin/debian/changelog
