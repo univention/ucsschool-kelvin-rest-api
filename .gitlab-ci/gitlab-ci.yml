@@ -26,7 +26,10 @@ include:
   - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.13.1"
     inputs:
       clear_previous_comments: true
-      stage: tests
+      # Eleven jobs -- a prepare, six lenses, a consolidate, a post and two
+      # validations -- so they get a stage of their own rather than sitting
+      # among the test jobs.
+      stage: review
   # Allure test report. The four pytest jobs all write into one
   # 'allure-results' at the project root, so one report covers every suite.
   #
@@ -151,6 +154,7 @@ stages:
   - prepare
   - build
   - tests
+  - review
   - report
   - publish
   - merge
