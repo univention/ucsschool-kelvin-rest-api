@@ -463,9 +463,16 @@ ucs_test_deb_repo_import:
   tags:
     - omar
   script:
+    # '--force' so that importing a revision already in the repository is a
+    # no-op rather than an error. Without it the job dies on
+    # 'AlreadyImported', which is what happens whenever it runs without the
+    # changelog having moved -- a manual pipeline, for instance, where
+    # 'rules: changes' matches everything. This repository's own
+    # 'debian-package' component has always passed it.
     - >
         repo_admin.py
         -G $CI_REPOSITORY_URL
+        --force
         -b $CI_COMMIT_BRANCH
         -P ucs-test-ucsschool-kelvin
         -r ${UCS_RELEASE}-0-0
