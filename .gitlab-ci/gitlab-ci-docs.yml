@@ -77,20 +77,24 @@ docs-pages:
   image: $SPHINX_BASE
   pages:
     publish: public
+  # Both build jobs, and the directory they share. 'docs:html' rsyncs the pages
+  # into 'out/<target>' and 'docs:pdf' copies the PDF in beside them, so their
+  # artifacts land on top of each other and 'out/<target>' is the complete site.
+  #
+  # Publishing the HTML alone left the PDF out, and conf.py sets
+  # 'pdf_download_filename', so every page carried a download link to a file
+  # that was not there.
   needs:
     - job: "docs:html"
       artifacts: true
-  variables:
-    # 'DOCS_DIR' is set per job by the component now, not globally, so this job
-    # carries its own.
-    DOCS_DIR: "doc/docs"
-    BUILDDIR: "_build/$language"
+    - job: "docs:pdf"
+      artifacts: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       changes: *docs_changes
   script:
     - rm -rf public
-    - mv "$DOCS_DIR/$BUILDDIR/html" public
+    - mv "out/$APP_ID" public
   artifacts:
     paths:
       - public
