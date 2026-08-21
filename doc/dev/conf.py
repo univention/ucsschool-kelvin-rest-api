@@ -59,6 +59,11 @@ extensions = [
     "sphinxcontrib.mermaid",
 ]
 
+# 'sphinx_last_updated_by_git' dates each page from the git history. CI
+# clones shallowly, so a page whose last change is older than the clone gets
+# no date and the extension warns about it; the warning is suppressed rather
+# than the clone deepened, because the dates are not worth a full clone on
+# every build. Set GIT_DEPTH to 0 on the documentation jobs if that changes.
 suppress_warnings = ["git.too_shallow"]
 
 intersphinx_mapping = {
