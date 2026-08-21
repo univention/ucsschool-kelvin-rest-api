@@ -100,6 +100,7 @@ dev = [
     "pyfakefs~=4.7.0",
     "tenacity>=9.1.2",
     "eralchemy[graphviz]>=1.6.0",
+    "allure-pytest>=2.16.0",
 ]
 
 [tool.ruff]

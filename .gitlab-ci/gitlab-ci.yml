@@ -27,6 +27,52 @@ include:
     inputs:
       clear_previous_comments: true
       stage: tests
+  # Allure test report. The four pytest jobs all write into one
+  # 'allure-results' at the project root, so one report covers every suite.
+  #
+  # All three jobs are gated on the same 'changes' list as those pytest jobs.
+  # Without that, a documentation-only merge request would create a report job
+  # with nothing to report on, and 'allure' exits non-zero when a results
+  # pattern matches nothing. 'changes' matches everything in a scheduled
+  # pipeline, which is what keeps the nightly complete.
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/allure@2.15.0
+    inputs:
+      report_stage: report
+      publish_stage: publish
+      # 'results' holds the JUnit files of 'integration-tests', which Allure
+      # reads as well as its own format. That job is manual, so the directory
+      # is usually absent -- harmless, because allure only fails when *none* of
+      # its patterns match anything.
+      results_paths: "allure-results results"
+      report_rules:
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+          when: always
+        - changes: &allure_test_paths
+            - "ucs-school-lib/**/*"
+            - "ucsschool-objects/**/*"
+            - "kelvin-connector/**/*"
+            - "kelvin-api/**/*"
+          when: always
+      # Only protected branches move the baseline, so a merge request is
+      # measured against main and leaves it where it was.
+      history_rules:
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+          when: always
+        - if: $CI_COMMIT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"
+          changes: *allure_test_paths
+          when: always
+      # Publishes next to the Sphinx site the 'pages' job puts at the Pages
+      # root: a deployment only replaces the ones with the same path prefix,
+      # and these carry 'allure-<ref>'.
+      pages_rules:
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+          when: always
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+          changes: *allure_test_paths
+          when: always
+        - if: $CI_COMMIT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"
+          changes: *allure_test_paths
+          when: always
   # The two image builds. Version baked into the image: 0.0.0 on feature
   # branches, 999.0.0 on main, the release tag on tags. The "release-" tag
   # prefix is stripped by the version regex in ucsschool/kelvin/__init__.py.
@@ -102,6 +148,8 @@ stages:
   - prepare
   - build
   - tests
+  - report
+  - publish
   - merge
   - production
   - release
@@ -303,6 +351,12 @@ integration-tests:
     - !reference [.run_openstack_cfg, script]
     - .gitlab-ci/parse_junit.py
   artifacts:
+    # 'paths' as well as 'reports', so that a retried 'allure:report' can read
+    # these results back and fold them into the report. 'when: always' because
+    # a failed integration run is the one worth looking at.
+    when: always
+    paths:
+      - results
     reports:
       junit: results/**/test-reports/**/*.xml
 
@@ -324,6 +378,7 @@ test ucs-school-lib:
         pytest -lvv
         --asyncio-mode=auto
         --junitxml=${CI_PROJECT_DIR}/report.xml
+        --alluredir=${CI_PROJECT_DIR}/allure-results
         --cov=ucsschool.lib
         --cov-report term-missing
         --cov-fail-under="$UCS_SCHOOL_LIB_COVERAGE_LIMIT"
@@ -331,6 +386,11 @@ test ucs-school-lib:
         ucsschool/lib/tests
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
+    # A failed run is the one the Allure report is wanted for, so the results
+    # have to be uploaded then too.
+    when: always
+    paths:
+      - allure-results
     reports:
       junit: report.xml
       coverage_report:
@@ -352,11 +412,17 @@ test ucsschool-objects:
     - >
         pytest -lvv
         --junitxml=${CI_PROJECT_DIR}/report.xml
+        --alluredir=${CI_PROJECT_DIR}/allure-results
         --cov-fail-under=100
         --cov-report xml:${CI_PROJECT_DIR}/coverage.xml
         .
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
+    # A failed run is the one the Allure report is wanted for, so the results
+    # have to be uploaded then too.
+    when: always
+    paths:
+      - allure-results
     reports:
       junit: report.xml
       coverage_report:
@@ -378,11 +444,17 @@ test kelvin-connector:
     - >
         pytest -lvv
         --junitxml=${CI_PROJECT_DIR}/report.xml
+        --alluredir=${CI_PROJECT_DIR}/allure-results
         --cov-fail-under=100
         --cov-report xml:${CI_PROJECT_DIR}/coverage.xml
         .
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
+    # A failed run is the one the Allure report is wanted for, so the results
+    # have to be uploaded then too.
+    when: always
+    paths:
+      - allure-results
     reports:
       junit: report.xml
       coverage_report:
@@ -406,6 +478,7 @@ test kelvin-api:
         pytest -lvv
         --asyncio-mode=auto
         --junitxml=${CI_PROJECT_DIR}/report.xml
+        --alluredir=${CI_PROJECT_DIR}/allure-results
         --cov=ucsschool.kelvin
         --cov-report term-missing
         --cov-fail-under="$KELVIN_COVERAGE_LIMIT"
@@ -413,6 +486,11 @@ test kelvin-api:
         tests
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
+    # A failed run is the one the Allure report is wanted for, so the results
+    # have to be uploaded then too.
+    when: always
+    paths:
+      - allure-results
     reports:
       junit: report.xml
       coverage_report:
