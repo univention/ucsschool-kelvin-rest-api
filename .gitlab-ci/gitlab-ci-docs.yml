@@ -1,0 +1,166 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# The documentation jobs: the developer documentation under $DEV_DOCS_DIR, the
+# user-facing documentation under $DOCS_DIR, and the two ways it is published --
+# 'pages' to this project's Pages site and
+# 'docs-create-production-merge-request' to docs.software-univention.de.
+#
+# Included from '.gitlab-ci/gitlab-ci.yml' into the same pipeline, so these jobs
+# share its stages and behave exactly as they did when they lived there.
+#
+# 'build_changelog_html' is deliberately not here: it feeds the app image and
+# the appcenter upload, not the documentation site.
+
+include:
+  - project: "univention/dev/docs/sphinx-docker"
+    file: "pipeline/sphinx.yml"
+
+variables:
+  DOCS_DIR: "doc/docs"
+  DEV_DOCS_DIR: "doc/dev"
+  DOC_TARGET_NAME: $APP_ID
+
+devdocs-html:
+  extends: .sphinx-html-template
+  variables:
+    DOCS_DIR: $DEV_DOCS_DIR
+  rules:
+    - changes:
+        - $DEV_DOCS_DIR/**/*
+
+# NOTE mmdc not available in sphinx builder. Dispatch a fix in the following ticket
+#      https://git.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api/-/issues/197
+#
+# devdocs-pdf:
+#   extends: .sphinx-pdf-template
+#   variables:
+#     DOCS_DIR: $DEV_DOCS_DIR
+#     GIT_DEPTH: 100
+#   rules:
+#     - changes:
+#         - $DEV_DOCS_DIR/**/*
+
+devdocs-linkcheck:
+  extends: .sphinx-linkcheck-template
+  variables:
+    DOCS_DIR: $DEV_DOCS_DIR
+    GIT_DEPTH: 100
+  rules:
+    - changes:
+        - $DEV_DOCS_DIR/**/*
+
+devdocs-spelling:
+  extends: .sphinx-spelling-template
+  variables:
+    DOCS_DIR: $DEV_DOCS_DIR
+  rules:
+    - changes:
+        - $DEV_DOCS_DIR/**/*
+
+docs-html:
+  extends: .sphinx-html-template
+  rules:
+    - changes:
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
+
+docs-pdf:
+  extends: .sphinx-pdf-template
+  variables:
+    GIT_DEPTH: 100
+  rules:
+    - changes:
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
+
+docs-linkcheck:
+  extends: .sphinx-linkcheck-template
+  variables:
+    GIT_DEPTH: 100
+  rules:
+    - changes:
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
+
+docs-spelling:
+  extends: .sphinx-spelling-template
+  rules:
+    - changes:
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
+
+docs-merge-to-one-artifact:
+  extends: .sphinx-merge-template
+  needs:
+    - job: docs-html
+    - job: docs-pdf
+    - job: docs-spelling
+      artifacts: false
+    - job: docs-linkcheck
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      changes:
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
+      when: manual
+
+docs-review:
+  extends: .sphinx-review-template
+  needs:
+    - job: docs-merge-to-one-artifact
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      changes:
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
+      when: manual
+
+# The template has inherit:variables:false to prevent the passing of pipeline
+# variables to downstream, and therefore $DOCS_DIR is not available here.
+docs-create-production-merge-request:
+  extends: .sphinx-docs-merge-request-template
+  needs:
+    - job: docs-merge-to-one-artifact
+  rules:
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      changes:
+        - doc/docs/**/*
+        - kelvin-api/changelog.rst
+    - if: "$CI_COMMIT_TAG"
+      changes:
+        - doc/docs/**/*
+        - kelvin-api/changelog.rst
+
+# Publish the user-facing documentation (including the changelog) to GitLab
+# Pages. Reuses the HTML built by docs-html and serves it from the default
+# branch. This is independent of docs-create-production-merge-request, which
+# publishes to docs.software-univention.de.
+pages:
+  stage: production
+  image: $SPHINX_BASE
+  needs:
+    - job: docs-html
+      artifacts: true
+  variables:
+    BUILDDIR: "_build/$language"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - $DOCS_DIR/**/*
+        - kelvin-api/changelog.rst
+  script:
+    - rm -rf public
+    - mv "$DOCS_DIR/$BUILDDIR/html" public
+  artifacts:
+    paths:
+      - public
