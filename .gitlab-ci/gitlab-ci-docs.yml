@@ -1,163 +1,86 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-# The documentation jobs: the developer documentation under $DEV_DOCS_DIR, the
-# user-facing documentation under $DOCS_DIR, and the two ways it is published --
-# 'pages' to this project's Pages site and
-# 'docs-create-production-merge-request' to docs.software-univention.de.
+# The documentation: the user-facing set under 'doc/docs' and the developer set
+# under 'doc/dev', both produced by the 'sphinx-docs' component, plus the
+# 'pages' job that publishes the user-facing HTML to this project's Pages site.
 #
-# Included from '.gitlab-ci/gitlab-ci.yml' into the same pipeline, so these jobs
-# share its stages and behave exactly as they did when they lived there.
+# The component brings the sphinx templates with it, pinned to a tag, so there
+# is no 'univention/dev/docs/sphinx-docker' include here any more.
+#
+# Included from '.gitlab-ci/gitlab-ci.yml' with a rule that keeps the whole file
+# out of scheduled pipelines: 'rules: changes' matches everything when there is
+# no commit to diff against, and a nightly must not republish the documentation.
 #
 # 'build_changelog_html' is deliberately not here: it feeds the app image and
 # the appcenter upload, not the documentation site.
 
 include:
-  - project: "univention/dev/docs/sphinx-docker"
-    file: "pipeline/sphinx.yml"
-
-variables:
-  DOCS_DIR: "doc/docs"
-  DEV_DOCS_DIR: "doc/dev"
-  DOC_TARGET_NAME: $APP_ID
-
-devdocs-html:
-  extends: .sphinx-html-template
-  variables:
-    DOCS_DIR: $DEV_DOCS_DIR
-  rules:
-    - changes:
-        - $DEV_DOCS_DIR/**/*
-
-# NOTE mmdc not available in sphinx builder. Dispatch a fix in the following ticket
-#      https://git.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api/-/issues/197
-#
-# devdocs-pdf:
-#   extends: .sphinx-pdf-template
-#   variables:
-#     DOCS_DIR: $DEV_DOCS_DIR
-#     GIT_DEPTH: 100
-#   rules:
-#     - changes:
-#         - $DEV_DOCS_DIR/**/*
-
-devdocs-linkcheck:
-  extends: .sphinx-linkcheck-template
-  variables:
-    DOCS_DIR: $DEV_DOCS_DIR
-    GIT_DEPTH: 100
-  rules:
-    - changes:
-        - $DEV_DOCS_DIR/**/*
-
-devdocs-spelling:
-  extends: .sphinx-spelling-template
-  variables:
-    DOCS_DIR: $DEV_DOCS_DIR
-  rules:
-    - changes:
-        - $DEV_DOCS_DIR/**/*
-
-docs-html:
-  extends: .sphinx-html-template
-  rules:
-    - changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
-
-docs-pdf:
-  extends: .sphinx-pdf-template
-  variables:
-    GIT_DEPTH: 100
-  rules:
-    - changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
-
-docs-linkcheck:
-  extends: .sphinx-linkcheck-template
-  variables:
-    GIT_DEPTH: 100
-  rules:
-    - changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
-
-docs-spelling:
-  extends: .sphinx-spelling-template
-  rules:
-    - changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
-
-docs-merge-to-one-artifact:
-  extends: .sphinx-merge-template
-  needs:
-    - job: docs-html
-    - job: docs-pdf
-    - job: docs-spelling
-      artifacts: false
-    - job: docs-linkcheck
-      artifacts: false
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-      changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
-      when: manual
-
-docs-review:
-  extends: .sphinx-review-template
-  needs:
-    - job: docs-merge-to-one-artifact
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-      changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
-      when: manual
-
-# The template has inherit:variables:false to prevent the passing of pipeline
-# variables to downstream, and therefore $DOCS_DIR is not available here.
-docs-create-production-merge-request:
-  extends: .sphinx-docs-merge-request-template
-  needs:
-    - job: docs-merge-to-one-artifact
-  rules:
-    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
-      changes:
-        - doc/docs/**/*
-        - kelvin-api/changelog.rst
-    - if: "$CI_COMMIT_TAG"
-      changes:
-        - doc/docs/**/*
-        - kelvin-api/changelog.rst
+  # The user-facing documentation. Published both to docs.software-univention.de
+  # (the production merge request) and to this project's Pages site (the 'pages'
+  # job below).
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/sphinx-docs@2.16.0
+    inputs:
+      docs_dir: "doc/docs"
+      doc_target_name: "$APP_ID"
+      job_rules:
+        - changes: &docs_changes
+            - "doc/docs/**/*"
+            - "kelvin-api/changelog.rst"
+      merge_rules:
+        - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+          changes: *docs_changes
+        - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+          changes: *docs_changes
+          when: manual
+      production_rules:
+        - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+          changes: *docs_changes
+        - if: "$CI_COMMIT_TAG"
+          changes: *docs_changes
+  # The developer documentation. Built and checked only -- it is not published
+  # anywhere, so there is no merge, no review and no production merge request.
+  #
+  # No PDF: 'mmdc' is not available in the sphinx builder, so mermaid diagrams
+  # cannot be rendered. See
+  # https://git.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api/-/issues/197
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/sphinx-docs@2.16.0
+    inputs:
+      job_prefix: "devdocs"
+      docs_dir: "doc/dev"
+      doc_target_name: "$APP_ID"
+      pdf: false
+      review: false
+      production_merge_request: false
+      job_rules:
+        - changes:
+            - "doc/dev/**/*"
+      # Switches the merge job off. It has no input of its own, because every
+      # set that is published needs one; this set is not published.
+      merge_rules:
+        - when: never
 
 # Publish the user-facing documentation (including the changelog) to GitLab
-# Pages. Reuses the HTML built by docs-html and serves it from the default
-# branch. This is independent of docs-create-production-merge-request, which
+# Pages. Reuses the HTML built by 'docs:html' and serves it from the default
+# branch. This is independent of 'docs:production-merge-request', which
 # publishes to docs.software-univention.de.
+#
+# Not part of the component: publishing to a project's own Pages site is the one
+# thing the projects using it do differently, so it stays with the project.
 pages:
   stage: production
   image: $SPHINX_BASE
   needs:
-    - job: docs-html
+    - job: "docs:html"
       artifacts: true
   variables:
+    # 'DOCS_DIR' is set per job by the component now, not globally, so this job
+    # carries its own.
+    DOCS_DIR: "doc/docs"
     BUILDDIR: "_build/$language"
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      changes:
-        - $DOCS_DIR/**/*
-        - kelvin-api/changelog.rst
+      changes: *docs_changes
   script:
     - rm -rf public
     - mv "$DOCS_DIR/$BUILDDIR/html" public
