@@ -7,10 +7,13 @@ from requests import Request
 from ucsschool.kelvin.constants import CN_ADMIN_PASSWORD_FILE
 from ucsschool.kelvin.routers.v1.base import udm_ctx
 
-pytestmark = pytest.mark.skipif(
-    not CN_ADMIN_PASSWORD_FILE.exists(),
-    reason="Must run inside Docker container started by appcenter due to import config problems.",
-)
+pytestmark = [
+    pytest.mark.in_container,
+    pytest.mark.skipif(
+        not CN_ADMIN_PASSWORD_FILE.exists(),
+        reason="Must run inside Docker container started by appcenter due to import config problems.",
+    ),
+]
 
 
 @pytest.mark.asyncio

@@ -48,10 +48,13 @@ from ucsschool.lib.models.user import (
 from ucsschool.lib.roles import role_legal_guardian, role_school_admin, role_student
 from udm_rest_client import UDM
 
-pytestmark = pytest.mark.skipif(
-    not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-    reason="Must run inside Docker container started by appcenter.",
-)
+pytestmark = [
+    pytest.mark.in_container,
+    pytest.mark.skipif(
+        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
+        reason="Must run inside Docker container started by appcenter.",
+    ),
+]
 
 fake = Faker()
 random.shuffle(MAPPED_UDM_PROPERTIES)

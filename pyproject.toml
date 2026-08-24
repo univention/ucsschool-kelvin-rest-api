@@ -146,6 +146,14 @@ combine-as-imports = true
 
 [tool.pytest.ini_options]
 addopts = "--verbose --showlocals -p no:warnings --asyncio-mode=auto"
+markers = [
+    # Needs a joined domain, so it only runs inside the container the appcenter
+    # starts. Outside it the test is skipped, which the CI test jobs turn into a
+    # deselect with '-m "not in_container"': a skipped test is a result and ends
+    # up in the Allure report next to the real one the nightly integration test
+    # produces for it, a deselected test leaves no result behind at all.
+    'in_container: needs the Docker container started by the appcenter',
+]
 
 [tool.alembic]
 script_location = "%(here)s/alembic"

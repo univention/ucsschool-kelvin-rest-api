@@ -259,9 +259,19 @@ test ucs-school-lib:
   script:
     - cp ucs-school-import/modules/ucsschool/lib/create_ou.py ucs-school-lib/modules/ucsschool/lib/
     - cd ucs-school-lib/modules
+    # '-m "not in_container"' deselects the tests that need a joined domain.
+    # Without it they are skipped, and a skipped test is still a result: the
+    # report then carries one skipped entry from here and one real entry from
+    # the nightly integration test, which runs the same suite inside the
+    # container, for every one of them. Allure reads the two as different tests
+    # and cannot merge them. Deselected, they leave no result behind, and each
+    # appears once -- from the run that could actually execute it.
+    # Collection still imports the test modules, so this barely moves
+    # coverage and the '--cov-fail-under' gates stay met.
     - >
         pytest -lvv
         --asyncio-mode=auto
+        -m "not in_container"
         --junitxml=${CI_PROJECT_DIR}/report.xml
         --alluredir=${CI_PROJECT_DIR}/allure-results
         --cov=ucsschool.lib
@@ -359,9 +369,11 @@ test kelvin-api:
   script:
     - cd ${CI_PROJECT_DIR}/kelvin-api
     - export LDAP_BASE="foo" LDAP_HOSTDN="" LDAP_SERVER_NAME="" LDAP_SERVER_PORT=0
+    # See 'test ucs-school-lib' for '-m "not in_container"'.
     - >
         pytest -lvv
         --asyncio-mode=auto
+        -m "not in_container"
         --junitxml=${CI_PROJECT_DIR}/report.xml
         --alluredir=${CI_PROJECT_DIR}/allure-results
         --cov=ucsschool.kelvin

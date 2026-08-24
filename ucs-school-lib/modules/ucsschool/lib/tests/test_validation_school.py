@@ -12,10 +12,13 @@ def _inside_docker():
     return ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists()
 
 
-pytestmark = pytest.mark.skipif(
-    not _inside_docker(),
-    reason="Must run inside Docker container started by appcenter.",
-)
+pytestmark = [
+    pytest.mark.in_container,
+    pytest.mark.skipif(
+        not _inside_docker(),
+        reason="Must run inside Docker container started by appcenter.",
+    ),
+]
 
 
 @pytest.mark.asyncio

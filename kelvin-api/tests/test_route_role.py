@@ -7,10 +7,13 @@ from faker import Faker
 
 import ucsschool.kelvin.constants
 
-pytestmark = pytest.mark.skipif(
-    not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-    reason="Must run inside Docker container started by appcenter.",
-)
+pytestmark = [
+    pytest.mark.in_container,
+    pytest.mark.skipif(
+        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
+        reason="Must run inside Docker container started by appcenter.",
+    ),
+]
 
 fake = Faker()
 

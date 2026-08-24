@@ -14,10 +14,13 @@ from ucsschool.kelvin.routers.v1.school_class import SchoolClass
 from udm_rest_client import UDM
 from udm_rest_client.exceptions import CreateError
 
-must_run_in_container = pytest.mark.skipif(
-    not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-    reason="Must run inside Docker container started by appcenter.",
-)
+pytestmark = [
+    pytest.mark.in_container,
+    pytest.mark.skipif(
+        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
+        reason="Must run inside Docker container started by appcenter.",
+    ),
+]
 fake = Faker()
 
 
@@ -32,7 +35,6 @@ def random_names(name_lengths: List[int], chars: str) -> List[str]:
     "name",
     random_names(random.choices(range(1, 33), k=100), f"{string.ascii_lowercase}{string.digits}"),
 )
-@must_run_in_container
 @pytest.mark.asyncio
 async def test_schoolclass_module(name: str, udm_kwargs):
     school = fake.unique.user_name()
@@ -40,7 +42,6 @@ async def test_schoolclass_module(name: str, udm_kwargs):
         await SchoolClass(name=f"{school}-{name}", school=school).validate(udm)
 
 
-@must_run_in_container
 @pytest.mark.asyncio
 async def test_check_class_name(
     auth_header, create_ou_using_python, retry_http_502, url_fragment, new_school_class_using_udm

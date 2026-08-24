@@ -88,6 +88,7 @@ def test_udm_kwargs_fake(temp_file_func, random_name):
     assert udm_kwargs["url"] == f"https://{host}/univention/udm/"
 
 
+@pytest.mark.in_container
 @must_run_in_container
 def test_get_user():
     username = "Administrator"
@@ -98,6 +99,7 @@ def test_get_user():
     assert user_obj.dn == f"uid={username},cn=users,{uldap.ldap_base}"
 
 
+@pytest.mark.in_container
 @must_run_in_container
 def test_admin_group_members():
     username = "Administrator"
@@ -109,6 +111,7 @@ def test_admin_group_members():
     assert administrator_dn in members
 
 
+@pytest.mark.in_container
 @must_run_in_container
 @pytest.mark.asyncio
 async def test_udm_kwargs_real():

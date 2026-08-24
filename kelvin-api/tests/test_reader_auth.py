@@ -85,6 +85,7 @@ async def test_get_kelvin_admin_rejects_unprivileged_user():
     assert exc_info.value.status_code == 401
 
 
+@pytest.mark.in_container
 @must_run_in_container
 @pytest.mark.parametrize(
     "endpoint,params,expected_status_code",
@@ -115,6 +116,7 @@ async def test_reader_token_accepted_on_get_endpoint(
     )
 
 
+@pytest.mark.in_container
 @must_run_in_container
 @pytest.mark.parametrize(
     "endpoint",
@@ -131,6 +133,7 @@ async def test_reader_token_accepted_on_head_endpoint(
     )
 
 
+@pytest.mark.in_container
 @must_run_in_container
 @pytest.mark.parametrize(
     "endpoint",
@@ -152,6 +155,7 @@ async def test_reader_token_rejected_on_post_endpoint(
     )
 
 
+@pytest.mark.in_container
 @must_run_in_container
 @pytest.mark.parametrize(
     "endpoint",
@@ -176,6 +180,7 @@ async def test_reader_token_rejected_on_delete_endpoint(
     )
 
 
+@pytest.mark.in_container
 @must_run_in_container
 @pytest.mark.parametrize(
     "endpoint",
@@ -196,6 +201,7 @@ async def test_reader_token_rejected_on_patch_endpoint(
     )
 
 
+@pytest.mark.in_container
 @must_run_in_container
 @pytest.mark.parametrize(
     "endpoint",

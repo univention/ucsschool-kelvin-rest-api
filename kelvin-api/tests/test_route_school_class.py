@@ -17,10 +17,13 @@ from ucsschool.lib.models.user import Student, User
 from udm_rest_client import UDM
 
 fake = Faker()
-pytestmark = pytest.mark.skipif(
-    not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-    reason="Must run inside Docker container started by appcenter.",
-)
+pytestmark = [
+    pytest.mark.in_container,
+    pytest.mark.skipif(
+        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
+        reason="Must run inside Docker container started by appcenter.",
+    ),
+]
 
 
 def dn2username(dn: str) -> str:
