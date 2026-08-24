@@ -42,11 +42,16 @@ include:
     inputs:
       report_stage: report
       publish_stage: publish
-      # 'results' holds the JUnit files of 'integration-tests', which Allure
-      # reads as well as its own format. That job is manual, so the directory
-      # is usually absent -- harmless, because allure only fails when *none* of
-      # its patterns match anything.
-      results_paths: "allure-results results"
+      # 'integration-results' holds the JUnit reports of 'integration-tests',
+      # which Allure reads as well as its own format. It has to be the flat
+      # directory 'parse_junit.py' collects them into, and not the 'results'
+      # tree itself: Allure reads JUnit XML only from the files lying directly
+      # in a directory it is given, never from a subdirectory, so the nested
+      # 'results/<host>/test-reports/<section>/<test>.xml' ucs-test writes was
+      # read as no results at all. Outside a schedule that job is manual, so
+      # the directory is usually absent -- harmless, because allure only fails
+      # when *none* of its patterns match anything.
+      results_paths: "allure-results integration-results"
       # A nightly fills the history faster than the default 20 runs cover:
       # keep about two months of trend instead of three weeks.
       history_limit: "60"
@@ -228,12 +233,15 @@ integration-tests:
     - !reference [.run_openstack_cfg, script]
     - .gitlab-ci/parse_junit.py
   artifacts:
-    # 'paths' as well as 'reports', so that a retried 'allure:report' can read
-    # these results back and fold them into the report. 'when: always' because
-    # a failed integration run is the one worth looking at.
+    # 'integration-results' is what 'allure:report' reads, 'results' keeps the
+    # tree as ucs-test wrote it, logs included. Both are 'paths' as well as
+    # 'reports', so that a retried 'allure:report' can read the results back
+    # and fold them into the report. 'when: always' because a failed
+    # integration run is the one worth looking at.
     when: always
     paths:
       - results
+      - integration-results
     reports:
       junit: results/**/test-reports/**/*.xml
 
