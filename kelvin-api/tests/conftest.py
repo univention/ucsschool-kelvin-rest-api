@@ -204,6 +204,31 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("api_version", versions, scope="session")
 
 
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """
+    Outside the appcenter container, 'in_container' means skip.
+
+    The marker is what the CI test jobs deselect with '-m "not in_container"',
+    which keeps a test that cannot run there from writing a skipped result into
+    the Allure report -- 1663 of them, against 144 real ones. Every other run
+    needs the marker to mean something by itself: inside the container, where
+    the nightly integration test drives this suite through 'univention-app
+    shell', these tests run; outside it they have no domain to talk to and skip
+    with a reason instead of failing.
+
+    The other suite using the marker carries the same hook. A plugin at the
+    repository root would be the obvious way to share it, but a 'conftest.py'
+    there is imported by name from the performance tests under
+    'ucs-test-ucsschool-kelvin', and would shadow the one they mean.
+    """
+    if CN_ADMIN_PASSWORD_FILE.exists():
+        return
+    skip = pytest.mark.skip(reason="Must run inside Docker container started by appcenter.")
+    for item in items:
+        if item.get_closest_marker("in_container"):
+            item.add_marker(skip)
+
+
 @pytest.fixture(scope="session")
 def udm_kwargs() -> Dict[str, Any]:
     with open(CN_ADMIN_PASSWORD_FILE, "r") as fp:

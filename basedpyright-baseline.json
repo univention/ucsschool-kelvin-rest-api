@@ -7393,14 +7393,6 @@
                 "code": "reportMissingTypeStubs",
                 "range": {
                     "startColumn": 5,
-                    "endColumn": 31,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 5,
                     "endColumn": 37,
                     "lineCount": 1
                 }
@@ -7431,14 +7423,6 @@
             }
         ],
         "./kelvin-api/tests/test_caching.py": [
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
-                    "lineCount": 1
-                }
-            },
             {
                 "code": "reportUnknownParameterType",
                 "range": {
@@ -8420,14 +8404,6 @@
             {
                 "code": "reportMissingTypeStubs",
                 "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
                     "startColumn": 5,
                     "endColumn": 34,
                     "lineCount": 1
@@ -8600,14 +8576,6 @@
                 "range": {
                     "startColumn": 26,
                     "endColumn": 62,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 41,
                     "lineCount": 1
                 }
             },
@@ -10505,14 +10473,6 @@
                 "code": "reportMissingTypeStubs",
                 "range": {
                     "startColumn": 7,
-                    "endColumn": 33,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 7,
                     "endColumn": 28,
                     "lineCount": 1
                 }
@@ -10879,14 +10839,6 @@
             }
         ],
         "./kelvin-api/tests/test_login.py": [
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
-                    "lineCount": 1
-                }
-            },
             {
                 "code": "reportMissingTypeStubs",
                 "range": {
@@ -13990,14 +13942,6 @@
             {
                 "code": "reportMissingTypeStubs",
                 "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
                     "startColumn": 5,
                     "endColumn": 26,
                     "lineCount": 1
@@ -14696,14 +14640,6 @@
         ],
         "./kelvin-api/tests/test_route_role.py": [
             {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 33,
@@ -14910,14 +14846,6 @@
                 "range": {
                     "startColumn": 45,
                     "endColumn": 50,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
                     "lineCount": 1
                 }
             },
@@ -18296,14 +18224,6 @@
                 "range": {
                     "startColumn": 19,
                     "endColumn": 23,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
                     "lineCount": 1
                 }
             },
@@ -22642,14 +22562,6 @@
                 "range": {
                     "startColumn": 24,
                     "endColumn": 37,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
                     "lineCount": 1
                 }
             },
@@ -57962,14 +57874,6 @@
             {
                 "code": "reportMissingTypeStubs",
                 "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
                     "startColumn": 5,
                     "endColumn": 42,
                     "lineCount": 1
@@ -58718,14 +58622,6 @@
                 "range": {
                     "startColumn": 52,
                     "endColumn": 57,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
                     "lineCount": 1
                 }
             },
@@ -60320,14 +60216,6 @@
                 "range": {
                     "startColumn": 19,
                     "endColumn": 23,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
                     "lineCount": 1
                 }
             },
@@ -65040,14 +64928,6 @@
             {
                 "code": "reportMissingTypeStubs",
                 "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
                     "startColumn": 5,
                     "endColumn": 45,
                     "lineCount": 1
@@ -65359,14 +65239,6 @@
             }
         ],
         "./kelvin-api/tests/test_token_auth.py": [
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 7,
-                    "endColumn": 33,
-                    "lineCount": 1
-                }
-            },
             {
                 "code": "reportMissingTypeStubs",
                 "range": {
@@ -181768,14 +181640,6 @@
                 }
             },
             {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 41,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportDeprecated",
                 "range": {
                     "startColumn": 32,
@@ -182374,14 +182238,6 @@
                 "range": {
                     "startColumn": 5,
                     "endColumn": 20,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 41,
                     "lineCount": 1
                 }
             },
@@ -184884,14 +184740,6 @@
                 }
             },
             {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 41,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportDeprecated",
                 "range": {
                     "startColumn": 41,
@@ -187046,14 +186894,6 @@
                 }
             },
             {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 41,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 21,
@@ -187892,14 +187732,6 @@
                 "range": {
                     "startColumn": 26,
                     "endColumn": 62,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 41,
                     "lineCount": 1
                 }
             },
@@ -198668,14 +198500,6 @@
         ],
         "./ucs-school-lib/modules/ucsschool/lib/tests/test_validation_school.py": [
             {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 41,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 37,
@@ -198786,14 +198610,6 @@
                 "range": {
                     "startColumn": 5,
                     "endColumn": 20,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 41,
                     "lineCount": 1
                 }
             },
@@ -199620,14 +199436,6 @@
                 "range": {
                     "startColumn": 60,
                     "endColumn": 62,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 41,
                     "lineCount": 1
                 }
             },

@@ -6,16 +6,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ucsschool.kelvin.config import UDMMappingConfiguration
-from ucsschool.kelvin.constants import CN_ADMIN_PASSWORD_FILE, UDM_MAPPED_PROPERTIES_CONFIG_FILE
+from ucsschool.kelvin.constants import UDM_MAPPED_PROPERTIES_CONFIG_FILE
 from ucsschool.kelvin.exceptions import InvalidConfiguration
 
-pytestmark = [
-    pytest.mark.in_container,
-    pytest.mark.skipif(
-        not CN_ADMIN_PASSWORD_FILE.exists(),
-        reason="Must run inside Docker container started by appcenter due to import config problems.",
-    ),
-]
+pytestmark = pytest.mark.in_container
 
 
 def test_config_priority_user(put_away_mapped_udm_properties_test_config, reset_import_config):

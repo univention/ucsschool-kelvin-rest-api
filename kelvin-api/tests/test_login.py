@@ -4,16 +4,9 @@
 import pytest
 import requests
 
-import ucsschool.kelvin.constants
 from ucsschool.lib.models.user import User
 
-pytestmark = [
-    pytest.mark.in_container,
-    pytest.mark.skipif(
-        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-        reason="Must run inside Docker container started by appcenter.",
-    ),
-]
+pytestmark = pytest.mark.in_container
 
 
 def remove_version_suffix(url_fragment: str) -> str:

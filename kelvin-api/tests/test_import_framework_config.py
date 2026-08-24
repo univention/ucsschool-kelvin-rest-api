@@ -3,17 +3,10 @@
 
 import pytest
 
-import ucsschool.kelvin.constants
 from ucsschool.importer.exceptions import UcsSchoolImportError
 from ucsschool.kelvin.import_config import init_ucs_school_import_framework
 
-pytestmark = [
-    pytest.mark.in_container,
-    pytest.mark.skipif(
-        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-        reason="Must run inside Docker container started by appcenter.",
-    ),
-]
+pytestmark = pytest.mark.in_container
 
 
 def test_config_loads():

@@ -10,20 +10,13 @@ import requests
 # ==> see below at test_patch-email_null_with_email_scheme
 from test_route_user import compare_ldap_json_obj
 
-import ucsschool.kelvin.constants
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.kelvin.routers.v1.user import UserModel
 from ucsschool.lib.models.user import User
 from ucsschool.lib.roles import role_student
 from udm_rest_client import UDM
 
-pytestmark = [
-    pytest.mark.in_container,
-    pytest.mark.skipif(
-        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-        reason="Must run inside Docker container started by appcenter.",
-    ),
-]
+pytestmark = pytest.mark.in_container
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

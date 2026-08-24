@@ -10,7 +10,6 @@ from typing import Any, Callable, NamedTuple, Type, Union
 import pytest
 import requests
 
-import ucsschool.kelvin.constants
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.lib.models.user import (
     LegalGuardian,
@@ -22,13 +21,7 @@ from ucsschool.lib.models.user import (
     User,
 )
 
-pytestmark = [
-    pytest.mark.in_container,
-    pytest.mark.skipif(
-        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-        reason="Must run inside Docker container started by appcenter.",
-    ),
-]
+pytestmark = pytest.mark.in_container
 
 UserType = Type[Union[Staff, Student, Teacher, TeachersAndStaff, User]]
 _Role = NamedTuple("Role", [("name", str), ("klass", UserType)])

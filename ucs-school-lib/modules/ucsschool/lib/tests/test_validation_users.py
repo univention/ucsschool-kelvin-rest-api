@@ -55,20 +55,6 @@ School.get_search_base(ou)
 School._search_base_cache[ou]._schoolDN = "ou={},{}".format(ou, ldap_base)
 
 
-def _inside_docker():
-    try:
-        import ucsschool.kelvin.constants
-    except ImportError:
-        return False
-    return ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists()
-
-
-must_run_in_container = pytest.mark.skipif(
-    not _inside_docker(),
-    reason="Must run inside Docker container started by appcenter.",
-)
-
-
 def base_user(firstname: str, lastname: str) -> Dict[str, Any]:
     return {
         "dn": "",
@@ -445,7 +431,6 @@ def test_get_class(dict_obj, ObjectClass):
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize("dict_obj", all_user_role_objects, ids=all_user_roles_names)
 def test_correct_object(caplog, dict_obj, random_logger):
     """
@@ -456,7 +441,6 @@ def test_correct_object(caplog, dict_obj, random_logger):
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "user_generator,role,ucr_default",
     [
@@ -527,7 +511,6 @@ def test_correct_uuid(caplog, random_logger):
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize("user_generator", all_user_role_generators, ids=all_user_roles_names)
 def test_group_and_role_case_insensitivity(caplog, user_generator, random_logger):
     dict_obj = user_generator()
@@ -601,7 +584,6 @@ def test_missing_exam_context_role(caplog, random_logger):
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "container,dict_obj",
     [
@@ -626,7 +608,6 @@ def test_missing_role_group(caplog, dict_obj, container, random_logger):
 
 
 @pytest.mark.in_container
-@must_run_in_container
 def test_exam_student_missing_exam_group(caplog, random_logger):
     dict_obj = exam_user()
     is_exam_user = dict_obj["options"].get("ucsschoolExam", False)
@@ -657,7 +638,6 @@ def test_missing_role_teachers_and_staff(caplog, random_logger):
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize("dict_obj", all_user_role_objects, ids=all_user_roles_names)
 def test_missing_domain_users_group(caplog, dict_obj, random_logger):
     domain_users_group = "dummy"
@@ -672,7 +652,6 @@ def test_missing_domain_users_group(caplog, dict_obj, random_logger):
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "required_attribute",
     ["username", "ucsschoolRole", "school", "firstname", "lastname"],
@@ -707,7 +686,6 @@ def test_missing_required_attribute(caplog, get_dict_obj, random_logger, require
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "dict_obj",
     [
@@ -730,7 +708,6 @@ def test_student_missing_class(caplog, dict_obj, random_logger):
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "get_user_a,get_user_b",
     [
@@ -764,7 +741,6 @@ def test_validate_group_membership(caplog, get_user_a, get_user_b, random_logger
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "dict_obj,remove_teachers_group",
     [(teacher_and_staff_user(), True), (teacher_and_staff_user(), False)],

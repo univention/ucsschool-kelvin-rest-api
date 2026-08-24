@@ -33,10 +33,6 @@ from udm_rest_client import UDM
 
 pytestmark = [
     pytest.mark.in_container,
-    pytest.mark.skipif(
-        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-        reason="Must run inside Docker container started by appcenter.",
-    ),
     pytest.mark.usefixtures("import_config"),
 ]
 

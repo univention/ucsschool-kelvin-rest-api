@@ -148,10 +148,12 @@ combine-as-imports = true
 addopts = "--verbose --showlocals -p no:warnings --asyncio-mode=auto"
 markers = [
     # Needs a joined domain, so it only runs inside the container the appcenter
-    # starts. Outside it the test is skipped, which the CI test jobs turn into a
-    # deselect with '-m "not in_container"': a skipped test is a result and ends
-    # up in the Allure report next to the real one the nightly integration test
-    # produces for it, a deselected test leaves no result behind at all.
+    # starts. Outside it the 'pytest_collection_modifyitems' hook in the suite's
+    # conftest turns the marker into a skip, and the CI test jobs turn that into
+    # a deselect with '-m "not in_container"': a skipped test is a result and
+    # ends up in the Allure report next to the real one the nightly integration
+    # test produces for it, a deselected test leaves no result behind at all.
+    # A suite that starts using the marker needs that hook too.
     'in_container: needs the Docker container started by the appcenter',
 ]
 

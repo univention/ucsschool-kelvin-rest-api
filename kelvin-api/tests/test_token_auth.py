@@ -7,17 +7,10 @@ import jwt
 import pytest
 import requests
 
-import ucsschool.kelvin.constants
 from ucsschool.kelvin.constants import TOKEN_HASH_ALGORITHM
 from ucsschool.kelvin.token_auth import get_token_ttl
 
-pytestmark = [
-    pytest.mark.in_container,
-    pytest.mark.skipif(
-        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-        reason="Must run inside Docker container started by appcenter.",
-    ),
-]
+pytestmark = pytest.mark.in_container
 
 
 async def create_fake_access_token(*, data: dict, expires_delta: timedelta = None) -> bytes:

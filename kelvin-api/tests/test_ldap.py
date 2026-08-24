@@ -9,15 +9,9 @@ import pytest
 from ldap3.core.exceptions import LDAPMaximumRetriesError, LDAPSocketOpenError
 from ldap3.strategy.sync import SyncStrategy
 
-import ucsschool.kelvin.constants
 import ucsschool.kelvin.ldap
 import ucsschool.lib.models.utils
 from udm_rest_client import UDM
-
-must_run_in_container = pytest.mark.skipif(
-    not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-    reason="Must run inside Docker container started by appcenter.",
-)
 
 
 def test_immediate_reconnect_strategy_is_installed():
@@ -89,7 +83,6 @@ def test_udm_kwargs_fake(temp_file_func, random_name):
 
 
 @pytest.mark.in_container
-@must_run_in_container
 def test_get_user():
     username = "Administrator"
     ucsschool.kelvin.ldap.get_uldap_conf.cache_clear()
@@ -100,7 +93,6 @@ def test_get_user():
 
 
 @pytest.mark.in_container
-@must_run_in_container
 def test_admin_group_members():
     username = "Administrator"
     ucsschool.kelvin.ldap.get_uldap_conf.cache_clear()
@@ -112,7 +104,6 @@ def test_admin_group_members():
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.asyncio
 async def test_udm_kwargs_real():
     ucsschool.kelvin.ldap.get_uldap_conf.cache_clear()

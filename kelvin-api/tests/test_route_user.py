@@ -19,7 +19,6 @@ from pydantic import HttpUrl, error_wrappers
 from uldap3 import BindError
 from uldap3.exceptions import ModifyError as UModifyError, NoObject as UNoObject
 
-import ucsschool.kelvin.constants
 import univention.admin.uldap
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.kelvin.ldap import get_dn_of_user
@@ -48,13 +47,7 @@ from ucsschool.lib.models.user import (
 from ucsschool.lib.roles import role_legal_guardian, role_school_admin, role_student
 from udm_rest_client import UDM
 
-pytestmark = [
-    pytest.mark.in_container,
-    pytest.mark.skipif(
-        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-        reason="Must run inside Docker container started by appcenter.",
-    ),
-]
+pytestmark = pytest.mark.in_container
 
 fake = Faker()
 random.shuffle(MAPPED_UDM_PROPERTIES)

@@ -5,7 +5,6 @@ from typing import Any, Dict, Iterable, Set, Tuple
 
 import pytest
 
-import ucsschool.kelvin.constants
 from ucsschool.kelvin.constants import URL_KELVIN_BASE
 from ucsschool.kelvin.ldap import uldap_admin_read_local
 from ucsschool.kelvin.main import app
@@ -15,13 +14,7 @@ from ucsschool.lib.models.school import School
 from ucsschool.lib.schoolldap import name_from_dn
 from udm_rest_client import UDM
 
-pytestmark = [
-    pytest.mark.in_container,
-    pytest.mark.skipif(
-        not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-        reason="Must run inside Docker container started by appcenter.",
-    ),
-]
+pytestmark = pytest.mark.in_container
 
 
 async def compare_lib_api_obj(lib_obj: School, api_obj: SchoolModel):

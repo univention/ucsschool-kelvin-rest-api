@@ -140,21 +140,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def _inside_docker():
-    try:
-        import ucsschool.kelvin.constants
-    except ImportError:
-        return False
-    return ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists()
-
-
-pytestmark = [
-    pytest.mark.in_container,
-    pytest.mark.skipif(
-        not _inside_docker(),
-        reason="Must run inside Docker container started by appcenter.",
-    ),
-]
+pytestmark = pytest.mark.in_container
 
 fake = Faker()
 

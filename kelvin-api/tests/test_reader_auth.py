@@ -5,14 +5,8 @@ import pytest
 import requests
 from fastapi import HTTPException
 
-import ucsschool.kelvin.constants
 from ucsschool.kelvin.ldap import LdapUser
 from ucsschool.kelvin.token_auth import get_kelvin_admin, get_kelvin_reader
-
-must_run_in_container = pytest.mark.skipif(
-    not ucsschool.kelvin.constants.CN_ADMIN_PASSWORD_FILE.exists(),
-    reason="Must run inside Docker container started by appcenter.",
-)
 
 
 def _make_user(kelvin_admin: bool = False, kelvin_reader: bool = False) -> LdapUser:
@@ -86,7 +80,6 @@ async def test_get_kelvin_admin_rejects_unprivileged_user():
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "endpoint,params,expected_status_code",
     [
@@ -117,7 +110,6 @@ async def test_reader_token_accepted_on_get_endpoint(
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "endpoint",
     ["/schools/DEMOSCHOOL"],
@@ -134,7 +126,6 @@ async def test_reader_token_accepted_on_head_endpoint(
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "endpoint",
     [
@@ -156,7 +147,6 @@ async def test_reader_token_rejected_on_post_endpoint(
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "endpoint",
     [
@@ -181,7 +171,6 @@ async def test_reader_token_rejected_on_delete_endpoint(
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "endpoint",
     ["/classes/a/b", "/workgroups/a/b", "/users/a"],
@@ -202,7 +191,6 @@ async def test_reader_token_rejected_on_patch_endpoint(
 
 
 @pytest.mark.in_container
-@must_run_in_container
 @pytest.mark.parametrize(
     "endpoint",
     ["/classes/a/b", "/workgroups/a/b", "/users/a"],
