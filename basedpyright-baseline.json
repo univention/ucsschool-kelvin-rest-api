@@ -156410,18 +156410,34 @@
                 }
             },
             {
-                "code": "reportUnknownMemberType",
+                "code": "reportUnknownVariableType",
                 "range": {
                     "startColumn": 8,
-                    "endColumn": 28,
+                    "endColumn": 25,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportUnknownMemberType",
                 "range": {
-                    "startColumn": 8,
-                    "endColumn": 35,
+                    "startColumn": 28,
+                    "endColumn": 54,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportUnknownMemberType",
+                "range": {
+                    "startColumn": 28,
+                    "endColumn": 60,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportOptionalMemberAccess",
+                "range": {
+                    "startColumn": 36,
+                    "endColumn": 41,
                     "lineCount": 1
                 }
             },
@@ -156434,18 +156450,34 @@
                 }
             },
             {
+                "code": "reportUnknownVariableType",
+                "range": {
+                    "startColumn": 39,
+                    "endColumn": 41,
+                    "lineCount": 1
+                }
+            },
+            {
                 "code": "reportUnknownMemberType",
                 "range": {
-                    "startColumn": 36,
-                    "endColumn": 62,
+                    "startColumn": 45,
+                    "endColumn": 65,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportOptionalMemberAccess",
                 "range": {
-                    "startColumn": 44,
-                    "endColumn": 49,
+                    "startColumn": 53,
+                    "endColumn": 58,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportUnknownMemberType",
+                "range": {
+                    "startColumn": 69,
+                    "endColumn": 77,
                     "lineCount": 1
                 }
             },
@@ -197228,6 +197260,24 @@
                 "range": {
                     "startColumn": 21,
                     "endColumn": 31,
+                    "lineCount": 1
+                }
+            }
+        ],
+        "./ucs-school-lib/modules/ucsschool/lib/tests/test_user_school_change.py": [
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 30,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 20,
                     "lineCount": 1
                 }
             }
