@@ -352,8 +352,9 @@ class User(RoleSupportMixin, UCSSchoolHelperAbstractClass):
         self.school_classes.pop(old_school, None)
         self.workgroups.pop(old_school, None)
         udm_obj = await self.get_udm_object(lo)
-        # The primary group has to be removed here from the groups list
-        udm_obj.props.groups.remove(udm_obj.props.primaryGroup)
+        # The primary group has to be removed here from the groups list, where its DN can differ in case.
+        old_primary_group = udm_obj.props.primaryGroup.lower()
+        udm_obj.props.groups = [dn for dn in udm_obj.props.groups if dn.lower() != old_primary_group]
         udm_obj.props.primaryGroup = await self.primary_group_dn(lo)
         groups = set(udm_obj.props.groups)
         at_least_groups = set(await self.groups_used(lo))
