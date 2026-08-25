@@ -143,6 +143,24 @@ include:
         - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
           variables:
             KELVIN_BUILD_VERSION: "999.0.0"
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage-basedpyright@2.12.0
+    inputs:
+      pipeline_stage: build
+      python_paths: .
+      python_version: "3.11"
+      baseline_file: basedpyright-baseline.json
+      basedpyright_version: "1.39.8"
+      before_script:
+        - "apt-get update -qq && apt-get install -y -qq git gcc python3-dev libldap2-dev libsasl2-dev && uv sync --dev"
+      job_rules:
+        - if: $CI_MERGE_REQUEST_ID
+          changes:
+            - "**/*.py"
+            - pyproject.toml
+            - uv.lock
+            - basedpyright-baseline.json
+        - if: $CI_COMMIT_REF_PROTECTED == "true"
+        - if: $CI_COMMIT_TAG
   # Everything that builds, checks or publishes the documentation, including
   # the sphinx templates it extends and the variables only it uses.
   #
