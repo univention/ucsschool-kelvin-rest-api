@@ -19,7 +19,7 @@ include:
   # The user-facing documentation. Published both to docs.software-univention.de
   # (the production merge request) and to this project's Pages site (the 'pages'
   # job below).
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/sphinx-docs@2.16.0
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/sphinx-docs@2.16.1
     inputs:
       docs_dir: "doc/docs"
       doc_target_name: "$APP_ID"
@@ -44,7 +44,7 @@ include:
   # No PDF: 'mmdc' is not available in the sphinx builder, so mermaid diagrams
   # cannot be rendered. See
   # https://git.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api/-/issues/197
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/sphinx-docs@2.16.0
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/sphinx-docs@2.16.1
     inputs:
       job_prefix: "devdocs"
       docs_dir: "doc/dev"

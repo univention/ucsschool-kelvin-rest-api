@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 include:
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/pre-commit@2.12.0
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/pre-commit@2.16.1
     inputs:
       commit_msg_hooks: "conventional-pre-commit issue-reference"
       skip_hooks: "basedpyright-container-baseline"
       manual_stage_hooks: "basedpyright-native-baseline"
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/app-release@2.12.0
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/app-release@2.16.1
     inputs:
       app_id: "ucsschool-kelvin-rest-api"
       mail_sender: "ucsschool-maintainers@univention.de"
@@ -23,7 +23,7 @@ include:
           optional: true
         - job: build_changelog_html
       appcenter_file_dir: "appcenter/"
-  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.13.1"
+  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/ai-review@2.16.1"
     inputs:
       clear_previous_comments: true
       # Eleven jobs -- a prepare, six lenses, a consolidate, a post and two
@@ -38,7 +38,7 @@ include:
   # with nothing to report on, and 'allure' exits non-zero when a results
   # pattern matches nothing. 'changes' matches everything in a scheduled
   # pipeline, which is what keeps the nightly complete.
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/allure@2.15.0
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/allure@2.16.1
     inputs:
       report_stage: report
       publish_stage: publish
@@ -89,7 +89,7 @@ include:
   # prefix is stripped by the version regex in ucsschool/kelvin/__init__.py.
   # On tags the image goes to the public registry, while the build cache stays
   # in the GitLab registry (cache_image).
-  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/buildkit@2.12.0"
+  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/buildkit@2.16.1"
     inputs:
       job_name: "build_docker_image_kelvin"
       stage: build
@@ -116,7 +116,7 @@ include:
         - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
           variables:
             KELVIN_BUILD_VERSION: "999.0.0"
-  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/buildkit@2.12.0"
+  - component: "$CI_SERVER_FQDN/univention/dev/tooling/ci-components/buildkit@2.16.1"
     inputs:
       job_name: "build_docker_image_connector"
       stage: build
@@ -143,7 +143,7 @@ include:
         - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
           variables:
             KELVIN_BUILD_VERSION: "999.0.0"
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage-basedpyright@2.12.0
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage-basedpyright@2.16.1
     inputs:
       pipeline_stage: build
       python_paths: .
@@ -177,7 +177,7 @@ include:
       - fragments/misc.yaml
       - fragments/appcenter.yaml
       - fragments/openstack.yaml
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/sonarqube@2.12.0
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/sonarqube@2.16.1
     inputs:
       job_name: "build-sonar"
       stage: build
