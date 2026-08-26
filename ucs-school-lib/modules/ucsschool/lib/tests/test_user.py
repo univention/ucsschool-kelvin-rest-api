@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from faker import Faker
 from ldap.filter import filter_format
+from uldap3 import LdapWrite
 
 from ucsschool.lib.models.attributes import ValidationError
 from ucsschool.lib.models.group import SchoolClass
@@ -29,9 +30,10 @@ from ucsschool.lib.models.user import (
     convert_to_teacher,
     convert_to_teacher_and_staff,
 )
+from ucsschool.lib.models.utils import ucr, uldap_admin_write_primary
 from ucsschool.lib.roles import role_school_admin
 from ucsschool.lib.schoolldap import SchoolSearchBase
-from udm_rest_client import UDM
+from udm_rest_client import UDM, UdmObject
 from udm_rest_client.exceptions import CreateError, ModifyError
 from univention.admin.uexceptions import noObject
 
@@ -818,6 +820,76 @@ async def test_move(create_multiple_ous, new_udm_user, role: Role, udm_kwargs):
     assert user.schools == [ou2]
     assert f"ou={ou1}" not in user.dn
     assert f"ou={ou2}" in user.dn
+
+
+@pytest.mark.asyncio
+async def test_move_with_primary_group_dn_in_another_case(
+    create_ou_using_python, create_multiple_ous, new_udm_user, udm_kwargs, ldap_base
+):
+    """
+    Bug #59780: a school change must not depend on the case of the primary group's DN.
+
+    'primaryGroup' is looked up from the user's 'gidNumber' and is therefore always the
+    group entry's own DN, while 'groups' is the 'memberOf' attribute, whose values the
+    memberof overlay writes exactly as the DN was spelled in the request that created the
+    membership. The two can differ in case, and do_school_change() removed the primary
+    group from 'groups' with list.remove() - which raised a ValueError, after the user had
+    already been moved to the new OU.
+    """
+    if ucr.get("ldap/server/type") != "master":
+        pytest.skip(
+            "Only the primary keeps the 'memberOf' value written below; a replica's "
+            "memberof overlay regenerates it from the replicated group."
+        )
+    # ou1 does not come from the OU cache: the setup below rewrites the 'memberOf' of every
+    # member of its 'Domain Users' group.
+    ou1: str = await create_ou_using_python(cache=False)
+    ou2: str = (await create_multiple_ous(1))[0]
+    # 'departmentNumber' is not part of what new_udm_user() writes, but every user created
+    # through the library has it (_alter_udm_obj()), and do_school_change() only carries it
+    # over to the new school when it holds the old one.
+    user_dn: str = (await new_udm_user(ou1, "student", udm_properties={"departmentNumber": [ou1]}))[0]
+    uldap: LdapWrite = uldap_admin_write_primary()
+    (group,) = uldap.search(
+        search_filter=filter_format("(cn=Domain Users %s)", (ou1,)),
+        search_base=f"cn=groups,ou={ou1},{ldap_base}",
+        attributes=["uniqueMember"],
+    )
+    group_dn: str = group.entry_dn
+    rdn, parent_dn = group_dn.split(",", 1)
+    group_dn_lower = f"{rdn.lower()},{parent_dn}"
+    assert group_dn_lower != group_dn
+    members: List[str] = group["uniqueMember"].values
+    assert [member for member in members if member.lower() == user_dn.lower()]
+    # Removing the user from the group and adding it back through the lower case DN of the
+    # group is what gives it a 'memberOf' value differing in case from the group's own DN.
+    remaining = [member for member in members if member.lower() != user_dn.lower()]
+    uldap.modify(group_dn, {"uniqueMember": remaining})
+    uldap.modify(group_dn_lower, {"uniqueMember": members})
+
+    async with UDM(**udm_kwargs) as udm:
+        udm_user: UdmObject = await udm.get("users/user").get(user_dn)
+        # Without the two differing in case, the rest of this test would pass without ever
+        # reaching the code it is about.
+        assert udm_user.props.primaryGroup == group_dn
+        assert group_dn_lower in udm_user.props.groups
+
+        user: Student = await Student.from_dn(user_dn, ou1, udm)
+        user.school = ou2
+        user.schools = [ou2]
+        success: bool = await user.change_school(ou2, udm)
+        assert success is True
+        users: List[Student] = await Student.get_all(udm, ou2, f"uid={user.name}")
+        assert len(users) == 1
+        moved_dn: str = users[0].dn
+        udm_user = await udm.get("users/user").get(moved_dn)
+    assert f"ou={ou2}" in moved_dn
+    ou1_position = f",ou={ou1},{ldap_base}".lower()
+    groups: List[str] = udm_user.props.groups
+    assert not [grp for grp in groups if grp.lower().endswith(ou1_position)]
+    assert udm_user.props.primaryGroup == f"cn=Domain Users {ou2},cn=groups,ou={ou2},{ldap_base}"
+    assert udm_user.props.school == [ou2]
+    assert udm_user.props.departmentNumber == [ou2]
 
 
 @pytest.mark.asyncio
