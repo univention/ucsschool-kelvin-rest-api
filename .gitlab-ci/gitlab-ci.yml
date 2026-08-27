@@ -161,6 +161,14 @@ include:
             - basedpyright-baseline.json
         - if: $CI_COMMIT_REF_PROTECTED == "true"
         - if: $CI_COMMIT_TAG
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/baseline-buddy@jgietzel/baseline-buddy
+    inputs:
+      pipeline_stage: build
+      head_baseline_file: basedpyright-baseline.json
+      job_rules:
+        - if: $CI_MERGE_REQUEST_ID
+          changes:
+            - basedpyright-baseline.json
   # Everything that builds, checks or publishes the documentation, including
   # the sphinx templates it extends and the variables only it uses.
   #
