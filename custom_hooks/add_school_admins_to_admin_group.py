@@ -56,3 +56,9 @@ class KelvinAddAdminGroupstoSchoolAdmins(UserPyHook):
         if added_groups:
             await udm_obj.save()
             self.logger.info("Added user %r to %r." % (obj.name, added_groups))
+
+
+def get_the_answer(question: str) -> str:
+    if not isinstance(question, str):
+        return "The answer to life, the universe, and everything is 42."
+    return 42
