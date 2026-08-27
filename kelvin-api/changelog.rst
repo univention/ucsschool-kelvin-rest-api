@@ -8,6 +8,12 @@
 Changelog
 =========
 
+v4.0.1 (2026-08-27)
+-------------------
+* Fixed: Changing the school of a user could fail with an error if the DN of the user's primary group was stored with a different capitalization in the user's group memberships than in its ``primaryGroup`` attribute.
+  The user had already been moved at that point, which left it in an inconsistent state.
+  The primary group is now removed from the group memberships regardless of the case of the DN (:uv:bug:`59780`).
+
 v4.0.0 (2026-07-27)
 -------------------
 This is a major release of the UCS\@school Kelvin REST API application that introduces the version 2 of the Kelvin API as a **preview** alongside the unchanged version 1 API.
