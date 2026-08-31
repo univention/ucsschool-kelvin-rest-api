@@ -11328,6 +11328,64 @@
                 }
             }
         ],
+        "./kelvin-api/tests/test_openapi_schema.py": [
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 31,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 26,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 36,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportPrivateUsage",
+                "range": {
+                    "startColumn": 44,
+                    "endColumn": 62,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 37,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 28,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 40,
+                    "lineCount": 1
+                }
+            }
+        ],
         "./kelvin-api/tests/test_pyhook.py": [
             {
                 "code": "reportDeprecated",
@@ -67018,8 +67076,8 @@
             {
                 "code": "reportUnknownVariableType",
                 "range": {
-                    "startColumn": 41,
-                    "endColumn": 50,
+                    "startColumn": 30,
+                    "endColumn": 39,
                     "lineCount": 1
                 }
             },
@@ -69284,16 +69342,16 @@
             {
                 "code": "reportUnknownVariableType",
                 "range": {
-                    "startColumn": 48,
-                    "endColumn": 62,
+                    "startColumn": 37,
+                    "endColumn": 51,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportUnknownVariableType",
                 "range": {
-                    "startColumn": 64,
-                    "endColumn": 73,
+                    "startColumn": 53,
+                    "endColumn": 62,
                     "lineCount": 1
                 }
             },
@@ -71591,8 +71649,8 @@
                 "code": "reportUntypedFunctionDecorator",
                 "range": {
                     "startColumn": 5,
-                    "endColumn": 5,
-                    "lineCount": 10
+                    "endColumn": 49,
+                    "lineCount": 1
                 }
             },
             {
@@ -72872,16 +72930,16 @@
             {
                 "code": "reportUnknownVariableType",
                 "range": {
-                    "startColumn": 48,
-                    "endColumn": 62,
+                    "startColumn": 37,
+                    "endColumn": 51,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportUnknownVariableType",
                 "range": {
-                    "startColumn": 64,
-                    "endColumn": 73,
+                    "startColumn": 53,
+                    "endColumn": 62,
                     "lineCount": 1
                 }
             },

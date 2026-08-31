@@ -8,6 +8,13 @@
 Changelog
 =========
 
+v4.0.2 (2026-09-01)
+-------------------
+* Fixed: The OpenAPI schema declared properties that the API can answer with ``null`` as if they always held a value.
+  For example, ``birthday`` of a user was documented as a date string, while a user without a birthday is returned as ``"birthday": null``.
+  Every property that can be ``null`` is now marked ``nullable`` in the schema.
+  The responses themselves are unchanged; only the schema, and therefore code generated from it, is affected (:uv:bug:`59807`).
+
 v4.0.1 (2026-09-01)
 -------------------
 * Fixed: Changing the school of a user could fail with an error if the DN of the user's primary group was stored with a different capitalization in the user's group memberships than in its ``primaryGroup`` attribute.

@@ -5,7 +5,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from pydantic import BaseModel, Field, HttpUrl, root_validator, validator
+from pydantic import Field, HttpUrl, root_validator, validator
 
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
 from ucsschool.lib.models.base import UDMPropertiesError
@@ -15,6 +15,7 @@ from udm_rest_client import UDM, CreateError, ModifyError
 
 from ...config import UDM_MAPPING_CONFIG
 from ...ldap import LdapUser
+from ...schema import KelvinBaseModel
 from ...token_auth import get_kelvin_admin, get_kelvin_reader
 from ...urls import cached_url_for, url_to_dn, url_to_name
 from .base import (
@@ -89,7 +90,7 @@ class SchoolClassModel(SchoolClassCreateModel, APIAttributesMixin):
     pass
 
 
-class SchoolClassPatchDocument(BaseModel):
+class SchoolClassPatchDocument(KelvinBaseModel):
     name: str = None
     description: str = None
     ucsschool_roles: List[str] = Field(None, title="Roles of this object. Don't change if unsure.")

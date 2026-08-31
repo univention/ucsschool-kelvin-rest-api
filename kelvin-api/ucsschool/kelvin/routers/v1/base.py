@@ -10,7 +10,7 @@ from urllib.parse import ParseResult, quote, unquote, urlparse
 import orjson
 import psutil
 from fastapi import HTTPException, Request, status
-from pydantic import BaseModel, HttpUrl, validator
+from pydantic import HttpUrl, validator
 
 from ucsschool.lib.models.base import NoObject, UCSSchoolModel
 from udm_rest_client import UDM, UdmObject
@@ -18,6 +18,7 @@ from udm_rest_client import UDM, UdmObject
 from ...config import UDM_MAPPING_CONFIG
 from ...exceptions import UnknownUDMProperty
 from ...ldap import udm_kwargs
+from ...schema import KelvinBaseModel
 from ...urls import cached_url_for, url_to_name
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -71,10 +72,10 @@ async def get_lib_obj(
         )
 
 
-class LibModelHelperMixin(BaseModel):
+class LibModelHelperMixin(KelvinBaseModel):
     udm_properties: Dict[str, Any] = None
 
-    class Config:
+    class Config(KelvinBaseModel.Config):
         lib_class: Type[UCSSchoolModel]
         config_id: str = "LibModelHelperMixin"
         json_loads = orjson.loads
@@ -189,7 +190,7 @@ class LibModelHelperMixin(BaseModel):
         return kwargs
 
 
-class APIAttributesMixin(BaseModel):
+class APIAttributesMixin(KelvinBaseModel):
     dn: str
     url: HttpUrl
     ucsschool_roles: List[str]

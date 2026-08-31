@@ -16,7 +16,6 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Reques
 from ldap import explode_dn
 from ldap.filter import escape_filter_chars
 from pydantic import (
-    BaseModel,
     Field,
     HttpUrl,
     SecretStr,
@@ -63,6 +62,7 @@ from univention.admin.filter import conjunction, expression
 from ...config import UDM_MAPPING_CONFIG
 from ...import_config import get_import_config, init_ucs_school_import_framework
 from ...ldap import LdapUser, get_dn_of_user
+from ...schema import KelvinBaseModel
 from ...token_auth import get_kelvin_admin, get_kelvin_reader
 from ...urls import cached_url_for, url_to_name
 from .base import (
@@ -113,7 +113,7 @@ def remove_url(request: Request, url: str | HttpUrl) -> str:
     return url_to_name(request, "user", UserCreateModel.unscheme_and_unquote(url))
 
 
-class PasswordsHashes(BaseModel):
+class PasswordsHashes(KelvinBaseModel):
     user_password: List[str] = Field(
         ...,
         title="'userPassword' in OpenLDAP.",
@@ -377,7 +377,21 @@ class UserModel(UserBaseModel, APIAttributesMixin):
         return kwargs
 
 
-class UserPatchModel(BaseModel):
+#: These default to `None`, so pydantic considers them nullable, but `validate_null_values()`
+#: rejects an explicitly passed `null`. They must not be documented as nullable.
+NULL_REJECTING_USER_PATCH_FIELDS = (
+    "school",
+    "disabled",
+    "school_classes",
+    "workgroups",
+    "password",
+    "schools",
+    "roles",
+    "kelvin_password_hashes",
+)
+
+
+class UserPatchModel(KelvinBaseModel):
     name: str = None
     firstname: str = None
     lastname: str = None
@@ -399,6 +413,10 @@ class UserPatchModel(BaseModel):
     legal_wards: List[str | HttpUrl] = []
     legal_guardians: List[str | HttpUrl] = []
 
+    class Config(KelvinBaseModel.Config):
+        # 'udm_properties' is rejected by 'only_known_udm_properties()' below.
+        non_nullable_fields: tuple[str, ...] = NULL_REJECTING_USER_PATCH_FIELDS + ("udm_properties",)
+
     _not_both_password_and_hashes = root_validator(allow_reuse=True)(not_both_password_and_hashes)
 
     @validator("birthday", pre=True)
@@ -417,16 +435,7 @@ class UserPatchModel(BaseModel):
         _validate_date_range(v)
         return v
 
-    @validator(
-        "school",
-        "disabled",
-        "school_classes",
-        "workgroups",
-        "password",
-        "schools",
-        "roles",
-        "kelvin_password_hashes",
-    )
+    @validator(*NULL_REJECTING_USER_PATCH_FIELDS)
     def validate_null_values(cls, v: Optional[Any]) -> Any:
         if v is None:
             raise ValueError("Null value in property.")

@@ -11,23 +11,23 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt import PyJWTError
-from pydantic import BaseModel
 
 from ucsschool.lib.models.utils import ucr
 
 from .constants import TOKEN_HASH_ALGORITHM, TOKEN_SIGN_SECRET_FILE, UCRV_TOKEN_TTL, URL_TOKEN_BASE
 from .ldap import LdapUser, get_user
+from .schema import KelvinBaseModel
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=URL_TOKEN_BASE)
 _secret_key = ""  # nosec
 
 
-class Token(BaseModel):
+class Token(KelvinBaseModel):
     access_token: str
     token_type: str
 
 
-class TokenData(BaseModel):
+class TokenData(KelvinBaseModel):
     username: str = None
 
 
