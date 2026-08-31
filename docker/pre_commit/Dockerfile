@@ -23,7 +23,7 @@ RUN apt-get update && \
       libsasl2-dev && \
     pipx install uv && \
     pipx install "basedpyright==${BASEDPYRIGHT_VERSION}" && \
-    groupadd --gid "${GID}" precommit && \
+    getent group "${GID}" >/dev/null || groupadd --gid "${GID}" precommit && \
     useradd --create-home --shell /bin/bash --uid "${UID}" --gid "${GID}" precommit
 
 USER precommit
