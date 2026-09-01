@@ -8,7 +8,7 @@
 Changelog
 =========
 
-v4.0.1 (2026-08-27)
+v4.0.1 (2026-09-01)
 -------------------
 * Fixed: Changing the school of a user could fail with an error if the DN of the user's primary group was stored with a different capitalization in the user's group memberships than in its ``primaryGroup`` attribute.
   The user had already been moved at that point, which left it in an inconsistent state.
