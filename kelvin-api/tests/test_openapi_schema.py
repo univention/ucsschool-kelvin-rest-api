@@ -17,6 +17,7 @@ import pytest
 from fastapi.openapi.utils import get_flat_models_from_routes
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
+from pydantic.schema import get_model_name_map
 
 from ucsschool.kelvin.constants import URL_API_V1_PREFIX, URL_API_V2_PREFIX
 from ucsschool.kelvin.main import app
@@ -63,6 +64,10 @@ DOCUMENTED_NULLABILITY: dict[str, dict[str, bool]] = {
     # 'doc/docs/resource-classes.rst' and '-workgroups.rst' document 'null|string'
     "SchoolClassModel": {"description": True},
     "WorkGroupModel": {"description": True},
+    # 'check_name()' answers 422 for an explicitly passed 'null', and a 'null' in
+    # 'users' is deprecated and ignored rather than supported
+    "SchoolClassPatchDocument": {"name": False, "users": False, "description": True},
+    "WorkGroupPatchDocument": {"name": False, "users": False, "description": True},
 }
 
 
@@ -204,6 +209,35 @@ def test_every_documented_model_marks_its_nullable_properties(prefix: str):
         for model in documented_models
         if model.__config__.schema_extra is not KelvinBaseModel.Config.schema_extra
     ] == []
+
+
+@pytest.mark.parametrize("prefix", API_PREFIXES)
+def test_the_documents_agree_with_every_models_fields(openapi_docs: dict[str, Any], prefix: str):
+    """`DOCUMENTED_NULLABILITY` states the expectations of the bug report by hand. This
+    covers the remaining models, so that a model added later cannot document the wrong
+    nullability without being noticed."""
+    schemas = _schemas(openapi_docs[prefix])
+    mismatches: list[str] = []
+    checked = 0
+    for model, schema_name in get_model_name_map(
+        get_flat_models_from_routes(_routes_for_prefix(app, prefix))
+    ).items():
+        schema = schemas.get(schema_name)
+        # 'get_model_name_map()' also returns the enums of the document
+        if schema is None or not issubclass(model, BaseModel):
+            continue
+        properties = schema.get("properties", {})
+        non_nullable: tuple[str, ...] = getattr(model.__config__, "non_nullable_fields", ())
+        for field in model.__fields__.values():
+            prop = properties.get(field.alias)
+            if prop is None:
+                continue
+            expected = field.allow_none and field.name not in non_nullable
+            if prop.get("nullable", False) is not expected:
+                mismatches.append(f"{schema_name}.{field.alias}: expected nullable={expected}")
+            checked += 1
+    assert checked, "no property checked"
+    assert mismatches == []
 
 
 def test_both_api_versions_agree_on_nullability(openapi_docs: dict[str, Any]):

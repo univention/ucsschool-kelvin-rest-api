@@ -99,14 +99,17 @@ class SchoolClassPatchDocument(KelvinBaseModel):
 
     class Config(UcsSchoolBaseModel.Config):
         lib_class = SchoolClass
+        non_nullable_fields: tuple[str, ...] = ("name", "users")
 
     @validator("name")
-    def check_name(cls, value: str) -> str:
+    def check_name(cls, value: str | None) -> str:
         """
         At this point we know `school` is valid, but
         we don't have it in the values. Thus we use
         the dummy school name DEMOSCHOOL.
         """
+        if value is None:
+            raise ValueError("Null value in property.")
         class_name = f"DEMOSCHOOL-{value}"
         cls.Config.lib_class.name.validate(class_name)
         return value

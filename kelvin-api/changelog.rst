@@ -14,6 +14,10 @@ v4.0.2 (2026-09-01)
   For example, ``birthday`` of a user was documented as a date string, while a user without a birthday is returned as ``"birthday": null``.
   Every property that can be ``null`` is now marked ``nullable`` in the schema.
   The responses themselves are unchanged; only the schema, and therefore code generated from it, is affected (:uv:bug:`59807`).
+* Fixed: A ``PATCH`` request that explicitly set ``name`` of a school class or a work group to ``null`` renamed the object to ``<school>-None`` instead of being rejected.
+  Such a request is now answered with status code ``422``, as it already was for the corresponding properties of a user (:uv:bug:`59807`).
+* Changed: The schema no longer documents ``users`` of a school class or a work group ``PATCH`` request as ``nullable``.
+  Passing ``null`` there remains deprecated and ignored as before; it is only no longer advertised as a supported value (:uv:bug:`59807`).
 
 v4.0.1 (2026-09-01)
 -------------------

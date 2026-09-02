@@ -21,7 +21,8 @@ def mark_nullable_properties(schema: JsonSchema, model: type[BaseModel]) -> None
 
     Fields listed in the model's ``Config.non_nullable_fields`` are skipped. Use it for
     fields that pydantic considers nullable only because they default to ``None``, while
-    a validator rejects an explicitly passed ``None``.
+    an explicitly passed ``None`` is not a supported value: either a validator rejects
+    it, or it is a deprecated spelling that the endpoint ignores.
     """
     properties = cast(JsonSchema, schema.get("properties", {}))
     non_nullable: tuple[str, ...] = getattr(model.__config__, "non_nullable_fields", ())
