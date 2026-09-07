@@ -245,8 +245,7 @@ def school_user(mail_domain):
 
     def _func(school: str, **kwargs) -> ucsschool.lib.models.user.User:
         if "email" not in kwargs:
-            local_part = fake.unique.ascii_company_email().split("@", 1)[0]
-            kwargs["email"] = f"{local_part}@{mail_domain}"
+            kwargs["email"] = f"{fake.unique.user_name()}@{mail_domain}"
         if "schools" not in kwargs:
             kwargs["schools"] = [school]
         return UserFactory.build(school=school, **kwargs)
