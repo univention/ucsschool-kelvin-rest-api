@@ -8,7 +8,7 @@
 Changelog
 =========
 
-v4.0.2 (2026-09-01)
+v4.0.2 (2026-09-08)
 -------------------
 * Fixed: The OpenAPI schema declared properties that the API can answer with ``null`` as if they always held a value.
   For example, ``birthday`` of a user was documented as a date string, while a user without a birthday is returned as ``"birthday": null``.
