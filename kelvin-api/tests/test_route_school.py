@@ -93,7 +93,13 @@ async def test_search_no_filter(client, auth_header, udm_kwargs, api_version, re
 
 @pytest.mark.asyncio
 async def test_search_with_filter(
-    client, auth_header, create_ou_using_python, random_ou_name, udm_kwargs, api_version
+    client,
+    auth_header,
+    create_ou_using_python,
+    random_ou_name,
+    udm_kwargs,
+    api_version,
+    retry_until_replicated,
 ):
     common_name = random_ou_name()[:8]
     await create_ou_using_python(ou_name=f"{common_name}abc12")
@@ -105,27 +111,30 @@ async def test_search_with_filter(
             f"(&(objectClass=ucsschoolOrganizationalUnit)(ou={common_name}*))", attributes=["ou"]
         )
     }
-    async with UDM(**udm_kwargs) as udm:
-        lib_schools: Iterable[School] = await School.get_all(udm, filter_str=f"ou={common_name}*")
-    assert {s.name for s in lib_schools} == {ou[0] for ou in ldap_ous}
 
-    response = client.get(
-        f"{URL_KELVIN_BASE}/{api_version}/schools/",
-        headers=auth_header,
-        params={"name": f"{common_name}*"},
-        timeout=120,
-    )
-    json_resp = response.json()
-    assert response.status_code == 200
-    api_schools: Dict[str, SchoolModel] = {data["name"]: SchoolModel(**data) for data in json_resp}
-    assert {ou[1] for ou in ldap_ous} == {aps.dn for aps in api_schools.values()}
-    for lib_obj in lib_schools:
-        api_obj = api_schools[lib_obj.name]
-        await compare_lib_api_obj(lib_obj, api_obj)
-        assert (
-            api_obj.unscheme_and_unquote(api_obj.url)
-            == f"{client.base_url}{URL_KELVIN_BASE}/{api_version}/schools/{lib_obj.name}"
+    async def _check():
+        async with UDM(**udm_kwargs) as udm:
+            lib_schools: Iterable[School] = await School.get_all(udm, filter_str=f"ou={common_name}*")
+        assert {s.name for s in lib_schools} == {ou[0] for ou in ldap_ous}
+        response = client.get(
+            f"{URL_KELVIN_BASE}/{api_version}/schools/",
+            headers=auth_header,
+            params={"name": f"{common_name}*"},
+            timeout=120,
         )
+        json_resp = response.json()
+        assert response.status_code == 200
+        api_schools: Dict[str, SchoolModel] = {data["name"]: SchoolModel(**data) for data in json_resp}
+        assert {ou[1] for ou in ldap_ous} == {aps.dn for aps in api_schools.values()}
+        for lib_obj in lib_schools:
+            api_obj = api_schools[lib_obj.name]
+            await compare_lib_api_obj(lib_obj, api_obj)
+            assert (
+                api_obj.unscheme_and_unquote(api_obj.url)
+                == f"{client.base_url}{URL_KELVIN_BASE}/{api_version}/schools/{lib_obj.name}"
+            )
+
+    await retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
