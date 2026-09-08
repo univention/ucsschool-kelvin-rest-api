@@ -63,6 +63,11 @@ If the case of ``<username>`` does not match the usernames,
 ``No object with name='...' found or not authorized.`` is returned.
 
 
+``/v2/users/`` endpoint does not return any Exam users
+------------------------------------------------------
+Unlike the v1 endpoint, the ``/v2/users/`` endpoint does not return any Exam users.
+
+
 Kelvin connector log level cannot be adjusted
 ---------------------------------------------
 The log level of the Kelvin connector, which keeps the version 2 database in sync, cannot
