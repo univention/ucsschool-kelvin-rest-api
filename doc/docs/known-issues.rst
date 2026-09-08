@@ -56,6 +56,13 @@ In typical situations, the absolute response times for these endpoints remain sm
 and the difference is only noticeable in direct ``v1``-versus-``v2`` comparisons.
 
 
+Endpoint ``/v2/users/<username>`` is case-sensitive
+---------------------------------------------------
+The endpoint for querying a specific user is case-sensitive.
+If the case of ``<username>`` does not match the usernames,
+``No object with name='...' found or not authorized.`` is returned.
+
+
 Kelvin connector log level cannot be adjusted
 ---------------------------------------------
 The log level of the Kelvin connector, which keeps the version 2 database in sync, cannot
