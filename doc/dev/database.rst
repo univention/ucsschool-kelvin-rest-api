@@ -166,6 +166,64 @@ Constraints and indexes
 * Foreign keys mostly cascade on delete; ``group.school_id`` uses
   ``NO ACTION``.
 
+Reverse indexes on the association tables
+""""""""""""""""""""""""""""""""""""""""""
+
+A composite primary key only serves lookups that lead with its first column.
+Where an association table is read from *both* directions,
+the direction the primary key doesn't cover needs an index of its own,
+or the read degenerates into a sequential scan of the whole table.
+
+Two such indexes exist,
+both needed by the eager load of ``GET /v2/users/<username>``:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 25 20 25
+
+   * - Table
+     - Primary key
+     - Also probed by
+     - Index
+   * - ``group_member_association``
+     - ``(group_id, school_membership_id)``
+     - ``school_membership_id``
+     - ``ix_group_member_association_school_membership_id_group_id``
+   * - ``legal_guardian_association``
+     - ``(legal_guardian_id, legal_ward_id)``
+     - ``legal_ward_id``
+     - ``ix_legal_guardian_association_legal_ward_id_legal_guardian_id``
+
+Both are composite in ``(probed column, join key)`` order,
+so PostgreSQL can satisfy the association side with an index-only scan.
+Both are non-unique:
+the primary key already enforces the pair.
+
+Unlike the trigram indexes below,
+these are declared in the ORM metadata (``database_models.py``),
+so that ``--autogenerate`` doesn't propose dropping them
+and so that the test fixtures, which build their schema with
+``Base.metadata.create_all`` rather than with Alembic, see them.
+
+.. note::
+
+   The same gap still exists elsewhere and is not yet fixed:
+   ``group.school_id`` has no index at all,
+   although ``GET /v2/classes/`` and ``GET /v2/workgroups/``
+   resolve one school and then filter ``group`` by it;
+   ``school_membership.school_id`` is only covered as the trailing column of
+   ``UniqueConstraint("user_id", "school_id")``;
+   and ``group_user_email_senders_association.user_id`` and
+   ``group_group_email_senders_association.child_group_id`` are unindexed,
+   which makes every ``ON DELETE CASCADE`` from ``user`` / ``group``
+   scan those tables.
+
+   The ``role_id`` columns of the three role association tables are
+   deliberately left unindexed:
+   their only consumer would be the foreign-key check of ``DELETE FROM role``,
+   ``role`` holds nine seeded rows,
+   and the ``v2`` role router exposes no DELETE route.
+
 Trigram indexes for case-insensitive search
 """"""""""""""""""""""""""""""""""""""""""""
 
@@ -198,8 +256,28 @@ PostgreSQL can index-scan.
 
    The indexes are built with a plain ``CREATE INDEX`` (not
    ``CONCURRENTLY``), which briefly locks writes while the index builds.
+   Reads are unaffected: ``CREATE INDEX`` takes a ``SHARE`` lock, which blocks
+   writers but not ``SELECT``.
    Large deployments might want to switch to ``CREATE INDEX CONCURRENTLY`` inside
    an ``op.get_context().autocommit_block()``.
+
+   The reverse association indexes above are built that way already,
+   because that migration runs against a populated database.
+   Two things to know before copying the pattern.
+   First, ``autocommit_block`` commits the transaction that ``env.py`` opened,
+   so the DDL is no longer atomic with the rest of the revision;
+   the advisory lock survives, because ``pg_try_advisory_lock`` is
+   session-scoped and the block only changes the isolation level of the same
+   connection.
+   Second, a failed ``CREATE INDEX CONCURRENTLY`` leaves an **invalid** index
+   that the planner ignores and that ``if_not_exists`` would silently skip on a
+   re-run, so the migration drops invalid leftovers of its own indexes before
+   creating them. To find them by hand:
+
+   .. code-block:: sql
+
+      SELECT c.relname FROM pg_class c JOIN pg_index i ON i.indexrelid = c.oid
+      WHERE NOT i.indisvalid;
 
 Migrations
 ----------
@@ -209,9 +287,10 @@ The physical schema is evolved with `Alembic <https://alembic.sqlalchemy.org/>`_
 * There is **no** ``alembic.ini``. The configuration is in ``pyproject.toml``
   under ``[tool.alembic]`` (only ``script_location = "%(here)s/alembic"``).
   Alembic is therefore invoked as ``alembic --config pyproject.toml …``.
-* Migration scripts live in ``alembic/versions/``. After the squash into a
-  single init revision there is **exactly one** revision
-  (``e49791148e25_init_tables.py``, ``down_revision = None``).
+* Migration scripts live in ``alembic/versions/``. The squash reduced the
+  history to a single base revision
+  (``e49791148e25_init_tables.py``, ``down_revision = None``),
+  followed by ``e3d39f016714_add_reverse_association_indexes.py``.
 
 Generate a migration
 ^^^^^^^^^^^^^^^^^^^^^^

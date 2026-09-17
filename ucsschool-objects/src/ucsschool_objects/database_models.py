@@ -25,6 +25,7 @@ from sqlalchemy import (
     UUID,
     Boolean,
     ForeignKey,
+    Index,
     String,
     UniqueConstraint,
     event,
@@ -314,6 +315,17 @@ def sync_primary_user_constraint(
 
 class GroupMemberAssociation(Base):
     __tablename__: str = "group_member_association"
+    # The primary key only serves lookups that lead with ``group_id``
+    # (``Group.members``). ``SchoolMembership.groups`` probes the other
+    # direction, which no index covered. Trailing ``group_id`` is the join
+    # key, so the association side can be read index-only.
+    __table_args__: tuple[Index, ...] = (
+        Index(
+            "ix_group_member_association_school_membership_id_group_id",
+            "school_membership_id",
+            "group_id",
+        ),
+    )
 
     group_id: Mapped[int] = mapped_column(
         ForeignKey("group.id", ondelete="CASCADE"), nullable=False, primary_key=True
@@ -380,6 +392,16 @@ class GroupGroupEmailSendersAssociation(Base):
 
 class LegalGuardianAssociation(Base):
     __tablename__: str = "legal_guardian_association"
+    # ``User.legal_wards`` leads with ``legal_guardian_id`` and is served by
+    # the primary key; ``User.legal_guardians`` probes ``legal_ward_id``,
+    # which needs its own index. See GroupMemberAssociation above.
+    __table_args__: tuple[Index, ...] = (
+        Index(
+            "ix_legal_guardian_association_legal_ward_id_legal_guardian_id",
+            "legal_ward_id",
+            "legal_guardian_id",
+        ),
+    )
 
     legal_guardian_id: Mapped[int] = mapped_column(
         ForeignKey("user.id", ondelete="cascade"), primary_key=True, nullable=False

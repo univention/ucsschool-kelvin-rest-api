@@ -74,7 +74,16 @@ def advisory_lock(connection, timeout_seconds: int = 60):
 
 def get_current_db_revision(connection) -> str | None:
     migration_context = MigrationContext.configure(connection)
-    return migration_context.get_current_revision()
+    revision = migration_context.get_current_revision()
+    # Reading the version table autobegins a transaction on the connection.
+    # Left open, ``context.configure()`` below would see the connection as
+    # already being in an *external* transaction, make ``begin_transaction()``
+    # a no-op and never track a transaction of its own -- which makes
+    # ``op.get_context().autocommit_block()`` fail an assertion. Migrations
+    # that build indexes concurrently need that block, so close the probe's
+    # transaction here.
+    connection.commit()
+    return revision
 
 
 def get_revision_transitions(current_revision: str | None) -> list[str]:
