@@ -335,7 +335,9 @@ async def get(
 ) -> UserModel:
     results = list(
         await session.users.search(
-            SearchQuery(where=Filter(field="name", op=Operator.EQ, value=username)),
+            # Usernames are unique regardless of case, so the case-insensitive
+            # match returns at most one user -- as v1 and the search do.
+            SearchQuery(where=Filter(field="name", op=Operator.IN_CI, value=(username,))),
             load=USER_LOAD_SPEC_V2,
         )
     )

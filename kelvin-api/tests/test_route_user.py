@@ -681,6 +681,32 @@ async def test_get(
 
 
 @pytest.mark.asyncio
+async def test_get_is_case_insensitive(
+    auth_header,
+    retry_http_502,
+    retry_until_replicated,
+    url_fragment,
+    create_ou_using_python,
+    new_school_user,
+):
+    """A username is matched regardless of its capitalization, as the search is."""
+    school = await create_ou_using_python()
+    user: User = await new_school_user(school, "student")
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/users/{user.name.upper()}",
+            headers=auth_header,
+        )
+        assert response.status_code == 200, (response.reason, response.content)
+        assert response.json()["name"] == user.name
+
+    await retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
 async def test_get_empty_udm_properties_are_returned(
     auth_header,
     retry_http_502,

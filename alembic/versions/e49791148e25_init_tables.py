@@ -14,6 +14,12 @@ The trigram indexes cover the fixed set of columns used for indexed
 case-insensitive wildcard search (`ILIKE`): user.name, user.firstname,
 user.lastname, user.email, school.name, group.name.
 
+The expression index on `lower(user.name)` serves the case-insensitive
+lookups of a username, which compare `lower(name)` and can use neither the
+unique index on `name` nor a trigram index. Autogenerate does not emit
+expression indexes, so it is created by hand here as well; the ORM
+declares it in `User.__table_args__`.
+
 Uses plain `CREATE INDEX` (not `CONCURRENTLY`) deliberately. This briefly
 locks writes to the affected tables while the indexes are built. Deployments
 with very large `user`/`school`/`group` tables should evaluate switching to
@@ -51,6 +57,10 @@ _DEFAULT_ROLES = [
     "staff",
     "school",
     "school_admin",
+]
+
+_EXPRESSION_INDEXES = [
+    ("ix_user_name_lower", "user", "lower(name)"),
 ]
 
 _TRGM_INDEXES = [
@@ -300,11 +310,16 @@ def upgrade() -> None:
             postgresql_using="gin",
             postgresql_ops={column: "gin_trgm_ops"},
         )
+    # Expression indexes for case-insensitive equality (lower(column) = ...).
+    for index_name, table, expression in _EXPRESSION_INDEXES:
+        op.create_index(index_name, table, [sa.text(expression)], if_not_exists=True)
 
 
 def downgrade() -> None:
     """Downgrade schema."""
     for index_name, table, _column in _TRGM_INDEXES:
+        op.drop_index(index_name, table_name=table, if_exists=True)
+    for index_name, table, _expression in _EXPRESSION_INDEXES:
         op.drop_index(index_name, table_name=table, if_exists=True)
     # Intentionally not dropping the pg_trgm extension: a future dynamic
     # UDM-property-index migration may depend on it, and migrations run

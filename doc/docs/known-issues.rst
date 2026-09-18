@@ -56,13 +56,6 @@ In typical situations, the absolute response times for these endpoints remain sm
 and the difference is only noticeable in direct ``v1``-versus-``v2`` comparisons.
 
 
-Endpoint ``/v2/users/<username>`` is case-sensitive
----------------------------------------------------
-The endpoint for querying a specific user is case-sensitive.
-If the case of ``<username>`` does not match the usernames,
-``No object with name='...' found or not authorized.`` is returned.
-
-
 ``/v2/users/`` endpoint does not return any Exam users
 ------------------------------------------------------
 Unlike the v1 endpoint, the ``/v2/users/`` endpoint does not return any Exam users.

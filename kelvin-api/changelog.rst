@@ -14,6 +14,8 @@ v4.1.0 (unreleased)
   Retrieving users this way is considerably faster than requesting them one by one, because the whole set is read in one database query instead of one query per user.
   Each value is matched as a single value is: case-insensitively, with ``*`` as wildcard.
   The length of a URL is limited, which caps one request at a few hundred usernames; larger sets have to be split over several requests.
+* Fixed (version 2 API only): ``GET /v2/users/<username>`` required the exact capitalization of the username, while the search for the same name did not, and version 1 does not either.
+  The username is now matched case-insensitively on both endpoints.
 
 v4.0.2 (2026-09-08)
 -------------------
