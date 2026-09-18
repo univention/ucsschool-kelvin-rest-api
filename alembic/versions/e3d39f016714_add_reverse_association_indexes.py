@@ -1,16 +1,28 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-"""add reverse association indexes
+"""add reverse association and school foreign key indexes
 
-A composite primary key only serves lookups that lead with its first column.
+Four v2 read paths reached a table from a direction no index covered, and each
+scanned that table in full.
+
+A composite key only serves lookups that lead with its first column.
 ``group_member_association`` is keyed ``(group_id, school_membership_id)`` and
 ``legal_guardian_association`` ``(legal_guardian_id, legal_ward_id)``, so the
 reverse directions, which the eager load of ``GET /v2/users/<username>``
-probes, scanned both tables sequentially. Both new indexes lead with the
-probed column and trail the join key, so the association side can be read
-index-only. They are declared in ``database_models.py`` as well, so that
-``--autogenerate`` keeps them and the test fixtures see them.
+probes, scanned both tables sequentially. ``school_membership`` has the same
+shape: ``UniqueConstraint("user_id", "school_id")`` does not serve the
+``school_id`` direction that ``GET /v2/users/?school=`` drives from.
+``group.school_id`` carries no index at all, while ``GET /v2/classes/`` and
+``GET /v2/workgroups/`` resolve one school by its unique name and then filter
+``group`` by it.
+
+Every new index leads with the probed column. Where a trailing column is added
+it is the join key, so that side can be read index-only; ``ix_group_school_id``
+is single-column because the matched groups are read for their wide columns
+anyway, which leaves no index-only scan to win. All are declared in
+``database_models.py`` as well, so that ``--autogenerate`` keeps them and the
+test fixtures see them.
 
 Built concurrently because this revision runs against a populated database. A
 failed concurrent build leaves an invalid index behind that the planner
@@ -45,6 +57,12 @@ _INDEXES: list[tuple[str, str, list[str]]] = [
         "ix_legal_guardian_association_legal_ward_id_legal_guardian_id",
         "legal_guardian_association",
         ["legal_ward_id", "legal_guardian_id"],
+    ),
+    ("ix_group_school_id", "group", ["school_id"]),
+    (
+        "ix_school_membership_school_id_user_id",
+        "school_membership",
+        ["school_id", "user_id"],
     ),
 ]
 

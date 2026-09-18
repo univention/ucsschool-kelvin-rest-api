@@ -104,8 +104,11 @@ class School(Base):
 
 class Group(Base):
     __tablename__: str = "group"
-    __table_args__: tuple[Constraint] = (
+    # ``school_id`` is a bare FK; the class and workgroup listings filter
+    # groups by school and need it indexed.
+    __table_args__: tuple[Constraint | Index, ...] = (
         UniqueConstraint("record_uid", "source_uid", name="uq_group_record_source_uid"),
+        Index("ix_group_school_id", "school_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -267,7 +270,12 @@ class Role(Base):
 
 class SchoolMembership(Base):
     __tablename__: str = "school_membership"
-    __table_args__: tuple[Constraint] = (UniqueConstraint("user_id", "school_id"),)
+    # The unique constraint serves the ``user_id`` direction; listing a
+    # school's users probes ``school_id`` and needs its own index.
+    __table_args__: tuple[Constraint | Index, ...] = (
+        UniqueConstraint("user_id", "school_id"),
+        Index("ix_school_membership_school_id_user_id", "school_id", "user_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

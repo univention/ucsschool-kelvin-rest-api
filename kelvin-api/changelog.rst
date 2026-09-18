@@ -12,8 +12,9 @@ v4.0.3 (unreleased)
 -------------------
 .. TODO: set the release date and replace the bug number below before release.
 
-* Fixed: ``GET /v2/users/<username>`` read the user's group memberships and legal guardians without an index, so every request scanned the two association tables in full.
-  Two indexes were added, which noticeably reduces the response time on domains with many users (:uv:bug:`00000`).
+* Fixed: Several version 2 read endpoints queried a table from a direction no index covered, so each request scanned that table in full.
+  ``GET /v2/users/<username>`` did so for the user's group memberships and legal guardians, ``GET /v2/users/?school=`` and the class and workgroup listings for the groups and memberships of a school.
+  Four indexes were added, which noticeably reduces the response time of these endpoints on domains with many users (:uv:bug:`00000`).
 
   .. important::
 
