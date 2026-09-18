@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, cast
 import pytest
 import pytest_asyncio
 from sqlalchemy import func, make_url, select
+from ucsschool_objects.core.adapters.sqlalchemy import session
 from ucsschool_objects.core.adapters.sqlalchemy.session import (
     DatabaseSettings,
     KelvinSqlAlchemySessionFactory,
@@ -23,6 +24,7 @@ from ucsschool_objects.database_models import Base, School
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+    from sqlalchemy.engine import URL
     from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 
@@ -216,3 +218,20 @@ def test_read_env_or_file_raises_when_neither_set(monkeypatch: pytest.MonkeyPatc
     monkeypatch.delenv("MY_VAR_FILE", raising=False)
     with pytest.raises(RuntimeError, match="Neither MY_VAR nor MY_VAR_FILE is set"):
         _read_env_or_file("MY_VAR", "MY_VAR_FILE")
+
+
+def test_build_engine_pre_pings_pooled_connections(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_create_async_engine(url: URL, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(session, "create_async_engine", fake_create_async_engine)
+    settings = DatabaseSettings(url=make_url("postgresql+psycopg://kelvin@db.example/kelvin"))
+
+    _ = build_engine(settings)
+
+    assert captured["pool_pre_ping"] is True
+    assert captured["pool_size"] == settings.pool_size
+    assert captured["max_overflow"] == settings.max_overflow

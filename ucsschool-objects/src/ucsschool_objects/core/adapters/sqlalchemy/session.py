@@ -44,6 +44,7 @@ class DatabaseSettings:
     echo: bool = False
     pool_size: int = 10
     max_overflow: int = 20
+    pool_pre_ping: bool = True
 
 
 def _read_env_or_file(env_var: str, file_env_var: str) -> str:
@@ -99,6 +100,7 @@ def build_engine(settings: DatabaseSettings) -> AsyncEngine:  # pragma: no cover
         echo=settings.echo,
         pool_size=settings.pool_size,
         max_overflow=settings.max_overflow,
+        pool_pre_ping=settings.pool_pre_ping,
     )
 
 
