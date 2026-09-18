@@ -3,18 +3,17 @@
 
 
 from functools import lru_cache
-from typing import AsyncGenerator
+from typing import AsyncGenerator, cast
 
 from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from fastapi import HTTPException, Request, status
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
+from fastapi import Depends, HTTPException, Request, status
+from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncEngine
 from ucsschool_objects import KelvinStorageSession
 
 from ucsschool.kelvin.constants import ALEMBIC_CONFIG_FILE
-from ucsschool.kelvin.database import get_database_url
 
 
 @lru_cache(maxsize=1)
@@ -26,24 +25,18 @@ def _get_alembic_head_revision() -> str:
     return ScriptDirectory.from_config(alembic_cfg).get_current_head()
 
 
-@lru_cache(maxsize=1)
-def _fence_engine() -> Engine:
-    """Process-wide sync engine for the DB-compatibility fence.
-
-    Reused across requests so each check draws a pooled connection instead of
-    opening (and tearing down) a fresh connection on every request.
-    ``pool_pre_ping`` replaces a stale pooled connection (e.g. after a Postgres
-    restart) rather than surfacing it as a spurious error from the fence.
-    """
-    return create_engine(get_database_url(), pool_pre_ping=True)
+def get_db_engine(request: Request) -> AsyncEngine:
+    return cast(AsyncEngine, request.app.state.db_engine)
 
 
-def check_db_compatibility() -> None:
+def _get_current_revision(connection: Connection) -> str | None:
+    return MigrationContext.configure(connection).get_current_revision()
+
+
+async def check_db_compatibility(engine: AsyncEngine = Depends(get_db_engine)) -> None:
     head_revision = _get_alembic_head_revision()
-    with _fence_engine().connect() as connection:
-        context = MigrationContext.configure(connection)
-        current_revision = context.get_current_revision()
-        connection.commit()
+    async with engine.connect() as connection:
+        current_revision = await connection.run_sync(_get_current_revision)
     if current_revision != head_revision:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

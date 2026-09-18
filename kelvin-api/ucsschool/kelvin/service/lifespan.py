@@ -36,6 +36,7 @@ def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AsyncItera
         log_version(app, logger)
         settings = DatabaseSettings(url=get_database_url())
         engine = build_engine(settings)
+        app.state.db_engine = engine
         app.state.storage_session_factory = build_kelvin_storage_session_factory(engine)
         yield
         await engine.dispose()
