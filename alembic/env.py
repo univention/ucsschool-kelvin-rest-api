@@ -75,13 +75,10 @@ def advisory_lock(connection, timeout_seconds: int = 60):
 def get_current_db_revision(connection) -> str | None:
     migration_context = MigrationContext.configure(connection)
     revision = migration_context.get_current_revision()
-    # Reading the version table autobegins a transaction on the connection.
-    # Left open, ``context.configure()`` below would see the connection as
-    # already being in an *external* transaction, make ``begin_transaction()``
-    # a no-op and never track a transaction of its own -- which makes
-    # ``op.get_context().autocommit_block()`` fail an assertion. Migrations
-    # that build indexes concurrently need that block, so close the probe's
-    # transaction here.
+    # Reading the version table autobegins a transaction. Left open, Alembic
+    # treats the connection as externally managed and never tracks a
+    # transaction of its own, which breaks ``autocommit_block()`` in
+    # migrations that build indexes concurrently.
     connection.commit()
     return revision
 

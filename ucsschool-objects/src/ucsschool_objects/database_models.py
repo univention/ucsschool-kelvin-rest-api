@@ -315,10 +315,8 @@ def sync_primary_user_constraint(
 
 class GroupMemberAssociation(Base):
     __tablename__: str = "group_member_association"
-    # The primary key only serves lookups that lead with ``group_id``
-    # (``Group.members``). ``SchoolMembership.groups`` probes the other
-    # direction, which no index covered. Trailing ``group_id`` is the join
-    # key, so the association side can be read index-only.
+    # The primary key serves ``Group.members``; ``SchoolMembership.groups``
+    # probes the reverse direction and needs its own index.
     __table_args__: tuple[Index, ...] = (
         Index(
             "ix_group_member_association_school_membership_id_group_id",
@@ -392,9 +390,8 @@ class GroupGroupEmailSendersAssociation(Base):
 
 class LegalGuardianAssociation(Base):
     __tablename__: str = "legal_guardian_association"
-    # ``User.legal_wards`` leads with ``legal_guardian_id`` and is served by
-    # the primary key; ``User.legal_guardians`` probes ``legal_ward_id``,
-    # which needs its own index. See GroupMemberAssociation above.
+    # The primary key serves ``User.legal_wards``; ``User.legal_guardians``
+    # probes the reverse direction and needs its own index.
     __table_args__: tuple[Index, ...] = (
         Index(
             "ix_legal_guardian_association_legal_ward_id_legal_guardian_id",

@@ -171,9 +171,8 @@ Reverse indexes on the association tables
 
 A composite primary key only serves lookups that lead with its first column.
 Where an association table is read from *both* directions,
-the direction the primary key doesn't cover needs an index of its own,
-or the read degenerates into a sequential scan of the whole table.
-
+the other direction needs an index of its own,
+or the read degenerates into a sequential scan.
 Two such indexes exist,
 both needed by the eager load of ``GET /v2/users/<username>``:
 
@@ -194,35 +193,13 @@ both needed by the eager load of ``GET /v2/users/<username>``:
      - ``legal_ward_id``
      - ``ix_legal_guardian_association_legal_ward_id_legal_guardian_id``
 
-Both are composite in ``(probed column, join key)`` order,
-so PostgreSQL can satisfy the association side with an index-only scan.
-Both are non-unique:
-the primary key already enforces the pair.
-
+Both lead with the probed column and trail the join key,
+so PostgreSQL can read the association side index-only.
 Unlike the trigram indexes below,
-these are declared in the ORM metadata (``database_models.py``),
-so that ``--autogenerate`` doesn't propose dropping them
-and so that the test fixtures, which build their schema with
-``Base.metadata.create_all`` rather than with Alembic, see them.
-
-.. note::
-
-   The same gap still exists elsewhere and is not yet fixed:
-   ``group.school_id`` has no index at all,
-   although ``GET /v2/classes/`` and ``GET /v2/workgroups/``
-   resolve one school and then filter ``group`` by it;
-   ``school_membership.school_id`` is only covered as the trailing column of
-   ``UniqueConstraint("user_id", "school_id")``;
-   and ``group_user_email_senders_association.user_id`` and
-   ``group_group_email_senders_association.child_group_id`` are unindexed,
-   which makes every ``ON DELETE CASCADE`` from ``user`` / ``group``
-   scan those tables.
-
-   The ``role_id`` columns of the three role association tables are
-   deliberately left unindexed:
-   their only consumer would be the foreign-key check of ``DELETE FROM role``,
-   ``role`` holds nine seeded rows,
-   and the ``v2`` role router exposes no DELETE route.
+they are declared in the ORM metadata (``database_models.py``),
+so that ``--autogenerate`` keeps them
+and the test fixtures, which build their schema with
+``Base.metadata.create_all``, see them.
 
 Trigram indexes for case-insensitive search
 """"""""""""""""""""""""""""""""""""""""""""
@@ -256,23 +233,14 @@ PostgreSQL can index-scan.
 
    The indexes are built with a plain ``CREATE INDEX`` (not
    ``CONCURRENTLY``), which briefly locks writes while the index builds.
-   Reads are unaffected: ``CREATE INDEX`` takes a ``SHARE`` lock, which blocks
-   writers but not ``SELECT``.
    Large deployments might want to switch to ``CREATE INDEX CONCURRENTLY`` inside
-   an ``op.get_context().autocommit_block()``.
-
-   The reverse association indexes above are built that way already,
-   because that migration runs against a populated database.
-   Two things to know before copying the pattern.
-   First, ``autocommit_block`` commits the transaction that ``env.py`` opened,
-   so the DDL is no longer atomic with the rest of the revision;
-   the advisory lock survives, because ``pg_try_advisory_lock`` is
-   session-scoped and the block only changes the isolation level of the same
-   connection.
-   Second, a failed ``CREATE INDEX CONCURRENTLY`` leaves an **invalid** index
-   that the planner ignores and that ``if_not_exists`` would silently skip on a
-   re-run, so the migration drops invalid leftovers of its own indexes before
-   creating them. To find them by hand:
+   an ``op.get_context().autocommit_block()``,
+   as the reverse association indexes above are built.
+   That block commits the transaction ``env.py`` opened,
+   so the DDL is no longer atomic with the rest of the revision,
+   and a failed build leaves an **invalid** index behind
+   that the planner ignores and ``if_not_exists`` would skip on a re-run.
+   To find those:
 
    .. code-block:: sql
 

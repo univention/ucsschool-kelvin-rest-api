@@ -12,17 +12,15 @@ v4.0.3 (unreleased)
 -------------------
 .. TODO: set the release date and replace the bug number below before release.
 
-* Fixed: Fetching a single user with ``GET /v2/users/<username>`` read the user's group memberships and legal guardians without an index, so every such request scanned the two association tables in full.
-  The lookup of the user itself was always indexed; the cost was in loading its relations.
-  Two indexes were added, which noticeably reduces the response time of the endpoint on domains with many users (:uv:bug:`00000`).
+* Fixed: ``GET /v2/users/<username>`` read the user's group memberships and legal guardians without an index, so every request scanned the two association tables in full.
+  Two indexes were added, which noticeably reduces the response time on domains with many users (:uv:bug:`00000`).
 
   .. important::
 
      This release changes the database schema.
-     All Kelvin instances in a domain share one database and each instance compares the database's schema revision against its own,
-     so instances that have not been upgraded yet answer every ``/v2`` request with status code ``503`` until they are.
+     All Kelvin instances in a domain share one database and answer ``/v2`` requests with status code ``503`` until they are upgraded,
+     so upgrade all instances together.
      The version 1 API is unaffected.
-     Upgrade all instances in a domain together.
 
 v4.0.2 (2026-09-08)
 -------------------
