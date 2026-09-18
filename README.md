@@ -213,6 +213,50 @@ make dev-server
 Changes to the source code are automatically synced to the running container
 and should have an immediate effect.
 
+## Profile the local Kelvin
+
+Profiling is off unless `KELVIN_PROFILE_DIR` is set. Without it neither the profiling
+middleware nor `pyinstrument` is loaded, so there is nothing to switch off again:
+
+```shell
+KELVIN_PROFILE_DIR=/kelvin/_profiles make dev-server
+```
+
+Each request is then sampled with [pyinstrument](https://pyinstrument.readthedocs.io/)
+and its profile written to `dev/_profiles/` as a `.pyisession` file. The file name ends
+in the request's `X-Request-ID`, which the response repeats in `X-Kelvin-Profile-File`,
+so a slow request in the log can be traced to its profile. Pick a renderer when you look
+at it:
+
+```shell
+uv run pyinstrument --load dev/_profiles/<file>.pyisession -r html -o /tmp/profile.html
+uv run pyinstrument --load dev/_profiles/<file>.pyisession -r speedscope -o /tmp/profile.json
+```
+
+`-r html` gives an interactive call tree. The speedscope JSON is for
+[speedscope.app](https://www.speedscope.app), whose *Left Heavy* view aggregates repeated
+calls and so makes patterns like a query per result stand out.
+
+Sending the `X-Kelvin-Profile` header answers the request with the HTML report instead of
+its own response body, and writes no file:
+
+```shell
+curl -H "X-Kelvin-Profile: 1" -H "Authorization: Bearer $TOKEN" \
+    "http://127.0.0.1:8911/ucsschool/kelvin/v2/users/?school=DEMOSCHOOL" > /tmp/profile.html
+```
+
+Notes:
+
+* Requests are profiled one at a time, because pyinstrument cannot follow two async
+  contexts at once. A profiled server therefore serialises concurrent requests and is no
+  measure of throughput.
+* Only the API's own endpoints are profiled. The Swagger UI, ReDoc, the OpenAPI
+  documents, the static files those load, the changelog and readme pages and `/health`
+  are not, so they neither cost anything nor bury the profiles you are after.
+* `KELVIN_PROFILE_INTERVAL` sets the sampling interval in seconds (default `0.001`).
+* The dev stack runs a single Gunicorn worker (`NUM_WORKERS`, default `1`), so all
+  profiles come from the same process.
+
 ## Installation of python packages
 
 It is useful to have all packages installed during development, so that the IDE can autocomplete and lint correctly.

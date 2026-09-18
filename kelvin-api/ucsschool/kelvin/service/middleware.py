@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
+import os
+from pathlib import Path
 from typing import Any, Dict
 
 from asgi_correlation_id import CorrelationIdMiddleware
@@ -48,3 +50,7 @@ def add_middlewares(app: FastAPI, logger: logging.Logger) -> None:
         client=PrintTimings(logger),
         metric_namer=StarletteScopeToNamePatched(prefix="kelvin_app", starlette_app=app),
     )
+    if profile_dir := os.environ.get("KELVIN_PROFILE_DIR", "").strip():
+        from .profiling import add_profiling_middleware
+
+        add_profiling_middleware(app, Path(profile_dir), logger)

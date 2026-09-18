@@ -80,10 +80,17 @@ services:
       - 8911:8911
     env_file:
       - _vm_config/env
+    environment:
+      NUM_WORKERS: "${NUM_WORKERS:-1}"
+      KELVIN_PROFILE_DIR: "${KELVIN_PROFILE_DIR:-}"
+      KELVIN_PROFILE_INTERVAL: "${KELVIN_PROFILE_INTERVAL:-}"
     extra_hosts:
       - "${LDAP_MASTER}:${TARGET}"
     hostname: "${HOSTNAME}"
     volumes:
+      # Profiles written when KELVIN_PROFILE_DIR is set
+      - ./_profiles:/kelvin/_profiles
+
       # Secrets and certificates
       - ./_vm_config/machine.secret:/etc/machine.secret:ro
       - ./_vm_config/ldap.secret:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/cn_admin.secret:ro

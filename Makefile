@@ -6,6 +6,7 @@ SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
 VM_CONF_DIR := "dev/_vm_config"
+PROFILE_DIR := "dev/_profiles"
 
 define PRINT_HELP_PYSCRIPT
 import re, sys
@@ -88,6 +89,7 @@ build-docker-image:  ## Builds the Kelvin docker image
 dev-server: .env-configured build-docker-image setup-provisioning-subscription ## Start local Kelvin development server
 	@echo "Starting development server..."
 	@echo "Access via http://127.0.0.1:8911/ucsschool/kelvin/"
+	@mkdir -p $(PROFILE_DIR)
 	@set -a && source $(VM_CONF_DIR)/env && set +a && \
 	trap 'docker compose -f dev/docker-compose.yaml down' EXIT && \
 		docker compose -f dev/docker-compose.yaml up --watch
