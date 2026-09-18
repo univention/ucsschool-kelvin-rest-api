@@ -274,6 +274,16 @@ async def _setup_user_in_case(factories: UserQueryFactories) -> QueryExpectation
     )
 
 
+async def _setup_user_in_ci_case(factories: UserQueryFactories) -> QueryExpectation:
+    await factories.user_factory(name="Anna")
+    await factories.user_factory(name="bert")
+    await factories.user_factory(name="Carla")
+    return QueryExpectation(
+        query=SearchQuery(where=Filter(field="name", op=Operator.IN_CI, value=["anna", "CARLA"])),
+        expected_names=("Anna", "Carla"),
+    )
+
+
 async def _setup_user_matches_ci_case(factories: UserQueryFactories) -> QueryExpectation:
     await factories.user_factory(name="anna", lastname="Miller")
     await factories.user_factory(name="bert", lastname="Schmidt")
@@ -554,6 +564,7 @@ async def test_role_query_operators(
         pytest.param(_setup_user_eq_case, id="user-eq"),
         pytest.param(_setup_user_ne_case, id="user-ne"),
         pytest.param(_setup_user_in_case, id="user-in"),
+        pytest.param(_setup_user_in_ci_case, id="user-in-ci"),
         pytest.param(_setup_user_matches_ci_case, id="user-matches-ci"),
         pytest.param(_setup_user_matches_case, id="user-matches"),
         pytest.param(_setup_user_gt_case, id="user-gt"),

@@ -89,3 +89,39 @@ async def test_matches_ci_escapes_literal_percent_and_underscore(
     _ = await user_factory(name="50Xoff")
 
     assert await _names_matching(db_session, "50%_off") == {"50%_off"}
+
+
+async def _names_in(db_session: AsyncSession, values: tuple[str, ...]) -> set[str]:
+    expr = FILTER_OPERATOR_BUILDERS[Operator.IN_CI](UserModel.name, values)
+    result = await db_session.execute(select(UserModel.name).where(expr))
+    return set(result.scalars().all())
+
+
+@pytest.mark.asyncio
+async def test_in_ci_matches_every_listed_value(
+    db_session: AsyncSession, user_factory: AsyncUserFactory
+) -> None:
+    _ = await user_factory(name="John Doe")
+    _ = await user_factory(name="Jane Roe")
+    _ = await user_factory(name="Rita Poe")
+
+    assert await _names_in(db_session, ("JOHN DOE", "jane roe")) == {"John Doe", "Jane Roe"}
+
+
+@pytest.mark.asyncio
+async def test_in_ci_does_not_interpret_wildcards(
+    db_session: AsyncSession, user_factory: AsyncUserFactory
+) -> None:
+    """The values are compared, not matched as patterns."""
+    _ = await user_factory(name="John Doe")
+
+    assert await _names_in(db_session, ("john*",)) == set()
+
+
+@pytest.mark.asyncio
+async def test_in_ci_without_match_yields_nothing(
+    db_session: AsyncSession, user_factory: AsyncUserFactory
+) -> None:
+    _ = await user_factory(name="John Doe")
+
+    assert await _names_in(db_session, ("jane roe",)) == set()

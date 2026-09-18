@@ -207,3 +207,31 @@ async def test_unsupported_filter_operator_raises_domain_error(
         await manager.search(SearchQuery(where=invalid_filter))
     assert exc_info.value.field == "name"
     assert exc_info.value.operator == "NOPE"
+
+
+@pytest.mark.asyncio
+async def test_in_ci_filter_with_non_iterable_raises_domain_error(
+    db_session: AsyncSession, school_factory: SchoolFactory
+) -> None:
+    await school_factory(name="school-a")
+    manager = SQLAlchemySchoolManager(db_session)
+    invalid_filter = Filter(field="name", op=Operator.IN_CI, value=123)
+
+    with pytest.raises(InvalidInFilter, match="IN operator requires an iterable value") as exc_info:
+        await manager.search(SearchQuery(where=invalid_filter))
+    assert exc_info.value.field == "name"
+    assert exc_info.value.value == 123
+
+
+@pytest.mark.asyncio
+async def test_in_ci_filter_with_non_string_value_raises_domain_error(
+    db_session: AsyncSession, school_factory: SchoolFactory
+) -> None:
+    await school_factory(name="school-a")
+    manager = SQLAlchemySchoolManager(db_session)
+    invalid_filter = Filter(field="name", op=Operator.IN_CI, value=["school-a", 7])
+
+    with pytest.raises(InvalidInFilter, match="requires string values") as exc_info:
+        await manager.search(SearchQuery(where=invalid_filter))
+    assert exc_info.value.field == "name"
+    assert exc_info.value.value == ["school-a", 7]

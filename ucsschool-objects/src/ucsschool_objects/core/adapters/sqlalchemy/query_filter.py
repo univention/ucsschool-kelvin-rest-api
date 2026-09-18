@@ -18,6 +18,7 @@ from sqlalchemy import (
     and_,
     asc,
     desc,
+    func,
     not_,
     or_,
 )
@@ -335,10 +336,16 @@ def _get_filter_column(
 
 
 def _validate_filter_value(filter_expr: Filter, column: FieldColumn) -> None:
-    if filter_expr.op is Operator.IN:
+    if filter_expr.op in {Operator.IN, Operator.IN_CI}:
         values = filter_expr.value
         if not isinstance(values, Iterable) or isinstance(values, str):
             raise InvalidInFilter(filter_expr.field, values)
+        if filter_expr.op is Operator.IN_CI and not all(isinstance(value, str) for value in values):
+            raise InvalidInFilter(
+                filter_expr.field,
+                values,
+                reason="requires string values when matching case-insensitively",
+            )
         return
 
     if filter_expr.op in {Operator.MATCHES, Operator.MATCHES_CI} and not isinstance(
@@ -389,6 +396,9 @@ FILTER_OPERATOR_BUILDERS: dict[Operator, FilterExpressionBuilder] = {
     Operator.EQ: lambda column, value: column == value,
     Operator.NE: lambda column, value: column != value,
     Operator.IN: lambda column, value: column.in_(tuple(cast(FilterInValue, value))),
+    Operator.IN_CI: lambda column, value: func.lower(column).in_(
+        tuple(cast(str, item).lower() for item in cast(FilterInValue, value))
+    ),
     Operator.MATCHES: lambda column, value: column.like(
         _glob_to_sql_pattern(cast(str, value)), escape="\\"
     ),

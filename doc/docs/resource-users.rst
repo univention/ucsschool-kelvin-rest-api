@@ -236,6 +236,20 @@ The response body will be:
 To search for users with usernames that contain ``Brian``, append ``?name=*Brian*`` to the school
 resource. The search is case-insensitive. The URL would be: ``https://<fqdn>/ucsschool/kelvin/v1/users/?name=%2ABrian%2A``
 
+To retrieve several users in one request,
+repeat the ``name`` parameter,
+for example ``?name=demo_student&name=demo_teacher``.
+Each value is matched as a single ``name`` value is,
+and all of them are read in one database query,
+which is considerably faster than requesting every user individually.
+The length of a URL is limited,
+which caps one request at a few hundred usernames;
+larger sets have to be split over several requests.
+
+.. versionadded:: 4.1.0
+
+   Repeating the ``name`` parameter is supported by the version 2 API only.
+
 The Users resource supports searching for all attributes and to combine those.
 To search for users that are both ``staff`` and ``teacher`` with usernames that start with ``demo``, birthday on the 3rd of February, have a lastname that ends with ``sam`` and are enrolled in school ``demoschool``, the URL is: ``https://<fqdn>/ucsschool/kelvin/v1/users/?school=demoschool&name=demo%2A&birthday=2001-02-03&lastname=%2Asam&roles=staff&roles=teacher``
 

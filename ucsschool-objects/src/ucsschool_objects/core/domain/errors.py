@@ -38,15 +38,15 @@ class UnsupportedSortField(InvalidFilter):
 
 
 class InvalidInFilter(InvalidFilter):
-    """Raised when an IN filter receives a non-iterable value."""
+    """Raised when an IN filter receives a value it cannot match against."""
 
     field: str
     value: object
 
-    def __init__(self, field: str, value: object) -> None:
+    def __init__(self, field: str, value: object, reason: str = "requires an iterable value") -> None:
         self.field = field
         self.value = value
-        super().__init__(f"IN operator requires an iterable value for field {field!r}; got {value!r}")
+        super().__init__(f"IN operator {reason} for field {field!r}; got {value!r}")
 
 
 class InvalidJsonFilter(InvalidFilter):

@@ -298,6 +298,49 @@ async def test_search_no_filter(
     await retry_until_replicated(_check)
 
 
+@pytest.mark.asyncio
+async def test_search_multiple_names(
+    auth_header,
+    retry_http_502,
+    retry_until_replicated,
+    url_fragment,
+    new_school_users,
+    create_ou_using_python,
+    api_version,
+):
+    """``name`` may be repeated to retrieve several users in one request."""
+    if api_version != "v2":
+        pytest.skip("Repeating the 'name' parameter is a v2 feature.")
+    ou_name = await create_ou_using_python()
+    users: list[User] = await new_school_users(ou_name, {"student": 3}, disabled=False)
+    wanted = users[:2]
+    ignored = users[2]
+
+    def _found_names(params):
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/users/",
+            headers=auth_header,
+            params=params,
+        )
+        assert response.status_code == 200, (response.reason, response.content)
+        return {data["name"] for data in response.json()}
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        # Every value is matched case-insensitively, as a single name is.
+        assert _found_names({"name": [wanted[0].name.upper(), wanted[1].name]}) == {
+            user.name for user in wanted
+        }
+        # Wildcards keep working next to plain values.
+        assert _found_names({"name": [wanted[0].name, f"{ignored.name}*"]}) == {
+            wanted[0].name,
+            ignored.name,
+        }
+
+    await retry_until_replicated(_check)
+
+
 @pytest.mark.asyncio  # noqa: C901
 @pytest.mark.parametrize(
     "filter_param",
