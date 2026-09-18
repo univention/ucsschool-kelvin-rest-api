@@ -3,8 +3,9 @@
 
 import datetime
 import logging
+from collections.abc import Sequence
 from functools import lru_cache
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
@@ -121,9 +122,27 @@ def _udm_property_filters(request: Request) -> list[QueryExpr]:
     return filters
 
 
+def _name_filter(names: Sequence[str]) -> QueryExpr:
+    """Filter matching any of ``names``, with the same semantics per value.
+
+    Values without a wildcard are collected into a single case-insensitive
+    ``IN``, so that asking for hundreds of usernames stays one set lookup
+    instead of one pattern match per value.
+    """
+    plain = tuple(name for name in names if "*" not in name)
+    clauses: list[QueryExpr] = [
+        make_wildcard_filter("name", name, case_insensitive=True) for name in names if "*" in name
+    ]
+    if plain:
+        clauses.insert(0, Filter(field="name", op=Operator.IN_CI, value=plain))
+    if len(clauses) == 1:
+        return clauses[0]
+    return Or(clauses=tuple(clauses))
+
+
 def _build_query(
     school: Optional[str],
-    name: Optional[str],
+    name: Optional[Sequence[str]],
     firstname: Optional[str],
     lastname: Optional[str],
     email: Optional[str],
@@ -135,8 +154,9 @@ def _build_query(
     extra_clauses: Optional[list[QueryExpr]] = None,
 ) -> Optional[SearchQuery]:
     clauses: list[QueryExpr] = list(extra_clauses or [])
-    if name:
-        clauses.append(_str_filter("name", name, case_insensitive=True))
+    names = [value for value in name or () if value]
+    if names:
+        clauses.append(_name_filter(names))
     if school:
         clauses.append(_str_filter("schools.name", school, case_insensitive=True))
     if firstname:
@@ -261,9 +281,17 @@ async def search(
         None,
         description="List only users that are members of matching school(s) (OUs).",
     ),
-    username: str = Query(
-        None, alias="name", description="List users with this username.", title="name"
-    ),
+    username: Annotated[
+        list[str] | None,
+        Query(
+            alias="name",
+            description=(
+                "List users with this username. May be repeated to retrieve several users in one "
+                "request, which is much faster than fetching them one by one."
+            ),
+            title="name",
+        ),
+    ] = None,
     firstname: str = Query(None),
     lastname: str = Query(None),
     email: str = Query(None),

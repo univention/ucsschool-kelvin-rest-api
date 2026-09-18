@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
+from dataclasses import replace
 from typing import TYPE_CHECKING, Callable, TypeAlias, TypeVar, cast
 from uuid import UUID
 
@@ -14,10 +15,12 @@ from sqlalchemy import (
     Integer,
     Numeric,
     Select,
+    String,
     Uuid,
     and_,
     asc,
     desc,
+    func,
     not_,
     or_,
 )
@@ -335,10 +338,22 @@ def _get_filter_column(
 
 
 def _validate_filter_value(filter_expr: Filter, column: FieldColumn) -> None:
-    if filter_expr.op is Operator.IN:
+    if filter_expr.op in {Operator.IN, Operator.IN_CI}:
         values = filter_expr.value
         if not isinstance(values, Iterable) or isinstance(values, str):
             raise InvalidInFilter(filter_expr.field, values)
+        if filter_expr.op is Operator.IN_CI and not isinstance(_get_column_type(column), String):
+            raise InvalidInFilter(
+                filter_expr.field,
+                values,
+                reason="requires a string field when matching case-insensitively",
+            )
+        if filter_expr.op is Operator.IN_CI and not all(isinstance(value, str) for value in values):
+            raise InvalidInFilter(
+                filter_expr.field,
+                values,
+                reason="requires string values when matching case-insensitively",
+            )
         return
 
     if filter_expr.op in {Operator.MATCHES, Operator.MATCHES_CI} and not isinstance(
@@ -389,6 +404,12 @@ FILTER_OPERATOR_BUILDERS: dict[Operator, FilterExpressionBuilder] = {
     Operator.EQ: lambda column, value: column == value,
     Operator.NE: lambda column, value: column != value,
     Operator.IN: lambda column, value: column.in_(tuple(cast(FilterInValue, value))),
+    # Both sides are folded by the database, so that one engine decides what
+    # case-insensitive means; Python's str.lower() and SQL lower() disagree on
+    # non-ASCII text.
+    Operator.IN_CI: lambda column, value: func.lower(column).in_(
+        tuple(func.lower(literal(cast(str, item))) for item in cast(FilterInValue, value))
+    ),
     Operator.MATCHES: lambda column, value: column.like(
         _glob_to_sql_pattern(cast(str, value)), escape="\\"
     ),
@@ -410,6 +431,14 @@ def _build_filter_expression(
 ) -> FilterExpression:
     if filter_expr.op is Operator.CONTAINS:
         return _build_json_contains_expression(filter_expr, json_field_map)
+    if (
+        filter_expr.op in {Operator.IN, Operator.IN_CI}
+        and isinstance(filter_expr.value, Iterable)
+        and not isinstance(filter_expr.value, Collection)
+    ):
+        # A one-shot iterable would be used up by validation before the
+        # expression is built from it.
+        filter_expr = replace(filter_expr, value=tuple(filter_expr.value))
     column = _get_filter_column(filter_expr, field_map, registry, json_field_map)
     _validate_filter_value(filter_expr, column)
 

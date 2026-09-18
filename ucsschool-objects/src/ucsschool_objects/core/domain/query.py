@@ -24,6 +24,8 @@ class Operator(str, Enum):
     EQ = "eq"
     NE = "ne"
     IN = "in"
+    IN_CI = "in_ci"
+    """Membership in a set of string values, compared case-insensitively."""
     MATCHES = "matches"
     MATCHES_CI = "matches_ci"
     GT = "gt"

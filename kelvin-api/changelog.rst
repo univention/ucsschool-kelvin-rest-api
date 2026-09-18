@@ -8,6 +8,13 @@
 Changelog
 =========
 
+v4.1.0 (unreleased)
+-------------------
+* Added (version 2 API only): The ``name`` parameter of the user search accepts more than one value, for example ``?name=alice&name=bob``.
+  Retrieving users this way is considerably faster than requesting them one by one, because the whole set is read in one database query instead of one query per user.
+  Every value is matched the same way as a single ``name``: case-insensitively, with ``*`` as a wildcard.
+  The length of a URL is limited, which caps one request at a few hundred usernames; larger sets have to be split over several requests.
+
 v4.0.2 (2026-09-08)
 -------------------
 * Fixed: The OpenAPI schema declared properties that the API can answer with ``null`` as if they always held a value.

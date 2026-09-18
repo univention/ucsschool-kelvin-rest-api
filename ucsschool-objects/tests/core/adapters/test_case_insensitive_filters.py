@@ -16,8 +16,11 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from ucsschool_objects import Operator
-from ucsschool_objects.core.adapters.sqlalchemy.query_filter import FILTER_OPERATOR_BUILDERS
+from ucsschool_objects import Filter, Operator
+from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
+    FILTER_OPERATOR_BUILDERS,
+    build_expression,
+)
 from ucsschool_objects.database_models import User as UserModel
 
 from ...test_types import AsyncUserFactory
@@ -89,3 +92,55 @@ async def test_matches_ci_escapes_literal_percent_and_underscore(
     _ = await user_factory(name="50Xoff")
 
     assert await _names_matching(db_session, "50%_off") == {"50%_off"}
+
+
+async def _names_in(db_session: AsyncSession, values: tuple[str, ...]) -> set[str]:
+    expr = FILTER_OPERATOR_BUILDERS[Operator.IN_CI](UserModel.name, values)
+    result = await db_session.execute(select(UserModel.name).where(expr))
+    return set(result.scalars().all())
+
+
+@pytest.mark.asyncio
+async def test_in_ci_does_not_interpret_wildcards(
+    db_session: AsyncSession, user_factory: AsyncUserFactory
+) -> None:
+    """The values are compared, not matched as patterns."""
+    _ = await user_factory(name="John Doe")
+
+    assert await _names_in(db_session, ("john*",)) == set()
+
+
+@pytest.mark.asyncio
+async def test_in_ci_without_match_yields_nothing(
+    db_session: AsyncSession, user_factory: AsyncUserFactory
+) -> None:
+    _ = await user_factory(name="John Doe")
+
+    assert await _names_in(db_session, ("jane roe",)) == set()
+
+
+@pytest.mark.asyncio
+async def test_in_ci_folds_both_sides_in_the_database(
+    db_session: AsyncSession, user_factory: AsyncUserFactory
+) -> None:
+    """Python's ``str.lower()`` folds non-ASCII letters and SQLite's ``lower()``
+    does not, so an identical value only matches if one engine folds both sides."""
+    _ = await user_factory(name="JÜRGEN")
+
+    assert await _names_in(db_session, ("JÜRGEN",)) == {"JÜRGEN"}
+
+
+@pytest.mark.asyncio
+async def test_in_ci_accepts_a_one_shot_iterable(
+    db_session: AsyncSession, user_factory: AsyncUserFactory
+) -> None:
+    """Validating the values must not use up the ones the expression is built from."""
+    _ = await user_factory(name="John Doe")
+    names = (name for name in ["JOHN DOE"])
+
+    expr = build_expression(
+        Filter(field="name", op=Operator.IN_CI, value=names), {"name": UserModel.name}
+    )
+    result = await db_session.execute(select(UserModel.name).where(expr))
+
+    assert set(result.scalars().all()) == {"John Doe"}
