@@ -6,13 +6,13 @@ import logging
 import time
 from contextlib import contextmanager
 
-from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import engine_from_config, pool, text
 from ucsschool_objects.core.adapters.sqlalchemy.session import build_settings
 from ucsschool_objects.database_models import Base
 
 from alembic import context
+from ucsschool.kelvin.service.dependency import get_current_revision
 from ucsschool.kelvin.service.log import setup_logging
 
 setup_logging()
@@ -70,11 +70,6 @@ def advisory_lock(connection, timeout_seconds: int = 60):
             logger.debug("Postgres advisory lock released.")
         else:
             logger.warning("Postgres advisory lock was not held when release was attempted.")
-
-
-def get_current_db_revision(connection) -> str | None:
-    migration_context = MigrationContext.configure(connection)
-    return migration_context.get_current_revision()
 
 
 def get_revision_transitions(current_revision: str | None) -> list[str]:
@@ -144,7 +139,7 @@ def run_migrations_online() -> None:
     lock_timeout_seconds = 60
     with connectable.connect() as connection:
         with advisory_lock(connection, timeout_seconds=lock_timeout_seconds):
-            current_revision = get_current_db_revision(connection)
+            current_revision = get_current_revision(connection)
             logger.info("Migration starting point: %s", current_revision or "<base>")
 
             logger.info("Migration plan:")
@@ -161,7 +156,7 @@ def run_migrations_online() -> None:
             with context.begin_transaction():
                 context.run_migrations()
 
-            current_revision = get_current_db_revision(connection)
+            current_revision = get_current_revision(connection)
     logger.info("Finished alembic database migration, current revision: %s", current_revision)
 
 

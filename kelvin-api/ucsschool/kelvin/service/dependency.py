@@ -29,14 +29,14 @@ async def get_db_engine(request: Request) -> AsyncEngine:
     return cast(AsyncEngine, request.app.state.db_engine)
 
 
-def _get_current_revision(connection: Connection) -> str | None:
+def get_current_revision(connection: Connection) -> str | None:
     return MigrationContext.configure(connection).get_current_revision()
 
 
 async def check_db_compatibility(engine: AsyncEngine = Depends(get_db_engine)) -> None:
     head_revision = _get_alembic_head_revision()
     async with engine.connect() as connection:
-        current_revision = await connection.run_sync(_get_current_revision)
+        current_revision = await connection.run_sync(get_current_revision)
     if current_revision != head_revision:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
