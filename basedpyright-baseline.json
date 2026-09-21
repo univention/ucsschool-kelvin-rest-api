@@ -74658,38 +74658,6 @@
             {
                 "code": "reportArgumentType",
                 "range": {
-                    "startColumn": 63,
-                    "endColumn": 78,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownVariableType",
-                "range": {
-                    "startColumn": 4,
-                    "endColumn": 6,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportCallIssue",
-                "range": {
-                    "startColumn": 9,
-                    "endColumn": 40,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportArgumentType",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 35,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportArgumentType",
-                "range": {
                     "startColumn": 15,
                     "endColumn": 9,
                     "lineCount": 3
@@ -74717,14 +74685,6 @@
                     "startColumn": 12,
                     "endColumn": 9,
                     "lineCount": 3
-                }
-            },
-            {
-                "code": "reportUnknownArgumentType",
-                "range": {
-                    "startColumn": 11,
-                    "endColumn": 13,
-                    "lineCount": 1
                 }
             }
         ],
@@ -75120,54 +75080,6 @@
             {
                 "code": "reportArgumentType",
                 "range": {
-                    "startColumn": 62,
-                    "endColumn": 98,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownVariableType",
-                "range": {
-                    "startColumn": 4,
-                    "endColumn": 6,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportCallIssue",
-                "range": {
-                    "startColumn": 9,
-                    "endColumn": 40,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportArgumentType",
-                "range": {
-                    "startColumn": 20,
-                    "endColumn": 35,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportArgumentType",
-                "range": {
-                    "startColumn": 42,
-                    "endColumn": 53,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportArgumentType",
-                "range": {
-                    "startColumn": 70,
-                    "endColumn": 85,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportArgumentType",
-                "range": {
                     "startColumn": 15,
                     "endColumn": 9,
                     "lineCount": 3
@@ -75203,14 +75115,6 @@
                     "startColumn": 12,
                     "endColumn": 9,
                     "lineCount": 3
-                }
-            },
-            {
-                "code": "reportUnknownArgumentType",
-                "range": {
-                    "startColumn": 11,
-                    "endColumn": 13,
-                    "lineCount": 1
                 }
             }
         ],
