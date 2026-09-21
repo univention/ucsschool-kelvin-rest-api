@@ -25,7 +25,7 @@ def _get_alembic_head_revision() -> str:
     return ScriptDirectory.from_config(alembic_cfg).get_current_head()
 
 
-def get_db_engine(request: Request) -> AsyncEngine:
+async def get_db_engine(request: Request) -> AsyncEngine:
     return cast(AsyncEngine, request.app.state.db_engine)
 
 

@@ -60,11 +60,11 @@ def test_v1_api_does_not_depend_on_db_compatibility(mock_check: MagicMock, clien
     mock_check.assert_not_called()
 
 
-def test_get_db_engine_returns_the_engine_built_by_the_lifespan() -> None:
+async def test_get_db_engine_returns_the_engine_built_by_the_lifespan() -> None:
     request = MagicMock()
     request.app.state.db_engine = sentinel = object()
 
-    assert get_db_engine(request) is sentinel
+    assert await get_db_engine(request) is sentinel
 
 
 @patch("ucsschool.kelvin.service.dependency._get_alembic_head_revision", return_value=HEAD_REVISION)
