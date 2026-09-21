@@ -698,3 +698,66 @@ async def test_create_udm_error_forwarding(
                 }
             ]
         }
+
+
+@pytest.mark.asyncio
+async def test_search_leaves_the_members_out_when_excluded(
+    api_version,
+    auth_header,
+    retry_http_502,
+    retry_until_replicated,
+    url_fragment,
+    new_workgroup_using_lib,
+    new_school_users,
+    create_ou_using_python,
+):
+    """Loading the members and turning each into a URL is most of what a
+    whole-school listing costs, and a listing is rarely read for them."""
+    if api_version == "v1":
+        pytest.skip("The exclude parameter is v2-only; v1 always returns the members.")
+    ou = await create_ou_using_python()
+    users = await new_school_users(ou, {"student": 1})
+    await new_workgroup_using_lib(ou, users=[user.dn for user in users])
+
+    async def _check():
+        full = retry_http_502(
+            requests.get,
+            f"{url_fragment}/workgroups/",
+            headers=auth_header,
+            params={"school": ou},
+        )
+        assert full.status_code == 200
+        assert full.json()
+        assert all(item["users"] for item in full.json())
+
+        lean = retry_http_502(
+            requests.get,
+            f"{url_fragment}/workgroups/",
+            headers=auth_header,
+            params={"school": ou, "exclude": "users"},
+        )
+        assert lean.status_code == 200
+        # None, not []: left out, which is not the same as having none.
+        assert all(item["users"] is None for item in lean.json())
+        # Everything else is the same representation either way.
+        for lean_item, full_item in zip(lean.json(), full.json(), strict=True):
+            assert {k: v for k, v in lean_item.items() if k != "users"} == {
+                k: v for k, v in full_item.items() if k != "users"
+            }
+
+    await retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
+async def test_search_rejects_an_unknown_exclude(
+    api_version, auth_header, url_fragment, create_ou_using_python
+):
+    if api_version == "v1":
+        pytest.skip("The exclude parameter is v2-only.")
+    ou = await create_ou_using_python()
+    response = requests.get(
+        f"{url_fragment}/workgroups/",
+        headers=auth_header,
+        params={"school": ou, "exclude": "nonsense"},
+    )
+    assert response.status_code == 422
