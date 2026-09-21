@@ -235,3 +235,20 @@ def test_build_engine_pre_pings_pooled_connections(monkeypatch: pytest.MonkeyPat
     assert captured["pool_pre_ping"] is True
     assert captured["pool_size"] == settings.pool_size
     assert captured["max_overflow"] == settings.max_overflow
+
+
+def test_build_engine_pre_pings_sqlite_file_connections(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_create_async_engine(url: URL, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(session, "create_async_engine", fake_create_async_engine)
+    settings = DatabaseSettings(url=make_url(f"sqlite+aiosqlite:///{tmp_path / 'kelvin.sqlite'}"))
+
+    _ = build_engine(settings)
+
+    assert captured["pool_pre_ping"] is True

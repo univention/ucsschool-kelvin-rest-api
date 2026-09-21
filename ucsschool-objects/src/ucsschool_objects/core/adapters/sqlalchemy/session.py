@@ -93,6 +93,7 @@ def build_engine(settings: DatabaseSettings) -> AsyncEngine:  # pragma: no cover
         return create_async_engine(
             settings.url,
             echo=settings.echo,
+            pool_pre_ping=settings.pool_pre_ping,
         )
 
     return create_async_engine(
