@@ -3,7 +3,7 @@
 
 import logging
 from functools import lru_cache
-from typing import Annotated, cast
+from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
@@ -40,15 +40,18 @@ router = APIRouter()
 
 _SCHOOL_CLASS_ROLE = "school_class"
 
-SCHOOL_CLASS_LOAD_SPEC_V2 = LoadSpec.from_attributes(
+_SCHOOL_CLASS_ATTRS_V2 = (
     "name",
     "display_name",
     "create_share",
     "roles",
-    "members",
     "description",
     "udm_properties",
 )
+SCHOOL_CLASS_LOAD_SPEC_V2 = LoadSpec.from_attributes(*_SCHOOL_CLASS_ATTRS_V2, "members")
+# Without the member list there is nothing to load it for, and loading it is
+# most of what a whole-school listing costs.
+SCHOOL_CLASS_LOAD_SPEC_V2_NO_MEMBERS = LoadSpec.from_attributes(*_SCHOOL_CLASS_ATTRS_V2)
 
 
 @lru_cache(maxsize=1)
@@ -82,6 +85,7 @@ async def _group_to_school_class_model(
     request: Request,
     session: KelvinStorageSession,
     dn_map: dict[UUID, str] | None = None,
+    with_users: bool = True,
 ) -> SchoolClassModel:
     if dn_map is None:
         mapper = sqlalchemy_mapper_factory(session)
@@ -91,9 +95,16 @@ async def _group_to_school_class_model(
     relative_name = _get_relative_name(group)
     school_name = group.school.name
 
-    users = sorted(
-        SchoolClassModel.scheme_and_quote(str(cached_url_for(request, "get", username=user.name)))
-        for user in group.members
+    # None, not []: the caller asked to leave the members out, which is a
+    # different answer from the group having none. Building these URLs is the
+    # other half of what the member list costs, after loading it.
+    users = (
+        sorted(
+            SchoolClassModel.scheme_and_quote(str(cached_url_for(request, "get", username=user.name)))
+            for user in group.members
+        )
+        if with_users
+        else None
     )
 
     ucsschool_roles = sorted(f"{role.name}:school:{school_name}" for role in group.roles)
@@ -144,12 +155,30 @@ async def search(
             title="name",
         ),
     ] = None,
+    exclude: Annotated[
+        list[Literal["users"]] | None,
+        Query(
+            description=(
+                "Optional parts of the representation to leave out. ``users`` drops "
+                "the member list: it is by far the most expensive part of the "
+                "response, and a caller that only needs names and descriptions "
+                "should not pay for it. May be repeated. Left out, ``users`` is "
+                "``null``, which is not the same as ``[]`` - that would mean the "
+                "group has no members. Do not ``PUT`` such an item back unchanged: "
+                "``PUT`` reads ``users: null`` as an empty member list."
+            ),
+        ),
+    ] = None,
 ) -> list[SchoolClassModel]:
+    with_users = "users" not in (exclude or [])
     query = _group_search_query(school, class_name)
     logger.debug("v2 school_class search query: %r", query)
     groups = [
         g
-        for g in await session.groups.search(query, load=SCHOOL_CLASS_LOAD_SPEC_V2)
+        for g in await session.groups.search(
+            query,
+            load=SCHOOL_CLASS_LOAD_SPEC_V2 if with_users else SCHOOL_CLASS_LOAD_SPEC_V2_NO_MEMBERS,
+        )
         if _is_school_class(g)
     ]
     groups.sort(key=lambda g: g.name)
@@ -157,7 +186,10 @@ async def search(
     # a DN per group is one round trip per group.
     mapper = sqlalchemy_mapper_factory(session)
     dn_map = await mapper.public_ids_to_dns(ObjectType.GROUP, [_public_id(g) for g in groups])
-    return [await _group_to_school_class_model(g, request, session, dn_map=dn_map) for g in groups]
+    return [
+        await _group_to_school_class_model(g, request, session, dn_map=dn_map, with_users=with_users)
+        for g in groups
+    ]
 
 
 @router.get("/{school}/{class_name}", response_model=SchoolClassModel)

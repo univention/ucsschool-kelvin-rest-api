@@ -128,6 +128,24 @@ larger sets have to be split over several requests.
 
    Repeating the ``name`` parameter is supported by the version 2 API only.
 
+To leave the members out of the result,
+append ``?exclude=users``,
+for example ``?school=DEMOSCHOOL&exclude=users``.
+Loading the members and building their URLs is most of what listing
+the work groups of a school costs,
+so a caller that needs only names and descriptions gets a considerably faster response.
+In each returned work group the ``users`` property is then ``null``,
+not an empty list,
+which would mean the work group has no members.
+Don't send such an object back unchanged with ``PUT``:
+``PUT`` treats ``users: null`` as an empty member list and removes all members.
+Use ``PATCH`` without ``users`` instead.
+Retrieving a single work group always returns its members.
+
+.. versionadded:: 4.1.0
+
+   The ``exclude`` parameter is supported by the version 2 API only.
+
 
 Workgroups retrieve
 -------------------

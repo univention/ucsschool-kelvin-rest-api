@@ -18,6 +18,11 @@ v4.1.0 (unreleased)
   Resolving a set of groups this way is one request and one database query instead of one request per group.
   Every value is matched the same way as a single ``name``: case-insensitively, with ``*`` as a wildcard, and without the school prefix.
   The length of a URL is limited, which caps one request at a few hundred names; larger sets have to be split over several requests.
+* Added (version 2 API only): The school class and work group searches accept ``?exclude=users``, which leaves the members out of every returned group.
+  Listing the groups of a school this way is considerably faster, because loading the members and building their URLs is most of what such a listing costs.
+  An excluded ``users`` property is returned as ``null`` rather than as an empty list, so it cannot be mistaken for a group without members.
+  Such an object must not be sent back unchanged with ``PUT``, which would remove all members; use ``PATCH`` without ``users`` instead.
+  Without the parameter, and on ``GET /v2/classes/<school>/<name>`` and ``GET /v2/workgroups/<school>/<name>``, the members are returned as before.
 * Fixed (version 2 API only): ``GET /v2/users/<username>`` required the exact capitalization of the username, while the search for the same name did not, and version 1 does not either.
   The username is now matched case-insensitively on both endpoints.
 * Fixed (version 2 API only): ``GET /v2/classes/<school>/<name>`` and ``GET /v2/workgroups/<school>/<name>`` treated ``*`` in the name as a wildcard and could return a different group than the one asked for.
