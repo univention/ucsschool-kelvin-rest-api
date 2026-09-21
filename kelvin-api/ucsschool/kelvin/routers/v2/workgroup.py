@@ -3,7 +3,8 @@
 
 import logging
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, cast
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 from ucsschool_objects import (
@@ -13,6 +14,7 @@ from ucsschool_objects import (
     LoadSpec,
     Operator,
     SearchQuery,
+    User,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
@@ -66,28 +68,53 @@ def _get_relative_name(group: Group) -> str:
     return group.name
 
 
+def _public_id(obj: Group | User) -> UUID:
+    """A loaded object's public id.
+
+    Typed ``UUID | UnsetType`` on the domain object, because an attribute the
+    load spec leaves out reads as unset. ``public_id`` is never left out.
+    """
+    return cast("UUID", obj.public_id)
+
+
 def _is_workgroup(group: Group) -> bool:
     return _WORKGROUP_ROLE in {role.name for role in group.roles}
 
 
+def _workgroup_dn_subjects(group: Group) -> tuple[list[UUID], list[UUID]]:
+    """The group and user ids one work group needs resolved to DNs.
+
+    The work group itself, the groups allowed to mail it, and the users allowed
+    to mail it - collected so a search can resolve a page of them at once.
+    """
+    return (
+        [_public_id(group)] + [_public_id(g) for g in group.allowed_email_senders_groups],
+        [_public_id(u) for u in group.allowed_email_senders_users],
+    )
+
+
 async def _group_to_workgroup_model(
-    group: Group, request: Request, session: KelvinStorageSession
+    group: Group,
+    request: Request,
+    session: KelvinStorageSession,
+    dn_map: dict[UUID, str] | None = None,
+    user_dn_map: dict[UUID, str] | None = None,
 ) -> WorkGroupModel:
-    mapper = sqlalchemy_mapper_factory(session)
+    group_public_ids = [_public_id(g) for g in group.allowed_email_senders_groups]
+    user_public_ids = [_public_id(u) for u in group.allowed_email_senders_users]
 
-    user_public_ids = [u.public_id for u in group.allowed_email_senders_users]
-    group_public_ids = [g.public_id for g in group.allowed_email_senders_groups]
-
-    dn_map = await mapper.public_ids_to_dns(ObjectType.GROUP, [group.public_id] + group_public_ids)
-    dn = dn_map.get(group.public_id, "")
+    if dn_map is None or user_dn_map is None:
+        mapper = sqlalchemy_mapper_factory(session)
+        dn_map = await mapper.public_ids_to_dns(ObjectType.GROUP, [_public_id(group)] + group_public_ids)
+        user_dn_map = (
+            await mapper.public_ids_to_dns(ObjectType.USER, user_public_ids) if user_public_ids else {}
+        )
+    dn = dn_map.get(_public_id(group), "")
 
     allowed_email_senders_groups = sorted(dn_map[pid] for pid in group_public_ids if pid in dn_map)
-
-    if user_public_ids:
-        user_dn_map = await mapper.public_ids_to_dns(ObjectType.USER, user_public_ids)
-        allowed_email_senders_users = sorted(user_dn_map.values())
-    else:
-        allowed_email_senders_users = []
+    allowed_email_senders_users = sorted(
+        user_dn_map[pid] for pid in user_public_ids if pid in user_dn_map
+    )
 
     relative_name = _get_relative_name(group)
     school_name = group.school.name
@@ -155,7 +182,19 @@ async def search(
         g for g in await session.groups.search(query, load=WORKGROUP_LOAD_SPEC_V2) if _is_workgroup(g)
     ]
     groups.sort(key=lambda g: g.name)
-    return [await _group_to_workgroup_model(g, request, session) for g in groups]
+    # Two lookups for the whole page, as the user search already does: resolving
+    # them per group is two round trips per group.
+    mapper = sqlalchemy_mapper_factory(session)
+    subjects = [_workgroup_dn_subjects(g) for g in groups]
+    dn_map = await mapper.public_ids_to_dns(
+        ObjectType.GROUP, [pid for group_ids, _user_ids in subjects for pid in group_ids]
+    )
+    user_ids = [pid for _group_ids, user_ids in subjects for pid in user_ids]
+    user_dn_map = await mapper.public_ids_to_dns(ObjectType.USER, user_ids) if user_ids else {}
+    return [
+        await _group_to_workgroup_model(g, request, session, dn_map=dn_map, user_dn_map=user_dn_map)
+        for g in groups
+    ]
 
 
 @router.get("/{school}/{workgroup_name}", response_model=WorkGroupModel)

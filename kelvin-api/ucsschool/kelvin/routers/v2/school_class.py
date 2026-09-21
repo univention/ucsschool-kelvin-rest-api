@@ -3,7 +3,8 @@
 
 import logging
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, cast
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 from ucsschool_objects import (
@@ -63,16 +64,29 @@ def _get_relative_name(group: Group) -> str:
     return group.name
 
 
+def _public_id(obj: Group) -> UUID:
+    """A loaded object's public id.
+
+    Typed ``UUID | UnsetType`` on the domain object, because an attribute the
+    load spec leaves out reads as unset. ``public_id`` is never left out.
+    """
+    return cast("UUID", obj.public_id)
+
+
 def _is_school_class(group: Group) -> bool:
     return _SCHOOL_CLASS_ROLE in {role.name for role in group.roles}
 
 
 async def _group_to_school_class_model(
-    group: Group, request: Request, session: KelvinStorageSession
+    group: Group,
+    request: Request,
+    session: KelvinStorageSession,
+    dn_map: dict[UUID, str] | None = None,
 ) -> SchoolClassModel:
-    mapper = sqlalchemy_mapper_factory(session)
-    dn_map = await mapper.public_ids_to_dns(ObjectType.GROUP, [group.public_id])
-    dn = dn_map.get(group.public_id, "")
+    if dn_map is None:
+        mapper = sqlalchemy_mapper_factory(session)
+        dn_map = await mapper.public_ids_to_dns(ObjectType.GROUP, [_public_id(group)])
+    dn = dn_map.get(_public_id(group), "")
 
     relative_name = _get_relative_name(group)
     school_name = group.school.name
@@ -139,7 +153,11 @@ async def search(
         if _is_school_class(g)
     ]
     groups.sort(key=lambda g: g.name)
-    return [await _group_to_school_class_model(g, request, session) for g in groups]
+    # One lookup for the whole page, as the user search already does: resolving
+    # a DN per group is one round trip per group.
+    mapper = sqlalchemy_mapper_factory(session)
+    dn_map = await mapper.public_ids_to_dns(ObjectType.GROUP, [_public_id(g) for g in groups])
+    return [await _group_to_school_class_model(g, request, session, dn_map=dn_map) for g in groups]
 
 
 @router.get("/{school}/{class_name}", response_model=SchoolClassModel)
