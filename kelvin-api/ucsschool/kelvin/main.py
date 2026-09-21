@@ -4,7 +4,7 @@
 import logging
 from datetime import timedelta
 from functools import lru_cache
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.openapi.docs import get_swagger_ui_oauth2_redirect_html
@@ -21,7 +21,7 @@ from .constants import (
 )
 from .ldap import check_auth_and_get_user
 from .routers import v1, v2
-from .service.dependency import check_db_compatibility
+from .service.dependency import check_db_compatibility, check_health_db_compatibility
 from .service.exception_handler import add_exception_handlers
 from .service.lifespan import build_app_lifespan
 from .service.middleware import add_middlewares
@@ -60,7 +60,7 @@ add_exception_handlers(app, logger)
 
 
 @app.get("/health", include_in_schema=False)
-async def health(_: None = Depends(check_db_compatibility)):
+async def health(_: Annotated[None, Depends(check_health_db_compatibility)]):
     return {"status": "ok"}
 
 

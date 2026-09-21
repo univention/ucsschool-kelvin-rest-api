@@ -39,11 +39,22 @@ def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AbstractAs
         engine = build_engine(settings)
         app.state.db_engine = engine
         app.state.storage_session_factory = build_kelvin_storage_session_factory(engine)
+
+        # A separate engine/pool dedicated to /health: business traffic never
+        # checks out a connection from it, so a timeout on it can only mean
+        # the database itself is unreachable, never business-traffic pool
+        # contention (see check_health_db_compatibility).
+        health_check_engine = build_engine(
+            DatabaseSettings(url=get_database_url(), pool_size=1, max_overflow=0)
+        )
+        app.state.health_check_db_engine = health_check_engine
+
         try:
             await check_db_compatibility(engine)
         except HTTPException as exc:
             raise RuntimeError(str(exc.detail)) from exc
         yield
         await engine.dispose()
+        await health_check_engine.dispose()
 
     return lifespan

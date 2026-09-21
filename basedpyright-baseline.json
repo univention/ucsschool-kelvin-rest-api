@@ -8019,6 +8019,14 @@
                 "code": "reportMissingTypeStubs",
                 "range": {
                     "startColumn": 5,
+                    "endColumn": 29,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
                     "endColumn": 40,
                     "lineCount": 1
                 }
@@ -66610,14 +66618,6 @@
             {
                 "code": "reportCallInDefaultInitializer",
                 "range": {
-                    "startColumn": 27,
-                    "endColumn": 58,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportCallInDefaultInitializer",
-                "range": {
                     "startColumn": 43,
                     "endColumn": 52,
                     "lineCount": 1
@@ -74226,14 +74226,6 @@
         ],
         "./kelvin-api/ucsschool/kelvin/service/dependency.py": [
             {
-                "code": "reportDeprecated",
-                "range": {
-                    "startColumn": 19,
-                    "endColumn": 33,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportMissingTypeStubs",
                 "range": {
                     "startColumn": 5,
@@ -74246,6 +74238,22 @@
                 "range": {
                     "startColumn": 11,
                     "endColumn": 70,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportAny",
+                "range": {
+                    "startColumn": 29,
+                    "endColumn": 40,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportAny",
+                "range": {
+                    "startColumn": 29,
+                    "endColumn": 46,
                     "lineCount": 1
                 }
             },

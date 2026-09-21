@@ -51,6 +51,8 @@ def test_lifespan_starts_up_when_db_is_compatible(
 
     with TestClient(app):
         assert app.state.db_engine is not None
+        assert app.state.health_check_db_engine is not None
+        assert app.state.health_check_db_engine is not app.state.db_engine
 
 
 @patch("ucsschool.kelvin.service.dependency._get_alembic_head_revision", return_value=HEAD_REVISION)
