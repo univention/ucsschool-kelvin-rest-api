@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import AsyncIterator, Callable
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from ucsschool_objects.core.adapters.sqlalchemy import (
     DatabaseSettings,
     build_engine,
@@ -15,6 +15,7 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
 from ..config import UDM_MAPPING_CONFIG, load_configurations
 from ..database import get_database_url
 from ..import_config import get_import_config
+from .dependency import check_db_compatibility
 from .log import setup_logging
 
 
@@ -27,7 +28,7 @@ def log_version(app: FastAPI, logger: logging.Logger) -> None:
     logger.info("Started %s version %s.", app.title, app.version)
 
 
-def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AsyncIterator[None]]:
+def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         setup_logging()
@@ -38,6 +39,10 @@ def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AsyncItera
         engine = build_engine(settings)
         app.state.db_engine = engine
         app.state.storage_session_factory = build_kelvin_storage_session_factory(engine)
+        try:
+            await check_db_compatibility(engine)
+        except HTTPException as exc:
+            raise RuntimeError(str(exc.detail)) from exc
         yield
         await engine.dispose()
 
