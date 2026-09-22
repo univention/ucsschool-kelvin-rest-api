@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class GetAllClasses(KelvinClient):
     @task
     def get_class(self):
-        school = self.test_data.random_school()
+        school = self.test_data.random_school(self.rng)
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/classes/?school={school}"
             _ = self.request("get", url, response_codes=[200])
@@ -22,8 +22,8 @@ class GetAllClasses(KelvinClient):
 class SearchClasses(KelvinClient):
     @task
     def search_classes(self):
-        school = self.test_data.random_school()
-        school_class = self.test_data.random_class(school)
+        school = self.test_data.random_school(self.rng)
+        school_class = self.test_data.random_class(self.rng, school)
         prefix = school_class[: max(1, len(school_class) // 2)]
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/classes/?school={school}&name={prefix}*"
@@ -33,8 +33,8 @@ class SearchClasses(KelvinClient):
 class GetClass(KelvinClient):
     @task
     def get_class(self):
-        school = self.test_data.random_school()
-        school_class = self.test_data.random_class(school)
+        school = self.test_data.random_school(self.rng)
+        school_class = self.test_data.random_class(self.rng, school)
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/classes/{school}/{school_class}"
             _ = self.request("get", url, response_codes=[200])

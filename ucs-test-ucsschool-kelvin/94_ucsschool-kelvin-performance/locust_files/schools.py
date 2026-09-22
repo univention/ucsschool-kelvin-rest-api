@@ -18,7 +18,7 @@ class GetAllSchools(KelvinClient):
 class GetSchool(KelvinClient):
     @task
     def get_school(self):
-        school = self.test_data.random_school()
+        school = self.test_data.random_school(self.rng)
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/schools/{school}"
             _ = self.request("get", url, response_codes=[200])
@@ -27,7 +27,7 @@ class GetSchool(KelvinClient):
 class HeadSchool(KelvinClient):
     @task
     def head_school(self):
-        school = self.test_data.random_school()
+        school = self.test_data.random_school(self.rng)
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/schools/{school}"
             _ = self.request("head", url, response_codes=[200])

@@ -48,6 +48,26 @@
       "reportUnusedParameter": "hint"
     },
     {
+      "root": "ucs-test-ucsschool-kelvin/94_ucsschool-kelvin-performance",
+      "extraPaths": [
+        "ucs-test-ucsschool-kelvin/94_ucsschool-kelvin-performance",
+        "ucs-test-ucsschool-kelvin/94_ucsschool-kelvin-performance/src"
+      ],
+      "reportAny": "hint",
+      "reportExplicitAny": "hint",
+      "reportUnknownLambdaType": "hint",
+      "reportUnusedParameter": "hint",
+      "reportUnknownMemberType": "hint",
+      "reportUnknownVariableType": "hint",
+      "reportUnknownArgumentType": "hint",
+      "reportUnknownParameterType": "hint",
+      "reportMissingParameterType": "hint",
+      "reportUnannotatedClassAttribute": "hint",
+      "reportUntypedFunctionDecorator": "hint",
+      "reportUntypedBaseClass": "hint",
+      "reportMissingTypeStubs": "hint"
+    },
+    {
       "root": "."
     }
   ]

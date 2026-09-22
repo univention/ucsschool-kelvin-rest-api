@@ -4,9 +4,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import datetime
+import itertools
 import logging
 import multiprocessing
 import os
+import random
 import subprocess
 import sys
 from typing import Any, Dict, Iterable, Optional
@@ -17,11 +19,13 @@ from gevent.lock import BoundedSemaphore
 from locust import HttpUser, events
 
 from .auth import SSL_CERT, AuthToken, retrieve_token
-from .settings_locust import get_settings
+from .settings_locust import WORKER_INDEX_ENV, get_settings
 from .test_cleaner import TestCleaner, get_test_cleaner
 from .test_data import TestData
 
 logger = logging.getLogger(__name__)
+
+_user_index = itertools.count()
 
 
 @events.init.add_listener
@@ -40,9 +44,11 @@ def on_locust_init(environment, **kwargs):
     worker_args += ["--worker"]
     workers = multiprocessing.cpu_count() - 1
     workers = workers if workers > 0 else 1
-    env = {k: v for k, v in os.environ.items() if k != "LOCUST_RUN_TIME"}
-    for _ in range(workers):
-        logger.info("Starting worker: %r env=%r", worker_args, env)
+    base_env = {k: v for k, v in os.environ.items() if k != "LOCUST_RUN_TIME"}
+    for worker_index in range(workers):
+        # Without a distinct index every worker would draw the same schools.
+        env = {**base_env, WORKER_INDEX_ENV: str(worker_index)}
+        logger.info("Starting worker %d: %r env=%r", worker_index, worker_args, env)
         p = subprocess.Popen(  # nosec
             worker_args,
             start_new_session=True,
@@ -74,6 +80,11 @@ class KelvinClient(HttpUser):
         self.base_url = f"https://{self.settings.kelvin_host}{self.base_path}"
         self.username = self.settings.kelvin_username
         self.password = self.settings.kelvin_password
+        # Per user, not per process: greenlets share one TestData, so a single
+        # generator would not repeat the same picks across runs.
+        self.rng = random.Random(
+            f"{self.settings.seed}:{self.settings.worker_index}:{next(_user_index)}"
+        )
 
     def on_start(self):
         logger.info("Starting client with user %r (ID: %r).", self.username, id(self))

@@ -15,6 +15,10 @@ KELVIN_USERNAME_ENV = "UCS_ENV_TEST_KELVIN_USERNAME"
 KELVIN_USERNAME_FALLBACK = "Administrator"
 KELVIN_API_VERSION_ENV = "UCS_ENV_KELVIN_API_VERSION"
 KELVIN_API_VERSION_FALLBACK = "v1"
+SEED_ENV = "UCS_ENV_TEST_SEED"
+SEED_FALLBACK = 0
+WORKER_INDEX_ENV = "UCS_ENV_TEST_WORKER_INDEX"
+WORKER_INDEX_FALLBACK = 0
 
 
 @overload
@@ -63,6 +67,10 @@ class Settings:
     )
     roles: list[str] = field(
         default_factory=lambda: ["staff", "student", "teacher", "legal_guardian", "school_admin"]
+    )
+    seed: int = field(default_factory=default_from_env(SEED_ENV, default=SEED_FALLBACK))
+    worker_index: int = field(
+        default_factory=default_from_env(WORKER_INDEX_ENV, default=WORKER_INDEX_FALLBACK)
     )
 
 

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
-import random
 
 from locust import task
 from ucs_test_ucsschool_kelvin_performance.base import KelvinClient
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 class GetRole(KelvinClient):
     @task
     def get_role(self):
-        role = random.choice(["staff", "legal_guardian", "student", "teacher", "school_admin"])  # nosec
+        role = self.rng.choice(["staff", "legal_guardian", "student", "teacher", "school_admin"])
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/roles/{role}"
             _ = self.request("get", url, response_codes=[200])

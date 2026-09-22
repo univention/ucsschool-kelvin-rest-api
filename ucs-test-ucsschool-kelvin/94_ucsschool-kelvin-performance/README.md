@@ -54,3 +54,19 @@ It compares the ucsschool user count in LDAP with the user-row count in the v2
 database and blocks until they match. Because the database is already full in the
 image, the performance tests here do not need to wait.
 
+## Reproducible test data selection
+
+Each Locust user picks its school (and within it a user, class or workgroup)
+from a `random.Random` seeded with `(UCS_ENV_TEST_SEED, worker index, user
+index)`, so two runs draw the same data and can be compared directly. See
+`KelvinClient.rng` in `src/ucs_test_ucsschool_kelvin_performance/base.py`.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `UCS_ENV_TEST_SEED` | `0` | Base seed. Keep it fixed across runs being compared. |
+| `UCS_ENV_TEST_WORKER_INDEX` | `0` | Set per worker by `base.on_locust_init()`; not set by hand. |
+
+Schools hold between 0 and ~6050 users, so response sizes still vary per
+request — seeding makes that variation identical between runs, not smaller.
+`Faker` (`KelvinClient.fake`) stays unseeded so repeated `CreateUser` runs do
+not collide on usernames.

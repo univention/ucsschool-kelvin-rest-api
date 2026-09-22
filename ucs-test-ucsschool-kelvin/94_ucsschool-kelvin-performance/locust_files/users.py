@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
-import random
 
 from locust import task
 from requests.exceptions import JSONDecodeError
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 class GetAllUsers(KelvinClient):
     @task
     def get_all_users(self):
-        school = self.test_data.random_school()
+        school = self.test_data.random_school(self.rng)
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/users/?school={school}"
             _ = self.request("get", url, response_codes=[200])
@@ -24,8 +23,8 @@ class GetAllUsers(KelvinClient):
 class GetUser(KelvinClient):
     @task
     def get_user(self):
-        school = self.test_data.random_school()
-        username = self.test_data.random_user(school)
+        school = self.test_data.random_school(self.rng)
+        username = self.test_data.random_user(self.rng, school)
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/users/{username}"
             _ = self.request("get", url, response_codes=[200])
@@ -34,8 +33,8 @@ class GetUser(KelvinClient):
 class SearchUsers(KelvinClient):
     @task
     def search_users(self):
-        school = self.test_data.random_school()
-        username = self.test_data.random_user(school)
+        school = self.test_data.random_school(self.rng)
+        username = self.test_data.random_user(self.rng, school)
         prefix = username[: max(1, len(username) // 2)]
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/users/?school={school}&name={prefix}*"
@@ -45,8 +44,8 @@ class SearchUsers(KelvinClient):
 class HeadUser(KelvinClient):
     @task
     def head_user(self):
-        school = self.test_data.random_school()
-        username = self.test_data.random_user(school)
+        school = self.test_data.random_school(self.rng)
+        username = self.test_data.random_user(self.rng, school)
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/users/{username}"
             _ = self.request("head", url, response_codes=[200])
@@ -56,13 +55,13 @@ class CreateUser(KelvinClient):
     @task
     def create_user(self):
         name = self.fake.unique.pystr(max_chars=15)
-        school = self.test_data.random_school()
-        school_class = self.test_data.random_class(school)
+        school = self.test_data.random_school(self.rng)
+        school_class = self.test_data.random_class(self.rng, school)
         payload = {
             "name": name,
             "firstname": self.fake.first_name(),
             "lastname": self.fake.last_name(),
-            "roles": [self.role_url(random.choice(self.settings.roles))],  # nosec
+            "roles": [self.role_url(self.rng.choice(self.settings.roles))],
             "password": self.fake.password(length=20),
             "record_uid": name,
             "schools": [self.school_url(school)],

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class GetAllWorkGroups(KelvinClient):
     @task
     def get_workgroup(self):
-        school = self.test_data.random_school()
+        school = self.test_data.random_school(self.rng)
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/workgroups/?school={school}"
             _ = self.request("get", url, response_codes=[200])
@@ -22,8 +22,8 @@ class GetAllWorkGroups(KelvinClient):
 class SearchWorkGroups(KelvinClient):
     @task
     def search_workgroups(self):
-        school = self.test_data.random_school()
-        work_group = self.test_data.random_workgroup(school)
+        school = self.test_data.random_school(self.rng)
+        work_group = self.test_data.random_workgroup(self.rng, school)
         prefix = work_group[: max(1, len(work_group) // 2)]
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/workgroups/?school={school}&name={prefix}*"
@@ -33,8 +33,8 @@ class SearchWorkGroups(KelvinClient):
 class GetWorkGroup(KelvinClient):
     @task
     def get_workgroup(self):
-        school = self.test_data.random_school()
-        work_group = self.test_data.random_workgroup(school)
+        school = self.test_data.random_school(self.rng)
+        work_group = self.test_data.random_workgroup(self.rng, school)
         with self.client.rename_request(URL_NAME):
             url = f"{self.base_url}/workgroups/{school}/{work_group}"
             _ = self.request("get", url, response_codes=[200])
