@@ -292,16 +292,34 @@ There are three app settings that control the database connection: ``ucsschool/k
 ``ucsschool/kelvin/db/username``, and ``ucsschool/kelvin/db/password``. The URI must be of the form
 :samp:`postgresql://{host}:{port}/{database}?{options}`, for example ``postgresql://primary.school.test:5432/kelvin?sslmode=require``.
 
+.. important::
+
+   Changing any of these three settings, for example when rotating the database password,
+   only takes effect after restarting the app.
+   The *UCS\@school Kelvin REST API* container and the Kelvin connector each read the database
+   credentials once at startup and keep using them for as long as the process runs,
+   so a change to the files or app settings on disk has no effect on an already running container.
+   Restart the app after changing ``ucsschool/kelvin/db/uri``, ``ucsschool/kelvin/db/username``,
+   or ``ucsschool/kelvin/db/password``:
+
+   .. code-block:: console
+
+       $ univention-app restart ucsschool-kelvin-rest-api
+
+   On multi-node installations, do this on every node that has the app installed.
+
 When you install Kelvin on multiple nodes,
 all other Kelvin apps use the database that the first app installation creates.
 
 When you have existing Kelvin installations and want to use a different database,
-you need to change the Kelvin app settings on all nodes manually.
+you need to change the Kelvin app settings on all nodes manually,
+then restart the app on each of those nodes as described above.
 
 .. code-block:: console
    :caption: Changing the database URL from the command line
 
    univention-app configure ucsschool-kelvin-rest-api --set ucsschool/kelvin/db/uri="postgresql://backup1.school.test:5432/kelvin?sslmode=require"
+   univention-app restart ucsschool-kelvin-rest-api
 
 The database schema that Kelvin supplies can change during app upgrades.
 Kelvin checks the database revision at runtime and returns an error if it isn't compatible.
