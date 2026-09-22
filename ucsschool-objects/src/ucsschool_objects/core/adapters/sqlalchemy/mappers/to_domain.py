@@ -69,108 +69,113 @@ def _as_udm_properties(value: object) -> dict[str, object]:
     return cast("dict[str, object]", value)
 
 
-def _is_loaded(model: object, attribute: str) -> bool:
+def _unloaded_attributes(model: object) -> Collection[str]:
+    """Names of the attributes that are not currently loaded on ``model``.
+
+    ``InstanceState.unloaded`` is a computed property: every read of it builds
+    a fresh set and diffs it twice. The mappers below ask about every attribute
+    of every mapped object, so it is resolved once per instance here and passed
+    down, instead of once per attribute.
+
+    Only valid for as long as nothing triggers a lazy load on ``model`` — the
+    mappers below never touch an attribute this reports as unloaded, so the
+    answer stays accurate for the duration of one mapping call.
+    """
     state = inspect(model, raiseerr=False)
     if state is None:
-        return True
+        return ()
     unloaded = cast(Collection[str] | None, state.unloaded)
     if unloaded is None:
-        return True
-    return attribute not in unloaded
-
-
-def _loaded_value(
-    model: object,
-    attribute: str,
-) -> object | UnloadedType:
-    if not _is_loaded(model, attribute):
-        return UNLOADED
-    return cast(object, getattr(model, attribute))
-
-
-def _convert_loaded(
-    value: object | UnloadedType,
-    converter: Callable[[object], TConverted],
-) -> TConverted | UnloadedType:
-    if isinstance(value, UnloadedType):
-        return UNLOADED
-    return converter(value)
+        return ()
+    return unloaded
 
 
 def _convert_unloadable(
     model: object,
+    unloaded: Collection[str],
     attribute: str,
     converter: Callable[[object], TConverted],
 ) -> TConverted | UnloadedType:
-    return _convert_loaded(_loaded_value(model, attribute), converter)
+    if attribute in unloaded:
+        return UNLOADED
+    return converter(cast(object, getattr(model, attribute)))
 
 
 def to_school(model: SchoolModel) -> School:
+    unloaded = _unloaded_attributes(model)
     return School(
         public_id=model.public_id,
-        record_uid=_convert_unloadable(model, "record_uid", _as_str),
-        source_uid=_convert_unloadable(model, "source_uid", _as_str),
-        name=_convert_unloadable(model, "name", _as_str),
-        display_name=_convert_unloadable(model, "display_name", _as_str),
-        educational_servers=_convert_unloadable(model, "educational_servers", _as_set_str),
-        administrative_servers=_convert_unloadable(model, "administrative_servers", _as_set_str),
-        class_share_file_server=_convert_unloadable(model, "class_share_file_server", _as_optional_str),
-        home_share_file_server=_convert_unloadable(model, "home_share_file_server", _as_optional_str),
-        udm_properties=_convert_unloadable(model, "udm_properties", _as_udm_properties),
+        record_uid=_convert_unloadable(model, unloaded, "record_uid", _as_str),
+        source_uid=_convert_unloadable(model, unloaded, "source_uid", _as_str),
+        name=_convert_unloadable(model, unloaded, "name", _as_str),
+        display_name=_convert_unloadable(model, unloaded, "display_name", _as_str),
+        educational_servers=_convert_unloadable(model, unloaded, "educational_servers", _as_set_str),
+        administrative_servers=_convert_unloadable(
+            model, unloaded, "administrative_servers", _as_set_str
+        ),
+        class_share_file_server=_convert_unloadable(
+            model, unloaded, "class_share_file_server", _as_optional_str
+        ),
+        home_share_file_server=_convert_unloadable(
+            model, unloaded, "home_share_file_server", _as_optional_str
+        ),
+        udm_properties=_convert_unloadable(model, unloaded, "udm_properties", _as_udm_properties),
     )
 
 
 def to_role(model: RoleModel) -> Role:
+    unloaded = _unloaded_attributes(model)
     return Role(
         public_id=model.public_id,
-        name=_convert_unloadable(model, "name", _as_str),
-        display_name=_convert_unloadable(model, "display_name", _as_role_display_name),
+        name=_convert_unloadable(model, unloaded, "name", _as_str),
+        display_name=_convert_unloadable(model, unloaded, "display_name", _as_role_display_name),
     )
 
 
 def to_group(model: GroupModel) -> Group:
+    unloaded = _unloaded_attributes(model)
     school: School | UnloadedType = UNLOADED
-    if _is_loaded(model, "school"):
+    if "school" not in unloaded:
         school = to_school(model.school)
 
     roles: set[Role] | UnloadedType = UNLOADED
-    if _is_loaded(model, "roles"):
+    if "roles" not in unloaded:
         roles = {to_role(r) for r in model.roles}
 
     allowed_email_senders_users: set[User] | UnloadedType = UNLOADED
-    if _is_loaded(model, "allowed_email_senders_users"):
+    if "allowed_email_senders_users" not in unloaded:
         allowed_email_senders_users = {
             _to_related_user(user) for user in model.allowed_email_senders_users
         }
 
     allowed_email_senders_groups: set[Group] | UnloadedType = UNLOADED
-    if _is_loaded(model, "allowed_email_senders_groups"):
+    if "allowed_email_senders_groups" not in unloaded:
         allowed_email_senders_groups = {to_group(group) for group in model.allowed_email_senders_groups}
 
     members: set[User] | UnloadedType = UNLOADED
-    if _is_loaded(model, "members"):
+    if "members" not in unloaded:
         members = {_to_related_user(membership.user) for membership in model.members}
 
     member_roles: set[Role] | UnloadedType = UNLOADED
-    if _is_loaded(model, "member_roles"):
+    if "member_roles" not in unloaded:
         member_roles = {to_role(role) for role in model.member_roles}
 
     return Group(
         public_id=model.public_id,
-        record_uid=_convert_unloadable(model, "record_uid", _as_str),
-        source_uid=_convert_unloadable(model, "source_uid", _as_str),
-        name=_convert_unloadable(model, "name", _as_str),
-        display_name=_convert_unloadable(model, "display_name", _as_str),
-        create_share=_convert_unloadable(model, "has_share", _as_bool),
+        record_uid=_convert_unloadable(model, unloaded, "record_uid", _as_str),
+        source_uid=_convert_unloadable(model, unloaded, "source_uid", _as_str),
+        name=_convert_unloadable(model, unloaded, "name", _as_str),
+        display_name=_convert_unloadable(model, unloaded, "display_name", _as_str),
+        create_share=_convert_unloadable(model, unloaded, "has_share", _as_bool),
         roles=roles,
-        email=_convert_unloadable(model, "email", _as_optional_str),
+        email=_convert_unloadable(model, unloaded, "email", _as_optional_str),
         allowed_email_senders_users=allowed_email_senders_users,
         allowed_email_senders_groups=allowed_email_senders_groups,
         members=members,
         member_roles=member_roles,
         school=school,
-        description=_convert_unloadable(model, "description", _as_optional_str),
-        udm_properties=_convert_unloadable(model, "udm_properties", _as_udm_properties),
+        description=_convert_unloadable(model, unloaded, "description", _as_optional_str),
+        udm_properties=_convert_unloadable(model, unloaded, "udm_properties", _as_udm_properties),
     )
 
 
@@ -184,17 +189,18 @@ def _to_school_membership(model: SchoolMembershipModel) -> SchoolMembership:
 
 
 def _to_related_user(model: UserModel) -> User:
+    unloaded = _unloaded_attributes(model)
     return User(
         public_id=model.public_id,
-        record_uid=_convert_unloadable(model, "record_uid", _as_str),
-        source_uid=_convert_unloadable(model, "source_uid", _as_str),
-        name=_convert_unloadable(model, "name", _as_str),
-        firstname=_convert_unloadable(model, "firstname", _as_str),
-        lastname=_convert_unloadable(model, "lastname", _as_str),
-        email=_convert_unloadable(model, "email", _as_optional_str),
-        birthday=_convert_unloadable(model, "birthday", _as_optional_date),
-        expiration_date=_convert_unloadable(model, "expiration_date", _as_optional_date),
-        active=_convert_unloadable(model, "active", _as_bool),
+        record_uid=_convert_unloadable(model, unloaded, "record_uid", _as_str),
+        source_uid=_convert_unloadable(model, unloaded, "source_uid", _as_str),
+        name=_convert_unloadable(model, unloaded, "name", _as_str),
+        firstname=_convert_unloadable(model, unloaded, "firstname", _as_str),
+        lastname=_convert_unloadable(model, unloaded, "lastname", _as_str),
+        email=_convert_unloadable(model, unloaded, "email", _as_optional_str),
+        birthday=_convert_unloadable(model, unloaded, "birthday", _as_optional_date),
+        expiration_date=_convert_unloadable(model, unloaded, "expiration_date", _as_optional_date),
+        active=_convert_unloadable(model, unloaded, "active", _as_bool),
         school_memberships=UNLOADED,
         legal_wards=UNLOADED,
         legal_guardians=UNLOADED,
@@ -206,9 +212,10 @@ def _optional_user_relation(models: tuple[UserModel, ...] | list[UserModel]) -> 
 
 
 def to_user(model: UserModel) -> User:
+    unloaded = _unloaded_attributes(model)
     school_memberships: dict[UUID, SchoolMembership] | UnloadedType = UNLOADED
 
-    if _is_loaded(model, "school_memberships"):
+    if "school_memberships" not in unloaded:
         school_memberships = {}
         for membership in (_to_school_membership(m) for m in model.school_memberships):
             school_public_id = membership.school.public_id
@@ -217,28 +224,28 @@ def to_user(model: UserModel) -> User:
             school_memberships[school_public_id] = membership
 
     legal_wards: set[User] | UnloadedType = UNLOADED
-    if _is_loaded(model, "legal_wards"):
+    if "legal_wards" not in unloaded:
         legal_wards = _optional_user_relation(model.legal_wards)
 
     legal_guardians: set[User] | UnloadedType = UNLOADED
-    if _is_loaded(model, "legal_guardians"):
+    if "legal_guardians" not in unloaded:
         legal_guardians = _optional_user_relation(model.legal_guardians)
 
     return User(
         public_id=model.public_id,
-        record_uid=_convert_unloadable(model, "record_uid", _as_str),
-        source_uid=_convert_unloadable(model, "source_uid", _as_str),
-        name=_convert_unloadable(model, "name", _as_str),
-        firstname=_convert_unloadable(model, "firstname", _as_str),
-        lastname=_convert_unloadable(model, "lastname", _as_str),
-        email=_convert_unloadable(model, "email", _as_optional_str),
-        birthday=_convert_unloadable(model, "birthday", _as_optional_date),
-        expiration_date=_convert_unloadable(model, "expiration_date", _as_optional_date),
-        active=_convert_unloadable(model, "active", _as_bool),
+        record_uid=_convert_unloadable(model, unloaded, "record_uid", _as_str),
+        source_uid=_convert_unloadable(model, unloaded, "source_uid", _as_str),
+        name=_convert_unloadable(model, unloaded, "name", _as_str),
+        firstname=_convert_unloadable(model, unloaded, "firstname", _as_str),
+        lastname=_convert_unloadable(model, unloaded, "lastname", _as_str),
+        email=_convert_unloadable(model, unloaded, "email", _as_optional_str),
+        birthday=_convert_unloadable(model, unloaded, "birthday", _as_optional_date),
+        expiration_date=_convert_unloadable(model, unloaded, "expiration_date", _as_optional_date),
+        active=_convert_unloadable(model, unloaded, "active", _as_bool),
         school_memberships=school_memberships,
         legal_wards=legal_wards,
         legal_guardians=legal_guardians,
-        udm_properties=_convert_unloadable(model, "udm_properties", _as_udm_properties),
+        udm_properties=_convert_unloadable(model, unloaded, "udm_properties", _as_udm_properties),
     )
 
 
