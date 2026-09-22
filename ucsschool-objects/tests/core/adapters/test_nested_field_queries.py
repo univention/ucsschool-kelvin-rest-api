@@ -12,6 +12,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import inspect
 from ucsschool_objects import (
+    UNLOADED,
     UNSET,
     And,
     Filter,
@@ -43,7 +44,10 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import (
     SQLAlchemyUserManager,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
-from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import _is_loaded, _loaded_value
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
+    _convert_unloadable,  # pyright: ignore[reportPrivateUsage]
+    _unloaded_attributes,  # pyright: ignore[reportPrivateUsage]
+)
 from ucsschool_objects.core.domain.errors import UnsupportedNestedField
 from ucsschool_objects.core.domain.models import is_loaded
 from ucsschool_objects.database_models import School as SchoolModel
@@ -314,16 +318,20 @@ def test_iter_filters_handles_filter_and_and_or_and_not() -> None:
     assert filters[2].field == "active"
 
 
-def test_is_loaded_returns_true_when_sqlalchemy_state_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_unloaded_attributes_empty_when_sqlalchemy_state_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class _Model:
         value = "x"
 
     monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: None)
 
-    assert _is_loaded(_Model(), "value") is True
+    assert _unloaded_attributes(_Model()) == ()
 
 
-def test_is_loaded_returns_true_when_state_has_no_unloaded(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_unloaded_attributes_empty_when_state_has_no_unloaded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class _State:
         unloaded = None
 
@@ -332,17 +340,39 @@ def test_is_loaded_returns_true_when_state_has_no_unloaded(monkeypatch: pytest.M
 
     monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: _State())
 
-    assert _is_loaded(_Model(), "value") is True
+    assert _unloaded_attributes(_Model()) == ()
 
 
-def test_loaded_value_without_transform_returns_raw_value(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_unloaded_attributes_reports_the_state_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _State:
+        unloaded: set[str] = {"school", "roles"}
+
     class _Model:
-        value = "raw-value"
+        value: str = "x"
 
-    monkeypatch.setattr(to_domain, "inspect", lambda *_args, **_kwargs: None)
+    def _inspect(*_args: object, **_kwargs: object) -> _State:
+        return _State()
 
-    model = _Model()
-    assert _loaded_value(model, "value") == "raw-value"
+    monkeypatch.setattr(to_domain, "inspect", _inspect)
+
+    assert _unloaded_attributes(_Model()) == {"school", "roles"}
+
+
+def test_convert_unloadable_reads_loaded_attribute() -> None:
+    class _Model:
+        value: str = "raw-value"
+
+    assert _convert_unloadable(_Model(), (), "value", lambda raw: raw) == "raw-value"
+
+
+def test_convert_unloadable_skips_unloaded_attribute() -> None:
+    class _Model:
+        value: str = "raw-value"
+
+    def _explode(_raw: object) -> object:  # pragma: no cover - must not be called
+        raise AssertionError("converter must not run for an unloaded attribute")
+
+    assert _convert_unloadable(_Model(), ("value",), "value", _explode) is UNLOADED
 
 
 def test_to_group_keeps_unloaded_relations_unloaded(monkeypatch: pytest.MonkeyPatch) -> None:
