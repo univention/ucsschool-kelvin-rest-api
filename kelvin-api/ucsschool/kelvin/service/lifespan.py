@@ -5,7 +5,9 @@ import logging
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import AsyncIterator, Callable
 
+import orjson
 from fastapi import FastAPI, HTTPException
+from psycopg.types.json import set_json_loads
 from ucsschool_objects.core.adapters.sqlalchemy import (
     DatabaseSettings,
     build_engine,
@@ -28,6 +30,18 @@ def log_version(app: FastAPI, logger: logging.Logger) -> None:
     logger.info("Started %s version %s.", app.title, app.version)
 
 
+def configure_json_decoding() -> None:
+    """Decode PostgreSQL json/jsonb with orjson instead of the stdlib.
+
+    Every user, group and school row carries a ``udm_properties`` jsonb
+    column, so a collection response decodes one document per object.
+
+    psycopg reads this when it builds a loader, so it has to be set before the
+    first query runs.
+    """
+    set_json_loads(orjson.loads)
+
+
 def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -35,6 +49,7 @@ def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AbstractAs
         load_configs(logger)
         get_import_config()
         log_version(app, logger)
+        configure_json_decoding()
         settings = DatabaseSettings(url=get_database_url())
         engine = build_engine(settings)
         app.state.db_engine = engine
