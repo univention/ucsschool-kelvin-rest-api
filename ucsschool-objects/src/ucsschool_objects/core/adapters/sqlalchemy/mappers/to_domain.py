@@ -101,9 +101,104 @@ def _convert_unloadable(
     return converter(cast(object, getattr(model, attribute)))
 
 
-def to_school(model: SchoolModel) -> School:
+class ConversionCache:
+    """Memo of the ORM rows already converted during one mapping pass.
+
+    A result set repeats its related rows, so a collection re-converts the same
+    School, Role and Group rows many times over. Convert each once and copy.
+
+    Entries are keyed on the ORM instance, which keeps it alive, so an identity
+    cannot be reused underneath them. Only valid while the rows behind them are
+    unchanged -- one conversion pass.
+
+    Only rows that can repeat are worth memoizing. A search yields each row of
+    the type it selects exactly once, so those conversions pass
+    ``memoize=False``: storing them would pay for the entry and the copy
+    without ever being read back. They still pass the cache down, because the
+    rows hanging off them do repeat.
+    """
+
+    __slots__: tuple[str, ...] = ("groups", "roles", "schools")
+
+    def __init__(self) -> None:
+        self.schools: dict[SchoolModel, School] = {}
+        self.roles: dict[RoleModel, Role] = {}
+        self.groups: dict[GroupModel, Group] = {}
+
+
+# Each _clone_* mirrors its to_* counterpart: it rebuilds exactly what the
+# builder allocates fresh on every call, and shares what the builder shares.
+# Copying more would change behaviour, and cost more than rebuilding.
+
+
+def _clone_school(school: School) -> School:
+    """Copy a cached School.
+
+    ``to_school`` builds a new set for the two server lists per call but hands
+    out the ORM instance's own dict for ``udm_properties``, so this does too.
+    """
+    values: dict[str, object] = school.__dict__.copy()
+    for attribute in ("_educational_servers", "_administrative_servers"):
+        servers = values[attribute]
+        if isinstance(servers, set):
+            values[attribute] = set(cast("set[str]", servers))
+    clone = object.__new__(School)
+    clone.__dict__ = values
+    return clone
+
+
+def _clone_role(role: Role) -> Role:
+    """Copy a cached Role.
+
+    ``to_role`` passes ``display_name`` through uncopied, so the clone shares
+    that dict with the cached original.
+    """
+    clone = object.__new__(Role)
+    clone.__dict__ = role.__dict__.copy()
+    return clone
+
+
+def _clone_related_user(user: User) -> User:
+    """Copy a User as ``_to_related_user`` builds one: scalars, no relations."""
+    clone = object.__new__(User)
+    clone.__dict__ = user.__dict__.copy()
+    return clone
+
+
+def _clone_group(group: Group) -> Group:
+    """Copy a cached Group, down to its own School and its own relation sets."""
+    values: dict[str, object] = group.__dict__.copy()
+    school = values["_school"]
+    if isinstance(school, School):
+        values["_school"] = _clone_school(school)
+    for attribute in ("_roles", "_member_roles"):
+        roles = values[attribute]
+        if isinstance(roles, set):
+            values[attribute] = {_clone_role(role) for role in cast("set[Role]", roles)}
+    for attribute in ("_members", "_allowed_email_senders_users"):
+        users = values[attribute]
+        if isinstance(users, set):
+            values[attribute] = {_clone_related_user(user) for user in cast("set[User]", users)}
+    sender_groups = values["_allowed_email_senders_groups"]
+    if isinstance(sender_groups, set):
+        values["_allowed_email_senders_groups"] = {
+            _clone_group(sender) for sender in cast("set[Group]", sender_groups)
+        }
+    clone = object.__new__(Group)
+    clone.__dict__ = values
+    return clone
+
+
+def to_school(
+    model: SchoolModel,
+    cache: ConversionCache | None = None,
+    *,
+    memoize: bool = True,
+) -> School:
+    if cache is not None and memoize and (cached := cache.schools.get(model)) is not None:
+        return _clone_school(cached)
     unloaded = _unloaded_attributes(model)
-    return School(
+    school = School(
         public_id=model.public_id,
         record_uid=_convert_unloadable(model, unloaded, "record_uid", _as_str),
         source_uid=_convert_unloadable(model, unloaded, "source_uid", _as_str),
@@ -121,26 +216,50 @@ def to_school(model: SchoolModel) -> School:
         ),
         udm_properties=_convert_unloadable(model, unloaded, "udm_properties", _as_udm_properties),
     )
+    if cache is None or not memoize:
+        return school
+    # Hand out a copy and keep the pristine one: returning the cached object
+    # itself would let a caller's change to it leak into every later copy.
+    cache.schools[model] = school
+    return _clone_school(school)
 
 
-def to_role(model: RoleModel) -> Role:
+def to_role(
+    model: RoleModel,
+    cache: ConversionCache | None = None,
+    *,
+    memoize: bool = True,
+) -> Role:
+    if cache is not None and memoize and (cached := cache.roles.get(model)) is not None:
+        return _clone_role(cached)
     unloaded = _unloaded_attributes(model)
-    return Role(
+    role = Role(
         public_id=model.public_id,
         name=_convert_unloadable(model, unloaded, "name", _as_str),
         display_name=_convert_unloadable(model, unloaded, "display_name", _as_role_display_name),
     )
+    if cache is None or not memoize:
+        return role
+    cache.roles[model] = role
+    return _clone_role(role)
 
 
-def to_group(model: GroupModel) -> Group:
+def to_group(
+    model: GroupModel,
+    cache: ConversionCache | None = None,
+    *,
+    memoize: bool = True,
+) -> Group:
+    if cache is not None and memoize and (cached := cache.groups.get(model)) is not None:
+        return _clone_group(cached)
     unloaded = _unloaded_attributes(model)
     school: School | UnloadedType = UNLOADED
     if "school" not in unloaded:
-        school = to_school(model.school)
+        school = to_school(model.school, cache)
 
     roles: set[Role] | UnloadedType = UNLOADED
     if "roles" not in unloaded:
-        roles = {to_role(r) for r in model.roles}
+        roles = {to_role(r, cache) for r in model.roles}
 
     allowed_email_senders_users: set[User] | UnloadedType = UNLOADED
     if "allowed_email_senders_users" not in unloaded:
@@ -150,7 +269,9 @@ def to_group(model: GroupModel) -> Group:
 
     allowed_email_senders_groups: set[Group] | UnloadedType = UNLOADED
     if "allowed_email_senders_groups" not in unloaded:
-        allowed_email_senders_groups = {to_group(group) for group in model.allowed_email_senders_groups}
+        allowed_email_senders_groups = {
+            to_group(group, cache) for group in model.allowed_email_senders_groups
+        }
 
     members: set[User] | UnloadedType = UNLOADED
     if "members" not in unloaded:
@@ -158,9 +279,9 @@ def to_group(model: GroupModel) -> Group:
 
     member_roles: set[Role] | UnloadedType = UNLOADED
     if "member_roles" not in unloaded:
-        member_roles = {to_role(role) for role in model.member_roles}
+        member_roles = {to_role(role, cache) for role in model.member_roles}
 
-    return Group(
+    group = Group(
         public_id=model.public_id,
         record_uid=_convert_unloadable(model, unloaded, "record_uid", _as_str),
         source_uid=_convert_unloadable(model, unloaded, "source_uid", _as_str),
@@ -177,14 +298,18 @@ def to_group(model: GroupModel) -> Group:
         description=_convert_unloadable(model, unloaded, "description", _as_optional_str),
         udm_properties=_convert_unloadable(model, unloaded, "udm_properties", _as_udm_properties),
     )
+    if cache is None or not memoize:
+        return group
+    cache.groups[model] = group
+    return _clone_group(group)
 
 
-def _to_school_membership(model: SchoolMembershipModel) -> SchoolMembership:
+def _to_school_membership(model: SchoolMembershipModel, cache: ConversionCache) -> SchoolMembership:
     return SchoolMembership(
-        school=to_school(model.school),
+        school=to_school(model.school, cache),
         is_primary=model.is_primary,
-        roles={to_role(role) for role in model.roles},
-        groups={to_group(group) for group in model.groups},
+        roles={to_role(role, cache) for role in model.roles},
+        groups={to_group(group, cache) for group in model.groups},
     )
 
 
@@ -211,13 +336,15 @@ def _optional_user_relation(models: tuple[UserModel, ...] | list[UserModel]) -> 
     return {_to_related_user(model) for model in models}
 
 
-def to_user(model: UserModel) -> User:
+def to_user(model: UserModel, cache: ConversionCache | None = None) -> User:
+    if cache is None:
+        cache = ConversionCache()
     unloaded = _unloaded_attributes(model)
     school_memberships: dict[UUID, SchoolMembership] | UnloadedType = UNLOADED
 
     if "school_memberships" not in unloaded:
         school_memberships = {}
-        for membership in (_to_school_membership(m) for m in model.school_memberships):
+        for membership in (_to_school_membership(m, cache) for m in model.school_memberships):
             school_public_id = membership.school.public_id
             if not isinstance(school_public_id, UUID):
                 raise ValueError("Mapped school membership has no UUID school public_id.")

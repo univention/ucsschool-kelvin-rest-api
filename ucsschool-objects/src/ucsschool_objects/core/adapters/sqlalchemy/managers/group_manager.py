@@ -24,7 +24,11 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     sync_collection,
     sync_scalar_relation,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import group_from_patch, to_group
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
+    ConversionCache,
+    group_from_patch,
+    to_group,
+)
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
     resolve_group_create_relations,
     to_group_model,
@@ -294,7 +298,13 @@ class SQLAlchemyGroupManager(Manager[Group]):
             stmt = stmt.limit(limit)
         if offset:
             stmt = stmt.offset(offset)
-        return (to_group(model) for model in (await self._session.execute(stmt)).scalars())
+        # One cache for the whole result set: rows repeat their related objects.
+        # The groups themselves do not, so they are converted past the memo.
+        cache = ConversionCache()
+        return (
+            to_group(model, cache, memoize=False)
+            for model in (await self._session.execute(stmt)).scalars()
+        )
 
     async def create(
         self,
