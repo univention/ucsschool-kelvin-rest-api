@@ -22,7 +22,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
     to_user,
 )
 from ucsschool_objects.core.domain.json import to_json
-from ucsschool_objects.core.domain.models import is_loaded
+from ucsschool_objects.core.domain.models import DomainObject, is_loaded
 from ucsschool_objects.database_models import (
     Group as GroupModel,
     Role as RoleModel,
@@ -229,3 +229,35 @@ async def test_a_row_converted_past_the_memo_still_memoizes_its_relations(
     assert to_json(group) == to_json(to_group(group_model))
     assert group_model not in cache.groups
     assert school_model in cache.schools
+
+
+def _shared_fields(first: DomainObject, second: DomainObject) -> set[str]:
+    """The fields where two conversions of one row handed out the same object."""
+    return {
+        field for field in first.__serialize_fields__ if getattr(first, field) is getattr(second, field)
+    }
+
+
+async def test_a_copy_shares_exactly_what_a_fresh_conversion_shares(
+    db_session: AsyncSession,
+) -> None:
+    """Field-driven, so a field the copy does not know about fails here first.
+
+    Each ``_clone_*`` names the attributes it rebuilds. Add a mutable field to
+    School, Role or Group and the copy would hand out the original's object,
+    quietly tying two conversions of one row together.
+    """
+    school_model = await _school(db_session)
+    role_model = await _role(db_session, "student")
+    group_model = await _group(db_session, school_model, "DEMOSCHOOL-1a")
+    cache = ConversionCache()
+
+    assert _shared_fields(
+        to_school(school_model, cache), to_school(school_model, cache)
+    ) == _shared_fields(to_school(school_model), to_school(school_model))
+    assert _shared_fields(to_role(role_model, cache), to_role(role_model, cache)) == _shared_fields(
+        to_role(role_model), to_role(role_model)
+    )
+    assert _shared_fields(to_group(group_model, cache), to_group(group_model, cache)) == _shared_fields(
+        to_group(group_model), to_group(group_model)
+    )
