@@ -140,6 +140,12 @@ def run_migrations_online() -> None:
     with connectable.connect() as connection:
         with advisory_lock(connection, timeout_seconds=lock_timeout_seconds):
             current_revision = get_current_revision(connection)
+            # Reading the version table autobegins a transaction. Left open,
+            # Alembic treats the connection as externally managed and never
+            # tracks a transaction of its own, which breaks
+            # ``autocommit_block()`` in migrations that build indexes
+            # concurrently.
+            connection.commit()
             logger.info("Migration starting point: %s", current_revision or "<base>")
 
             logger.info("Migration plan:")

@@ -105,12 +105,15 @@ class School(Base):
 
 class Group(Base):
     __tablename__: str = "group"
+    # ``school_id`` is a bare FK; the class and workgroup listings filter
+    # groups by school and need it indexed.
     __table_args__: tuple[Constraint | Index, ...] = (
         UniqueConstraint("record_uid", "source_uid", name="uq_group_record_source_uid"),
         # Group names are matched case-insensitively, which compares lower(name)
         # and cannot use the unique index on name. Without this one, every such
         # lookup reads the whole table.
         Index("ix_group_name_lower", text("lower(name)")),
+        Index("ix_group_school_id", "school_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -276,7 +279,12 @@ class Role(Base):
 
 class SchoolMembership(Base):
     __tablename__: str = "school_membership"
-    __table_args__: tuple[Constraint] = (UniqueConstraint("user_id", "school_id"),)
+    # The unique constraint serves the ``user_id`` direction; listing a
+    # school's users probes ``school_id`` and needs its own index.
+    __table_args__: tuple[Constraint | Index, ...] = (
+        UniqueConstraint("user_id", "school_id"),
+        Index("ix_school_membership_school_id_user_id", "school_id", "user_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -324,6 +332,15 @@ def sync_primary_user_constraint(
 
 class GroupMemberAssociation(Base):
     __tablename__: str = "group_member_association"
+    # The primary key serves ``Group.members``; ``SchoolMembership.groups``
+    # probes the reverse direction and needs its own index.
+    __table_args__: tuple[Index, ...] = (
+        Index(
+            "ix_group_member_association_school_membership_id_group_id",
+            "school_membership_id",
+            "group_id",
+        ),
+    )
 
     group_id: Mapped[int] = mapped_column(
         ForeignKey("group.id", ondelete="CASCADE"), nullable=False, primary_key=True
@@ -390,6 +407,15 @@ class GroupGroupEmailSendersAssociation(Base):
 
 class LegalGuardianAssociation(Base):
     __tablename__: str = "legal_guardian_association"
+    # The primary key serves ``User.legal_wards``; ``User.legal_guardians``
+    # probes the reverse direction and needs its own index.
+    __table_args__: tuple[Index, ...] = (
+        Index(
+            "ix_legal_guardian_association_legal_ward_id_legal_guardian_id",
+            "legal_ward_id",
+            "legal_guardian_id",
+        ),
+    )
 
     legal_guardian_id: Mapped[int] = mapped_column(
         ForeignKey("user.id", ondelete="cascade"), primary_key=True, nullable=False
