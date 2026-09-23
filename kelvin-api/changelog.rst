@@ -22,6 +22,17 @@ v4.1.0 (unreleased)
   The username is now matched case-insensitively on both endpoints.
 * Fixed (version 2 API only): ``GET /v2/classes/<school>/<name>`` and ``GET /v2/workgroups/<school>/<name>`` treated ``*`` in the name as a wildcard and could return a different group than the one asked for.
   The name is now matched exactly, as in version 1, and still case-insensitively.
+* Fixed (version 2 API only): Several read endpoints queried a table from a direction no index covered, so each request scanned that table in full.
+  Four indexes were added, which noticeably reduces the response time of these endpoints on domains with many users.
+  Affected endpoints are ``GET /v2/users/<username>``, ``GET /v2/users/`` as well as searching for classes and workgroups by school (``GET /v2/classes/?school=…`` and ``GET /v2/workgroups/?school=…``).
+* Fixed (version 2 API only): Added two indexes on the lowercase user and group names, for the case-insensitive name look ups of the version 2 API.
+
+  .. important::
+
+     This release changes the database schema.
+     All Kelvin instances in a domain share one database and answer ``/v2`` requests with status code ``503`` until they are upgraded,
+     so upgrade all instances together.
+     The version 1 API is unaffected.
 
 v4.0.2 (2026-09-08)
 -------------------

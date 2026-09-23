@@ -166,6 +166,60 @@ Constraints and indexes
 * Foreign keys mostly cascade on delete; ``group.school_id`` uses
   ``NO ACTION``.
 
+Indexes for the reverse lookup direction
+"""""""""""""""""""""""""""""""""""""""""
+
+A composite key only serves lookups that lead with its first column,
+so a table read from *both* directions needs a second index,
+or the other direction degenerates into a sequential scan.
+Four such indexes exist:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 24 26 20 30
+
+   * - Table
+     - Covered by
+     - Also probed by
+     - Index
+   * - ``group_member_association``
+     - PK ``(group_id, school_membership_id)``
+     - ``school_membership_id``
+     - ``ix_group_member_association_school_membership_id_group_id``
+   * - ``legal_guardian_association``
+     - PK ``(legal_guardian_id, legal_ward_id)``
+     - ``legal_ward_id``
+     - ``ix_legal_guardian_association_legal_ward_id_legal_guardian_id``
+   * - ``school_membership``
+     - UQ ``(user_id, school_id)``
+     - ``school_id``
+     - ``ix_school_membership_school_id_user_id``
+   * - ``group``
+     - nothing; ``school_id`` is a bare FK
+     - ``school_id``
+     - ``ix_group_school_id``
+
+The first three lead with the probed column and trail the join key,
+so PostgreSQL can read that side index-only.
+``ix_group_school_id`` is single-column,
+because the matched groups are read for their wide columns anyway.
+Unlike the trigram indexes below,
+all are declared in the ORM metadata (``database_models.py``),
+so that ``--autogenerate`` keeps them
+and the test fixtures, which build their schema with
+``Base.metadata.create_all``, see them.
+
+Indexes for case-insensitive name lookups
+"""""""""""""""""""""""""""""""""""""""""
+
+``ix_user_name_lower`` and ``ix_group_name_lower`` index ``lower(name)``.
+The ``IN_CI`` operator, which the v2 API uses to look up users and groups by name,
+compares ``lower(name)``;
+neither the unique index on ``name`` nor a trigram index serves that comparison.
+They are declared in the ORM metadata as well,
+but autogenerate does not emit expression indexes,
+so ``e3d39f016714`` lists them by hand.
+
 Trigram indexes for case-insensitive search
 """"""""""""""""""""""""""""""""""""""""""""
 
@@ -199,7 +253,18 @@ PostgreSQL can index-scan.
    The indexes are built with a plain ``CREATE INDEX`` (not
    ``CONCURRENTLY``), which briefly locks writes while the index builds.
    Large deployments might want to switch to ``CREATE INDEX CONCURRENTLY`` inside
-   an ``op.get_context().autocommit_block()``.
+   an ``op.get_context().autocommit_block()``,
+   as the reverse-direction indexes above are built.
+   That block commits the transaction ``env.py`` opened,
+   so the DDL is no longer atomic with the rest of the revision,
+   and a failed build leaves an **invalid** index behind
+   that the planner ignores and ``if_not_exists`` would skip on a re-run.
+   To find those:
+
+   .. code-block:: sql
+
+      SELECT c.relname FROM pg_class c JOIN pg_index i ON i.indexrelid = c.oid
+      WHERE NOT i.indisvalid;
 
 Migrations
 ----------
@@ -209,9 +274,10 @@ The physical schema is evolved with `Alembic <https://alembic.sqlalchemy.org/>`_
 * There is **no** ``alembic.ini``. The configuration is in ``pyproject.toml``
   under ``[tool.alembic]`` (only ``script_location = "%(here)s/alembic"``).
   Alembic is therefore invoked as ``alembic --config pyproject.toml …``.
-* Migration scripts live in ``alembic/versions/``. After the squash into a
-  single init revision there is **exactly one** revision
-  (``e49791148e25_init_tables.py``, ``down_revision = None``).
+* Migration scripts live in ``alembic/versions/``. The squash reduced the
+  history to a single base revision
+  (``e49791148e25_init_tables.py``, ``down_revision = None``),
+  followed by ``e3d39f016714_add_reverse_association_indexes.py``.
 
 Generate a migration
 ^^^^^^^^^^^^^^^^^^^^^^
