@@ -430,7 +430,7 @@ def test_to_user_raises_when_membership_school_has_no_uuid(
     monkeypatch.setattr(
         to_domain,
         "_to_school_membership",
-        lambda _membership: SchoolMembership(
+        lambda _membership, _cache: SchoolMembership(
             school=School(
                 public_id=UNSET,
                 record_uid="school-record",

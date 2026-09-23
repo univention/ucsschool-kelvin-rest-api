@@ -25,7 +25,11 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     school_scalar_columns,
     sync_collection,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import to_user, user_from_patch
+from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
+    ConversionCache,
+    to_user,
+    user_from_patch,
+)
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
     resolve_user_create_relations,
     to_user_model,
@@ -458,7 +462,9 @@ class SQLAlchemyUserManager(Manager[User]):
         if offset:
             stmt = stmt.offset(offset)
 
-        return (to_user(model) for model in (await self._session.execute(stmt)).scalars())
+        # One cache for the whole result set: rows repeat their related objects.
+        cache = ConversionCache()
+        return (to_user(model, cache) for model in (await self._session.execute(stmt)).scalars())
 
     async def create(
         self,
