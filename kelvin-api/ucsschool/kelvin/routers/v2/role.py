@@ -18,6 +18,7 @@ from ...ldap import LdapUser
 from ...service.dependency import get_storage_session
 from ...token_auth import get_kelvin_reader
 from ..v1.role import RoleModel, SchoolUserRole, get as v1_get, search as v1_search
+from ._responses import ModelListResponse
 
 router = APIRouter()
 
@@ -38,7 +39,7 @@ async def search(
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
     kelvin_reader: LdapUser = Depends(get_kelvin_reader),
-) -> List[RoleModel]:
+) -> ModelListResponse[RoleModel]:
     roles = sorted(
         [
             role
@@ -48,14 +49,16 @@ async def search(
         key=lambda r: r.name,
     )
     logger.debug("v2 role search: found %d known roles", len(roles))
-    return [
-        RoleModel(
-            name=role.name,
-            display_name=role.name,
-            url=SchoolUserRole(role.name).to_url(request),
-        )
-        for role in roles
-    ]
+    return ModelListResponse(
+        [
+            RoleModel(
+                name=role.name,
+                display_name=role.name,
+                url=SchoolUserRole(role.name).to_url(request),
+            )
+            for role in roles
+        ]
+    )
 
 
 @router.get("/{role_name}", response_model=RoleModel)

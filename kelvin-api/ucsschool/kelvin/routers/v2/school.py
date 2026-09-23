@@ -30,6 +30,7 @@ from ..v1.school import (
     school_search as v1_school_search,
 )
 from ._filters import str_filter as _str_filter
+from ._responses import ModelListResponse
 from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
@@ -82,7 +83,7 @@ async def search(
             title="name",
         ),
     ] = None,
-) -> list[SchoolModel]:
+) -> ModelListResponse[SchoolModel]:
     query = (
         SearchQuery(where=_str_filter("name", name_filter, case_insensitive=True))
         if name_filter
@@ -91,7 +92,7 @@ async def search(
     logger.debug("v2 school search query: %r", query)
     schools = list(await session.schools.search(query))
     schools.sort(key=lambda s: s.name)
-    return [await _school_to_model(s, request, session) for s in schools]
+    return ModelListResponse([await _school_to_model(s, request, session) for s in schools])
 
 
 @router.get("/{school_name}", response_model=SchoolModel)

@@ -42,6 +42,7 @@ from ..v1.user import (
     search as v1_search,
 )
 from ._filters import name_filter as _name_filter, str_filter as _str_filter
+from ._responses import ModelListResponse
 from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
@@ -287,7 +288,7 @@ async def search(
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
     kelvin_reader: LdapUser = Depends(get_kelvin_reader),
-) -> List[UserModel]:
+) -> ModelListResponse[UserModel]:
     query = _build_query(
         school=school,
         name=username,
@@ -306,7 +307,7 @@ async def search(
     users.sort(key=lambda u: u.name)
     mapper = sqlalchemy_mapper_factory(session)
     dn_map = await mapper.public_ids_to_dns(ObjectType.USER, [user.public_id for user in users])
-    return [await _user_to_model(u, request, session, dn_map=dn_map) for u in users]
+    return ModelListResponse([await _user_to_model(u, request, session, dn_map=dn_map) for u in users])
 
 
 @router.get("/{username}", response_model=UserModel)
