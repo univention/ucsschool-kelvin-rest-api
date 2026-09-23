@@ -7,6 +7,7 @@ from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
+from fastapi.responses import ORJSONResponse
 from ucsschool_objects import (
     Filter,
     Group,
@@ -35,6 +36,7 @@ from ..v1.workgroup import (
     search as v1_search,
 )
 from ._filters import group_search_query as _group_search_query
+from ._responses import model_list_response
 from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
@@ -200,7 +202,7 @@ async def search(
             ),
         ),
     ] = None,
-) -> list[WorkGroupModel]:
+) -> ORJSONResponse:
     with_users = "users" not in (exclude or [])
     query = _group_search_query(school, workgroup_name)
     logger.debug("v2 workgroup search query: %r", query)
@@ -221,12 +223,14 @@ async def search(
     )
     user_ids = [pid for _group_ids, user_ids in subjects for pid in user_ids]
     user_dn_map = await mapper.public_ids_to_dns(ObjectType.USER, user_ids) if user_ids else {}
-    return [
-        await _group_to_workgroup_model(
-            g, request, session, dn_map=dn_map, user_dn_map=user_dn_map, with_users=with_users
-        )
-        for g in groups
-    ]
+    return model_list_response(
+        [
+            await _group_to_workgroup_model(
+                g, request, session, dn_map=dn_map, user_dn_map=user_dn_map, with_users=with_users
+            )
+            for g in groups
+        ]
+    )
 
 
 @router.get("/{school}/{workgroup_name}", response_model=WorkGroupModel)

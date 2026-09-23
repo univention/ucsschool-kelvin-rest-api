@@ -7,6 +7,7 @@ from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
+from fastapi.responses import ORJSONResponse
 from ucsschool_objects import (
     Filter,
     Group,
@@ -34,6 +35,7 @@ from ..v1.school_class import (
     search as v1_search,
 )
 from ._filters import group_search_query as _group_search_query
+from ._responses import model_list_response
 from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
@@ -169,7 +171,7 @@ async def search(
             ),
         ),
     ] = None,
-) -> list[SchoolClassModel]:
+) -> ORJSONResponse:
     with_users = "users" not in (exclude or [])
     query = _group_search_query(school, class_name)
     logger.debug("v2 school_class search query: %r", query)
@@ -186,10 +188,12 @@ async def search(
     # a DN per group is one round trip per group.
     mapper = sqlalchemy_mapper_factory(session)
     dn_map = await mapper.public_ids_to_dns(ObjectType.GROUP, [_public_id(g) for g in groups])
-    return [
-        await _group_to_school_class_model(g, request, session, dn_map=dn_map, with_users=with_users)
-        for g in groups
-    ]
+    return model_list_response(
+        [
+            await _group_to_school_class_model(g, request, session, dn_map=dn_map, with_users=with_users)
+            for g in groups
+        ]
+    )
 
 
 @router.get("/{school}/{class_name}", response_model=SchoolClassModel)
