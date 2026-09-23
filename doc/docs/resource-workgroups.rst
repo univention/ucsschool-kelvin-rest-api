@@ -114,6 +114,20 @@ resource. This search for the workgroup name is case-insensitive and supports wi
 For example to search for a workgroup with the name ``DEMOWORKGROUP`` you can append ``?name=*workgroup``.
 The URL would be: ``https://<fqdn>/ucsschool/kelvin/v1/workgroups/?school=DEMOSCHOOL?name=%2workgroup``.
 
+To retrieve several work groups in one request,
+repeat the ``name`` parameter,
+for example ``?school=DEMOSCHOOL&name=Chess&name=Choir``.
+Every value is matched the same way as a single ``name``,
+and all of them are read in one database query,
+which is considerably faster than requesting every work group individually.
+The length of a URL is limited,
+which caps one request at a few hundred names;
+larger sets have to be split over several requests.
+
+.. versionadded:: 4.1.0
+
+   Repeating the ``name`` parameter is supported by the version 2 API only.
+
 
 Workgroups retrieve
 -------------------

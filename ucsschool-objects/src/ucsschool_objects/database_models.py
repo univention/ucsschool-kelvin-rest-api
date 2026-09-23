@@ -25,9 +25,11 @@ from sqlalchemy import (
     UUID,
     Boolean,
     ForeignKey,
+    Index,
     String,
     UniqueConstraint,
     event,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -103,8 +105,12 @@ class School(Base):
 
 class Group(Base):
     __tablename__: str = "group"
-    __table_args__: tuple[Constraint] = (
+    __table_args__: tuple[Constraint | Index, ...] = (
         UniqueConstraint("record_uid", "source_uid", name="uq_group_record_source_uid"),
+        # Group names are matched case-insensitively, which compares lower(name)
+        # and cannot use the unique index on name. Without this one, every such
+        # lookup reads the whole table.
+        Index("ix_group_name_lower", text("lower(name)")),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

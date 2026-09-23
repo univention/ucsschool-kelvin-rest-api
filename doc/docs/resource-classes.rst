@@ -108,6 +108,20 @@ resource. This search for the class name is case-insensitive and supports wildca
 For example to search for a class with the name ``DEMOCLASS`` you can append ``?name=*class``.
 The URL would be: ``https://<fqdn>/ucsschool/kelvin/v1/classes/?school=DEMOSCHOOL?name=%2class``.
 
+To retrieve several classes in one request,
+repeat the ``name`` parameter,
+for example ``?school=DEMOSCHOOL&name=1a&name=2b``.
+Every value is matched the same way as a single ``name``,
+and all of them are read in one database query,
+which is considerably faster than requesting every class individually.
+The length of a URL is limited,
+which caps one request at a few hundred names;
+larger sets have to be split over several requests.
+
+.. versionadded:: 4.1.0
+
+   Repeating the ``name`` parameter is supported by the version 2 API only.
+
 
 Retrieve
 --------

@@ -14,6 +14,10 @@ v4.1.0 (unreleased)
   Retrieving users this way is considerably faster than requesting them one by one, because the whole set is read in one database query instead of one query per user.
   Every value is matched the same way as a single ``name``: case-insensitively, with ``*`` as a wildcard.
   The length of a URL is limited, which caps one request at a few hundred usernames; larger sets have to be split over several requests.
+* Added (version 2 API only): The ``name`` parameter of the school class and work group searches accepts more than one value, for example ``?school=DEMOSCHOOL&name=1a&name=2b``.
+  Resolving a set of groups this way is one request and one database query instead of one request per group.
+  Every value is matched the same way as a single ``name``: case-insensitively, with ``*`` as a wildcard, and without the school prefix.
+  The length of a URL is limited, which caps one request at a few hundred names; larger sets have to be split over several requests.
 
 v4.0.2 (2026-09-08)
 -------------------

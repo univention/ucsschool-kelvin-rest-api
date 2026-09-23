@@ -41,7 +41,7 @@ from ..v1.user import (
     partial_update,
     search as v1_search,
 )
-from ._filters import str_filter as _str_filter
+from ._filters import name_filter as _name_filter, str_filter as _str_filter
 from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
@@ -122,24 +122,6 @@ def _udm_property_filters(request: Request) -> list[QueryExpr]:
     return filters
 
 
-def _name_filter(names: Sequence[str]) -> QueryExpr:
-    """Filter matching any of ``names``, with the same semantics per value.
-
-    Values without a wildcard are collected into a single case-insensitive
-    ``IN``, so that asking for hundreds of usernames stays one set lookup
-    instead of one pattern match per value.
-    """
-    plain = tuple(name for name in names if "*" not in name)
-    clauses: list[QueryExpr] = [
-        make_wildcard_filter("name", name, case_insensitive=True) for name in names if "*" in name
-    ]
-    if plain:
-        clauses.insert(0, Filter(field="name", op=Operator.IN_CI, value=plain))
-    if len(clauses) == 1:
-        return clauses[0]
-    return Or(clauses=tuple(clauses))
-
-
 def _build_query(
     school: Optional[str],
     name: Optional[Sequence[str]],
@@ -156,7 +138,7 @@ def _build_query(
     clauses: list[QueryExpr] = list(extra_clauses or [])
     names = [value for value in name or () if value]
     if names:
-        clauses.append(_name_filter(names))
+        clauses.append(_name_filter("name", names))
     if school:
         clauses.append(_str_filter("schools.name", school, case_insensitive=True))
     if firstname:

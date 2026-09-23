@@ -7,7 +7,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 from ucsschool_objects import (
-    And,
     Filter,
     Group,
     KelvinStorageSession,
@@ -33,7 +32,7 @@ from ..v1.workgroup import (
     partial_update,
     search as v1_search,
 )
-from ._filters import str_filter as _str_filter
+from ._filters import group_search_query as _group_search_query
 from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
@@ -138,21 +137,19 @@ async def search(
     session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
     _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
     workgroup_name: Annotated[
-        str | None,
+        list[str] | None,
         Query(
             alias="name",
             description=(
-                "List workgroups with this name. (optional, ``*`` can be used "
-                "for a case-insensitive wildcard search)."
+                "List workgroups with these names. Repeat the parameter to ask for "
+                "several at once; each value may use ``*`` as a case-insensitive "
+                "wildcard. (optional)"
             ),
             title="name",
         ),
     ] = None,
 ) -> list[WorkGroupModel]:
-    clauses = [Filter(field="school.name", op=Operator.EQ, value=school)]
-    if workgroup_name:
-        clauses.append(_str_filter("name", f"{school}-{workgroup_name}", case_insensitive=True))
-    query = SearchQuery(where=And(clauses=tuple(clauses)) if len(clauses) > 1 else clauses[0])
+    query = _group_search_query(school, workgroup_name)
     logger.debug("v2 workgroup search query: %r", query)
     groups = [
         g for g in await session.groups.search(query, load=WORKGROUP_LOAD_SPEC_V2) if _is_workgroup(g)
