@@ -18,6 +18,8 @@ v4.1.0 (unreleased)
   Resolving a set of groups this way is one request and one database query instead of one request per group.
   Every value is matched the same way as a single ``name``: case-insensitively, with ``*`` as a wildcard, and without the school prefix.
   The length of a URL is limited, which caps one request at a few hundred names; larger sets have to be split over several requests.
+* Fixed (version 2 API only): ``GET /v2/users/<username>`` required the exact capitalization of the username, while the search for the same name did not, and version 1 does not either.
+  The username is now matched case-insensitively on both endpoints.
 
 v4.0.2 (2026-09-08)
 -------------------

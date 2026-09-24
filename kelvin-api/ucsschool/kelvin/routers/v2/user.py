@@ -317,11 +317,16 @@ async def get(
     session: KelvinStorageSession = Depends(get_storage_session),
     kelvin_reader: LdapUser = Depends(get_kelvin_reader),
 ) -> UserModel:
-    results = list(
+    # LDAP keeps usernames unique regardless of case, but the Kelvin DB only
+    # catches up eventually: a user deleted outside Kelvin can still be cached
+    # next to a newly created one that differs only in case. The exact spelling
+    # wins, so such a pair never answers with the stale one.
+    results = sorted(
         await session.users.search(
-            SearchQuery(where=Filter(field="name", op=Operator.EQ, value=username)),
+            SearchQuery(where=Filter(field="name", op=Operator.IN_CI, value=(username,))),
             load=USER_LOAD_SPEC_V2,
-        )
+        ),
+        key=lambda user: user.name != username,
     )
     if not results:
         raise HTTPException(

@@ -182,8 +182,12 @@ class Group(Base):
 
 class User(Base):
     __tablename__: str = "user"
-    __table_args__: tuple[Constraint] = (
+    __table_args__: tuple[Constraint | Index, ...] = (
         UniqueConstraint("record_uid", "source_uid", name="uq_user_record_source_uid"),
+        # Usernames are matched case-insensitively, which compares lower(name)
+        # and cannot use the unique index on name. Without this one, every such
+        # lookup reads the whole table.
+        Index("ix_user_name_lower", text("lower(name)")),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
