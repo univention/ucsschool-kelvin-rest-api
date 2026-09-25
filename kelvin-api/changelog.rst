@@ -20,6 +20,8 @@ v4.1.0 (unreleased)
   The length of a URL is limited, which caps one request at a few hundred names; larger sets have to be split over several requests.
 * Fixed (version 2 API only): ``GET /v2/users/<username>`` required the exact capitalization of the username, while the search for the same name did not, and version 1 does not either.
   The username is now matched case-insensitively on both endpoints.
+* Fixed (version 2 API only): ``GET /v2/classes/<school>/<name>`` and ``GET /v2/workgroups/<school>/<name>`` treated ``*`` in the name as a wildcard and could return a different group than the one asked for.
+  The name is now matched exactly, as in version 1, and still case-insensitively.
 
 v4.0.2 (2026-09-08)
 -------------------

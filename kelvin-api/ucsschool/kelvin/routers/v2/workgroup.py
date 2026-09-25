@@ -168,14 +168,21 @@ async def get(
     _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
 ) -> WorkGroupModel:
     full_name = f"{school}-{workgroup_name}"
-    results = [
-        g
-        for g in await session.groups.search(
-            SearchQuery(where=Filter(field="name", op=Operator.MATCHES_CI, value=full_name)),
-            load=WORKGROUP_LOAD_SPEC_V2,
-        )
-        if _is_workgroup(g)
-    ]
+    # LDAP keeps group names unique regardless of case, but the Kelvin DB only
+    # catches up eventually: a group deleted outside Kelvin can still be cached
+    # next to a newly created one that differs only in case. The exact spelling
+    # wins, so such a pair never answers with the stale one.
+    results = sorted(
+        (
+            g
+            for g in await session.groups.search(
+                SearchQuery(where=Filter(field="name", op=Operator.IN_CI, value=(full_name,))),
+                load=WORKGROUP_LOAD_SPEC_V2,
+            )
+            if _is_workgroup(g)
+        ),
+        key=lambda g: g.name != full_name,
+    )
     if not results:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

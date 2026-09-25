@@ -203,6 +203,41 @@ async def test_get(
 
 
 @pytest.mark.asyncio
+async def test_get_is_case_insensitive(
+    auth_header,
+    retry_http_502,
+    retry_until_replicated,
+    url_fragment,
+    new_workgroup_using_lib,
+    create_ou_using_python,
+):
+    """A work group name is matched regardless of its capitalization, as the search
+    is, but exactly: ``*`` in it is not a wildcard."""
+    ou = await create_ou_using_python()
+    _dn, attrs = await new_workgroup_using_lib(ou)
+    name = attrs["name"]
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/workgroups/{ou}/{name.upper()}",
+            headers=auth_header,
+        )
+        assert response.status_code == 200, (response.reason, response.content)
+        assert response.json()["name"] == name
+
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/workgroups/{ou}/{name[:-1]}*",
+            headers=auth_header,
+        )
+        assert response.status_code == 404, (response.reason, response.content)
+
+    await retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
 async def test_create(
     auth_header,
     create_ou_using_python,

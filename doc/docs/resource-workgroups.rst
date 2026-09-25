@@ -169,7 +169,7 @@ The response body will be::
         "allowed_email_senders_groups": []
     }
 
-Matching of the queried ``workgroup`` *and* ``school`` is case-sensitive.
+Matching of the queried ``workgroup`` *and* ``school`` is case-insensitive.
 The response body will be identical to the response in the example above, if a school only has a single workgroup registered.
 Otherwise the list of workgroups from the example above will contain the ``workgroup`` which has been requested.
 
