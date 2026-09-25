@@ -3,6 +3,7 @@
 
 import random
 import string
+from collections.abc import Awaitable, Callable
 from typing import List
 
 import pytest
@@ -37,8 +38,13 @@ async def test_schoolclass_module(name: str, udm_kwargs):
 
 @pytest.mark.asyncio
 async def test_check_class_name(
-    auth_header, create_ou_using_python, retry_http_502, url_fragment, new_school_class_using_udm
-):
+    auth_header: dict[str, str],
+    create_ou_using_python: Callable[..., Awaitable[str]],
+    retry_http_502: Callable[..., requests.Response],
+    retry_until_replicated: Callable[[Callable[[], object]], Awaitable[None]],
+    url_fragment: str,
+    new_school_class_using_udm: Callable[..., Awaitable[tuple[str, dict[str, str]]]],
+) -> None:
     school_name = await create_ou_using_python()
 
     names = {"1a", "1-a"}
@@ -52,14 +58,18 @@ async def test_check_class_name(
             # this test only tests get, so we don't care if the sc exists already
             pass
 
-    response = retry_http_502(
-        requests.get,
-        f"{url_fragment}/classes/",
-        headers={"Content-Type": "application/json", **auth_header},
-        params={"school": school_name},
-    )
-    json_resp = response.json()
-    assert response.status_code == 200, response.reason
-    # make sure all classes were created.
-    received = set(r["name"] for r in json_resp if r["name"] in names)
-    assert names == received
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check() -> None:
+        response = retry_http_502(
+            requests.get,
+            f"{url_fragment}/classes/",
+            headers={"Content-Type": "application/json", **auth_header},
+            params={"school": school_name},
+        )
+        json_resp: list[dict[str, object]] = response.json()
+        assert response.status_code == 200, response.reason
+        # make sure all classes were created.
+        received = set(r["name"] for r in json_resp if r["name"] in names)
+        assert names == received
+
+    await retry_until_replicated(_check)
