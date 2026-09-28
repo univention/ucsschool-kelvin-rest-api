@@ -15,12 +15,12 @@ ARG BASEDPYRIGHT_VERSION=1.39.8
 RUN apt-get update && \
     apt-get install -y \
       build-essential \
-      python3-dev \
-      xz-utils \
-      pipx \
       git \
       libldap2-dev \
-      libsasl2-dev && \
+      libsasl2-dev \
+      pipx \
+      python3-dev \
+      xz-utils && \
     pipx install uv && \
     pipx install "basedpyright==${BASEDPYRIGHT_VERSION}" && \
     getent group "${GID}" >/dev/null || groupadd --gid "${GID}" precommit && \

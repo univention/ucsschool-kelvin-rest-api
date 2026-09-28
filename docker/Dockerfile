@@ -20,7 +20,7 @@ ENV UV_SYSTEM_PYTHON=1
 ENV UV_PROJECT_ENVIRONMENT="/venv"
 ENV UV_VERSION=0.8.0
 ENV PIPX_BIN_DIR="/usr/local/bin"
-RUN apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev
+RUN apt-get install -y build-essential git libldap2-dev libsasl2-dev pipx python3-dev xz-utils
 RUN pipx install uv=="$UV_VERSION"
 
 COPY uv.lock .
@@ -36,8 +36,9 @@ COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 ARG KELVIN_BUILD_VERSION="999.0.0"
-RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked --all-packages --group dev
-RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
+RUN KELVIN_BUILD_VERSION="$KELVIN_BUILD_VERSION" uv sync --locked --all-packages --group dev
+WORKDIR /kelvin/ucs-test-ucsschool-kelvin
+RUN apt-get build-dep -y . && dpkg-buildpackage
 
 
 # Render readme.rst and changelog.rst into the static HTML served by the API.
@@ -53,7 +54,7 @@ RUN python3 build_docs.py
 
 FROM base AS kelvin-prod
 
-RUN apt-get install -y libldap-2.5-0 openjdk-17-jre-headless procps libmagic1
+RUN apt-get install -y libldap-2.5-0 libmagic1 openjdk-17-jre-headless procps
 RUN mkdir -pv /etc/univention/kelvin
 RUN mkdir -pv /var/lib/ucs-school-import/kelvin-hooks
 RUN mkdir -pv /var/lib/ucs-school-lib/kelvin-hooks
@@ -108,7 +109,7 @@ ENV UV_PROJECT_ENVIRONMENT="/venv"
 ENV UV_VERSION=0.10.10
 ENV PIPX_BIN_DIR="/usr/local/bin"
 
-RUN apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev
+RUN apt-get install -y build-essential git libldap2-dev libsasl2-dev pipx python3-dev xz-utils
 RUN pipx install uv=="$UV_VERSION"
 
 COPY uv.lock .
@@ -132,7 +133,9 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 WORKDIR /app
 
-RUN apt-get install -y libldap2-dev
+RUN apt-get install -y libldap2-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 COPY --from=connector-builder $VIRTUAL_ENV $VIRTUAL_ENV
 COPY docker/start-connector.sh .
 COPY alembic ./alembic
