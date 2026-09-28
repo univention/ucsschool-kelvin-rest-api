@@ -10,6 +10,8 @@ Changelog
 
 v4.1.0 (unreleased)
 -------------------
+* Added: The app can be installed on UCS 5.3.
+  The minimum UCS 5.2 version stays 5.2-6 errata515.
 * Added (version 2 API only): The ``name`` parameter of the user search accepts more than one value, for example ``?name=alice&name=bob``.
   Retrieving users this way is considerably faster than requesting them one by one, because the whole set is read in one database query instead of one query per user.
   Every value is matched the same way as a single ``name``: case-insensitively, with ``*`` as a wildcard.
