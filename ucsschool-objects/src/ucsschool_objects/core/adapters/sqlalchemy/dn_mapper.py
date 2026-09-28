@@ -31,21 +31,15 @@ class SQLAlchemyDNIDMapper:
         self, object_type: ObjectType, dns: Iterable[str]
     ) -> dict[str, uuid.UUID]:
         model = self.TYPE_TO_MODEL_MAPPING[object_type]
-        result = (
-            await self._session.execute(select(model.dn, model.public_id).where(model.dn.in_(dns)))
-        ).all()
-        return {dn: public_id for dn, public_id in result}
+        statement = select(model.dn, model.public_id).where(model.dn.in_(dns))
+        return dict((await self._session.execute(statement)).tuples().all())
 
     async def public_ids_to_dns(
         self, object_type: ObjectType, public_ids: Iterable[uuid.UUID]
     ) -> dict[uuid.UUID, str]:
         model = self.TYPE_TO_MODEL_MAPPING[object_type]
-        result = (
-            await self._session.execute(
-                select(model.public_id, model.dn).where(model.public_id.in_(public_ids))
-            )
-        ).all()
-        return {public_id: dn for public_id, dn in result}
+        statement = select(model.public_id, model.dn).where(model.public_id.in_(public_ids))
+        return dict((await self._session.execute(statement)).tuples().all())
 
     async def set_mapping(self, object_type: ObjectType, dn: str, public_id: uuid.UUID | None) -> None:
         model = self.TYPE_TO_MODEL_MAPPING[object_type]

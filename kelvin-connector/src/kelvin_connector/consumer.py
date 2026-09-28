@@ -78,9 +78,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
     def _filter(object_type: str, roles: list[str], seq_num: int, name: str = "") -> bool:
         match object_type:
             case ObjectType.GROUPS:
-                if any(
-                    role.startswith("school_class") or role.startswith("workgroup") for role in roles
-                ):
+                if any(role.startswith(("school_class", "workgroup")) for role in roles):
                     return True
                 if HOST_GROUP_NAME_RE.match(name):
                     return True

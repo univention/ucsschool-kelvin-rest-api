@@ -207,7 +207,7 @@ def _compile_json_array_contains(
 def _compile_json_array_contains_sqlite(
     element: _JsonArrayContains, compiler: SQLCompiler, **kw: object
 ) -> str:
-    column = compiler.process(cast("ColumnElement[object]", element.json_column), **kw)
+    column = compiler.process(cast(ColumnElement[object], element.json_column), **kw)
     path = compiler.process(element.path_param, **kw)
     value = compiler.process(element.value_param, **kw)
     # Not injectable: column is a compiler-emitted column reference, path and
@@ -223,7 +223,7 @@ def _compile_json_array_contains_postgresql(
     element: _JsonArrayContains, compiler: SQLCompiler, **kw: object
 ) -> str:
     # Function form of the jsonb ``?`` operator — avoids paramstyle clashes.
-    column = compiler.process(cast("ColumnElement[object]", element.json_column), **kw)
+    column = compiler.process(cast(ColumnElement[object], element.json_column), **kw)
     key = compiler.process(element.key_param, **kw)
     value = compiler.process(element.value_param, **kw)
     return f"jsonb_exists(CAST({column} -> {key} AS JSONB), {value})"
@@ -255,17 +255,17 @@ def _json_extracted_column(
     like on a real column. Only scalar values are supported — matching
     inside JSON arrays has no portable spelling.
     """
-    element = cast("ColumnElement[object]", json_column)[json_key]
+    element = cast(ColumnElement[object], json_column)[json_key]
     value = filter_expr.value
     # bool first: bool is a subclass of int.
     if isinstance(value, bool):
-        return cast("ColumnElement[object]", element.as_boolean())
+        return cast(ColumnElement[object], element.as_boolean())
     if isinstance(value, int):
-        return cast("ColumnElement[object]", element.as_integer())
+        return cast(ColumnElement[object], element.as_integer())
     if isinstance(value, float):
-        return cast("ColumnElement[object]", element.as_float())
+        return cast(ColumnElement[object], element.as_float())
     if isinstance(value, str):
-        return cast("ColumnElement[object]", element.as_string())
+        return cast(ColumnElement[object], element.as_string())
     raise InvalidJsonFilter(filter_expr.field, value)
 
 
