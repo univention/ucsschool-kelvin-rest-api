@@ -269,7 +269,7 @@ PostgreSQL can index-scan.
 Migrations
 ----------
 
-The physical schema is evolved with `Alembic <https://alembic.sqlalchemy.org/>`_.
+The physical schema is evolved with `Alembic <https://alembic.sqlalchemy.org/en/latest/>`_.
 
 * There is **no** ``alembic.ini``. The configuration is in ``pyproject.toml``
   under ``[tool.alembic]`` (only ``script_location = "%(here)s/alembic"``).

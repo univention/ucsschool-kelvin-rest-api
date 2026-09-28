@@ -22,7 +22,7 @@ Kelvin consists of two processes with **different logging stacks**:
 
      %(asctime)s %(levelname)-5s [<pid>][<correlation_id>] %(module)s.%(funcName)s:%(lineno)d  %(message)s
 
-* The **Kelvin Connector** uses `loguru <https://loguru.readthedocs.io/>`_ and
+* The **Kelvin Connector** uses `loguru <https://loguru.readthedocs.io/en/stable/>`_ and
   logs to **stderr**.
 
 The connector writes no log files. Its loguru output goes to stderr only, so
