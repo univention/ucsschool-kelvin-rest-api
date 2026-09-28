@@ -59,17 +59,15 @@ def advisory_lock(connection, timeout_seconds: int = 60):
 
         yield
     finally:
-        if dialect != "postgresql" or not lock_acquired:
-            return
-
-        result = connection.execute(
-            text("SELECT pg_advisory_unlock(:lock_id)"), {"lock_id": lock_id}
-        ).scalar()
-        connection.commit()
-        if result:
-            logger.debug("Postgres advisory lock released.")
-        else:
-            logger.warning("Postgres advisory lock was not held when release was attempted.")
+        if dialect == "postgresql" and lock_acquired:
+            result = connection.execute(
+                text("SELECT pg_advisory_unlock(:lock_id)"), {"lock_id": lock_id}
+            ).scalar()
+            connection.commit()
+            if result:
+                logger.debug("Postgres advisory lock released.")
+            else:
+                logger.warning("Postgres advisory lock was not held when release was attempted.")
 
 
 def get_revision_transitions(current_revision: str | None) -> list[str]:
