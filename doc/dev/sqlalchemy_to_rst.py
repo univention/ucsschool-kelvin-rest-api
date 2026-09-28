@@ -129,7 +129,6 @@ def model_to_rst(
         for const in mapper.local_table.constraints:
             if isinstance(const, UniqueConstraint) and len(const.columns) > 1:
                 col_names = [c.name for c in const.columns]
-                # label = const.name or "(" + ", ".join(col_names) + ")"
                 label = "(" + ", ".join(col_names) + ")"
                 for cn in col_names:
                     composite_uq.setdefault(cn, []).append(label)

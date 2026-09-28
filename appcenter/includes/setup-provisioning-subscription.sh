@@ -75,7 +75,7 @@ url = "$base_url/v1/subscriptions"
 EOF
 ))
     if [[ $? -ne 0 ]]; then
-        echo "Error: Request to create subscription failed with: $response_create"
+        echo "Error: Request to create subscription failed with: $response_create" >&2
         return 1
     fi
 

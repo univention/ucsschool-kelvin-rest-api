@@ -213,7 +213,6 @@ texinfo_documents = [
 if "spelling" in sys.argv:
     spelling_lang = "en_US"
     spelling_show_suggestions = True
-    spelling_word_list_filename = list()
     spelling_word_list_filename = ["spelling_wordlist"]
 
 # Ignore anchors like #note_<number>
