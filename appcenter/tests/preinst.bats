@@ -163,6 +163,27 @@ ldap_output_for_versions() {
   [ "$status" -eq 0 ]
 }
 
+@test "check_provisioning_service_version: branch test version -> returns 0" {
+  export MOCK_LDAP_OUTPUT="$(ldap_output_for_versions 0.0.0-feat-ucs-5-3)"
+
+  run check_provisioning_service_version
+  [ "$status" -eq 0 ]
+}
+
+@test "check_provisioning_service_version: merge request test version -> returns 0" {
+  export MOCK_LDAP_OUTPUT="$(ldap_output_for_versions '0.0.0-MR-1234-univention/dev/nubus/provisioning!567')"
+
+  run check_provisioning_service_version
+  [ "$status" -eq 0 ]
+}
+
+@test "check_provisioning_service_version: 0.0.0 without suffix is not a test version -> returns 2" {
+  export MOCK_LDAP_OUTPUT="$(ldap_output_for_versions 0.0.0)"
+
+  run check_provisioning_service_version
+  [ "$status" -eq 2 ]
+}
+
 @test "check_provisioning_service_version: default minimum is 2.2" {
   [ "$MIN_PROVISIONING_VERSION" = "2.2" ]
 }

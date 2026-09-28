@@ -96,11 +96,15 @@ set_kelvin_docker_env_trusted_proxy_ips() {
 # subcommand that compares two version strings. It is the same comparator the
 # appcenter uses for RequiredAppVersionUpgrade et al.
 #
+# Branch test versions of the app ("0.0.0-<suffix>") always count as recent
+# enough, so Kelvin can be installed next to a Provisioning Service branch build.
+#
 # Arguments:
 #   $1 - minimum version to require (defaults to $MIN_PROVISIONING_VERSION)
 #
 # Returns:
-#   0 - a provisioning-service >= the minimum is installed in the domain
+#   0 - a provisioning-service >= the minimum, or a branch test version,
+#       is installed in the domain
 #   1 - provisioning-service is not installed anywhere in the domain
 #   2 - provisioning-service is installed, but every version is too old
 check_provisioning_service_version() {
@@ -124,8 +128,15 @@ import sys
 from univention.appcenter.app import LooseVersion
 
 required = LooseVersion(sys.argv[1])
-versions = [LooseVersion(line.strip()) for line in sys.stdin if line.strip()]
-sys.exit(0 if any(version >= required for version in versions) else 1)
+versions = [line.strip() for line in sys.stdin if line.strip()]
+sys.exit(
+    0
+    if any(
+        version.startswith("0.0.0-") or LooseVersion(version) >= required
+        for version in versions
+    )
+    else 1
+)
 ' "$min_version"; then
         return 0
     fi
