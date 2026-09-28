@@ -3,7 +3,7 @@
 
 import logging
 from functools import lru_cache
-from typing import List
+from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
 from ucsschool_objects import (
@@ -36,9 +36,9 @@ _KNOWN_ROLE_NAMES = frozenset(role.value for role in SchoolUserRole)
 @router.get("/", response_model=List[RoleModel])
 async def search(
     request: Request,
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
 ) -> ModelListResponse[RoleModel]:
     roles = sorted(
         [
@@ -61,13 +61,13 @@ async def search(
     )
 
 
-@router.get("/{role_name}", response_model=RoleModel)
+@router.get("/{role_name}")
 async def get(
     request: Request,
-    role_name: str = Path(..., description="Name of the role to fetch."),
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
+    role_name: Annotated[str, Path(description="Name of the role to fetch.")],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
 ) -> RoleModel:
     try:
         school_role = SchoolUserRole(role_name)

@@ -41,6 +41,7 @@ from .udm_properties import mapped_udm_properties
 router = APIRouter()
 
 _WORKGROUP_ROLE = "workgroup"
+_ITEM_PATH = "/{school}/{workgroup_name}"
 
 _WORKGROUP_ATTRS_V2 = (
     "name",
@@ -232,7 +233,7 @@ async def search(
     )
 
 
-@router.get("/{school}/{workgroup_name}", response_model=WorkGroupModel)
+@router.get(_ITEM_PATH)
 async def get(
     request: Request,
     workgroup_name: Annotated[str, Path(description="Name of the workgroup to fetch.")],
@@ -274,21 +275,21 @@ router.add_api_route(
     response_model=WorkGroupModel,
 )
 router.add_api_route(
-    "/{school}/{workgroup_name}",
+    _ITEM_PATH,
     partial_update,
     methods=["PATCH"],
     status_code=status.HTTP_200_OK,
     response_model=WorkGroupModel,
 )
 router.add_api_route(
-    "/{school}/{workgroup_name}",
+    _ITEM_PATH,
     complete_update,
     methods=["PUT"],
     status_code=status.HTTP_200_OK,
     response_model=WorkGroupModel,
 )
 router.add_api_route(
-    "/{school}/{workgroup_name}",
+    _ITEM_PATH,
     delete,
     methods=["DELETE"],
     status_code=status.HTTP_204_NO_CONTENT,

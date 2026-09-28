@@ -40,6 +40,7 @@ from .udm_properties import mapped_udm_properties
 router = APIRouter()
 
 _SCHOOL_CLASS_ROLE = "school_class"
+_ITEM_PATH = "/{school}/{class_name}"
 
 _SCHOOL_CLASS_ATTRS_V2 = (
     "name",
@@ -195,7 +196,7 @@ async def search(
     )
 
 
-@router.get("/{school}/{class_name}", response_model=SchoolClassModel)
+@router.get(_ITEM_PATH)
 async def get(
     request: Request,
     class_name: Annotated[str, Path(description="Name of the school class to fetch.")],
@@ -237,21 +238,21 @@ router.add_api_route(
     response_model=SchoolClassModel,
 )
 router.add_api_route(
-    "/{school}/{class_name}",
+    _ITEM_PATH,
     partial_update,
     methods=["PATCH"],
     status_code=status.HTTP_200_OK,
     response_model=SchoolClassModel,
 )
 router.add_api_route(
-    "/{school}/{class_name}",
+    _ITEM_PATH,
     complete_update,
     methods=["PUT"],
     status_code=status.HTTP_200_OK,
     response_model=SchoolClassModel,
 )
 router.add_api_route(
-    "/{school}/{class_name}",
+    _ITEM_PATH,
     delete,
     methods=["DELETE"],
     status_code=status.HTTP_204_NO_CONTENT,

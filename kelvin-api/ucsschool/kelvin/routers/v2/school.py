@@ -95,7 +95,7 @@ async def search(
     return ModelListResponse([await _school_to_model(s, request, session) for s in schools])
 
 
-@router.get("/{school_name}", response_model=SchoolModel)
+@router.get("/{school_name}")
 async def school_get(
     request: Request,
     school_name: Annotated[

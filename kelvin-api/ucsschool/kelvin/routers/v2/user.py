@@ -47,6 +47,8 @@ from .udm_properties import mapped_udm_properties
 
 router = APIRouter()
 
+_ITEM_PATH = "/{username}"
+
 
 @lru_cache(maxsize=1)
 def get_logger() -> logging.Logger:
@@ -260,10 +262,13 @@ async def _user_to_model(
 @router.get("/", response_model=List[UserModel])
 async def search(
     request: Request,
-    school: str = Query(
-        None,
-        description="List only users that are members of matching school(s) (OUs).",
-    ),
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+    school: Annotated[
+        str | None,
+        Query(description="List only users that are members of matching school(s) (OUs)."),
+    ] = None,
     username: Annotated[
         list[str] | None,
         Query(
@@ -275,19 +280,18 @@ async def search(
             title="name",
         ),
     ] = None,
-    firstname: str = Query(None),
-    lastname: str = Query(None),
-    email: str = Query(None),
-    record_uid: str = Query(None),
-    source_uid: str = Query(None),
-    birthday: datetime.date = Query(None, description="Exact match only. Format must be YYYY-MM-DD."),
-    expiration_date: datetime.date = Query(
-        None, description="Exact match only. Format must be YYYY-MM-DD."
-    ),
-    disabled: bool = Query(None),
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
+    firstname: Annotated[str | None, Query()] = None,
+    lastname: Annotated[str | None, Query()] = None,
+    email: Annotated[str | None, Query()] = None,
+    record_uid: Annotated[str | None, Query()] = None,
+    source_uid: Annotated[str | None, Query()] = None,
+    birthday: Annotated[
+        datetime.date | None, Query(description="Exact match only. Format must be YYYY-MM-DD.")
+    ] = None,
+    expiration_date: Annotated[
+        datetime.date | None, Query(description="Exact match only. Format must be YYYY-MM-DD.")
+    ] = None,
+    disabled: Annotated[bool | None, Query()] = None,
 ) -> ModelListResponse[UserModel]:
     query = _build_query(
         school=school,
@@ -310,13 +314,13 @@ async def search(
     return ModelListResponse([await _user_to_model(u, request, session, dn_map=dn_map) for u in users])
 
 
-@router.get("/{username}", response_model=UserModel)
+@router.get(_ITEM_PATH)
 async def get(
     request: Request,
-    username: str = Path(..., description="Name of the school user to fetch."),
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
+    username: Annotated[str, Path(description="Name of the school user to fetch.")],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
 ) -> UserModel:
     # LDAP keeps usernames unique regardless of case, but the Kelvin DB only
     # catches up eventually: a user deleted outside Kelvin can still be cached
@@ -345,21 +349,21 @@ router.add_api_route(
     response_model=UserModel,
 )
 router.add_api_route(
-    "/{username}",
+    _ITEM_PATH,
     partial_update,
     methods=["PATCH"],
     status_code=status.HTTP_200_OK,
     response_model=UserModel,
 )
 router.add_api_route(
-    "/{username}",
+    _ITEM_PATH,
     complete_update,
     methods=["PUT"],
     status_code=status.HTTP_200_OK,
     response_model=UserModel,
 )
 router.add_api_route(
-    "/{username}",
+    _ITEM_PATH,
     delete,
     methods=["DELETE"],
     status_code=status.HTTP_204_NO_CONTENT,
