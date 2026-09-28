@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2020-2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Awaitable, Callable
 from typing import List
 
 import pytest
@@ -704,11 +705,11 @@ async def test_create_udm_error_forwarding(
 async def test_search_leaves_the_members_out_when_excluded(
     api_version,
     auth_header,
-    retry_http_502,
+    retry_http_502: Callable[..., requests.Response],
     retry_until_replicated,
     url_fragment,
     new_workgroup_using_lib,
-    new_school_users,
+    new_school_users: Callable[..., Awaitable[list[User]]],
     create_ou_using_python,
 ):
     """Loading the members and turning each into a URL is most of what a
