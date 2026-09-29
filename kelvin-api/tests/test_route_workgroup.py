@@ -708,7 +708,7 @@ async def test_search_leaves_the_members_out_when_excluded(
     retry_http_502: Callable[..., requests.Response],
     retry_until_replicated,
     url_fragment,
-    new_workgroup_using_lib,
+    new_workgroup_using_lib: Callable[..., Awaitable[tuple[str, dict[str, object]]]],
     new_school_users: Callable[..., Awaitable[list[User]]],
     create_ou_using_python,
 ):
@@ -718,33 +718,35 @@ async def test_search_leaves_the_members_out_when_excluded(
         pytest.skip("The exclude parameter is v2-only; v1 always returns the members.")
     ou = await create_ou_using_python()
     users = await new_school_users(ou, {"student": 1})
-    await new_workgroup_using_lib(ou, users=[user.dn for user in users])
+    _dn, attr = await new_workgroup_using_lib(ou, users=[user.dn for user in users])
 
     async def _check():
         full = retry_http_502(
             requests.get,
             f"{url_fragment}/workgroups/",
             headers=auth_header,
-            params={"school": ou},
+            params={"school": ou, "name": attr["name"]},
         )
         assert full.status_code == 200
-        assert full.json()
-        assert all(item["users"] for item in full.json())
+        assert len(full.json()) == 1
+        (full_item,) = full.json()
+        assert full_item["users"]
 
         lean = retry_http_502(
             requests.get,
             f"{url_fragment}/workgroups/",
             headers=auth_header,
-            params={"school": ou, "exclude": "users"},
+            params={"school": ou, "name": attr["name"], "exclude": "users"},
         )
         assert lean.status_code == 200
+        assert len(lean.json()) == 1
+        (lean_item,) = lean.json()
         # None, not []: left out, which is not the same as having none.
-        assert all(item["users"] is None for item in lean.json())
+        assert lean_item["users"] is None
         # Everything else is the same representation either way.
-        for lean_item, full_item in zip(lean.json(), full.json(), strict=True):
-            assert {k: v for k, v in lean_item.items() if k != "users"} == {
-                k: v for k, v in full_item.items() if k != "users"
-            }
+        assert {k: v for k, v in lean_item.items() if k != "users"} == {
+            k: v for k, v in full_item.items() if k != "users"
+        }
 
     await retry_until_replicated(_check)
 
