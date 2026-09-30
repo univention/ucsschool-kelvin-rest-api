@@ -30,6 +30,14 @@ v4.1.0 (unreleased)
 * Fixed (version 2 API only): Several read endpoints queried a table from a direction no index covered, so each request scanned that table in full.
   Four indexes were added, which noticeably reduces the response time of these endpoints on domains with many users.
   Affected endpoints are ``GET /v2/users/<username>``, ``GET /v2/users/`` as well as searching for classes and workgroups by school (``GET /v2/classes/?school=…`` and ``GET /v2/workgroups/?school=…``).
+* Fixed (version 2 API only): Every ``/v2`` request created a new database connection pool to check that the schema of the Kelvin DB matches the installed version.
+  The check now uses the connection pool of the application, which saves time on every request and lowers the number of connections to the database.
+* Fixed (version 2 API only): After a restart of PostgreSQL, the next requests of the Kelvin REST API and of the Kelvin connector failed with a connection error.
+  Connections are now tested before use and replaced if the database has closed them.
+* Changed: The Kelvin REST API checks the schema of the Kelvin DB at startup and doesn't start if it doesn't match the installed version.
+  Before, only the first ``/v2`` request noticed the mismatch.
+* Changed: ``/health`` also checks that the Kelvin DB is reachable and that its schema matches the installed version, and answers with status code ``503`` otherwise.
+  The check uses a connection of its own, so a high load on the API can't make it fail.
 * Fixed (version 2 API only): Added two indexes on the lowercase user and group names, for the case-insensitive name look ups of the version 2 API.
 
   .. important::
