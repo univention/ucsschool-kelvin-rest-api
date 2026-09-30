@@ -8,44 +8,45 @@
 Changelog
 =========
 
-v4.1.0 (unreleased)
+v4.1.0 (2026-10-01)
 -------------------
-* Added (version 2 API only): The ``name`` parameter of the user search accepts more than one value, for example ``?name=alice&name=bob``.
-  Retrieving users this way is considerably faster than requesting them one by one, because the whole set is read in one database query instead of one query per user.
-  Every value is matched the same way as a single ``name``: case-insensitively, with ``*`` as a wildcard.
-  The length of a URL is limited, which caps one request at a few hundred usernames; larger sets have to be split over several requests.
-* Added (version 2 API only): The ``name`` parameter of the school class and work group searches accepts more than one value, for example ``?school=DEMOSCHOOL&name=1a&name=2b``.
-  Resolving a set of groups this way is one request and one database query instead of one request per group.
-  Every value is matched the same way as a single ``name``: case-insensitively, with ``*`` as a wildcard, and without the school prefix.
-  The length of a URL is limited, which caps one request at a few hundred names; larger sets have to be split over several requests.
+.. important::
+
+   This release changes the schema of the Kelvin DB.
+   All Kelvin instances in a domain share one database,
+   and instances that aren't upgraded yet answer ``/v2`` requests with status code ``503``,
+   so upgrade all instances together.
+   The version 1 API is unaffected.
+
+* Added (version 2 API only): The ``name`` parameter of the user, school class, and work group searches accepts more than one value,
+  for example ``?name=alice&name=bob`` or ``?school=DEMOSCHOOL&name=1a&name=2b``.
+  Retrieving a set of objects this way is considerably faster than requesting them one by one,
+  because the whole set is read in one request and one database query.
+  Every value is matched the same way as a single ``name``: case-insensitively, with ``*`` as a wildcard,
+  and for groups without the school prefix.
+  The length of a URL is limited, which caps one request at a few hundred names;
+  larger sets have to be split over several requests.
 * Added (version 2 API only): The school class and work group searches accept ``?exclude=users``, which leaves the members out of every returned group.
   Listing the groups of a school this way is considerably faster, because loading the members and building their URLs is most of what such a listing costs.
   An excluded ``users`` property is returned as ``null`` rather than as an empty list, so it cannot be mistaken for a group without members.
   Such an object must not be sent back unchanged with ``PUT``, which would remove all members; use ``PATCH`` without ``users`` instead.
   Without the parameter, and on ``GET /v2/classes/<school>/<name>`` and ``GET /v2/workgroups/<school>/<name>``, the members are returned as before.
-* Fixed (version 2 API only): ``GET /v2/users/<username>`` required the exact capitalization of the username, while the search for the same name did not, and version 1 does not either.
-  The username is now matched case-insensitively on both endpoints.
-* Fixed (version 2 API only): ``GET /v2/classes/<school>/<name>`` and ``GET /v2/workgroups/<school>/<name>`` treated ``*`` in the name as a wildcard and could return a different group than the one asked for.
-  The name is now matched exactly, as in version 1, and still case-insensitively.
-* Fixed (version 2 API only): Several read endpoints queried a table from a direction no index covered, so each request scanned that table in full.
-  Four indexes were added, which noticeably reduces the response time of these endpoints on domains with many users.
-  Affected endpoints are ``GET /v2/users/<username>``, ``GET /v2/users/`` as well as searching for classes and workgroups by school (``GET /v2/classes/?school=…`` and ``GET /v2/workgroups/?school=…``).
-* Fixed (version 2 API only): Every ``/v2`` request created a new database connection pool to check that the schema of the Kelvin DB matches the installed version.
-  The check now uses the connection pool of the application, which saves time on every request and lowers the number of connections to the database.
-* Fixed (version 2 API only): After a restart of PostgreSQL, the next requests of the Kelvin REST API and of the Kelvin connector failed with a connection error.
-  Connections are now tested before use and replaced if the database has closed them.
 * Changed: The Kelvin REST API checks the schema of the Kelvin DB at startup and doesn't start if it doesn't match the installed version.
   Before, only the first ``/v2`` request noticed the mismatch.
 * Changed: ``/health`` also checks that the Kelvin DB is reachable and that its schema matches the installed version, and answers with status code ``503`` otherwise.
   The check uses a connection of its own, so a high load on the API can't make it fail.
-* Fixed (version 2 API only): Added two indexes on the lowercase user and group names, for the case-insensitive name look ups of the version 2 API.
-
-  .. important::
-
-     This release changes the database schema.
-     All Kelvin instances in a domain share one database and answer ``/v2`` requests with status code ``503`` until they are upgraded,
-     so upgrade all instances together.
-     The version 1 API is unaffected.
+* Fixed (version 2 API only): ``GET /v2/users/<username>`` required the exact capitalization of the username, while the search for the same name did not, and version 1 does not either.
+  The username is now matched case-insensitively on both endpoints.
+* Fixed (version 2 API only): ``GET /v2/classes/<school>/<name>`` and ``GET /v2/workgroups/<school>/<name>`` treated ``*`` in the name as a wildcard and could return a different group than the one asked for.
+  The name is now matched exactly, as in version 1, and still case-insensitively.
+* Fixed (version 2 API only): Several read endpoints queried the Kelvin DB in ways no index covered, so each request scanned a table in full.
+  Six indexes were added, which noticeably reduces the response time of these endpoints on domains with many users.
+  Affected are ``GET /v2/users/<username>``, ``GET /v2/users/``, the case-insensitive lookups by name,
+  and searching for school classes and work groups by school (``GET /v2/classes/?school=…`` and ``GET /v2/workgroups/?school=…``).
+* Fixed (version 2 API only): Every ``/v2`` request created a new database connection pool to check that the schema of the Kelvin DB matches the installed version.
+  The check now uses the connection pool of the application, which saves time on every request and lowers the number of connections to the database.
+* Fixed (version 2 API only): After a restart of PostgreSQL, the next requests of the Kelvin REST API and of the Kelvin connector failed with a connection error.
+  Connections are now tested before use and replaced if the database has closed them.
 
 v4.0.2 (2026-09-08)
 -------------------
