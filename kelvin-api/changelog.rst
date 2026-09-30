@@ -41,7 +41,7 @@ v4.1.0 (2026-10-01)
   The name is now matched exactly, as in version 1, and still case-insensitively.
 * Fixed (version 2 API only): Several read endpoints queried the Kelvin DB in ways no index covered, so each request scanned a table in full.
   Six indexes were added, which noticeably reduces the response time of these endpoints on domains with many users.
-  Affected are ``GET /v2/users/<username>``, ``GET /v2/users/``, the case-insensitive lookups by name,
+  Affected are ``GET /v2/users/<username>``, ``GET /v2/users/``, fetching and searching users and groups by name,
   and searching for school classes and work groups by school (``GET /v2/classes/?school=…`` and ``GET /v2/workgroups/?school=…``).
 * Fixed (version 2 API only): Every ``/v2`` request created a new database connection pool to check that the schema of the Kelvin DB matches the installed version.
   The check now uses the connection pool of the application, which saves time on every request and lowers the number of connections to the database.
