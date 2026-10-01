@@ -2156,7 +2156,7 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.3" },
     { name = "pyasn1", specifier = ">=0.6.1" },
     { name = "pyasn1-modules", specifier = ">=0.4.2" },
-    { name = "pydantic", extras = ["dotenv", "email"], specifier = "<2" },
+    { name = "pydantic", extras = ["dotenv", "email"], specifier = "<3" },
     { name = "pyjwt", specifier = "<2.10" },
     { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "setuptools", specifier = "<81" },

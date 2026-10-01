@@ -29,7 +29,7 @@ dependencies = [
     "psycopg[binary]>=3.3.3",
     "pyasn1>=0.6.1",
     "pyasn1-modules>=0.4.2",
-    "pydantic[dotenv,email]<2",
+    "pydantic[dotenv,email]<3",
     "pyjwt<2.10",
     "python-multipart>=0.0.20",
     "setuptools<81",
