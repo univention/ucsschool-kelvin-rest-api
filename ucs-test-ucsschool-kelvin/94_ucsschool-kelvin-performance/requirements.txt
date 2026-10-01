@@ -218,9 +218,9 @@ diskcache==5.6.3 \
     --hash=sha256:2c3a3fa2743d8535d832ec61c2054a1641f41775aa7c556758a109941e33e4fc \
     --hash=sha256:5e31b2d5fbad117cc363ebaf6b689474db18a1f6438bc82358b024abd4c2ca19
     # via ucs-test-ucsschool-kelvin-performance
-faker==37.11.0 \
-    --hash=sha256:1508d2da94dfd1e0087b36f386126d84f8583b3de19ac18e392a2831a6676c57 \
-    --hash=sha256:22969803849ba0618be8eee2dd01d0d9e2cd3b75e6ff1a291fa9abcdb34da5e6
+Faker==40.39.0 \
+    --hash=sha256:52799ad96fcf92aab2fc96a9e03869bbf1a634300f7cd91c38dbfd51f639f6fa \
+    --hash=sha256:c4c7ec2cddfaf602c5a8a2c960614946aa8c161250bd9d49a8846cd24d1ef028
     # via ucs-test-ucsschool-kelvin-performance
 flask==3.1.2 \
     --hash=sha256:bf656c15c80190ed628ad08cdfd3aaa35beb087855e2f494910aa3774cc4fd87 \
