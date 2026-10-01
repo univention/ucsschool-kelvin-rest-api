@@ -5,11 +5,7 @@ Maintainer: Univention GmbH <packages@univention.de>
 Build-Depends: debhelper (>> 10),
  univention-config-dev,
  ucslint,
- python-sphinx,
- python-sphinx-rtd-theme,
  make,
- python2.7-doc,
- default-jre,
  python-support (>= 0.90),
 Standards-Version: 3.8.2
 XS-Python-Version: 2.7
@@ -106,18 +102,6 @@ Breaks:
  ucs-school-import-http-api (<< 17.0.6-15)
 Description: UCS@school: Common files for UCS@school API client and server
  This package provides common files of the RESTful HTTP API client and server.
- .
- This package is part of Univention Corporate Server (UCS),
- an integrated, directory driven solution for managing
- corporate environments. For more information about UCS,
- refer to: http://www.univention.de/
-Homepage: https://www.univention.de/produkte/ucsschool/
-
-Package: ucs-school-import-http-api-doc
-Architecture: all
-Description: UCS@school: HTTP API documentation
- This package provides HTML documentation of the HTTP API client and server
- installation, configuration und usage.
  .
  This package is part of Univention Corporate Server (UCS),
  an integrated, directory driven solution for managing

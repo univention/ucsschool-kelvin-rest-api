@@ -28,15 +28,6 @@ License: AGPL-3.0-only
  /usr/share/common-licenses/AGPL-3; if not, see
  <http://www.gnu.org/licenses/>.
 
-Files: usr/share/doc/ucs-school-import-http-api/plantuml/plantuml.jar
-Copyright: PlantUML
-License: GPL-3.0-only
- This package is licensed under the GNU General Public License version 3
- as published by the Free Software Foundation.
- .
- On Debian systems, the complete text of the GNU General Public License
- version 3 can be found in "/usr/share/common-licenses/GPL-3".
-
 Files: modules/ucsschool/importer/contrib/csv.py
 Copyright: 2001-2006 Python Software Foundation; All Rights Reserved
 License: Python-2.0
