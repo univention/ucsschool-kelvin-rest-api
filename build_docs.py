@@ -129,6 +129,14 @@ def _extract(page: Path, xpath: str) -> str:
     return html.tostring(matches[0], encoding="unicode", pretty_print=True)
 
 
+def _without_permalinks(fragment: str) -> str:
+    """Return ``fragment`` without the ``headerlink`` anchors Sphinx adds to headings."""
+    tree = html.fragment_fromstring(fragment)
+    for link in tree.xpath("//a[contains(@class, 'headerlink')]"):
+        link.drop_tree()
+    return html.tostring(tree, encoding="unicode", pretty_print=True)
+
+
 def _write_page(destination: Path, title: str, body: str) -> None:
     destination.write_text(PAGE_TEMPLATE.format(title=title, css=PAGE_CSS, body=body))
 
@@ -143,8 +151,8 @@ def main() -> None:
         changelog = _extract(outdir / CHANGELOG_HTML, "//*[@id='changelog']")
         readme = _extract(outdir / README_HTML, "//div[@class='body']/section")
 
-    # App Center changelog: bare content fragment (unchanged output contract).
-    (REPO_ROOT / CHANGELOG_HTML).write_text(f"<div>\n{changelog}\n</div>")
+    # App Center changelog: bare content fragment, without permalinks.
+    (REPO_ROOT / CHANGELOG_HTML).write_text(f"<div>\n{_without_permalinks(changelog)}\n</div>")
 
     # API-served pages: self-contained, styled, standalone documents.
     STATIC_DIR.mkdir(parents=True, exist_ok=True)
