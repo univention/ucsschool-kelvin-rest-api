@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-exclude: ^venv/|^ucs-school-import/usr/share/ucs-school-import/scripts/ucs-school-import|^univention-lib-slim/|^univention-directory-manager-modules-slim/|^kelvin-api/static/
+exclude: ^venv/|^univention-lib-slim/|^univention-directory-manager-modules-slim/|^kelvin-api/static/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -89,10 +89,7 @@ repos:
                  |^ucsschool-objects/src/ucsschool_objects/py[.]typed$\
                  |^ucsschool-objects/tests/py[.]typed$\
                  |^ucs-school-import/modules/ucsschool/importer/contrib/csv[.]py$\
-                 |^ucs-school-import/usr/share/doc/.*\
-                 |^ucs-school-import/examples/.*[.]csv$\
                  |^ucs-school-import/usr/share/ucs-school-import/configs/.*[.]json$\
-                 |^ucs-school-import/usr/share/ucs-school-import/schema/.*[.]json$\
                  "
       - id: reuse
         alias: reuse-lint

@@ -111,7 +111,6 @@ extend-exclude = [
     "univention-lib-slim",
     "univention-directory-manager-modules-slim",
     "kelvin-api/static",
-    "ucs-school-import/usr/share/ucs-school-import/scripts/ucs-school-import",
     "doc/doc-common",
     "docker/build",
     "docker/ucs",

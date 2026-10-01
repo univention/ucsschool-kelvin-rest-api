@@ -100,7 +100,7 @@ ucs-school-lib/              UCS@school core library
 
 ucs-school-import/           UCS@school bulk-import framework
   modules/                   Python modules
-  tests/                     Test cases
+  usr/share/ucs-school-import/configs/   Import configs (copied into the Docker image)
 
 ucsschool-objects/           Kelvin v2 read-cache library (PostgreSQL via SQLAlchemy)
   src/ucsschool_objects/     Domain models, query DSL, ports, SQLAlchemy adapter

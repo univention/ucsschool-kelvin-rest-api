@@ -34,13 +34,6 @@
       "reportUnusedParameter": "hint"
     },
     {
-      "root": "ucs-school-import/tests",
-      "reportAny": "hint",
-      "reportExplicitAny": "hint",
-      "reportUnknownLambdaType": "hint",
-      "reportUnusedParameter": "hint"
-    },
-    {
       "root": "appcenter/tests",
       "reportAny": "hint",
       "reportExplicitAny": "hint",
