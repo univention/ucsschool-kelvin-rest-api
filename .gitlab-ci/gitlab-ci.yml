@@ -217,7 +217,7 @@ variables:
 
 build_changelog_html:
   stage: build
-  image: gitregistry.knut.univention.de/univention/dev/docs/sphinx-docker/base@sha256:f4ae0cd320a7752163d5677e47d0bfbc44255cdc810c7b62ae854b7245294946
+  image: gitregistry.knut.univention.de/univention/dev/docs/sphinx-docker/base@sha256:5d6aac4c1f8d7af49db226d07984f01c3f6c0e99e78d671942a9ffd32cb60639
   script:
     - pip install lxml
     - ./build_docs.py

@@ -43,7 +43,7 @@ RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
 # Render readme.rst and changelog.rst into the static HTML served by the API.
 # Reuses the documentation image so the Univention Sphinx roles resolve without
 # mirroring the doc toolchain into this project (build_docs.py explains why).
-FROM gitregistry.knut.univention.de/univention/dev/docs/sphinx-docker/base@sha256:f4ae0cd320a7752163d5677e47d0bfbc44255cdc810c7b62ae854b7245294946 AS docs-builder
+FROM gitregistry.knut.univention.de/univention/dev/docs/sphinx-docker/base@sha256:5d6aac4c1f8d7af49db226d07984f01c3f6c0e99e78d671942a9ffd32cb60639 AS docs-builder
 WORKDIR /kelvin
 RUN pip install --no-cache-dir lxml
 COPY build_docs.py .
