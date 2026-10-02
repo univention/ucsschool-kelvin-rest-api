@@ -112,8 +112,8 @@ This keeps call-site code decoupled from the concrete SQLAlchemy implementation:
 ```python
 from ucsschool_objects import Manager, School
 
-def do_something(manager: Manager[School]) -> None:
-    ...
+
+def do_something(manager: Manager[School]) -> None: ...
 ```
 
 The concrete classes (`SQLAlchemySchoolManager`, …) are only needed at the wiring point.
@@ -148,6 +148,7 @@ mix of reads and writes   →  transaction_scope  (rollback covers everything)
 import uuid
 from ucsschool_objects import NotFound
 
+
 async def get_school(school_id: uuid.UUID):
     async with storage_factory.session_scope() as storage:
         try:
@@ -161,14 +162,11 @@ async def get_school(school_id: uuid.UUID):
 ```python
 from ucsschool_objects import Filter, Operator, SearchQuery, SortSpec
 
+
 async def find_schools(name_prefix: str):
     async with storage_factory.session_scope() as storage:
-        query = SearchQuery(
-      where=Filter(field="name", op=Operator.MATCHES, value=f"{name_prefix}*")
-        )
-        return list(
-            await storage.schools.search(query, sort_by=[SortSpec(field="name")])
-        )
+        query = SearchQuery(where=Filter(field="name", op=Operator.MATCHES, value=f"{name_prefix}*"))
+        return list(await storage.schools.search(query, sort_by=[SortSpec(field="name")]))
 ```
 
 ### Get a user with school memberships loaded
@@ -179,6 +177,7 @@ Use `LoadSpec` to request eager loading:
 ```python
 import uuid
 from ucsschool_objects import LoadSpec
+
 
 async def get_user_with_memberships(user_id: uuid.UUID):
     async with storage_factory.session_scope() as storage:
@@ -197,11 +196,10 @@ Filter on nested fields using dot-paths:
 ```python
 from ucsschool_objects import Filter, Operator, SearchQuery
 
+
 async def users_in_school(school_name: str):
     async with storage_factory.session_scope() as storage:
-        query = SearchQuery(
-            where=Filter(field="schools.name", op=Operator.EQ, value=school_name)
-        )
+        query = SearchQuery(where=Filter(field="schools.name", op=Operator.EQ, value=school_name))
         return list(await storage.users.search(query))
 ```
 
@@ -209,6 +207,7 @@ async def users_in_school(school_name: str):
 
 ```python
 from ucsschool_objects import School
+
 
 async def create_school():
     new_school = School(
@@ -227,6 +226,7 @@ async def create_school():
 
 ```python
 import uuid
+
 
 async def delete_school_class(group_id: uuid.UUID):
     async with storage_factory.transaction_scope() as storage:
@@ -249,6 +249,7 @@ later in the same transaction.
 ```python
 import uuid
 from ucsschool_objects import Role, School, SchoolMembership, User
+
 
 async def create_teacher(school: School) -> None:
     role = Role(
