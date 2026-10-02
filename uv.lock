@@ -2174,8 +2174,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "allure-pytest", specifier = ">=2.16.0" },
-    { name = "coverage", specifier = "~=7.16.2" },
-    { name = "coverage", specifier = ">=5.3" },
+    { name = "coverage", specifier = ">=7.16.2" },
     { name = "eralchemy", extras = ["graphviz"], specifier = ">=1.6.0" },
     { name = "factory-boy", specifier = ">=3.1.0" },
     { name = "faker", specifier = "~=15.0.0" },
