@@ -1597,11 +1597,11 @@ email = [
 
 [[package]]
 name = "pyfakefs"
-version = "4.7.0"
+version = "6.2.0"
 source = { registry = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b0/1d/eabab46c2f441092cf9e989da72cbf15cc470fbbb03a73a97cc99dd8c6cf/pyfakefs-4.7.0.tar.gz", hash = "sha256:f22d30d93d2989bf2d2c67b606a14cbab2df0be912c09dcdb590ea4931073ade", size = 216444, upload-time = "2022-09-18T10:05:11.831Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/98/0d/c80012ee6e885c293ad63c5f5b049d3ef3fd2b32bbe6fa8739145f392ec6/pyfakefs-6.2.0.tar.gz", hash = "sha256:e59a36db447bf509ce9c97ab3d1510c08cc51895c5311325a560a5e5b5dc1940", size = 228273, upload-time = "2026-04-12T13:38:50.411Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/81/e2/0403500f027e1d7280e91b686c53449a6649c09f07c25ae82963b48420bf/pyfakefs-4.7.0-py3-none-any.whl", hash = "sha256:29203a7482b25406dd3ea41c8740be2697c6058b0f6577485c3ae9cd4c5e96cd", size = 198281, upload-time = "2022-09-18T10:05:08.342Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/80/97571ac8295289c267367b7b60aadeae1a9a841e83f0a96ad9b65d1dd3c0/pyfakefs-6.2.0-py3-none-any.whl", hash = "sha256:0968a49db692694ffed420e54a9f1cbae4636637b880e8ab09c8ccc0f11bd7ae", size = 241113, upload-time = "2026-04-12T13:38:48.927Z" },
 ]
 
 [[package]]
@@ -2179,7 +2179,7 @@ dev = [
     { name = "eralchemy", extras = ["graphviz"], specifier = ">=1.6.0" },
     { name = "factory-boy", specifier = ">=3.1.0" },
     { name = "faker", specifier = "~=40.39.0" },
-    { name = "pyfakefs", specifier = "~=4.7.0" },
+    { name = "pyfakefs", specifier = "~=6.2.0" },
     { name = "pytest", specifier = "~=9.1.1" },
     { name = "pytest-asyncio", specifier = "~=1.4.0" },
     { name = "pytest-cov", specifier = "~=7.1.0" },
