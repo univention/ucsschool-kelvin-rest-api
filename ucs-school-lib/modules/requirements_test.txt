@@ -3,5 +3,5 @@
 Faker~=15.0.0
 factory_boy~=3.2.1
 pytest~=6.2.5
-pytest-asyncio~=0.19.0
+pytest-asyncio~=1.4.0
 pytest-mock~=3.10.0
