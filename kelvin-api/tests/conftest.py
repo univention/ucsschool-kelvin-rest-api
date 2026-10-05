@@ -508,7 +508,7 @@ def random_user_create_model(
         except KeyError:
             wg_dn, wg_attr = await new_workgroup_using_lib(ou_name)
             workgroups = {ou_name: [wg_attr["name"]]}
-        data = dict(
+        data: dict[str, object] = dict(
             email=f"{user_props['username']}mail{fake.pyint()}@{mail_domain}".lower(),
             record_uid=user_props["username"],
             source_uid="Kelvin",
@@ -527,7 +527,7 @@ def random_user_create_model(
         )
         for key, value in kwargs.items():
             data[key] = value
-        res = UserCreateModel(**data)
+        res = UserCreateModel.parse_obj(data)
         res.password = res.password.get_secret_value()
         return res
 

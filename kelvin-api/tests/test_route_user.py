@@ -15,7 +15,7 @@ import requests
 from constants import MAPPED_UDM_PROPERTIES
 from faker import Faker
 from ldap.filter import filter_format
-from pydantic import HttpUrl, error_wrappers
+from pydantic import HttpUrl, SecretStr, error_wrappers
 from uldap3 import BindError
 from uldap3.exceptions import ModifyError as UModifyError, NoObject as UNoObject
 
@@ -2620,7 +2620,7 @@ async def test_not_password_and_password_hashes(
     )
     password_new, password_new_hashes = await password_hash()
 
-    user_data.password = fake.password()
+    user_data.password = SecretStr(fake.password())
     user_data.kelvin_password_hashes = None
     if issubclass(model, UserPatchModel):
         model(password=user_data.password)
@@ -2634,7 +2634,7 @@ async def test_not_password_and_password_hashes(
     else:
         model(**user_data.dict())
 
-    user_data.password = fake.password()
+    user_data.password = SecretStr(fake.password())
     user_data.kelvin_password_hashes = password_new_hashes
     with pytest.raises(ValueError):
         if issubclass(model, UserPatchModel):
