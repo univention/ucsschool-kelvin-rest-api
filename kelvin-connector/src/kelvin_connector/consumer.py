@@ -187,7 +187,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     UserCreateEvent(
                         timestamp=metadata["ts"],
                         sequence_number=seq_num,
-                        new=UserPayload.validate(new),
+                        new=UserPayload.model_validate(new),
                     )
                 )
                 self.logger.info(
@@ -202,7 +202,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                         HostGroupCreateEvent(
                             timestamp=metadata["ts"],
                             sequence_number=seq_num,
-                            new=HostGroupPayload.validate(new),
+                            new=HostGroupPayload.model_validate(new),
                         )
                     )
                     self.logger.info(
@@ -216,7 +216,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                         GroupCreateEvent(
                             timestamp=metadata["ts"],
                             sequence_number=seq_num,
-                            new=GroupPayload.validate(new),
+                            new=GroupPayload.model_validate(new),
                         )
                     )
                     self.logger.info(
@@ -230,7 +230,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     SchoolCreateEvent(
                         timestamp=metadata["ts"],
                         sequence_number=seq_num,
-                        new=SchoolPayload.validate(new),
+                        new=SchoolPayload.model_validate(new),
                     )
                 )
                 self.logger.info(
@@ -268,7 +268,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     UserModifyEvent(
                         timestamp=metadata["ts"],
                         sequence_number=seq_num,
-                        new=UserPayload.validate(new),
+                        new=UserPayload.model_validate(new),
                     )
                 )
                 self.logger.info(
@@ -283,7 +283,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                         HostGroupModifyEvent(
                             timestamp=metadata["ts"],
                             sequence_number=seq_num,
-                            new=HostGroupPayload.validate(new),
+                            new=HostGroupPayload.model_validate(new),
                         )
                     )
                     self.logger.info(
@@ -297,7 +297,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                         GroupModifyEvent(
                             timestamp=metadata["ts"],
                             sequence_number=seq_num,
-                            new=GroupPayload.validate(new),
+                            new=GroupPayload.model_validate(new),
                         )
                     )
                     self.logger.info(
@@ -311,7 +311,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     SchoolModifyEvent(
                         timestamp=metadata["ts"],
                         sequence_number=seq_num,
-                        new=SchoolPayload.validate(new),
+                        new=SchoolPayload.model_validate(new),
                     )
                 )
                 self.logger.info(
@@ -345,7 +345,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     UserDeleteEvent(
                         timestamp=metadata["ts"],
                         sequence_number=seq_num,
-                        old=DeletePayload.validate(old),
+                        old=DeletePayload.model_validate(old),
                     )
                 )
                 self.logger.info(
@@ -360,7 +360,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                         HostGroupDeleteEvent(
                             timestamp=metadata["ts"],
                             sequence_number=seq_num,
-                            old=HostGroupPayload.validate(old),
+                            old=HostGroupPayload.model_validate(old),
                         )
                     )
                     self.logger.info(
@@ -374,7 +374,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                         GroupDeleteEvent(
                             timestamp=metadata["ts"],
                             sequence_number=seq_num,
-                            old=DeletePayload.validate(old),
+                            old=DeletePayload.model_validate(old),
                         )
                     )
                     self.logger.info(
@@ -388,7 +388,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     SchoolDeleteEvent(
                         timestamp=metadata["ts"],
                         sequence_number=seq_num,
-                        old=DeletePayload.validate(old),
+                        old=DeletePayload.model_validate(old),
                     )
                 )
                 self.logger.info(
@@ -459,7 +459,7 @@ class KelvinConsumerModule(ConsumerModule):
             self.logger.error(
                 "Dropping malformed event {}: {} failed validation: {}\nEvent: {!r}",
                 seq_num,
-                exc.model.__name__,
+                exc.title,
                 exc.errors(),
                 event,
             )

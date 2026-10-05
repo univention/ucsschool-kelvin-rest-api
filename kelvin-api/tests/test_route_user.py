@@ -8,14 +8,14 @@ import json
 import logging
 import random
 from typing import Any, Dict, List, NamedTuple, Set, Tuple, Type, Union
-from urllib.parse import SplitResult, urlsplit
 
 import pytest
 import requests
+from conftest import model_json
 from constants import MAPPED_UDM_PROPERTIES
 from faker import Faker
 from ldap.filter import filter_format
-from pydantic import HttpUrl, SecretStr, error_wrappers
+from pydantic import SecretStr, ValidationError
 from uldap3 import BindError
 from uldap3.exceptions import ModifyError as UModifyError, NoObject as UNoObject
 
@@ -88,7 +88,7 @@ async def compare_lib_api_user(  # noqa: C901
     lib_user: User, api_user: UserModel, udm: UDM, url_fragment: str
 ) -> None:
     udm_obj = await lib_user.get_udm_object(udm)
-    for key, value in api_user.dict().items():
+    for key, value in api_user.model_dump().items():
         if key == "school":
             assert value.split("/")[-1] == getattr(lib_user, key)
         elif key == "schools":
@@ -236,7 +236,8 @@ def import_user_to_create_model_kwargs(url_fragment):
 
 
 def test_validate_date_format():
-    _validate_date_format("2000-01-01")
+    assert _validate_date_format("2000-01-01") == datetime.date(2000, 1, 1)
+    assert _validate_date_format("2000-1-2") == datetime.date(2000, 1, 2)
 
     with pytest.raises(ValueError):
         _validate_date_format("2000-01-01T00:00")
@@ -253,6 +254,12 @@ def test_validate_date_range():
 
     with pytest.raises(ValueError):
         _validate_date_range("3000-01-01")
+
+
+@pytest.mark.parametrize("field", ["birthday", "expiration_date"])
+def test_user_patch_model_accepts_dates_without_zero_padding(field: str) -> None:
+    user = UserPatchModel.model_validate({field: "2000-1-2"})
+    assert getattr(user, field) == datetime.date(2000, 1, 2)
 
 
 @pytest.mark.asyncio
@@ -584,7 +591,7 @@ async def test_search_user_without_firstname(
     json_resp = response.json()
     assert lib_user.dn in json_resp["detail"]
     assert "firstname" in json_resp["detail"]
-    assert "none is not an allowed value" in json_resp["detail"]
+    assert "Input should be a valid string" in json_resp["detail"]
 
 
 @pytest.mark.asyncio
@@ -802,7 +809,7 @@ async def test_create(
     r_user.udm_properties["title"] = title
     phone = [random_name(), random_name()]
     r_user.udm_properties["phone"] = phone
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
@@ -889,7 +896,7 @@ async def test_create_username_checks(
     r_user.udm_properties["title"] = title
     phone = [random_name(), random_name()]
     r_user.udm_properties["phone"] = phone
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
@@ -941,7 +948,7 @@ async def test_user_create_password_policies(
         roles=[f"{url_fragment}/roles/{role_}" for role_ in roles],
     )
     r_user.password = fake.password(length=password_length + 1)
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     schedule_delete_user_name_using_udm(r_user.name)
     response = retry_http_502(
@@ -1004,10 +1011,10 @@ async def test_user_modify_password_policies(
         schools=old_user_data["schools"],
     )
     user_create_model.password = fake.password(length=password_length + 1)
-    new_user_data = user_create_model.dict(exclude={"name", "record_uid", "source_uid"})
+    new_user_data = user_create_model.model_dump(exclude={"name", "record_uid", "source_uid"})
     modified_user = UserCreateModel(**{**old_user_data, **new_user_data})
     modified_user.password = modified_user.password.get_secret_value()
-    logger.debug(f"{method.upper()} modified_user=%r.", modified_user.dict())
+    logger.debug(f"{method.upper()} modified_user=%r.", modified_user.model_dump())
     response = None
     if method == "patch":
         response = retry_http_502(
@@ -1021,7 +1028,7 @@ async def test_user_modify_password_policies(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
 
     response_json = response.json()
@@ -1048,7 +1055,7 @@ async def test_create_unmapped_udm_prop(
     school = await create_ou_using_python()
     r_user = await random_user_create_model(school, roles=[f"{url_fragment}/roles/teacher"])
     r_user.udm_properties["unmapped_prop"] = "some value"
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
@@ -1065,10 +1072,10 @@ async def test_create_unmapped_udm_prop(
     assert response_json == {
         "detail": [
             {
+                "type": "value_error",
                 "loc": ["body", "udm_properties"],
-                "msg": "UDM properties that were not configured for resource 'user' and are "
-                "thus not allowed: {'unmapped_prop'}",
-                "type": "value_error.unknownudmproperty",
+                "msg": "Value error, UDM properties that were not configured for resource "
+                "'user' and are thus not allowed: {'unmapped_prop'}",
             }
         ]
     }
@@ -1098,8 +1105,8 @@ async def test_create_without_username(
     r_user = await random_user_create_model(
         school, roles=[f"{url_fragment}/roles/{role_}" for role_ in roles]
     )
-    data = r_user.json(exclude={"name"})
-    assert "'name'" not in data
+    data = model_json(r_user, exclude={"name"})
+    assert '"name"' not in data
     expected_name = f"test.{r_user.firstname[:2]}.{r_user.lastname[:3]}".lower()
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={expected_name}")
@@ -1153,7 +1160,7 @@ async def test_create_minimal_attrs(
     r_user = await random_user_create_model(
         school, roles=[f"{url_fragment}/roles/{role_}" for role_ in roles], disabled=False
     )
-    data = r_user.dict(
+    data = r_user.model_dump(
         exclude={
             "birthday",
             "disabled",
@@ -1214,7 +1221,7 @@ async def test_create_requires_school_or_schools(
     r_user = await random_user_create_model(
         school, roles=[f"{url_fragment}/roles/{role_}" for role_ in roles], disabled=False
     )
-    data = r_user.dict(exclude={"school", "schools"})
+    data = r_user.model_dump(exclude={"school", "schools"})
     data["birthday"] = data["birthday"].isoformat()
     data["expiration_date"] = data["expiration_date"].isoformat()
     expected_name = f"test.{r_user.firstname[:2]}.{r_user.lastname[:3]}".lower()
@@ -1265,8 +1272,8 @@ async def test_create_with_password_hashes(
     school = r_user.school.split("/")[-1]
     r_user.password = None
     password_new, password_new_hashes = await password_hash()
-    r_user.kelvin_password_hashes = password_new_hashes.dict()
-    data = r_user.json()
+    r_user.kelvin_password_hashes = password_new_hashes.model_dump()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
@@ -1329,7 +1336,7 @@ async def test_create_legal_wards_wrong_role(
     r_user.udm_properties["phone"] = phone
     student: ImportUser = await new_import_user(school, role_student, disabled=False)
     r_user.legal_wards = [student.name]
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
@@ -1388,7 +1395,7 @@ async def test_create_legal_guardians_wrong_role(
     r_user.udm_properties["phone"] = phone
     legal_guardian: ImportUser = await new_import_user(school, role_legal_guardian, disabled=False)
     r_user.legal_guardians = [legal_guardian.dn]
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
@@ -1435,18 +1442,18 @@ async def test_put(
         school=old_user_data["school"],
         schools=old_user_data["schools"],
     )
-    new_user_data = user_create_model.dict(exclude={"name", "record_uid", "source_uid"})
+    new_user_data = user_create_model.model_dump(exclude={"name", "record_uid", "source_uid"})
     title = random_name()
     phone = [random_name(), random_name()]
     new_user_data["udm_properties"] = {"title": title, "phone": phone}
     modified_user = UserCreateModel(**{**old_user_data, **new_user_data})
     modified_user.password = modified_user.password.get_secret_value()
-    logger.debug("PUT modified_user=%r.", modified_user.dict())
+    logger.debug("PUT modified_user=%r.", modified_user.model_dump())
     response = retry_http_502(
         requests.put,
         f"{url_fragment}/users/{user.name}",
         headers=auth_header,
-        data=modified_user.json(),
+        data=model_json(modified_user),
     )
     assert response.status_code == 200, response.reason
     api_user = UserModel(**response.json())
@@ -1494,19 +1501,21 @@ async def test_put_with_password_hashes(
         school=old_user_data["school"],
         schools=old_user_data["schools"],
     )
-    new_user_data = new_user_create_model.dict(exclude={"name", "password", "record_uid", "source_uid"})
+    new_user_data = new_user_create_model.model_dump(
+        exclude={"name", "password", "record_uid", "source_uid"}
+    )
     for key in ("name", "password", "record_uid", "source_uid"):
         assert key not in new_user_data
     modified_user = UserCreateModel(**{**old_user_data, **new_user_data})
     modified_user.password = None
     password_new, password_new_hashes = await password_hash()
-    modified_user.kelvin_password_hashes = password_new_hashes.dict()
-    logger.debug("PUT modified_user=%r.", modified_user.dict())
+    modified_user.kelvin_password_hashes = password_new_hashes.model_dump()
+    logger.debug("PUT modified_user=%r.", modified_user.model_dump())
     response = retry_http_502(
         requests.put,
         f"{url_fragment}/users/{user.name}",
         headers=auth_header,
-        data=modified_user.json(),
+        data=model_json(modified_user),
     )
     assert response.status_code == 200, response.reason
     api_user = UserModel(**response.json())
@@ -1562,7 +1571,7 @@ async def test_patch(
         exclude_set.add("legal_guardians")
     if user.role_string != "legal_guardian":
         exclude_set.add("legal_wards")
-    new_user_data = user_create_model.dict(exclude=exclude_set)
+    new_user_data = user_create_model.model_dump(exclude=exclude_set)
     new_user_data["birthday"] = str(new_user_data["birthday"])
     new_user_data["expiration_date"] = str(new_user_data["expiration_date"])
     for key in random.sample(list(new_user_data.keys()), random.randint(1, len(new_user_data.keys()))):
@@ -1814,11 +1823,11 @@ async def test_patch_with_password_hashes(
         exclude_set.add("legal_guardians")
     if user.role_string != "legal_guardian":
         exclude_set.add("legal_wards")
-    new_user_data = user_create_model.dict(exclude=exclude_set)
+    new_user_data = user_create_model.model_dump(exclude=exclude_set)
     new_user_data["birthday"] = new_user_data["birthday"].isoformat()
     new_user_data["expiration_date"] = new_user_data["expiration_date"].isoformat()
     password_new, password_new_hashes = await password_hash()
-    new_user_data["kelvin_password_hashes"] = password_new_hashes.dict()
+    new_user_data["kelvin_password_hashes"] = password_new_hashes.model_dump()
     logger.debug("PATCH new_user_data=%r.", new_user_data)
     response = retry_http_502(
         requests.patch,
@@ -1916,7 +1925,7 @@ async def test_role_change(
             requests.put,
             user_url,
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     else:
         raise RuntimeError(f"Unknown method: {method}")
@@ -1983,7 +1992,7 @@ async def test_failing_role_change_school_admin_to_student(
             requests.put,
             user_url,
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     else:
         raise RuntimeError(f"Unknown method: {method}")
@@ -2024,7 +2033,7 @@ async def test_role_change_fails_for_student_without_school_class(
             requests.put,
             user_url,
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     else:
         raise RuntimeError("method must be patch or put")
@@ -2077,7 +2086,7 @@ async def test_role_change_fails_for_student_missing_school_class_for_second_sch
             requests.put,
             user_url,
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     else:
         raise RuntimeError("method must be patch or put")
@@ -2132,7 +2141,7 @@ async def test_modify_username_checks(
             requests.put,
             user_url,
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     else:
         raise RuntimeError("Method not supported")
@@ -2213,21 +2222,21 @@ async def test_rename(
             json={"name": new_name},
         )
     elif method == "put":
-        user_data = (await random_user_create_model(school, roles=[url_fragment, url_fragment])).dict(
-            exclude={"roles"}
-        )
+        user_data = (
+            await random_user_create_model(school, roles=[url_fragment, url_fragment])
+        ).model_dump(exclude={"roles"})
         user = (await create_random_users(school, {role.name: 1}, **user_data))[0]
         new_name = f"t.new.{random_name()}.{random_name()}"[:15]
         # dot at the end not allowed
         if new_name[-1] == ".":
             new_name = new_name[:-1]
-        old_data = user.dict(exclude={"name"})
+        old_data = user.model_dump(exclude={"name"})
         modified_user = UserCreateModel(name=new_name, **old_data)
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     else:
         raise RuntimeError("method not supported")
@@ -2273,9 +2282,7 @@ async def test_school_change(
     else:
         roles = {f"{role.name}:school:{ou1_name}"}
     assert set(lib_users[0].ucsschool_roles) == roles
-    url = f"{url_fragment}/schools/{ou2_name}"
-    _url: SplitResult = urlsplit(url)
-    new_school_url = HttpUrl(url, path=_url.path, scheme=_url.scheme, host=_url.netloc)
+    new_school_url = f"{url_fragment}/schools/{ou2_name}"
     if method == "patch":
         patch_data = dict(school=new_school_url, schools=[new_school_url])
         response = retry_http_502(
@@ -2285,13 +2292,13 @@ async def test_school_change(
             json=patch_data,
         )
     elif method == "put":
-        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
+        old_data = user.model_dump(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(school=new_school_url, schools=[new_school_url], **old_data)
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     json_response = response.json()
     assert response.status_code == 200, response.reason
@@ -2382,7 +2389,7 @@ async def test_school_change_verify_groups(
             json=patch_data,
         )
     elif method == "put":
-        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
+        old_data = user.model_dump(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(
             school=user.school,
             schools=[user.school, f"{url_fragment}/schools/{ou3_name}"],
@@ -2394,7 +2401,7 @@ async def test_school_change_verify_groups(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     else:
         raise RuntimeError(f"Unknown method: {method}")
@@ -2478,7 +2485,7 @@ async def test_change_disable(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=user.json(),
+            data=model_json(user),
         )
     assert response.status_code == 200, response.reason
     await wait_for_s4(response.json()["dn"])
@@ -2502,7 +2509,7 @@ async def test_change_disable(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=user.json(),
+            data=model_json(user),
         )
     assert response.status_code == 200, response.reason
     await wait_for_s4(response.json()["dn"])
@@ -2551,7 +2558,7 @@ async def test_change_password(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=create_model.json(),
+            data=model_json(create_model),
         )
     assert response.status_code == 200, response.reason
     await check_password(user.dn, new_password)
@@ -2625,32 +2632,37 @@ async def test_not_password_and_password_hashes(
     if issubclass(model, UserPatchModel):
         model(password=user_data.password)
     else:
-        model(**user_data.dict())
+        model(**user_data.model_dump())
 
     user_data.password = None
     user_data.kelvin_password_hashes = password_new_hashes
     if issubclass(model, UserPatchModel):
         model(kelvin_password_hashes=user_data.kelvin_password_hashes)
     else:
-        model(**user_data.dict())
+        model(**user_data.model_dump())
 
     user_data.password = SecretStr(fake.password())
     user_data.kelvin_password_hashes = password_new_hashes
+    kwargs: dict[str, Any]
+    if issubclass(model, UserPatchModel):
+        kwargs = dict(
+            password=user_data.password, kelvin_password_hashes=user_data.kelvin_password_hashes
+        )
+    else:
+        kwargs = user_data.model_dump()
     with pytest.raises(ValueError):
-        if issubclass(model, UserPatchModel):
-            model(password=user_data.password, kelvin_password_hashes=user_data.kelvin_password_hashes)
-        else:
-            model(**user_data.dict())
+        model(**kwargs)
 
 
 @pytest.mark.asyncio
 async def test_krb_5_keys_are_base64_binaries(password_hash):
     password_new, password_new_hashes = await password_hash()
-    assert PasswordsHashes(**password_new_hashes.dict())
+    assert PasswordsHashes(**password_new_hashes.model_dump())
 
     password_new_hashes.krb_5_key.append("bar")
+    hashes: dict[str, Any] = password_new_hashes.model_dump()
     with pytest.raises(ValueError) as exc_info:
-        _ = PasswordsHashes(**password_new_hashes.dict())
+        PasswordsHashes(**hashes)
     assert "krb_5_key" in str(exc_info.value)
     assert "must be base64 encoded" in str(exc_info.value)
 
@@ -2696,7 +2708,7 @@ async def test_create_with_multiple_schools(
         lib_users = await User.get_all(udm, school1, f"username={r_user.name}")
     assert len(lib_users) == 0
 
-    data = r_user.dict(
+    data = r_user.model_dump(
         exclude={
             "birthday",
             "disabled",
@@ -2791,7 +2803,7 @@ async def test_school_move_primary_follows_dn(
             json=dict(school=f"{url_fragment}/schools/{ou2_name}", schools=school_urls),
         )
     else:
-        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
+        old_data = user.model_dump(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(
             school=f"{url_fragment}/schools/{ou2_name}", schools=school_urls, **old_data
         )
@@ -2799,7 +2811,7 @@ async def test_school_move_primary_follows_dn(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     assert response.status_code == 200, response.reason
     # A school move rewrites the DN and the user's (primary) group memberships,
@@ -2895,7 +2907,7 @@ async def test_add_additional_schools(
             exclude = {"school", "schools", "school_classes", "password"}
             if method == "putwithschool":
                 exclude.remove("school")
-            old_data = user.dict(exclude=exclude)
+            old_data = user.model_dump(exclude=exclude)
             modified_user = UserCreateModel(
                 schools=[f"{url_fragment}/schools/{school}" for school in new_schools],
                 school_classes=new_school_classes,
@@ -2905,7 +2917,7 @@ async def test_add_additional_schools(
                 requests.put,
                 f"{url_fragment}/users/{user.name}",
                 headers=auth_header,
-                data=modified_user.json(exclude={"school"}),
+                data=model_json(modified_user, exclude={"school"}),
             )
         json_response = response.json()
         logger.debug("RESPONSE")
@@ -3017,7 +3029,7 @@ async def test_set_school_with_multiple_schools(
             json=patch_data,
         )
     elif method == "put":
-        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
+        old_data = user.model_dump(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(
             school=f"{url_fragment}/schools/{school2}", school_classes=new_school_classes, **old_data
         )
@@ -3025,7 +3037,7 @@ async def test_set_school_with_multiple_schools(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     json_response = response.json()
     assert response.status_code == 200, response.reason
@@ -3140,13 +3152,13 @@ async def test_change_school_with_multiple_schools(
             json=patch_data,
         )
     elif method == "put":
-        old_data = user.dict(exclude={"school"})
+        old_data = user.model_dump(exclude={"school"})
         modified_user = UserCreateModel(school=f"{url_fragment}/schools/{school2}", **old_data)
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     else:
         raise RuntimeError(f"method {method} not supported")
@@ -3270,7 +3282,7 @@ async def test_change_school_and_schools(
             json=patch_data,
         )
     elif method == "put":
-        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
+        old_data = user.model_dump(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(
             schools=[f"{url_fragment}/schools/{school2}", f"{url_fragment}/schools/{school3}"],
             school_classes=new_school_classes,
@@ -3280,7 +3292,7 @@ async def test_change_school_and_schools(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(exclude={"school"}),
+            data=model_json(modified_user, exclude={"school"}),
         )
     else:
         raise RuntimeError(f"method {method} not supported")
@@ -3399,7 +3411,7 @@ async def test_change_schools_and_classes(
             json=patch_data,
         )
     elif method == "put":
-        old_data = user.dict(exclude={"school", "schools", "school_classes", "workgroups"})
+        old_data = user.model_dump(exclude={"school", "schools", "school_classes", "workgroups"})
         modified_user = UserCreateModel(
             schools=[f"{url_fragment}/schools/{school1}", f"{url_fragment}/schools/{school3}"],
             school_classes=new_school_classes,
@@ -3409,7 +3421,7 @@ async def test_change_schools_and_classes(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(exclude={"school"}),
+            data=model_json(modified_user, exclude={"school"}),
         )
     json_response = response.json()
     expected_school = school1
@@ -3478,7 +3490,7 @@ async def test_create_with_non_existing_workgroup_raises(
     phone = [random_name(), random_name()]
     r_user.udm_properties["phone"] = phone
     r_user.workgroups = {school: ["thiswgdoesnotexist"]}
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
@@ -3529,12 +3541,12 @@ async def test_modify_with_non_existing_workgroup(
         school=old_user_data["school"],
         schools=old_user_data["schools"],
     )
-    new_user_data = user_create_model.dict(exclude={"name", "record_uid", "source_uid"})
+    new_user_data = user_create_model.model_dump(exclude={"name", "record_uid", "source_uid"})
     title = random_name()
     new_user_data["udm_properties"] = {"title": title}
     modified_user = UserCreateModel(**{**old_user_data, **new_user_data})
     modified_user.workgroups = {school: ["thiswgdoesnotexist"]}
-    logger.debug(f"{method.upper()} modified_user=%r.", modified_user.dict())
+    logger.debug(f"{method.upper()} modified_user=%r.", modified_user.model_dump())
     if method == "patch":
         response = retry_http_502(
             requests.patch,
@@ -3547,7 +3559,7 @@ async def test_modify_with_non_existing_workgroup(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     assert response.status_code == 400, response.reason
     # check that the user's work groups did not change
@@ -3581,7 +3593,7 @@ async def test_create_with_non_existing_school_in_workgroup_raises(
     phone = [random_name(), random_name()]
     r_user.udm_properties["phone"] = phone
     r_user.workgroups = {school: [wg_attr["name"]], "thisschooldoesnotexist": []}
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
@@ -3622,7 +3634,7 @@ async def test_create_with_windows_reserved_name_raises(
     wg_dn, wg_attr = await new_workgroup_using_lib(school)
     r_user = await random_user_create_model(school, roles=[f"{url_fragment}/roles/student"])
     r_user.name = "com1"
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
@@ -3675,15 +3687,15 @@ async def test_complete_update_does_not_change_workgroups_if_not_passed(
         school=old_user_data["school"],
         schools=old_user_data["schools"],
     )
-    new_user_data = user_create_model.dict(exclude={"name", "record_uid", "source_uid"})
+    new_user_data = user_create_model.model_dump(exclude={"name", "record_uid", "source_uid"})
     modified_user = UserCreateModel(**{**old_user_data, **new_user_data})
     del modified_user.workgroups
-    logger.debug("PUT modified_user=%r.", modified_user.dict())
+    logger.debug("PUT modified_user=%r.", modified_user.model_dump())
     response = retry_http_502(
         requests.put,
         f"{url_fragment}/users/{user.name}",
         headers=auth_header,
-        data=modified_user.json(),
+        data=model_json(modified_user),
     )
     assert response.status_code == 200, response.reason
     # check that the user's work groups did not change
@@ -3730,7 +3742,7 @@ async def test_create_custom_ucsschool_roles(
     r_user = await random_user_create_model(school, roles=roles, ucsschool_roles=ucsschool_roles)
     if not with_schools:
         r_user.schools = []
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     schedule_delete_user_name_using_udm(r_user.name)
     response = retry_http_502(
@@ -3757,7 +3769,7 @@ async def test_create_invalid_custom_ucsschool_roles(
     roles = [f"{url_fragment}/roles/student"]
 
     for ucsschool_role in ["test_1mycon:where", "test_2:foobar", "foo", ""]:
-        with pytest.raises(error_wrappers.ValidationError):
+        with pytest.raises(ValidationError):
             await random_user_create_model(school, roles=roles, ucsschool_roles=[ucsschool_role])
 
 
@@ -3803,7 +3815,7 @@ async def test_modify_custom_ucsschool_roles(
             requests.put,
             f"{url_fragment_https}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     else:
         patch_data = {"ucsschool_roles": [f"foo:bar:{school}", "test_1:mycon:where"]}
@@ -3899,7 +3911,7 @@ async def test_modify_custom_ucsschool_roles_with_role_change(
             requests.put,
             f"{url_fragment_https}/users/{user.name}",
             headers=auth_header,
-            data=modified_user.json(),
+            data=model_json(modified_user),
         )
     else:
         patch_data = {
@@ -3949,13 +3961,13 @@ async def test_udm_error_forwarding_on_modify(
         )
     else:
         create_model_kwargs = import_user_to_create_model_kwargs(user)
-        create_model = UserCreateModel.parse_obj(create_model_kwargs)
+        create_model = UserCreateModel.model_validate(create_model_kwargs)
         create_model.password = create_model.password.get_secret_value()
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
             headers=auth_header,
-            data=create_model.json(),
+            data=model_json(create_model),
         )
 
     expected_return_value = {
@@ -3998,7 +4010,7 @@ async def test_udm_error_forwarding_on_create(
         requests.post,
         f"{url_fragment}/users/",
         headers={"Content-Type": "application/json", **auth_header},
-        json=json.loads(r_user.json()),
+        json=json.loads(model_json(r_user)),
     )
 
     assert response.json() == {
@@ -4062,6 +4074,6 @@ async def test_fqdn_is_case_insensitive(
         requests.post,
         f"{url_fragment_scrambled_hostname}/users/",
         headers={"Content-Type": "application/json", **auth_header},
-        data=r_user.json(),
+        data=model_json(r_user),
     )
     assert response.status_code == 201, response.reason

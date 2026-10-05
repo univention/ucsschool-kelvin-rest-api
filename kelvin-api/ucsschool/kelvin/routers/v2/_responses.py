@@ -6,13 +6,14 @@
 from collections.abc import Sequence
 from typing import Generic, TypeVar
 
-from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
+
+from ...responses import ORJSONResponse
 
 TModel = TypeVar("TModel", bound=BaseModel)
 
 
-class ModelListResponse(ORJSONResponse, Generic[TModel]):
+class ModelListResponse(Generic[TModel], ORJSONResponse):
     """Serialise a collection response without FastAPI's generic encoder.
 
     Returning a ``Response`` short-circuits ``serialize_response``, which
@@ -30,4 +31,4 @@ class ModelListResponse(ORJSONResponse, Generic[TModel]):
     """
 
     def __init__(self, models: Sequence[TModel]) -> None:
-        super().__init__([model.dict(by_alias=True) for model in models])
+        super().__init__([model.model_dump(by_alias=True) for model in models])

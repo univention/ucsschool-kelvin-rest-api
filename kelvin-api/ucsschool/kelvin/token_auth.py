@@ -27,10 +27,6 @@ class Token(KelvinBaseModel):
     token_type: str
 
 
-class TokenData(KelvinBaseModel):
-    username: str = None
-
-
 async def get_secret_key() -> str:
     global _secret_key
 
@@ -88,10 +84,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> LdapUser:
         username = sub.get("username", "")
         if not username:
             raise credentials_exception
-        token_data = TokenData(username=username)
     except PyJWTError as exc:
         raise credentials_exception from exc
-    user = get_user(username=token_data.username, school_only=False)
+    user = get_user(username=username, school_only=False)
     if user is None:
         raise credentials_exception
     user.kelvin_admin = sub.get("kelvin_admin", False)

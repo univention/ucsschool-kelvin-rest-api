@@ -2,10 +2,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Self
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from pydantic import Field, HttpUrl, root_validator, validator
+from pydantic import Field, field_validator, model_validator
+from pydantic.json_schema import SkipJsonSchema
+from typing_extensions import override
 
 from ucsschool.lib.models.attributes import ValidationError as LibValidationError
 from ucsschool.lib.models.base import UDMPropertiesError
@@ -15,7 +17,7 @@ from udm_rest_client import UDM, CreateError, ModifyError
 
 from ...config import UDM_MAPPING_CONFIG
 from ...ldap import LdapUser
-from ...schema import KelvinBaseModel
+from ...schema import HttpUrl, KelvinBaseModel
 from ...token_auth import get_kelvin_admin, get_kelvin_reader
 from ...urls import cached_url_for, url_to_dn, url_to_name
 from .base import (
@@ -31,36 +33,30 @@ from .school import search_schools_in_ldap
 router = APIRouter()
 
 
-def check_name(value: str) -> str:
-    """
-    The SchoolClass.name is checked in check_name2.
-    This function is reused as a pass-through validator,
-    root_validator can't be reused this way.
-    """
-    return value
-
-
 class SchoolClassCreateModel(UcsSchoolBaseModel):
-    description: str = None
-    users: List[HttpUrl] = None
+    description: str | None = None
+    users: List[HttpUrl] | None = None
     create_share: bool = True
 
-    class Config(UcsSchoolBaseModel.Config):
-        lib_class = SchoolClass
-        config_id = "school_class"
+    lib_class = SchoolClass
+    config_id = "school_class"
 
-    _validate_name = validator("name", allow_reuse=True)(check_name)
+    @field_validator("name")
+    @classmethod
+    @override
+    def check_name(cls, value: str) -> str:
+        """Replaces the inherited check: `check_name2()` checks the name with its school prefix."""
+        return value
 
-    @root_validator(skip_on_failure=True)
-    def check_name2(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode="after")
+    def check_name2(self) -> Self:
         """
         Validate 'OU-name' to prevent 'must be at least 2 characters long'
         error when checking a class name with just one char.
         """
-        school = values["school"].split("/")[-1]
-        class_name = f"{school}-{values['name']}"
-        cls.Config.lib_class.name.validate(class_name)
-        return values
+        school = self.school.split("/")[-1]
+        self.lib_class.name.validate(f"{school}-{self.name}")
+        return self
 
     @classmethod
     async def _from_lib_model_kwargs(
@@ -91,17 +87,16 @@ class SchoolClassModel(SchoolClassCreateModel, APIAttributesMixin):
 
 
 class SchoolClassPatchDocument(KelvinBaseModel):
-    name: str = None
-    description: str = None
-    ucsschool_roles: List[str] = Field(None, title="Roles of this object. Don't change if unsure.")
-    users: List[HttpUrl] = None
-    udm_properties: Dict[str, Any] = None
+    name: str | SkipJsonSchema[None] = None
+    description: str | None = None
+    ucsschool_roles: List[str] | None = Field(
+        None, title="Roles of this object. Don't change if unsure."
+    )
+    users: List[HttpUrl] | SkipJsonSchema[None] = None
+    udm_properties: Dict[str, Any] | None = None
 
-    class Config(UcsSchoolBaseModel.Config):
-        lib_class = SchoolClass
-        non_nullable_fields: tuple[str, ...] = ("name", "users")
-
-    @validator("name")
+    @field_validator("name")
+    @classmethod
     def check_name(cls, value: str | None) -> str:
         """
         At this point we know `school` is valid, but
@@ -111,18 +106,19 @@ class SchoolClassPatchDocument(KelvinBaseModel):
         if value is None:
             raise ValueError("Null value in property.")
         class_name = f"DEMOSCHOOL-{value}"
-        cls.Config.lib_class.name.validate(class_name)
+        SchoolClass.name.validate(class_name)
         return value
 
-    @validator("udm_properties")
+    @field_validator("udm_properties")
+    @classmethod
     def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
         configured_properties = set(UDM_MAPPING_CONFIG.school_class or [])
         return only_known_udm_properties(
-            udm_properties, configured_properties, SchoolClassCreateModel.Config.config_id
+            udm_properties, configured_properties, SchoolClassCreateModel.config_id
         )
 
     async def to_modify_kwargs(self, school, request: Request) -> Dict[str, Any]:
-        res = self.dict(exclude_unset=True)
+        res = self.model_dump(exclude_unset=True)
         if "name" in res:
             res["name"] = f"{school}-{self.name}"
 

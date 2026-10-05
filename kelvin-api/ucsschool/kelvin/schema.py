@@ -1,50 +1,39 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-"""OpenAPI schema helpers for the Kelvin API models."""
+"""Shared types for the Kelvin API models."""
 
-from typing import cast
+from typing import Annotated, ClassVar
 
-from pydantic import BaseModel
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    HttpUrl as _PydanticHttpUrl,
+    TypeAdapter,
+    WithJsonSchema,
+)
 
-JsonSchema = dict[str, object]
+_http_url_adapter: TypeAdapter[_PydanticHttpUrl] = TypeAdapter(_PydanticHttpUrl)
 
 
-def mark_nullable_properties(schema: JsonSchema, model: type[BaseModel]) -> None:
-    """
-    Add ``nullable: true`` to every property of `schema` whose field accepts ``None``.
+def _validate_http_url(value: str) -> str:
+    if value != value.strip():
+        raise ValueError("URL must not start or end with whitespace.")
+    _ = _http_url_adapter.validate_python(value)
+    return value
 
-    pydantic 1.x knows which fields accept ``None`` (``ModelField.allow_none``) but does
-    not put that information into the generated JSON schema. Without this, a response
-    containing ``"birthday": null`` contradicts a schema that declares ``birthday`` to be
-    a date string.
 
-    Fields listed in the model's ``Config.non_nullable_fields`` are skipped. Use it for
-    fields that pydantic considers nullable only because they default to ``None``, while
-    an explicitly passed ``None`` is not a supported value: either a validator rejects
-    it, or it is a deprecated spelling that the endpoint ignores.
-    """
-    properties = cast(JsonSchema, schema.get("properties", {}))
-    non_nullable: tuple[str, ...] = getattr(model.__config__, "non_nullable_fields", ())
-    for field in model.__fields__.values():
-        if not field.allow_none or field.name in non_nullable:
-            continue
-        prop = cast("JsonSchema | None", properties.get(field.alias))
-        if prop is None:
-            continue
-        if "$ref" in prop:
-            # OpenAPI 3.0 ignores any keyword next to '$ref', so the reference has to
-            # be wrapped before 'nullable' can be attached to it.
-            prop["allOf"] = [{"$ref": prop.pop("$ref")}]
-        prop["nullable"] = True
+# pydantic 2's HttpUrl is no str and normalizes the URL; the routers work on the string as sent.
+HttpUrl = Annotated[
+    str,
+    AfterValidator(_validate_http_url),
+    WithJsonSchema(_http_url_adapter.json_schema()),
+]
 
 
 class KelvinBaseModel(BaseModel):
     """Base class of all models that appear in the Kelvin API's OpenAPI document."""
 
-    class Config:
-        non_nullable_fields: tuple[str, ...] = ()
-
-        @staticmethod
-        def schema_extra(schema: JsonSchema, model: type[BaseModel]) -> None:
-            mark_nullable_properties(schema, model)
+    # pydantic 1 accepted numbers for string fields; clients send numeric IDs such as record_uid.
+    model_config: ClassVar[ConfigDict] = ConfigDict(coerce_numbers_to_str=True)

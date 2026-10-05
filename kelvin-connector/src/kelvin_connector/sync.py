@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import json
 import re
 from typing import cast, final
 from uuid import UUID
@@ -105,7 +104,7 @@ def _udm_properties(properties: BaseModel) -> dict[str, object]:
     mapped properties: the API filters at read time, so changing the
     mapped-properties configuration does not require a resync.
     """
-    serialized = cast("dict[str, object]", json.loads(properties.json()))
+    serialized: dict[str, object] = properties.model_dump(mode="json")
     return {key: value for key, value in serialized.items() if key not in _UDM_PROPERTIES_DENYLIST}
 
 

@@ -54,12 +54,12 @@ and :numref:`errors-as-a-user-example-2-listing`.
    {
      "detail": [
        {
+         "type": "missing",
          "loc": [
            "body",
            "firstname"
          ],
-         "msg": "field required",
-         "type": "value_error.missing"
+         "msg": "Field required"
        }
      ]
    }

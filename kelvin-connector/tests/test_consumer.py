@@ -423,7 +423,7 @@ async def test_handle_remove_host_group(handler, sync_manager):
 
 def _validation_error() -> ValidationError:
     try:
-        UserProperties.parse_obj({"univentionObjectIdentifier": "not-a-uuid"})
+        UserProperties.model_validate({"univentionObjectIdentifier": "not-a-uuid"})
     except ValidationError as exc:
         return exc
     raise AssertionError("expected a ValidationError")

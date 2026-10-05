@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import date
-from typing import Iterable
+from typing import Annotated, Iterable
 
 from loguru import logger
-from pydantic import UUID4, BaseModel, Extra, Field, validator
+from pydantic import UUID4, BaseModel, BeforeValidator, ConfigDict, Field, field_validator
 
 # ── Per-type properties models ────────────────────────────────────────────────
 
@@ -35,7 +35,7 @@ def _parse_ucsschool_roles(values: Iterable[str | UcsschoolRole]) -> list[str]:
 
     one garbage entry must not make an otherwise valid user or group invisible
     to the cache. An object with no parseable role at all still fails
-    validation through min_items.
+    validation through min_length.
     """
     roles = []
     for item in values:
@@ -55,7 +55,7 @@ def _parse_guardian_role_item(v):
 
 class UserProperties(BaseModel):
     univentionObjectIdentifier: UUID4
-    ucsschoolRole: list[UcsschoolRole] = Field(..., min_items=1)
+    ucsschoolRole: list[UcsschoolRole] = Field(..., min_length=1)
     username: str
     school: list[str]
     groups: list[str]
@@ -64,44 +64,37 @@ class UserProperties(BaseModel):
     disabled: bool
     firstname: str
     lastname: str
-    ucsschoolRecordUID: str | None
-    ucsschoolSourceUID: str | None
-    mailPrimaryAddress: str | None
-    birthday: date | None
-    userexpiry: date | None
+    ucsschoolRecordUID: str | None = None
+    ucsschoolSourceUID: str | None = None
+    mailPrimaryAddress: str | None = None
+    birthday: date | None = None
+    userexpiry: date | None = None
 
-    @validator("ucsschoolRole", pre=True)
+    @field_validator("ucsschoolRole", mode="before")
     @classmethod
     def parse_ucsschool_roles(cls, v):
         return _parse_ucsschool_roles(v)
 
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class GroupProperties(BaseModel):
     univentionObjectIdentifier: UUID4
-    ucsschoolRole: list[UcsschoolRole] = Field(..., min_items=1)
+    ucsschoolRole: list[UcsschoolRole] = Field(..., min_length=1)
     name: str
     allowedEmailUsers: list[str]
     allowedEmailGroups: list[str]
     users: list[str]
-    mailAddress: str | None
+    mailAddress: str | None = None
     description: str | None = None
-    guardianMemberRoles: list[GuardianRole]
+    guardianMemberRoles: list[Annotated[GuardianRole, BeforeValidator(_parse_guardian_role_item)]]
 
-    @validator("ucsschoolRole", pre=True)
+    @field_validator("ucsschoolRole", mode="before")
     @classmethod
     def parse_ucsschool_roles(cls, v):
         return _parse_ucsschool_roles(v)
 
-    @validator("guardianMemberRoles", pre=True, each_item=True)
-    @classmethod
-    def parse_guardian_roles(cls, v):
-        return _parse_guardian_role_item(v)
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class SchoolProperties(BaseModel):
@@ -110,9 +103,7 @@ class SchoolProperties(BaseModel):
     displayName: str
     ucsschoolClassShareFileServer: str | None = None
     ucsschoolHomeShareFileServer: str | None = None
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 # ── Payload models (dn + typed properties) ───────────────────────────────────
@@ -123,9 +114,7 @@ class EventPayload(BaseModel):
     id: str
     position: str
     object_type: str = Field(..., alias="objectType")
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class UserPayload(EventPayload):
@@ -152,9 +141,7 @@ class DeletedObjectProperties(BaseModel):
     univentionObjectIdentifier: UUID4
     username: str = ""
     name: str = ""
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class DeletePayload(EventPayload):
@@ -207,12 +194,10 @@ class SchoolDeleteEvent(EventBase):
 
 class HostGroupProperties(BaseModel):
     univentionObjectIdentifier: UUID4
-    description: str | None
+    description: str | None = None
     name: str
     hosts: list[str]
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class HostGroupPayload(EventPayload):

@@ -8,6 +8,30 @@
 Changelog
 =========
 
+v4.2.0 (TBD)
+------------
+.. important::
+
+   This release changes the OpenAPI documents and the body of responses with status code ``422``.
+   Clients generated from the OpenAPI documents or evaluating validation errors may have to be adapted.
+   Python hooks that use Pydantic, ``uldap3``, or ``httpx`` directly may have to be adapted, too.
+
+* Changed: The Kelvin REST API uses Pydantic 2 and a current FastAPI instead of Pydantic 1 and FastAPI 0.97.
+* Changed: Python hooks run with Pydantic 2, FastAPI 0.142, ``httpx`` 0.28, and ``uldap3`` 2.0.
+  Hooks that use Pydantic 1 directly, the Kelvin REST API's models, ``uldap3.LdapConfig``,
+  or ``httpx`` have to be adapted.
+  Pydantic 1 code keeps working with ``import pydantic.v1 as pydantic``.
+* Changed: The OpenAPI documents follow OpenAPI 3.1 instead of 3.0.
+  A property that accepts ``null`` is documented as ``anyOf`` with ``{"type": "null"}`` instead of with ``nullable: true``.
+* Changed: A response with status code ``422`` still reports each validation error with the keys ``type``, ``loc``, and ``msg``,
+  but their values have changed, for example ``"type": "missing"`` and ``"msg": "Field required"``
+  instead of ``"type": "value_error.missing"`` and ``"msg": "field required"``.
+  Messages of the Kelvin REST API's checks start with ``Value error,``.
+* Changed: The validation of requests is stricter.
+  A boolean is no longer accepted for a string property, for example ``"record_uid": true``,
+  and an empty string or list is no longer accepted for ``udm_properties``, ``school_classes``, or ``workgroups``.
+  These requests are answered with status code ``422``.
+
 v4.1.0 (2026-10-01)
 -------------------
 .. important::

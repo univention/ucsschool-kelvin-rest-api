@@ -3,6 +3,7 @@
 
 import pytest
 import requests
+from conftest import model_json
 
 pytestmark = pytest.mark.in_container
 
@@ -43,6 +44,6 @@ async def test_url_caching(
             requests.post,
             f"{url}/users/",
             headers={"Content-Type": "application/json", **auth_header},
-            data=r_user.json(),
+            data=model_json(r_user),
         )
         assert response.status_code == 201, response.reason

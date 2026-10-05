@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: 2020-2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from typing import Any, Union
+from typing import Any
 
 from cachetools import LRUCache, cached
 from cachetools.keys import hashkey
 from fastapi import Request
-from pydantic import HttpUrl
 from starlette.datastructures import URL
 from starlette.routing import NoMatchFound, Router
 
@@ -29,10 +28,12 @@ def _matching_path_segments(path_a: str, path_b: str) -> int:
 
 
 def _request_route_signature(request: Request) -> str:
-    route = request.scope.get("route")
-    if route is not None and getattr(route, "path_format", None):
-        return route.path_format
-    return request.url.path
+    path_format = getattr(request.scope.get("route"), "path_format", None)
+    if not path_format:
+        return request.url.path
+    # FastAPI >= 0.142 reports only the route's own path, which v1 and v2 share; add the matched prefix.
+    prefix = request.url.path.split("/")[: -path_format.count("/")]
+    return "/".join(prefix) + path_format
 
 
 def _url_for_same_api_prefix(request: Request, name: str, **path_params: Any) -> URL:
@@ -79,7 +80,7 @@ def cached_url_for(request: Request, name: str, **path_params: Any) -> URL:
     cache=LRUCache(maxsize=10240),
     key=lambda request, obj_type, url: hashkey(obj_type, url),
 )
-def url_to_name(request: Request, obj_type: str, url: Union[str, HttpUrl]) -> str:
+def url_to_name(request: Request, obj_type: str, url: str) -> str:
     """
     Convert URL to object name.
 

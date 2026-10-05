@@ -6,7 +6,6 @@ from typing import List, Type
 from urllib.parse import ParseResult, urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
-from pydantic import HttpUrl
 
 from ucsschool.importer.factory import Factory
 from ucsschool.importer.models.import_user import ImportUser
@@ -24,7 +23,7 @@ from ucsschool.lib.roles import (
 
 from ...import_config import init_ucs_school_import_framework
 from ...ldap import LdapUser
-from ...schema import KelvinBaseModel
+from ...schema import HttpUrl, KelvinBaseModel
 from ...token_auth import get_kelvin_reader
 from ...urls import cached_url_for
 
@@ -93,7 +92,7 @@ class SchoolUserRole(str, Enum):
         url = cached_url_for(request, "get", role_name=self.value)
         up: ParseResult = urlparse(str(url))
         replaced = up._replace(scheme="https")
-        return HttpUrl(replaced.geturl(), scheme="https", host=up.netloc)
+        return replaced.geturl()
 
 
 class RoleModel(KelvinBaseModel):

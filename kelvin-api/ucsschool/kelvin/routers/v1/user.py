@@ -10,20 +10,14 @@ import time
 from collections.abc import Sequence
 from functools import lru_cache
 from operator import attrgetter
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Self, Set, Tuple, Type
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Request, Response, status
 from ldap import explode_dn
 from ldap.filter import escape_filter_chars
-from pydantic import (
-    Field,
-    HttpUrl,
-    SecretStr,
-    ValidationError,
-    conlist,
-    root_validator,
-    validator,
-)
+from pydantic import Field, SecretStr, ValidationError, field_validator, model_validator
+from pydantic.json_schema import SkipJsonSchema
+from typing_extensions import Annotated
 from uldap3.exceptions import ModifyError as UModifyError, NoObject as UNoObject
 
 from ucsschool.importer.default_user_import_factory import DefaultUserImportFactory
@@ -62,7 +56,7 @@ from univention.admin.filter import conjunction, expression
 from ...config import UDM_MAPPING_CONFIG
 from ...import_config import get_import_config, init_ucs_school_import_framework
 from ...ldap import LdapUser, get_dn_of_user
-from ...schema import KelvinBaseModel
+from ...schema import HttpUrl, KelvinBaseModel
 from ...token_auth import get_kelvin_admin, get_kelvin_reader
 from ...urls import cached_url_for, url_to_name
 from .base import (
@@ -107,7 +101,7 @@ async def get_import_user(udm: UDM, dn: str) -> ImportUser:
     return user
 
 
-def remove_url(request: Request, url: str | HttpUrl) -> str:
+def remove_url(request: Request, url: str) -> str:
     if "/" not in str(url):  # usernames must not contain '/'
         return url
     return url_to_name(request, "user", UserCreateModel.unscheme_and_unquote(url))
@@ -135,7 +129,8 @@ class PasswordsHashes(KelvinBaseModel):
         title="'sambaPwdLastSet' in OpenLDAP.",
     )
 
-    @validator("krb_5_key")
+    @field_validator("krb_5_key")
+    @classmethod
     def krb_5_keys_are_base64_binaries(cls, value: List[str]) -> List[str]:
         """Check if all strings in `krb_5_key` are base64 encoded."""
         try:
@@ -147,10 +142,10 @@ class PasswordsHashes(KelvinBaseModel):
 
     def dict_with_ldap_attr_names(self, *args, **kwargs) -> Dict[str, Any]:
         """
-        Wrapper around `dict()` that renames the keys to those used in a UCS'
+        Wrapper around `model_dump()` that renames the keys to those used in a UCS'
         OpenLDAP.
         """
-        res = self.dict(*args, **kwargs)
+        res = self.model_dump(*args, **kwargs)
         res["userPassword"] = res.pop("user_password")
         res["sambaNTPassword"] = res.pop("samba_nt_password")
         res["krb5Key"] = res.pop("krb_5_key")
@@ -171,14 +166,15 @@ class PasswordsHashes(KelvinBaseModel):
         self.krb_5_key = [base64.b64encode(v).decode("ascii") for v in value]
 
 
-def _validate_date_format(date: str) -> None:
+def _validate_date_format(date: str) -> datetime.date:
     """
     :param str date: Date string to validate.
+    :return: The parsed date.
     :raises ValueError: If the provided date is not in YYYY-MM-DD format.
     """
     try:
-        datetime.datetime.strptime(date, "%Y-%m-%d")
-    except ValueError:
+        return datetime.datetime.strptime(date, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
         raise ValueError("Incorrect date format, should be YYYY-MM-DD.")
 
 
@@ -208,77 +204,78 @@ def _is_school_role_string(role_string: str) -> bool:
 class UserBaseModel(UcsSchoolBaseModel):
     firstname: str
     lastname: str
-    birthday: datetime.date = None
+    birthday: datetime.date | None = None
     disabled: bool = False
-    email: str = None
-    expiration_date: datetime.date = None
-    record_uid: str = None
+    email: str | None = None
+    expiration_date: datetime.date | None = None
+    record_uid: str | None = None
     roles: List[HttpUrl]
     schools: List[HttpUrl]
     school_classes: Dict[str, List[str]] = {}
     workgroups: Dict[str, List[str]] = {}
-    source_uid: str = None
+    source_uid: str | None = None
     ucsschool_roles: List[str] = []
     legal_guardians: List[str] = []
     legal_wards: List[str] = []
 
-    @validator("birthday", pre=True)
+    @field_validator("birthday", mode="before")
+    @classmethod
     def validate_birthday(cls, v: Any) -> Any:
         if not v or isinstance(v, datetime.date):
             return v
-        _validate_date_format(v)
-        return v
+        return _validate_date_format(v)
 
-    @validator("expiration_date", pre=True)
+    @field_validator("expiration_date", mode="before")
+    @classmethod
     def validate_expiration_date(cls, v: Any) -> Any:
         """Validate expiration date format and range."""
         if not v or isinstance(v, datetime.date):
             return v
-        _validate_date_format(v)
+        date = _validate_date_format(v)
         _validate_date_range(v)
-        return v
+        return date
 
-    @validator("ucsschool_roles", pre=True)
+    @field_validator("ucsschool_roles", mode="before")
+    @classmethod
     def validate_ucsschool_roles(cls, value: List[str]) -> List[str]:
         try:
             for v in value:
                 get_role_info(v)
-        except InvalidUcsschoolRoleString as exc:
+        except (InvalidUcsschoolRoleString, TypeError, AttributeError) as exc:
             raise ValueError(exc)
         except UnknownRole:
             pass
         return value
 
-    class Config(UcsSchoolBaseModel.Config):
-        lib_class = ImportUser
-        config_id = "user"
+    lib_class = ImportUser
+    config_id = "user"
 
 
-def not_both_password_and_hashes(cls, values):
-    if values.get("password") and values.get("kelvin_password_hashes"):
+def not_both_password_and_hashes(
+    model: "UserCreateModel | UserPatchModel",
+) -> "UserCreateModel | UserPatchModel":
+    if model.password and model.kelvin_password_hashes:
         raise ValueError("Only one of 'password' and 'kelvin_password_hashes' must be set.")
-    return values
+    return model
 
 
 class UserCreateModel(UserBaseModel):
-    name: str = None
-    password: SecretStr = None
-    school: HttpUrl = None
+    name: str | None = None  # pyright: ignore[reportIncompatibleVariableOverride]
+    password: SecretStr | None = None
+    school: HttpUrl | None = None  # pyright: ignore[reportIncompatibleVariableOverride]
     schools: List[HttpUrl] = []
-    kelvin_password_hashes: PasswordsHashes = None
+    kelvin_password_hashes: PasswordsHashes | None = None
     ucsschool_roles: List[str] = []
     legal_wards: List[str] = []
     legal_guardians: List[str] = []
 
-    class Config(UserBaseModel.Config): ...
-
-    @root_validator
-    def not_no_school_and_schools(cls, values):
-        if not values.get("school") and not values.get("schools"):
+    @model_validator(mode="after")
+    def not_no_school_and_schools(self) -> Self:
+        if not self.school and not self.schools:
             raise ValueError("At least one of 'school' and 'schools' must be set.")
-        return values
+        return self
 
-    _not_both_password_and_hashes = root_validator(allow_reuse=True)(not_both_password_and_hashes)
+    _not_both_password_and_hashes = model_validator(mode="after")(not_both_password_and_hashes)
 
     def _as_lib_model_kwargs(self, request: Request) -> Dict[str, Any]:
         kwargs = super()._as_lib_model_kwargs(request)
@@ -326,8 +323,6 @@ class UserCreateModel(UserBaseModel):
 
 
 class UserModel(UserBaseModel, APIAttributesMixin):
-    class Config(UserBaseModel.Config): ...
-
     @classmethod
     def dn_to_url(cls, request: Request, dn: str) -> str:
         return cls.scheme_and_quote(
@@ -377,8 +372,8 @@ class UserModel(UserBaseModel, APIAttributesMixin):
         return kwargs
 
 
-#: These default to `None`, so pydantic considers them nullable, but `validate_null_values()`
-#: rejects an explicitly passed `null`. They must not be documented as nullable.
+#: `validate_null_values()` rejects an explicitly passed `null` for these; their `SkipJsonSchema[None]`
+#: keeps `null` out of the OpenAPI documents.
 NULL_REJECTING_USER_PATCH_FIELDS = (
     "school",
     "disabled",
@@ -392,66 +387,63 @@ NULL_REJECTING_USER_PATCH_FIELDS = (
 
 
 class UserPatchModel(KelvinBaseModel):
-    name: str = None
-    firstname: str = None
-    lastname: str = None
-    birthday: datetime.date = None
-    disabled: bool = None
-    email: str = None
-    expiration_date: datetime.date = None
-    password: SecretStr = None
-    record_uid: str = None
-    roles: conlist(HttpUrl, min_items=1) = None
-    school: HttpUrl = None
-    schools: conlist(HttpUrl, min_items=1) = None
-    school_classes: Dict[str, List[str]] = None
-    workgroups: Dict[str, List[str]] = None
-    source_uid: str = None
-    udm_properties: Dict[str, Any] = None
-    kelvin_password_hashes: PasswordsHashes = None
+    name: str | None = None
+    firstname: str | None = None
+    lastname: str | None = None
+    birthday: datetime.date | None = None
+    disabled: bool | SkipJsonSchema[None] = None
+    email: str | None = None
+    expiration_date: datetime.date | None = None
+    password: SecretStr | SkipJsonSchema[None] = None
+    record_uid: str | None = None
+    roles: Annotated[List[HttpUrl], Field(min_length=1)] | SkipJsonSchema[None] = None
+    school: HttpUrl | SkipJsonSchema[None] = None
+    schools: Annotated[List[HttpUrl], Field(min_length=1)] | SkipJsonSchema[None] = None
+    school_classes: Dict[str, List[str]] | SkipJsonSchema[None] = None
+    workgroups: Dict[str, List[str]] | SkipJsonSchema[None] = None
+    source_uid: str | None = None
+    udm_properties: Dict[str, Any] | SkipJsonSchema[None] = None
+    kelvin_password_hashes: PasswordsHashes | SkipJsonSchema[None] = None
     ucsschool_roles: List[str] = []
     legal_wards: List[str | HttpUrl] = []
     legal_guardians: List[str | HttpUrl] = []
 
-    class Config(KelvinBaseModel.Config):
-        # 'udm_properties' is rejected by 'only_known_udm_properties()' below.
-        non_nullable_fields: tuple[str, ...] = NULL_REJECTING_USER_PATCH_FIELDS + ("udm_properties",)
+    _not_both_password_and_hashes = model_validator(mode="after")(not_both_password_and_hashes)
 
-    _not_both_password_and_hashes = root_validator(allow_reuse=True)(not_both_password_and_hashes)
-
-    @validator("birthday", pre=True)
+    @field_validator("birthday", mode="before")
+    @classmethod
     def validate_birthday(cls, v: Any) -> Any:
         if not v or isinstance(v, datetime.date):
             return v
-        _validate_date_format(v)
-        return v
+        return _validate_date_format(v)
 
-    @validator("expiration_date", pre=True)
+    @field_validator("expiration_date", mode="before")
+    @classmethod
     def validate_expiration_date(cls, v: Any) -> Any:
         """Validate expiration date format and range"""
         if not v or isinstance(v, datetime.date):
             return v
-        _validate_date_format(v)
+        date = _validate_date_format(v)
         _validate_date_range(v)
-        return v
+        return date
 
-    @validator(*NULL_REJECTING_USER_PATCH_FIELDS)
+    @field_validator(*NULL_REJECTING_USER_PATCH_FIELDS)
+    @classmethod
     def validate_null_values(cls, v: Optional[Any]) -> Any:
         if v is None:
             raise ValueError("Null value in property.")
         return v
 
-    @validator("udm_properties")
+    @field_validator("udm_properties")
+    @classmethod
     def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
         if udm_properties is None:
             raise ValueError("Null value in property.")
         configured_properties = set(UDM_MAPPING_CONFIG.user or [])
-        return only_known_udm_properties(
-            udm_properties, configured_properties, UserBaseModel.Config.config_id
-        )
+        return only_known_udm_properties(udm_properties, configured_properties, UserBaseModel.config_id)
 
     async def to_modify_kwargs(self, request: Request) -> Dict[str, Any]:  # noqa: C901
-        kwargs = self.dict(exclude_unset=True)
+        kwargs = self.model_dump(exclude_unset=True)
         if "schools" in kwargs:
             kwargs["schools"] = [
                 url_to_name(request, "school", UserCreateModel.unscheme_and_unquote(school))
@@ -568,7 +560,7 @@ async def search(  # noqa: C901
     ucsschool_roles: List[str] = Query(None),
     email: str = Query(
         None,
-        regex="^.+@.+$",
+        pattern="^.+@.+$",
     ),
     record_uid: str = Query(None),
     source_uid: str = Query(None),
@@ -839,13 +831,13 @@ async def create(
         its advised to set both as best practice.
     """
     t0 = time.time()
-    request_user.Config.lib_class = SchoolUserRole.get_lib_class(
+    user_class = SchoolUserRole.get_lib_class(
         [
             SchoolUserRole(url_to_name(request, "role", UcsSchoolBaseModel.unscheme_and_unquote(role)))
             for role in request_user.roles
         ]
     )
-    user: ImportUser = request_user.as_lib_model(request)
+    user: ImportUser = request_user.as_lib_model(request, lib_class=user_class)
     await fix_case_of_ous(user)
     if await user.exists(udm):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="School user exists.")
@@ -1303,13 +1295,13 @@ async def complete_update(  # noqa: C901
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No object with name={username!r} found or not authorized.",
         )
-    user.Config.lib_class = SchoolUserRole.get_lib_class(
+    user_class = SchoolUserRole.get_lib_class(
         [
             SchoolUserRole(url_to_name(request, "role", UcsSchoolBaseModel.unscheme_and_unquote(role)))
             for role in user.roles
         ]
     )
-    user_request: ImportUser = user.as_lib_model(request)
+    user_request: ImportUser = user.as_lib_model(request, lib_class=user_class)
     user_current: ImportUser = await get_import_user(udm, udm_obj.dn)
 
     # Check that legal-guardian parameters are only used with the correct role
@@ -1351,7 +1343,7 @@ async def complete_update(  # noqa: C901
     # 4. modify
     changed = False
     # TODO: Should not access private interface:
-    for attr in list(user.Config.lib_class._attributes.keys()) + ["udm_properties"]:
+    for attr in list(user_class._attributes.keys()) + ["udm_properties"]:
         if attr == "kelvin_password_hashes":
             # handled below
             continue

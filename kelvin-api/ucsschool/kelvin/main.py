@@ -8,7 +8,6 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.openapi.docs import get_swagger_ui_oauth2_redirect_html
-from fastapi.responses import ORJSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 
@@ -20,6 +19,7 @@ from .constants import (
     URL_TOKEN_BASE,
 )
 from .ldap import check_auth_and_get_user
+from .responses import ORJSONResponse
 from .routers import v1, v2
 from .service.dependency import check_db_compatibility, check_health_db_compatibility
 from .service.exception_handler import add_exception_handlers
@@ -76,7 +76,7 @@ async def login_for_access_token(
             detail="Incorrect username or password",
         )
     access_token_expires = timedelta(minutes=get_token_ttl())
-    sub_data = user.dict(include={"username", "kelvin_admin", "kelvin_reader"})
+    sub_data = user.model_dump(include={"username", "kelvin_admin", "kelvin_reader"})
     sub_data["schools"] = user.attributes.get("ucsschoolSchool", [])
     sub_data["roles"] = user.attributes.get("ucsschoolRole", [])
     access_token = await create_access_token(data={"sub": sub_data}, expires_delta=access_token_expires)
@@ -149,6 +149,8 @@ v2_router.include_router(v1.doc.router)
 
 app.include_router(v1_router)
 app.include_router(v2_router)
+# FastAPI >= 0.142 no longer flattens included routers into app.routes; v1.doc needs them per version.
+app.state.versioned_routes = {URL_API_V1_PREFIX: v1_router.routes, URL_API_V2_PREFIX: v2_router.routes}
 app.include_router(v1.doc.service_router)
 app.mount(
     f"{URL_API_V1_PREFIX}/static",

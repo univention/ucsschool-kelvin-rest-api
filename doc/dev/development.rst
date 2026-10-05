@@ -200,9 +200,9 @@ Code style and static checks run through
 Types and models
 ^^^^^^^^^^^^^^^^^
 
-The HTTP layer uses **Pydantic v1** (``pydantic[dotenv,email]<2`` is pinned;
-models still use ``.dict()`` etc.). Don't upgrade to Pydantic v2 casually.
-The FastAPI version is likewise pinned (``>=0.95.2,<0.98.0``). ``ucsschool-objects``
+The HTTP layer uses **Pydantic v2** with ``pydantic-settings`` and a current FastAPI.
+URL fields use ``ucsschool.kelvin.schema.HttpUrl``, which validates like Pydantic's
+``HttpUrl`` but keeps the value as the ``str`` the client sent. ``ucsschool-objects``
 is fully typed and gated by ``mypy --strict``.
 
 Commit messages

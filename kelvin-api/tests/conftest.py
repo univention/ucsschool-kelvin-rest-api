@@ -27,7 +27,9 @@ import pytest
 import requests
 from constants import MAPPED_UDM_PROPERTIES
 from faker import Faker
+from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
+from pydantic import BaseModel
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
@@ -60,6 +62,11 @@ from univention.config_registry import ConfigRegistry
 # handle RuntimeError: Directory '/kelvin/kelvin-api/static' does not exist
 with patch("ucsschool.kelvin.constants.STATIC_FILES_PATH", "/tmp"):
     import ucsschool.kelvin.main
+
+
+def model_json(model: BaseModel, **kwargs: Any) -> str:
+    """The JSON a client sends for `model`; the test models hold plain-text passwords."""
+    return json.dumps(jsonable_encoder(model.model_dump(**kwargs)))
 
 
 @pytest.fixture
@@ -527,7 +534,7 @@ def random_user_create_model(
         )
         for key, value in kwargs.items():
             data[key] = value
-        res = UserCreateModel.parse_obj(data)
+        res = UserCreateModel.model_validate(data)
         res.password = res.password.get_secret_value()
         return res
 
@@ -562,14 +569,14 @@ def create_random_users(
                     requests.post,
                     f"{url_fragment}/users/",
                     headers={"Content-Type": "application/json", **auth_header},
-                    data=user_data.json(),
+                    data=model_json(user_data),
                 )
                 assert response.status_code == 201, f"{response.__dict__}"
                 logger.debug(
                     "Created user %r (%r) with %r.",
                     user_data.name,
                     user_data.roles,
-                    user_data.dict(),
+                    user_data.model_dump(),
                 )
                 users.append(user_data)
                 schedule_delete_user_name_using_udm(user_data.name)

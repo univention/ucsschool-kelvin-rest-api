@@ -18,7 +18,7 @@ from fastapi import (
     status,
 )
 from ldap.filter import escape_filter_chars, filter_format
-from pydantic import validator
+from pydantic import field_validator
 from uldap3.exceptions import NoObject
 
 from ucsschool.importer.models.import_user import ImportUser
@@ -57,25 +57,23 @@ def ou_cache_key(func, *args, **kwargs):
 class SchoolCreateModel(LibModelHelperMixin):
     # not subclassing 'UcsSchoolBaseModel' because that has a 'school' attribute
     name: str
-    display_name: str = None
+    display_name: str | None = None
     educational_servers: List[str] = []
     administrative_servers: List[str] = []
-    class_share_file_server: str = None
-    home_share_file_server: str = None
+    class_share_file_server: str | None = None
+    home_share_file_server: str | None = None
 
-    class Config(LibModelHelperMixin.Config):
-        lib_class = School
-        config_id = "school"
+    lib_class = School
+    config_id = "school"
 
-    @validator("name", check_fields=False)
+    @field_validator("name", check_fields=False)
+    @classmethod
     def check_name(cls, value: str) -> str:
-        cls.Config.lib_class.name.validate(value)
+        cls.lib_class.name.validate(value)
         return value
 
 
 class SchoolModel(SchoolCreateModel, APIAttributesMixin):
-    class Config(SchoolCreateModel.Config): ...
-
     @classmethod
     async def _from_lib_model_kwargs(cls, obj: School, request: Request, udm: UDM) -> Dict[str, Any]:
         kwargs = await super()._from_lib_model_kwargs(obj, request, udm)
@@ -315,7 +313,7 @@ async def school_create(
     try:
         await create_ou(**create_kwargs)
     except ValueError as exc:
-        error_msg = f"Failed to create school with parameters {school.dict()!r}: {exc}"
+        error_msg = f"Failed to create school with parameters {school.model_dump()!r}: {exc}"
         logger.exception(error_msg)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=error_msg)
     except Exception as exc:

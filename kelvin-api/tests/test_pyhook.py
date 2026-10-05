@@ -10,6 +10,7 @@ from typing import Any, Dict, List, NamedTuple, Type, Union
 
 import pytest
 import requests
+from conftest import model_json
 from faker import Faker
 
 import ucsschool.kelvin.constants
@@ -346,7 +347,7 @@ async def test_format_pyhook(
         roles=[f"{url_fragment}/roles/{role_}" for role_ in roles],
         lastname=lastname,
     )
-    data = r_user.json(exclude={"record_uid"})
+    data = model_json(r_user, exclude={"record_uid"})
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, ou, f"username={r_user.name}")
@@ -388,7 +389,7 @@ async def test_user_import_pyhook(
         ou, roles=[f"{url_fragment}/roles/{role_}" for role_ in roles]
     )
     schedule_delete_file(Path("/tmp", r_user.name))
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, ou, f"username={r_user.name}")
@@ -452,7 +453,7 @@ async def test_user_ucsschool_lib_pyhook(
         ou, roles=[f"{url_fragment}/roles/{role_}" for role_ in roles]
     )
     schedule_delete_file(Path("/tmp", r_user.name))
-    data = r_user.json()
+    data = model_json(r_user)
     logger.debug("POST data=%r", data)
     schedule_delete_user_name_using_udm(r_user.name)
     response = retry_http_502(

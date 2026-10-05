@@ -17,9 +17,9 @@ dependencies = [
     "async-property>=0.2.2",
     "cachetools>=6.1.0",
     "diskcache>=5.6.3",
-    "fastapi>=0.95.2,<0.98.0",
+    "fastapi>=0.142.2",
     "gunicorn>=23.0.0",
-    "httpx<0.28.0",
+    "httpx>=0.28.1",
     "kelvin-connector",
     "lazy-object-proxy>=1.11.0",
     "openapi-client-udm",
@@ -29,14 +29,14 @@ dependencies = [
     "psycopg[binary]>=3.3.3",
     "pyasn1>=0.6.1",
     "pyasn1-modules>=0.4.2",
-    "pydantic[dotenv,email]<2",
+    "pydantic[email]>=2.12",
+    "pydantic-settings>=2.12",
     "pyjwt<2.10",
     "python-multipart>=0.0.20",
-    "timing-asgi>=0.3.1",
     "ucs-school-import",
     "ucs-school-lib",
     "ucsschool-objects",
-    "uldap3",
+    "uldap3>=2",
     "univention-configuration-registry",
     "univention-debhelper",
     "univention-directory-manager-modules",
@@ -70,7 +70,7 @@ members = [
 ]
 
 [tool.uv.sources]
-uldap3 = { git = "https://git.knut.univention.de/univention/dev/libraries/uldap3.git" }
+uldap3 = { index = "uldap3" }
 univention-directory-manager-modules = { workspace = true }
 ucs-school-lib = { workspace = true }
 ucs-school-import = { workspace = true }
@@ -90,6 +90,11 @@ name = "knut"
 url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/simple"
 explicit = true
 
+[[tool.uv.index]]
+name = "uldap3"
+url = "https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple"
+explicit = true
+
 [dependency-groups]
 dev = [
     "coverage>=7.16.2",
@@ -99,6 +104,8 @@ dev = [
     "pytest-cov~=7.1.0",
     "pytest-asyncio~=1.4.0",
     "pytest-mock",
+    # Starlette 1.x types TestClient against httpx2 and deprecates httpx for it.
+    "httpx2",
     "pyfakefs~=6.2.0",
     "tenacity>=9.1.2",
     "eralchemy[graphviz]>=1.6.0",

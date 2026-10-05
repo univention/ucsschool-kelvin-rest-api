@@ -4,25 +4,21 @@
 import logging
 import re
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Self, Type
+from typing import Any, ClassVar, Dict, Iterable, List, Optional, Self, Type
 from urllib.parse import ParseResult, quote, unquote, urlparse
 
-import orjson
 import psutil
 from fastapi import HTTPException, Request, status
-from pydantic import HttpUrl, validator
+from pydantic import field_validator, model_validator
 
-from ucsschool.lib.models.base import NoObject, UCSSchoolModel
+from ucsschool.lib.models.base import NoObject, UCSSchoolHelperAbstractClass, UCSSchoolModel
 from udm_rest_client import UDM, UdmObject
 
 from ...config import UDM_MAPPING_CONFIG
 from ...exceptions import UnknownUDMProperty
 from ...ldap import udm_kwargs
-from ...schema import KelvinBaseModel
+from ...schema import HttpUrl, KelvinBaseModel
 from ...urls import cached_url_for, url_to_name
-
-if TYPE_CHECKING:  # pragma: no cover
-    from pydantic.main import Model
 
 school_name_regex = re.compile("^[a-zA-Z0-9](([a-zA-Z0-9-_]*)([a-zA-Z0-9]$))?$")
 
@@ -73,12 +69,10 @@ async def get_lib_obj(
 
 
 class LibModelHelperMixin(KelvinBaseModel):
-    udm_properties: Dict[str, Any] = None
+    udm_properties: Dict[str, Any] | None = None
 
-    class Config(KelvinBaseModel.Config):
-        lib_class: Type[UCSSchoolModel]
-        config_id: str = "LibModelHelperMixin"
-        json_loads = orjson.loads
+    lib_class: ClassVar[type[UCSSchoolHelperAbstractClass]]
+    config_id: ClassVar[str] = "LibModelHelperMixin"
 
     @staticmethod
     @lru_cache(maxsize=10240)
@@ -99,22 +93,23 @@ class LibModelHelperMixin(KelvinBaseModel):
         replaced = up._replace(scheme="http", path=unquote(up.path))
         return replaced.geturl()
 
-    @validator("udm_properties")
-    def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
-        configured_properties = set(getattr(UDM_MAPPING_CONFIG, cls.Config.config_id) or [])
-        return only_known_udm_properties(udm_properties, configured_properties, cls.Config.config_id)
-
+    @field_validator("udm_properties")
     @classmethod
-    def parse_obj(cls: Type["Model"], obj: Any) -> "Model":
-        res: LibModelHelperMixin = super(LibModelHelperMixin, cls).parse_obj(obj)
-        if res.udm_properties is None:
-            res.udm_properties = {}
-        return res
+    def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
+        configured_properties = set(getattr(UDM_MAPPING_CONFIG, cls.config_id) or [])
+        return only_known_udm_properties(udm_properties, configured_properties, cls.config_id)
+
+    @model_validator(mode="after")
+    def default_udm_properties(self) -> Self:
+        # Bug #51766: setting udm_properties = {} in model leads to invalid java code.
+        if self.udm_properties is None:
+            self.udm_properties = {}
+        return self
 
     @classmethod
     def get_mapped_udm_properties(cls, udm_obj: UdmObject) -> Dict[str, Any]:
         udm_properties = {}
-        property_list = getattr(UDM_MAPPING_CONFIG, cls.Config.config_id, [])
+        property_list = getattr(UDM_MAPPING_CONFIG, cls.config_id, [])
         for prop in property_list:
             try:
                 udm_properties[prop] = udm_obj.props[prop]
@@ -124,7 +119,7 @@ class LibModelHelperMixin(KelvinBaseModel):
 
     @classmethod
     def filter_udm_properties(cls, udm_properties: Dict[str, Any]) -> Dict[str, Any]:
-        property_list = getattr(UDM_MAPPING_CONFIG, cls.Config.config_id, [])
+        property_list = getattr(UDM_MAPPING_CONFIG, cls.config_id, [])
         return {key: value for key, value in udm_properties.items() if key in property_list}
 
     @classmethod
@@ -158,19 +153,15 @@ class LibModelHelperMixin(KelvinBaseModel):
         kwargs["udm_properties"] = cls.get_mapped_udm_properties(udm_obj)
         return kwargs
 
-    def __init__(self, **kwargs):
-        super(LibModelHelperMixin, self).__init__(**kwargs)
-        # Bug #51766: setting udm_properties = {} in model
-        # leads to invalid java code.
-        if self.udm_properties is None:
-            self.udm_properties = {}
-
-    def as_lib_model(self, request: Request) -> UCSSchoolModel:
-        """Get the corresponding ucsschool.lib object to this Kelvin object."""
+    def as_lib_model(
+        self, request: Request, lib_class: type[UCSSchoolModel] | None = None
+    ) -> UCSSchoolModel:
+        """Get the corresponding ucsschool.lib object (of `lib_class`, default: the model's)."""
+        model_cls = lib_class or self.lib_class
         kwargs = self._as_lib_model_kwargs(request)
         udm_properties = kwargs.pop("udm_properties") if "udm_properties" in kwargs else {}
         filtered_udm_properties = self.filter_udm_properties(udm_properties)
-        lib_obj: UCSSchoolModel = self.Config.lib_class(**kwargs)
+        lib_obj: UCSSchoolModel = model_cls(**kwargs)
         lib_obj.udm_properties = filtered_udm_properties
         return lib_obj
 
@@ -182,7 +173,7 @@ class LibModelHelperMixin(KelvinBaseModel):
         kwargs = kelvin_object._as_lib_model_kwargs()
         lib_object = LibClass(**kwargs)
         """
-        kwargs = self.dict()
+        kwargs = self.model_dump()
         if "dn" in kwargs:
             del kwargs["dn"]
         if "url" in kwargs:
@@ -200,36 +191,36 @@ class UcsSchoolBaseModel(LibModelHelperMixin):
     name: str
     school: HttpUrl
 
-    class Config(LibModelHelperMixin.Config): ...
-
-    def as_lib_model(self, request: Request) -> UCSSchoolModel:
+    def as_lib_model(
+        self, request: Request, lib_class: type[UCSSchoolModel] | None = None
+    ) -> UCSSchoolModel:
+        model_cls = lib_class or self.lib_class
         kwargs = self._as_lib_model_kwargs(request)
         udm_properties = kwargs.pop("udm_properties") if "udm_properties" in kwargs else {}
         filtered_udm_properties = self.filter_udm_properties(udm_properties)
-        if self.Config.lib_class.supports_school():
+        if model_cls.supports_school():
             kwargs["school"] = (
                 url_to_name(request, "school", self.unscheme_and_unquote(self.school))
                 if self.school
                 else self.school
             )
-            lib_obj: UCSSchoolModel = self.Config.lib_class(**kwargs)
+            lib_obj: UCSSchoolModel = model_cls(**kwargs)
             lib_obj.udm_properties = filtered_udm_properties
             return lib_obj
 
-    @validator("name", check_fields=False)
+    @field_validator("name", check_fields=False)
+    @classmethod
     def check_name(cls, value: str) -> str:
-        cls.Config.lib_class.name.validate(value)
+        cls.lib_class.name.validate(value)
         return value
 
-    @validator("school", check_fields=False)
+    @field_validator("school", check_fields=False)
+    @classmethod
     def check_school_name(cls, value: str) -> str:
-        if cls.Config.lib_class.supports_school():
+        if cls.lib_class.supports_school():
             # ucsschool.lib.models.attributes.SchoolName.validate has a
             # conditional we can't fulfill, so this is a copy of that code
-            if isinstance(value, HttpUrl):
-                check_val = value.path.rsplit("/", 1)[-1]
-            else:
-                check_val = value
+            check_val = urlparse(value).path.rsplit("/", 1)[-1] if value is not None else ""
             if not school_name_regex.match(check_val):
                 raise ValueError(f"Invalid name for a school (OU): {value!r}")
         return value

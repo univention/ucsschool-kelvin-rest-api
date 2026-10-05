@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import aiofiles
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.routing import APIRoute
+from starlette.routing import BaseRoute
 
 from ...constants import (
     APP_VERSION,
@@ -51,16 +51,6 @@ def _redoc_html_for(*, request: Request, openapi_url: str, static_prefix: str) -
     )
 
 
-def _routes_for_prefix(app: FastAPI, prefix: str) -> List[APIRoute]:
-    selected_routes: List[APIRoute] = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
-            continue
-        if route.path == prefix or route.path.startswith(f"{prefix}/"):
-            selected_routes.append(route)
-    return selected_routes
-
-
 def _build_openapi_for_prefix(
     app: FastAPI,
     *,
@@ -69,7 +59,7 @@ def _build_openapi_for_prefix(
     version: str,
     description: str | None = None,
 ) -> Dict[str, Any]:
-    routes = _routes_for_prefix(app, prefix)
+    routes: list[BaseRoute] = app.state.versioned_routes[prefix]
     return get_openapi(
         title=title,
         version=version,

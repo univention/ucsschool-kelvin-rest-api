@@ -11,8 +11,11 @@ remains covered by the integration tests in ``test_route_user.py``.
 
 import uuid
 
+import pytest
+from pydantic import ValidationError
 from ucsschool_objects import UNLOADED, Group, Role, School, SchoolMembership, User
 
+from ucsschool.kelvin.routers.v1.user import UserCreateModel, UserPatchModel
 from ucsschool.kelvin.routers.v2.user import _school_classes_and_workgroups
 
 
@@ -134,3 +137,24 @@ def test_group_with_both_roles_lands_in_both_mappings() -> None:
     school_classes, workgroups = _school_classes_and_workgroups(user)
     assert school_classes == {"DEMOSCHOOL": ["hybrid"]}
     assert workgroups == {"DEMOSCHOOL": ["hybrid"]}
+
+
+def test_a_number_is_accepted_for_a_string_field() -> None:
+    assert UserPatchModel.model_validate({"record_uid": 123}).record_uid == "123"
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [("birthday", 20200101), ("expiration_date", True), ("ucsschool_roles", None), ("school", None)],
+)
+def test_a_wrongly_typed_value_is_a_validation_error(field: str, value: object) -> None:
+    """pydantic 2 lets a TypeError from a validator escape as a 500; pydantic 1 answered 422."""
+    data = {
+        "name": "a",
+        "firstname": "A",
+        "lastname": "B",
+        "schools": ["https://h.test/schools/S"],
+        "roles": [],
+    }
+    with pytest.raises(ValidationError):
+        _ = UserCreateModel.model_validate({**data, field: value})

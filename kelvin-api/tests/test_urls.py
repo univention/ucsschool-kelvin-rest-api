@@ -77,6 +77,16 @@ def test_cached_url_should_vary_by_api_version(test_client: TestClient, query: s
     assert response.json()["resolved_url"] == expected_url
 
 
+def test_cached_url_does_not_leak_between_api_versions(test_client: TestClient):
+    v1_url = test_client.get("v1/items/demo").json()["resolved_url"]
+    v2_url = test_client.get("v2/items/demo").json()["resolved_url"]
+
+    assert (v1_url, v2_url) == (
+        "http://kelvin.server.test/v1/items/demo",
+        "http://kelvin.server.test/v2/items/demo",
+    )
+
+
 def test_cached_url_for_raises_no_match_found(test_client: TestClient):
     with pytest.raises(NoMatchFound):
         test_client.get("/v1/_test/no_match")

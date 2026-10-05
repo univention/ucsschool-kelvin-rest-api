@@ -37,7 +37,6 @@ from kelvin_connector.sync import (
     _school_ou_from_dn,
     _udm_properties,
 )
-from pydantic import UUID4
 from ucsschool_objects import ObjectType
 from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.models import (
@@ -69,9 +68,9 @@ def _assert_fully_loaded(created):
 def _user_create_event(uid, extra_props=None, dn="uid=testuser,cn=users,dc=test"):
     id = "testuser"
     position = "cn=users,dc=test"
-    props = UserProperties.parse_obj(
+    props = UserProperties.model_validate(
         dict(
-            univentionObjectIdentifier=UUID4(str(uid)),
+            univentionObjectIdentifier=uid,
             username="testuser",
             firstname="Test",
             lastname="User",
@@ -87,7 +86,7 @@ def _user_create_event(uid, extra_props=None, dn="uid=testuser,cn=users,dc=test"
         )
     )
     if extra_props:
-        props = type(props)(**{**props.dict(), **extra_props})
+        props = type(props)(**{**props.model_dump(), **extra_props})
     return UserCreateEvent(
         timestamp=_TS,
         sequence_number=1,
@@ -99,9 +98,9 @@ def _user_modify_event(uid, extra_props=None, dn="uid=testuser,cn=users,dc=test"
     id = "testuser"
     position = "cn=users,dc=test"
     objectType = "users/user"
-    props = UserProperties.parse_obj(
+    props = UserProperties.model_validate(
         dict(
-            univentionObjectIdentifier=UUID4(str(uid)),
+            univentionObjectIdentifier=uid,
             username="testuser",
             firstname="Test",
             lastname="User",
@@ -117,7 +116,7 @@ def _user_modify_event(uid, extra_props=None, dn="uid=testuser,cn=users,dc=test"
         )
     )
     if extra_props:
-        props = type(props)(**{**props.dict(), **extra_props})
+        props = type(props)(**{**props.model_dump(), **extra_props})
     return UserModifyEvent(
         timestamp=_TS,
         sequence_number=1,
@@ -134,9 +133,7 @@ def _user_delete_event(uid):
             id="testuser",
             objectType="users/user",
             position="cn=users,dc=test",
-            properties=DeletedObjectProperties(
-                univentionObjectIdentifier=UUID4(str(uid)), username="testuser"
-            ),
+            properties=DeletedObjectProperties(univentionObjectIdentifier=uid, username="testuser"),
         ),
     )
 
@@ -147,7 +144,7 @@ def _group_create_event(uid, name="testschool-group", extra_props=None):
     position = "cn=klassen,dc=test"
     objectType = "groups/group"
     props = GroupProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         name=name,
         ucsschoolRole=[UcsschoolRole(role="school_class", context="school", school="testschool")],
         allowedEmailUsers=[],
@@ -157,7 +154,7 @@ def _group_create_event(uid, name="testschool-group", extra_props=None):
         guardianMemberRoles=[],
     )
     if extra_props:
-        props = type(props)(**{**props.dict(), **extra_props})
+        props = type(props)(**{**props.model_dump(), **extra_props})
     return GroupCreateEvent(
         timestamp=_TS,
         sequence_number=1,
@@ -171,7 +168,7 @@ def _group_modify_event(uid, name="testschool-group", extra_props=None):
     position = "cn=klassen,dc=test"
     objectType = "groups/group"
     props = GroupProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         name=name,
         ucsschoolRole=[UcsschoolRole(role="school_class", context="school", school="testschool")],
         allowedEmailUsers=[],
@@ -181,7 +178,7 @@ def _group_modify_event(uid, name="testschool-group", extra_props=None):
         guardianMemberRoles=[],
     )
     if extra_props:
-        props = type(props)(**{**props.dict(), **extra_props})
+        props = type(props)(**{**props.model_dump(), **extra_props})
     return GroupModifyEvent(
         timestamp=_TS,
         sequence_number=1,
@@ -192,7 +189,7 @@ def _group_modify_event(uid, name="testschool-group", extra_props=None):
 def _group_delete_event(uid, name="testschool-group"):
     dn = f"cn={name},cn=klassen,dc=test"
     props = DeletedObjectProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         name=name,
     )
     return GroupDeleteEvent(
@@ -207,12 +204,12 @@ def _group_delete_event(uid, name="testschool-group"):
 def _school_create_event(uid, name="testschool", extra_props=None):
     dn = f"ou={name},dc=test"
     props = SchoolProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         name=name,
         displayName=f"{name} Display",
     )
     if extra_props:
-        props = type(props)(**{**props.dict(), **extra_props})
+        props = type(props)(**{**props.model_dump(), **extra_props})
     return SchoolCreateEvent(
         timestamp=_TS,
         sequence_number=1,
@@ -225,12 +222,12 @@ def _school_create_event(uid, name="testschool", extra_props=None):
 def _school_modify_event(uid, name="testschool", extra_props=None):
     dn = f"ou={name},dc=test"
     props = SchoolProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         name=name,
         displayName=f"{name} Display",
     )
     if extra_props:
-        props = type(props)(**{**props.dict(), **extra_props})
+        props = type(props)(**{**props.model_dump(), **extra_props})
     return SchoolModifyEvent(
         timestamp=_TS,
         sequence_number=1,
@@ -243,7 +240,7 @@ def _school_modify_event(uid, name="testschool", extra_props=None):
 def _school_delete_event(uid, name="testschool"):
     dn = f"ou={name},dc=test"
     props = DeletedObjectProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         name=name,
     )
     return SchoolDeleteEvent(
@@ -258,7 +255,7 @@ def _school_delete_event(uid, name="testschool"):
 def _host_group_create_event(uid, name="OUdemoschool-DC-Edukativnetz", hosts=None):
     dn = f"cn={name},cn=ucsschool,cn=groups,dc=test"
     props = HostGroupProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         name=name,
         description="DC host group",
         hosts=hosts or [],
@@ -279,7 +276,7 @@ def _host_group_create_event(uid, name="OUdemoschool-DC-Edukativnetz", hosts=Non
 def _host_group_modify_event(uid, name="OUdemoschool-DC-Verwaltungsnetz", hosts=None):
     dn = f"cn={name},cn=ucsschool,cn=groups,dc=test"
     props = HostGroupProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         name=name,
         description="DC host group",
         hosts=hosts or [],
@@ -300,7 +297,7 @@ def _host_group_modify_event(uid, name="OUdemoschool-DC-Verwaltungsnetz", hosts=
 def _host_group_delete_event(uid, name="OUdemoschool-DC-Edukativnetz"):
     dn = f"cn={name},cn=ucsschool,cn=groups,dc=test"
     props = HostGroupProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         name=name,
         description="DC host group",
         hosts=[],
@@ -446,7 +443,7 @@ def test_guardian_role_validator_accepts_pre_parsed_object():
 def test_ucsschool_role_validator_skips_malformed_role_strings():
     """One garbage role entry must not make an otherwise valid user invisible
     to the cache — it is skipped with a warning."""
-    props = UserProperties.parse_obj(
+    props = UserProperties.model_validate(
         dict(
             univentionObjectIdentifier=uuid.uuid4(),
             username="testuser",
@@ -471,24 +468,23 @@ def test_ucsschool_role_validator_skips_malformed_role_strings():
 def test_ucsschool_role_validator_rejects_user_without_any_parseable_role():
     from pydantic import ValidationError
 
+    properties = dict(
+        univentionObjectIdentifier=uuid.uuid4(),
+        username="testuser",
+        firstname="Test",
+        lastname="User",
+        disabled=False,
+        school=["testschool"],
+        ucsschoolRole=["123", "teacher:school"],
+        ucsschoolRecordUID="testuser",
+        ucsschoolSourceUID="src",
+        groups=[],
+        ucsschoolLegalWard=[],
+        ucsschoolLegalGuardian=[],
+        mailPrimaryAddress="",
+    )
     with pytest.raises(ValidationError, match="at least 1 item"):
-        UserProperties.parse_obj(
-            dict(
-                univentionObjectIdentifier=uuid.uuid4(),
-                username="testuser",
-                firstname="Test",
-                lastname="User",
-                disabled=False,
-                school=["testschool"],
-                ucsschoolRole=["123", "teacher:school"],
-                ucsschoolRecordUID="testuser",
-                ucsschoolSourceUID="src",
-                groups=[],
-                ucsschoolLegalWard=[],
-                ucsschoolLegalGuardian=[],
-                mailPrimaryAddress="",
-            )
-        )
+        UserProperties.model_validate(properties)
 
 
 def test_ucsschool_role_validator_accepts_pre_parsed_object():
@@ -638,7 +634,7 @@ async def test_handle_user_create_generates_record_uid_and_source_uid(
     school = make_school("testschool")
     mock_storage.schools.search.return_value = [school]
     props = UserProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         username="autouser",
         firstname="Auto",
         lastname="User",
@@ -701,7 +697,7 @@ async def test_handle_user_modify_calls_modify_when_patch_is_non_empty(
 
 
 async def test_handle_user_modify_skips_modify_when_patch_is_empty(manager, mock_storage, mock_mapper):
-    uid = UUID4(str(uuid.uuid4()))
+    uid = uuid.uuid4()
     current_user = make_user(uid=uid)
     current_user.email = "testuser@example.com"
     mock_storage.users.get.return_value = current_user
@@ -886,7 +882,7 @@ async def test_handle_user_modify_refreshes_dn_mapping(manager, mock_storage, mo
     """A move/rename changes the dn but keeps the public_id; the mapping is
     refreshed even when nothing else changed, so later events referencing the
     new dn resolve."""
-    uid = UUID4(str(uuid.uuid4()))
+    uid = uuid.uuid4()
     current_user = make_user(uid=uid)
     current_user.email = "testuser@example.com"
     mock_storage.users.get.return_value = current_user
@@ -920,7 +916,7 @@ async def test_handle_user_modify_creates_missing_user(manager, mock_storage, mo
 async def test_handle_user_modify_generates_record_uid_and_source_uid(
     manager, mock_storage, mock_mapper
 ):
-    uid = UUID4(str(uuid.uuid4()))
+    uid = uuid.uuid4()
     current_user = make_user(uid=uid, school_memberships=UNLOADED)
     current_user.record_uid = "old_record"
     current_user.source_uid = "old_source"
@@ -1171,7 +1167,7 @@ async def test_handle_group_modify_skips_modify_when_patch_is_empty(manager, moc
     mock_storage.schools.search.return_value = [school]
 
     props = GroupProperties(
-        univentionObjectIdentifier=UUID4(str(uid)),
+        univentionObjectIdentifier=uid,
         name="testschool-group",
         ucsschoolRole=[UcsschoolRole(role="school_class", context="school", school="testschool")],
         allowedEmailUsers=[],
@@ -1613,7 +1609,7 @@ async def test_handle_school_create_updates_when_already_exists(manager, mock_st
 
 
 async def test_handle_user_create_already_exists_no_changes(manager, mock_storage, mock_mapper):
-    uid = UUID4(str(uuid.uuid4()))
+    uid = uuid.uuid4()
     school = make_school("testschool")
     # Pre-build the exact SchoolMembership _build_school_memberships would produce
     # (roles.search returns [] by default, so roles=set())

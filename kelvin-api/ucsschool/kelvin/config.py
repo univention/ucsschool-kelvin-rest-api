@@ -1,12 +1,17 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from pathlib import Path
 from typing import Any, Dict, List
 
 import lazy_object_proxy
-import orjson
-from pydantic import BaseSettings
+from pydantic.fields import FieldInfo
+from pydantic_settings import (
+    BaseSettings,
+    JsonConfigSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
+from typing_extensions import override
 
 from ..importer.configuration import ReadOnlyDict
 from ..importer.models.import_user import ImportUser
@@ -17,35 +22,24 @@ from .exceptions import InvalidConfiguration
 from .import_config import get_import_config
 
 
-def json_config_settings_source(path: Path):
-    def _json_config_settings_source(settings: BaseSettings) -> Dict[str, Any]:
-        """
-        A simple settings source that loads variables from a JSON file
-        at the project's root.
-
-        Here we happen to choose to use the `env_file_encoding` from Config
-        when reading `config.json`
-
-        Source: https://pydantic-docs.helpmanual.io/usage/settings/#customise-settings-sources
-        """
-        encoding = settings.__config__.env_file_encoding
-        try:
-            result = orjson.loads(path.read_text(encoding))
-        except FileNotFoundError:
-            # TODO: We should log this error,
-            #  but can we expect logging to be set up during loading of config?
-            result = {}
-        return result
-
-    return _json_config_settings_source
-
-
-def import_config_udm_mapping_source(settings: BaseSettings) -> Dict[str, Any]:
+def import_config_udm_mapping_source() -> Dict[str, Any]:
     config: ReadOnlyDict = get_import_config()
     if "mapped_udm_properties" in config:
         return {"user": config.get("mapped_udm_properties")}
     else:
         return {}
+
+
+class ImportConfigUDMMappingSource(PydanticBaseSettingsSource):
+    """The `mapped_udm_properties` of the import configuration, as the users' UDM properties."""
+
+    @override
+    def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
+        return None, field_name, False  # pragma: no cover
+
+    @override
+    def __call__(self) -> Dict[str, Any]:
+        return import_config_udm_mapping_source()
 
 
 class UDMMappingConfiguration(BaseSettings):
@@ -54,21 +48,25 @@ class UDMMappingConfiguration(BaseSettings):
     school_class: List[str] = []
     workgroup: List[str] = []
 
-    class Config:
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        json_file=UDM_MAPPED_PROPERTIES_CONFIG_FILE, json_file_encoding="utf-8"
+    )
 
-        @classmethod
-        def customise_sources(
-            cls,
+    @classmethod
+    @override
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (
             init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            return (
-                init_settings,
-                json_config_settings_source(UDM_MAPPED_PROPERTIES_CONFIG_FILE),
-                import_config_udm_mapping_source,
-            )
+            JsonConfigSettingsSource(settings_cls),
+            ImportConfigUDMMappingSource(settings_cls),
+        )
 
     def prevent_mapped_attributes_in_udm_properties(self):
         """

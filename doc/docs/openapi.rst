@@ -54,6 +54,9 @@ Popular open source tools that can generate source code from the servers ``opena
 * OpenAPI Generator: https://github.com/OpenAPITools/openapi-generator
 * Swagger Codegen: https://github.com/swagger-api/swagger-codegen
 
+The ``openapi.json`` follows OpenAPI 3.1.
+Use a generator version that supports OpenAPI 3.1.
+
 
 .. _`Swagger`: https://swagger.io/
 .. _`ReDoc`: https://github.com/Redocly/redoc

@@ -191,12 +191,9 @@ Runtime and dev dependencies are declared in the root `pyproject.toml` (`[projec
 
 | Package | Constraint | Notes |
 |---|---|---|
-| `fastapi` | `>=0.95.2,<0.98.0` | Pinned below 0.98 |
-| `pydantic[dotenv,email]` | `<2` | Still on Pydantic v1 |
-| `httpx` | `<0.28.0` | — |
 | `pyjwt` | `<2.10` | — |
 | `uvicorn` / `gunicorn` | latest | ASGI/WSGI servers |
-| `uldap3` | git source | private repo (`git.knut.univention.de/.../uldap3.git`) |
+| `uldap3` | `>=2` | explicit index: the uldap3 project's package registry on `git.knut.univention.de` (project 701) |
 | `openapi-client-udm` | tarball | vendored (`openapi-client-udm-1.0.2.tar.gz`) |
 | `psycopg[binary]` | `>=3.3.3` | PostgreSQL driver for the v2 Kelvin DB |
 | `alembic` | `>=1.18.4` | Kelvin DB migrations |

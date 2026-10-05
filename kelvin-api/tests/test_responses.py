@@ -49,14 +49,14 @@ UDM_PROPERTIES = {"uidNumber": 2000, "title": None, "groups": [{"cn": "x", "acti
 def udm_mapping_config(monkeypatch: pytest.MonkeyPatch) -> None:
     """Allow ``UDM_PROPERTIES`` without reading the import configuration."""
     names = list(UDM_PROPERTIES)
-    config = UDMMappingConfiguration.construct(
+    config = UDMMappingConfiguration.model_construct(
         school=names, user=names, school_class=names, workgroup=names
     )
     monkeypatch.setattr(ucsschool.kelvin.routers.v1.base, "UDM_MAPPING_CONFIG", config)
 
 
 def _user() -> UserModel:
-    return UserModel.parse_obj(
+    return UserModel.model_validate(
         {
             "name": "alice",
             "firstname": "Alice",
@@ -79,7 +79,7 @@ def _user() -> UserModel:
 
 
 def _school() -> SchoolModel:
-    return SchoolModel.parse_obj(
+    return SchoolModel.model_validate(
         {
             "name": SCHOOL,
             "display_name": "Demo School",
@@ -94,7 +94,7 @@ def _school() -> SchoolModel:
 
 
 def _school_class() -> SchoolClassModel:
-    return SchoolClassModel.parse_obj(
+    return SchoolClassModel.model_validate(
         {
             "name": "1a",
             "school": f"{BASE}/schools/{SCHOOL}",
@@ -109,7 +109,7 @@ def _school_class() -> SchoolClassModel:
 
 
 def _workgroup() -> WorkGroupModel:
-    return WorkGroupModel.parse_obj(
+    return WorkGroupModel.model_validate(
         {
             "name": "chess",
             "school": f"{BASE}/schools/{SCHOOL}",
@@ -124,7 +124,7 @@ def _workgroup() -> WorkGroupModel:
 
 
 def _role() -> RoleModel:
-    return RoleModel.parse_obj(
+    return RoleModel.model_validate(
         {"name": "student", "display_name": "student", "url": f"{BASE}/roles/student"}
     )
 

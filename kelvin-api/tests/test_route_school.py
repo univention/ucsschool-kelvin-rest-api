@@ -300,7 +300,7 @@ async def test_create(
     api_version,
 ):
     school_create_model: SchoolCreateModel = random_school_create_model()
-    attrs = school_create_model.dict()
+    attrs = school_create_model.model_dump()
     attrs["udm_properties"] = {"description": "DESCRIPTION"}
     schedule_delete_ou_using_ssh(school_create_model.name, docker_host_name)
     response = client.post(
@@ -336,7 +336,7 @@ async def test_create_unmapped_udm_prop(
     api_version,
 ):
     school_create_model: SchoolCreateModel = random_school_create_model()
-    attrs = school_create_model.dict()
+    attrs = school_create_model.model_dump()
     attrs["udm_properties"] = {"unmapped_prop": "some value"}
     schedule_delete_ou_using_ssh(school_create_model.name, docker_host_name)
     response = client.post(
@@ -349,10 +349,10 @@ async def test_create_unmapped_udm_prop(
     assert response_json == {
         "detail": [
             {
+                "type": "value_error",
                 "loc": ["body", "udm_properties"],
-                "msg": "UDM properties that were not configured for resource 'school' and are "
-                "thus not allowed: {'unmapped_prop'}",
-                "type": "value_error.unknownudmproperty",
+                "msg": "Value error, UDM properties that were not configured for resource "
+                "'school' and are thus not allowed: {'unmapped_prop'}",
             }
         ]
     }
@@ -368,7 +368,7 @@ async def test_create_udm_error_forwarding(
     api_version,
 ):
     school_create_model: SchoolCreateModel = random_school_create_model()
-    attrs = school_create_model.dict()
+    attrs = school_create_model.model_dump()
     attrs["udm_properties"] = {"description": "DESCRIPTION", "userPath": "_xxx"}
     schedule_delete_ou_using_ssh(school_create_model.name, docker_host_name)
     response = client.post(

@@ -310,10 +310,10 @@ async def test_create_unmapped_udm_prop(
         assert response_json == {
             "detail": [
                 {
+                    "type": "value_error",
                     "loc": ["body", "udm_properties"],
-                    "msg": "UDM properties that were not configured for resource 'workgroup' and are "
-                    "thus not allowed: {'unmapped_prop'}",
-                    "type": "value_error.unknownudmproperty",
+                    "msg": "Value error, UDM properties that were not configured for resource "
+                    "'workgroup' and are thus not allowed: {'unmapped_prop'}",
                 }
             ]
         }

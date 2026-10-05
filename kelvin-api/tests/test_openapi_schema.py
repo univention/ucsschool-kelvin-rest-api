@@ -1,29 +1,19 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-"""
-Tests for the nullability of properties in the generated OpenAPI documents.
-
-pydantic 1.x omits `nullable` from the schema of fields that accept `None`, which made
-the documents contradict the responses: a user without a birthday is serialized as
-`"birthday": null`, while the schema declared `birthday` to be a date string.
-`ucsschool.kelvin.schema.KelvinBaseModel` adds the missing `nullable`.
-"""
+"""Tests for the nullability of properties in the generated OpenAPI documents."""
 
 from collections.abc import Iterator
 from typing import Any
 
 import pytest
-from fastapi.openapi.utils import get_flat_models_from_routes
 from fastapi.testclient import TestClient
-from pydantic import BaseModel
-from pydantic.schema import get_model_name_map
 
 from ucsschool.kelvin.constants import URL_API_V1_PREFIX, URL_API_V2_PREFIX
 from ucsschool.kelvin.main import app
-from ucsschool.kelvin.routers.v1.doc import _routes_for_prefix
+from ucsschool.kelvin.routers.v1.school_class import SchoolClassPatchDocument
 from ucsschool.kelvin.routers.v1.user import NULL_REJECTING_USER_PATCH_FIELDS
-from ucsschool.kelvin.schema import KelvinBaseModel, mark_nullable_properties
+from ucsschool.kelvin.routers.v1.workgroup import WorkGroupPatchDocument
 from ucsschool.kelvin.service.dependency import check_db_compatibility
 
 API_PREFIXES = [URL_API_V1_PREFIX, URL_API_V2_PREFIX]
@@ -97,68 +87,25 @@ def _properties(doc: dict[str, Any], schema_name: str) -> dict[str, Any]:
     return _schemas(doc)[schema_name].get("properties", {})
 
 
+def _is_nullable(prop: dict[str, Any]) -> bool:
+    return {"type": "null"} in prop.get("anyOf", [])
+
+
 def _nullable_properties(doc: dict[str, Any]) -> dict[str, set[str]]:
     """The names of the properties documented as nullable, per schema."""
     return {
         schema_name: {
-            prop_name for prop_name, prop in schema.get("properties", {}).items() if prop.get("nullable")
+            prop_name for prop_name, prop in schema.get("properties", {}).items() if _is_nullable(prop)
         }
         for schema_name, schema in _schemas(doc).items()
     }
 
 
-class ModelWithEveryKindOfField(KelvinBaseModel):
-    mandatory: str
-    # the implicit spelling of an optional field used throughout the routers …
-    optional: str = None  # pyright: ignore[reportAssignmentType]
-    # … and the explicit one
-    optional_explicitly: int | None = None
-    flag: bool = False
-    items: list[str] = []
-    mapping: dict[str, str] = {}
-    rejects_null: str | None = None
-
-    class Config(KelvinBaseModel.Config):
-        non_nullable_fields: tuple[str, ...] = ("rejects_null",)
-
-
-@pytest.mark.parametrize(
-    "field_name,nullable",
-    [
-        ("mandatory", False),
-        ("optional", True),
-        ("optional_explicitly", True),
-        ("flag", False),
-        ("items", False),
-        ("mapping", False),
-        ("rejects_null", False),
-    ],
-)
-def test_only_fields_accepting_none_are_marked_nullable(field_name: str, nullable: bool):
-    prop = ModelWithEveryKindOfField.schema()["properties"][field_name]
-    assert prop.get("nullable", False) is nullable
-
-
-def test_a_nullable_reference_is_wrapped_before_being_marked():
-    """OpenAPI 3.0 ignores every keyword next to a `$ref`, `nullable` included."""
-
-    class Nested(KelvinBaseModel):
-        value: str = ""
-
-    class Model(KelvinBaseModel):
-        nested: Nested | None = None
-
-    prop = Model.schema()["properties"]["nested"]
-    assert prop == {"allOf": [{"$ref": "#/definitions/Nested"}], "nullable": True}
-
-
-def test_a_field_without_a_property_is_skipped():
-    class Model(BaseModel):
-        optional: str | None = None
-
-    schema: dict[str, Any] = {"properties": {}}
-    mark_nullable_properties(schema, Model)
-    assert schema == {"properties": {}}
+@pytest.mark.parametrize("model", [SchoolClassPatchDocument, WorkGroupPatchDocument])
+def test_a_deprecated_null_is_accepted_but_not_documented(model: type):
+    """'users': null is ignored rather than supported, so it validates without being documented."""
+    assert model.model_validate({"users": None}).users is None
+    assert not _is_nullable(model.model_json_schema()["properties"]["users"])
 
 
 @pytest.mark.parametrize("prefix", API_PREFIXES)
@@ -174,70 +121,13 @@ def test_documented_nullability(
     openapi_docs: dict[str, Any], prefix: str, schema_name: str, prop_name: str, nullable: bool
 ):
     prop = _properties(openapi_docs[prefix], schema_name)[prop_name]
-    assert prop.get("nullable", False) is nullable
+    assert _is_nullable(prop) is nullable
 
 
 @pytest.mark.parametrize("prefix", API_PREFIXES)
 def test_mandatory_user_properties_stay_required(openapi_docs: dict[str, Any], prefix: str):
     required = _schemas(openapi_docs[prefix])["UserModel"]["required"]
     assert set(MANDATORY_USER_PROPERTIES) <= set(required)
-
-
-@pytest.mark.parametrize("prefix", API_PREFIXES)
-def test_nullable_is_never_a_sibling_of_a_ref(openapi_docs: dict[str, Any], prefix: str):
-    siblings_of_a_ref = [
-        f"{schema_name}.{prop_name}"
-        for schema_name, schema in _schemas(openapi_docs[prefix]).items()
-        for prop_name, prop in schema.get("properties", {}).items()
-        if "nullable" in prop and "$ref" in prop
-    ]
-    assert siblings_of_a_ref == []
-
-
-@pytest.mark.parametrize("prefix", API_PREFIXES)
-def test_every_documented_model_marks_its_nullable_properties(prefix: str):
-    """`KelvinBaseModel.Config.schema_extra` is the only thing that adds `nullable`, and a
-    model that does not run it is indistinguishable from one without nullable fields."""
-    documented_models = [
-        model
-        for model in get_flat_models_from_routes(_routes_for_prefix(app, prefix))
-        if issubclass(model, BaseModel)
-    ]
-    assert documented_models
-    assert [
-        model.__name__
-        for model in documented_models
-        if model.__config__.schema_extra is not KelvinBaseModel.Config.schema_extra
-    ] == []
-
-
-@pytest.mark.parametrize("prefix", API_PREFIXES)
-def test_the_documents_agree_with_every_models_fields(openapi_docs: dict[str, Any], prefix: str):
-    """`DOCUMENTED_NULLABILITY` states the expectations of the bug report by hand. This
-    covers the remaining models, so that a model added later cannot document the wrong
-    nullability without being noticed."""
-    schemas = _schemas(openapi_docs[prefix])
-    mismatches: list[str] = []
-    checked = 0
-    for model, schema_name in get_model_name_map(
-        get_flat_models_from_routes(_routes_for_prefix(app, prefix))
-    ).items():
-        schema = schemas.get(schema_name)
-        # 'get_model_name_map()' also returns the enums of the document
-        if schema is None or not issubclass(model, BaseModel):
-            continue
-        properties = schema.get("properties", {})
-        non_nullable: tuple[str, ...] = getattr(model.__config__, "non_nullable_fields", ())
-        for field in model.__fields__.values():
-            prop = properties.get(field.alias)
-            if prop is None:
-                continue
-            expected = field.allow_none and field.name not in non_nullable
-            if prop.get("nullable", False) is not expected:
-                mismatches.append(f"{schema_name}.{field.alias}: expected nullable={expected}")
-            checked += 1
-    assert checked, "no property checked"
-    assert mismatches == []
 
 
 def test_both_api_versions_agree_on_nullability(openapi_docs: dict[str, Any]):

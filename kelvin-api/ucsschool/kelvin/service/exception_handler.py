@@ -10,11 +10,14 @@ from asgi_correlation_id.context import correlation_id
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import JSONResponse, ORJSONResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from ucsschool.lib.models.attributes import ValidationError as SchooLibValidationError
 from ucsschool.lib.models.base import NoObject
 from udm_rest_client import UdmError
+
+from ..responses import ORJSONResponse
 
 
 async def udm_exception_handler(
@@ -76,8 +79,19 @@ async def school_lib_validation_exception_handler(
     return ORJSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"message": str(exc)})
 
 
+async def request_validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> ORJSONResponse:
+    """pydantic 2's 422 body without `input`, which can echo the submitted password, and `ctx`."""
+    errors = [{k: v for k, v in error.items() if k not in ("input", "ctx")} for error in exc.errors()]
+    return ORJSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, content={"detail": jsonable_encoder(errors)}
+    )
+
+
 def add_exception_handlers(app: FastAPI, logger: logging.Logger) -> None:
     app.add_exception_handler(UdmError, partial(udm_exception_handler, logger=logger))
     app.add_exception_handler(Exception, partial(unhandled_exception_handler, logger=logger))
     app.add_exception_handler(NoObject, no_object_exception_handler)
+    app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
     app.add_exception_handler(SchooLibValidationError, school_lib_validation_exception_handler)
