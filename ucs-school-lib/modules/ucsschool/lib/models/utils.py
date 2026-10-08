@@ -26,9 +26,9 @@ from typing import IO, Any, Dict, List, Sequence, Tuple, Union
 
 import colorlog
 import lazy_object_proxy
-import ruamel.yaml
 from asgi_correlation_id import CorrelationIdFilter
 from asgi_correlation_id.context import correlation_id
+from ruamel.yaml import YAML
 from six import string_types
 from uldap3 import LdapConfig, LdapRead, LdapWrite
 
@@ -71,7 +71,7 @@ class ValidationDataFilter(logging.Filter):
 
 def _load_logging_config() -> Dict[str, Dict[str, str]]:
     with files("ucsschool.lib").joinpath("logging.yaml").open("rb") as fp:
-        return ruamel.yaml.load(fp, ruamel.yaml.RoundTripLoader)
+        return YAML(typ="rt").load(fp)
 
 
 def _ucr() -> ConfigRegistry:
@@ -531,8 +531,10 @@ def stopped_notifier(strict: bool = True) -> None:
 
 
 def _write_logging_config(path: str) -> None:
+    yaml = YAML(typ="rt")
+    yaml.indent(mapping=4, sequence=4, offset=0)
     with open(path, "w") as fp:
-        ruamel.yaml.dump(
+        yaml.dump(
             {
                 "date": str(LOG_DATETIME_FORMAT),
                 "cmdline": OrderedDict(CMDLINE_LOG_FORMATS),
@@ -540,8 +542,6 @@ def _write_logging_config(path: str) -> None:
                 "file": OrderedDict(FILE_LOG_FORMATS),
             },
             fp,
-            ruamel.yaml.RoundTripDumper,
-            indent=4,
         )
 
 

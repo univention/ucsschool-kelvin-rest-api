@@ -158600,10 +158600,18 @@
                 }
             },
             {
+                "code": "reportUnknownMemberType",
+                "range": {
+                    "startColumn": 15,
+                    "endColumn": 34,
+                    "lineCount": 1
+                }
+            },
+            {
                 "code": "reportAny",
                 "range": {
                     "startColumn": 15,
-                    "endColumn": 64,
+                    "endColumn": 38,
                     "lineCount": 1
                 }
             },
@@ -160028,6 +160036,22 @@
                 "range": {
                     "startColumn": 4,
                     "endColumn": 25,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportAny",
+                "range": {
+                    "startColumn": 4,
+                    "endColumn": 15,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportUnknownMemberType",
+                "range": {
+                    "startColumn": 8,
+                    "endColumn": 17,
                     "lineCount": 1
                 }
             },

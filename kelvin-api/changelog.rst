@@ -39,7 +39,7 @@ v4.2.0 (TBD)
   The other user information, ``kelvin_admin``, ``kelvin_reader``, ``schools``, and ``roles``, moved from ``sub`` to claims of their own.
   Clients that only send the token, like the Kelvin REST API client, don't need any change.
   Scripts that decode the token and read ``sub`` have to read these claims instead.
-* Changed: Updated PyJWT to 2.15.
+* Changed: Updated PyJWT to 2.15 and ruamel.yaml to 0.19.
 
 v4.1.0 (2026-10-01)
 -------------------
