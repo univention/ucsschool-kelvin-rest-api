@@ -32,9 +32,6 @@ addopts = "--verbose --showlocals -p no:warnings  --cov=kelvin_connector --cov-r
 testpaths = ["tests"]
 asyncio_mode = "auto"
 
-[[tool.uv.index]]
-url = "https://git.knut.univention.de/api/v4/projects/2254/packages/pypi/simple"
-
 [tool.coverage.run]
 source = ["src/kelvin_connector"]
 branch = true

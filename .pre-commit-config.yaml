@@ -23,11 +23,9 @@ repos:
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.12.23
     hooks:
-      # --no-config: else uv inherits the root [tool.uv] index and rewrites every source.
       - id: uv-export
         files: ^ucs-test-ucsschool-kelvin/94_ucsschool-kelvin-performance/(pyproject\.toml|uv\.lock|requirements\.txt)$
         args:
-          - --no-config
           - --project=ucs-test-ucsschool-kelvin/94_ucsschool-kelvin-performance
           - --locked
           - --no-emit-local
