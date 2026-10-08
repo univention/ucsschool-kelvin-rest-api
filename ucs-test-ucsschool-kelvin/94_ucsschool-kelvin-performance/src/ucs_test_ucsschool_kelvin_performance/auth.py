@@ -37,10 +37,9 @@ class AuthToken:
     def extract_expiry(cls, access_token: str) -> datetime.datetime:
         """Get the time at which `token` expires."""
         actual_token = access_token.rsplit(" ", 1)[-1]
-        payload = jwt.decode(actual_token, algorithm="HS256", options={"verify_signature": False})
-        exp: str = payload.get("exp")
-        ts = int(exp)
-        return datetime.datetime.fromtimestamp(ts)
+        payload = jwt.decode(actual_token, options={"verify_signature": False})
+        exp: int = payload["exp"]
+        return datetime.datetime.fromtimestamp(exp)
 
 
 class TokenError(Exception): ...

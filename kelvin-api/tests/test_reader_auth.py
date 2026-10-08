@@ -5,8 +5,15 @@ import pytest
 import requests
 from fastapi import HTTPException
 
+from ucsschool.kelvin import token_auth
 from ucsschool.kelvin.ldap import LdapUser
-from ucsschool.kelvin.token_auth import get_kelvin_admin, get_kelvin_reader
+from ucsschool.kelvin.token_auth import (
+    access_token_claims,
+    create_access_token,
+    get_current_user,
+    get_kelvin_admin,
+    get_kelvin_reader,
+)
 
 
 def _make_user(kelvin_admin: bool = False, kelvin_reader: bool = False) -> LdapUser:
@@ -18,6 +25,29 @@ def _make_user(kelvin_admin: bool = False, kelvin_reader: bool = False) -> LdapU
         kelvin_admin=kelvin_admin,
         kelvin_reader=kelvin_reader,
     )
+
+
+@pytest.fixture
+def token_backend(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(token_auth, "_secret_key", "s" * 64)
+
+    def get_user(username: str, school_only: bool) -> LdapUser:
+        return _make_user()
+
+    monkeypatch.setattr(token_auth, "get_user", get_user)
+
+
+async def test_get_current_user_accepts_issued_token(token_backend: None):
+    token = await create_access_token(data=access_token_claims(_make_user(kelvin_reader=True)))
+    user = await get_current_user(token)
+    assert (user.username, user.kelvin_admin, user.kelvin_reader) == ("testuser", False, True)
+
+
+async def test_get_current_user_rejects_token_with_dict_subject(token_backend: None):
+    token = await create_access_token(data={"sub": {"username": "testuser", "kelvin_admin": True}})
+    with pytest.raises(HTTPException) as exc_info:
+        await get_current_user(token)
+    assert exc_info.value.status_code == 401
 
 
 async def test_get_kelvin_reader_allows_reader_user():

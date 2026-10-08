@@ -31,7 +31,7 @@ dependencies = [
     "pyasn1-modules>=0.4.2",
     "pydantic[email]>=2.12",
     "pydantic-settings>=2.12",
-    "pyjwt<2.10",
+    "pyjwt<3",
     "python-multipart>=0.0.20",
     "ucs-school-import",
     "ucs-school-lib",

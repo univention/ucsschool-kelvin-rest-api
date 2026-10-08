@@ -191,7 +191,6 @@ Runtime and dev dependencies are declared in the root `pyproject.toml` (`[projec
 
 | Package | Constraint | Notes |
 |---|---|---|
-| `pyjwt` | `<2.10` | — |
 | `uvicorn` / `gunicorn` | latest | ASGI/WSGI servers |
 | `uldap3` | `>=2` | explicit index: the uldap3 project's package registry on `git.knut.univention.de` (project 701) |
 | `openapi-client-udm` | tarball | vendored (`openapi-client-udm-1.0.2.tar.gz`) |

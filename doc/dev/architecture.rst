@@ -327,8 +327,8 @@ credentials against OpenLDAP itself and signs its own token.
 * Kelvin looks up the user's DN and **binds to OpenLDAP with the supplied
   credentials** to verify the password.
 * On success it issues an **HS256** JWT (PyJWT) signed with a symmetric secret
-  read from a file on the app host. The token embeds the username, the
-  ``kelvin_admin`` / ``kelvin_reader`` flags, the user's schools and roles, and
+  read from a file on the app host. The token carries the username in ``sub``,
+  the claims ``kelvin_admin``, ``kelvin_reader``, ``schools`` and ``roles``, and
   an ``exp`` (default 60 minutes).
 * On every subsequent request the ``Authorization: Bearer`` token is decoded
   with the same secret, and the user is re-loaded from LDAP.

@@ -16,6 +16,10 @@ v4.2.0 (TBD)
    Clients generated from the OpenAPI documents or evaluating validation errors may have to be adapted.
    Python hooks that use Pydantic, ``uldap3``, or ``httpx`` directly may have to be adapted, too.
 
+   This release changes the content of the access token.
+   Tokens issued before the update are rejected with status code ``401``,
+   so clients have to request a new token after the update.
+
 * Changed: The Kelvin REST API uses Pydantic 2 and a current FastAPI instead of Pydantic 1 and FastAPI 0.97.
 * Changed: Python hooks run with Pydantic 2, FastAPI 0.142, ``httpx`` 0.28, and ``uldap3`` 2.0.
   Hooks that use Pydantic 1 directly, the Kelvin REST API's models, ``uldap3.LdapConfig``,
@@ -31,6 +35,11 @@ v4.2.0 (TBD)
   A boolean is no longer accepted for a string property, for example ``"record_uid": true``,
   and an empty string or list is no longer accepted for ``udm_properties``, ``school_classes``, or ``workgroups``.
   These requests are answered with status code ``422``.
+* Changed: The ``sub`` claim of the access token contains the username as a string, as RFC 7519 requires.
+  The other user information, ``kelvin_admin``, ``kelvin_reader``, ``schools``, and ``roles``, moved from ``sub`` to claims of their own.
+  Clients that only send the token, like the Kelvin REST API client, don't need any change.
+  Scripts that decode the token and read ``sub`` have to read these claims instead.
+* Changed: Updated PyJWT to 2.15.
 
 v4.1.0 (2026-10-01)
 -------------------

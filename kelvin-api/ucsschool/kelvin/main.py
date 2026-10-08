@@ -25,7 +25,7 @@ from .service.dependency import check_db_compatibility, check_health_db_compatib
 from .service.exception_handler import add_exception_handlers
 from .service.lifespan import build_app_lifespan
 from .service.middleware import add_middlewares
-from .token_auth import Token, create_access_token, get_token_ttl
+from .token_auth import Token, access_token_claims, create_access_token, get_token_ttl
 
 
 @lru_cache(maxsize=1)
@@ -76,10 +76,9 @@ async def login_for_access_token(
             detail="Incorrect username or password",
         )
     access_token_expires = timedelta(minutes=get_token_ttl())
-    sub_data = user.model_dump(include={"username", "kelvin_admin", "kelvin_reader"})
-    sub_data["schools"] = user.attributes.get("ucsschoolSchool", [])
-    sub_data["roles"] = user.attributes.get("ucsschoolRole", [])
-    access_token = await create_access_token(data={"sub": sub_data}, expires_delta=access_token_expires)
+    access_token = await create_access_token(
+        data=access_token_claims(user), expires_delta=access_token_expires
+    )
     logger.debug("User %r retrieved access_token.", user.username)
     return {"access_token": access_token, "token_type": "bearer"}
 

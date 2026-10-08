@@ -41,6 +41,17 @@ def get_token_ttl() -> int:
     return int(ucr.get(UCRV_TOKEN_TTL, 60))
 
 
+def access_token_claims(user: LdapUser) -> dict[str, object]:
+    attributes = user.attributes or {}
+    return {
+        "sub": user.username,
+        "kelvin_admin": user.kelvin_admin,
+        "kelvin_reader": user.kelvin_reader,
+        "schools": attributes.get("ucsschoolSchool", []),
+        "roles": attributes.get("ucsschoolRole", []),
+    }
+
+
 async def create_access_token(*, data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
     if expires_delta:
@@ -80,17 +91,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> LdapUser:
     )
     try:
         payload = jwt.decode(token, await get_secret_key(), algorithms=[TOKEN_HASH_ALGORITHM])
-        sub: dict[str, Any] = payload.get("sub")
-        username = sub.get("username", "")
-        if not username:
-            raise credentials_exception
     except PyJWTError as exc:
         raise credentials_exception from exc
+    username = payload.get("sub")
+    if not username:
+        raise credentials_exception
     user = get_user(username=username, school_only=False)
     if user is None:
         raise credentials_exception
-    user.kelvin_admin = sub.get("kelvin_admin", False)
-    user.kelvin_reader = sub.get("kelvin_reader", False)
+    user.kelvin_admin = payload.get("kelvin_admin", False)
+    user.kelvin_reader = payload.get("kelvin_reader", False)
     return user
 
 
