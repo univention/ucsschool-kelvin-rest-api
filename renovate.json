@@ -3,5 +3,14 @@
   "extends": [
     "local>univention/dev/tooling/ci-components//templates/renovate/default.json"
   ],
-  "commitBody": "Issue univention/dev/education/ucsschool-kelvin-rest-api#96"
+  "commitBody": "Issue univention/dev/education/ucsschool-kelvin-rest-api#96",
+  "packageRules": [
+    {
+      "description": "Generated from uv.lock by the uv-export pre-commit hook",
+      "matchFileNames": [
+        "ucs-test-ucsschool-kelvin/94_ucsschool-kelvin-performance/requirements.txt"
+      ],
+      "enabled": false
+    }
+  ]
 }
