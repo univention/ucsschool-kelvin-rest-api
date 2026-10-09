@@ -8,6 +8,13 @@
 Changelog
 =========
 
+v4.2.0 (TBD)
+------------
+* Added (version 2 API only): The searches of users, schools, school classes, work groups, and roles return their results page by page when the ``limit`` parameter is given.
+  The response is then a JSON object with the objects of the page in ``results`` and the URLs of the neighboring pages in ``next_page_url`` and ``previous_page_url``.
+  The pages are addressed by an opaque cursor in those URLs, so every page request is independent and can be answered by any Kelvin REST API instance.
+  Without ``limit``, the searches return all results as a plain list, as before.
+
 v4.1.0 (2026-10-01)
 -------------------
 .. important::
