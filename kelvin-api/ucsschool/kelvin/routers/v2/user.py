@@ -5,7 +5,7 @@ import datetime
 import logging
 from collections.abc import Sequence
 from functools import lru_cache
-from typing import Annotated, Optional, cast
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
@@ -134,18 +134,18 @@ def _udm_property_filters(request: Request) -> list[QueryExpr]:
 
 
 def _build_query(
-    school: Optional[str],
-    name: Optional[Sequence[str]],
-    firstname: Optional[str],
-    lastname: Optional[str],
-    email: Optional[str],
-    record_uid: Optional[str],
-    source_uid: Optional[str],
-    birthday: Optional[datetime.date],
-    expiration_date: Optional[datetime.date],
-    disabled: Optional[bool],
-    extra_clauses: Optional[list[QueryExpr]] = None,
-) -> Optional[SearchQuery]:
+    school: str | None,
+    name: Sequence[str] | None,
+    firstname: str | None,
+    lastname: str | None,
+    email: str | None,
+    record_uid: str | None,
+    source_uid: str | None,
+    birthday: datetime.date | None,
+    expiration_date: datetime.date | None,
+    disabled: bool | None,
+    extra_clauses: list[QueryExpr] | None = None,
+) -> SearchQuery | None:
     clauses: list[QueryExpr] = list(extra_clauses or [])
     names = [value for value in name or () if value]
     if names:

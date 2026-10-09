@@ -79,12 +79,12 @@ async def test_group_manager_nested_registry_initialized(db_session: AsyncSessio
 
     assert manager._NESTED_FIELD_REGISTRY
     assert "school" in manager._NESTED_FIELD_REGISTRY
-    assert "roles" in manager._NESTED_FIELD_REGISTRY
+    assert "roles" in manager._NESTED_FIELD_REGISTRY  # pyright: ignore[reportPrivateUsage]
 
     # Verify field map includes nested fields
     assert "school.public_id" in manager._FIELD_MAP
     assert "school.name" in manager._FIELD_MAP
-    assert "roles.name" in manager._FIELD_MAP
+    assert "roles.name" in manager._FIELD_MAP  # pyright: ignore[reportPrivateUsage]
 
 
 @pytest.mark.asyncio

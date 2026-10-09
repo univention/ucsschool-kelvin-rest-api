@@ -3,7 +3,7 @@
 
 import random
 from collections.abc import Awaitable, Callable
-from typing import List
+from typing import Any, TypedDict, cast
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -88,7 +88,7 @@ async def test_search(
     sc1_dn, sc1_attr = await new_school_class_using_lib(ou)
     sc2_dn, sc2_attr = await new_school_class_using_lib(ou)
     async with UDM(**udm_kwargs) as udm:
-        lib_classes: List[SchoolClass] = await SchoolClass.get_all(udm, ou)
+        lib_classes: list[SchoolClass] = await SchoolClass.get_all(udm, ou)
     assert sc1_dn in [c.dn for c in lib_classes]
     assert sc2_dn in [c.dn for c in lib_classes]
 
@@ -340,7 +340,7 @@ async def change_operation(
     school: str,
 ):
     assert operation in ("patch", "put")
-    users: List[User] = await new_school_users(
+    users: list[User] = await new_school_users(
         school, {"student": 2, "teacher": 1, "teacher_and_staff": 1}
     )
     students = [user for user in users if isinstance(user, Student)]
@@ -498,7 +498,7 @@ async def test_patch_clear_members(
     new_school_users,
 ):
     school = await create_ou_using_python()
-    users: List[User] = await new_school_users(
+    users: list[User] = await new_school_users(
         school, {"student": 2, "teacher": 1, "teacher_and_staff": 1}
     )
     sc1_dn, sc1_attr = await new_school_class_using_lib(school, users=[user.dn for user in users])
@@ -733,43 +733,52 @@ async def test_search_leaves_the_members_out_when_excluded(
     await retry_until_replicated(_check)
 
 
+class _Page(TypedDict):
+    results: list[dict[str, Any]]
+    next_page_url: str | None
+    previous_page_url: str | None
+
+
 @pytest.mark.asyncio
 async def test_search_pages(
-    auth_header,
-    retry_http_502,
-    retry_until_replicated,
-    url_fragment,
-    new_school_class_using_lib,
-    create_ou_using_python,
-    api_version,
-):
+    auth_header: dict[str, str],
+    retry_http_502: Callable[..., requests.Response],
+    retry_until_replicated: Callable[[Callable[[], object]], Awaitable[None]],
+    url_fragment: str,
+    new_school_class_using_lib: Callable[..., Awaitable[tuple[str, dict[str, Any]]]],
+    create_ou_using_python: Callable[..., Awaitable[str]],
+    api_version: str,
+) -> None:
     """With ``limit``, every class is returned exactly once, page by page."""
     if api_version != "v2":
         pytest.skip("Pagination is a v2 feature.")
     ou = await create_ou_using_python()
-    names = set()
+    names: set[str] = set()
     for _ in range(3):
         _dn, attr = await new_school_class_using_lib(ou)
-        names.add(attr["name"])
+        names.add(str(attr["name"]))
 
-    def _get(params):
+    def _get(params: dict[str, str | int]) -> object:
         response = retry_http_502(
             requests.get, f"{url_fragment}/classes/", headers=auth_header, params=params
         )
         assert response.status_code == 200, (response.reason, response.content)
-        return response.json()
+        return cast(object, response.json())
+
+    def _page(params: dict[str, str | int]) -> _Page:
+        return cast(_Page, _get(params))
 
     # v2 is replicated asynchronously: retry until the cache caught up.
-    async def _check():
-        everyone = [data["name"] for data in _get({"school": ou})]
+    async def _check() -> None:
+        everyone = [data["name"] for data in cast("list[dict[str, str]]", _get({"school": ou}))]
         assert names <= set(everyone)
 
-        pages = [_get({"school": ou, "limit": 1})]
-        while pages[-1]["next_page_url"]:
-            cursor = parse_qs(urlsplit(pages[-1]["next_page_url"]).query)["cursor"][0]
-            pages.append(_get({"school": ou, "limit": 1, "cursor": cursor}))
+        pages = [_page({"school": ou, "limit": 1})]
+        while next_page_url := pages[-1]["next_page_url"]:
+            cursor = parse_qs(urlsplit(next_page_url).query)["cursor"][0]
+            pages.append(_page({"school": ou, "limit": 1, "cursor": cursor}))
         assert all(len(page["results"]) == 1 for page in pages)
-        paged = [data["name"] for page in pages for data in page["results"]]
+        paged = [str(data["name"]) for page in pages for data in page["results"]]
         assert sorted(paged) == sorted(everyone)
         assert len(paged) == len(set(paged))
 

@@ -7,7 +7,8 @@ import itertools
 import json
 import logging
 import random
-from typing import Any, Dict, List, NamedTuple, Set, Tuple, Type, Union
+from collections.abc import Awaitable, Callable
+from typing import Any, Dict, List, NamedTuple, Set, Tuple, Type, TypedDict, cast
 from urllib.parse import SplitResult, parse_qs, urlsplit
 
 import pytest
@@ -51,7 +52,7 @@ pytestmark = pytest.mark.in_container
 
 fake = Faker()
 random.shuffle(MAPPED_UDM_PROPERTIES)
-UserType = Type[Union[Staff, Student, Teacher, TeachersAndStaff, User]]
+UserType = Type[Staff | Student | Teacher | TeachersAndStaff | User]
 Role = NamedTuple("Role", [("name", str), ("klass", UserType)])
 USER_ROLES: List[Role] = [
     Role("staff", Staff),
@@ -341,57 +342,73 @@ async def test_search_multiple_names(
     await retry_until_replicated(_check)
 
 
+class _Page(TypedDict):
+    results: list[dict[str, Any]]
+    next_page_url: str | None
+    previous_page_url: str | None
+
+
+def _cursor_of(page_url: str | None) -> str:
+    """The cursor of a page URL, to follow it with the test's own host."""
+    assert page_url is not None
+    return parse_qs(urlsplit(page_url).query)["cursor"][0]
+
+
 @pytest.mark.asyncio
 async def test_search_pages(
-    auth_header,
-    retry_http_502,
-    retry_until_replicated,
-    url_fragment,
-    new_school_users,
-    create_ou_using_python,
-    api_version,
-):
+    auth_header: dict[str, str],
+    retry_http_502: Callable[..., requests.Response],
+    retry_until_replicated: Callable[[Callable[[], object]], Awaitable[None]],
+    url_fragment: str,
+    new_school_users: Callable[..., Awaitable[list[User]]],
+    create_ou_using_python: Callable[..., Awaitable[str]],
+    api_version: str,
+) -> None:
     """With ``limit``, every user is returned exactly once, page by page, in both directions."""
     if api_version != "v2":
         pytest.skip("Pagination is a v2 feature.")
     ou_name = await create_ou_using_python()
-    users: list[User] = await new_school_users(ou_name, {"student": 5}, disabled=False)
+    users = await new_school_users(ou_name, {"student": 5}, disabled=False)
 
-    def _get(params):
+    def _get(params: dict[str, str | int]) -> object:
         response = retry_http_502(
             requests.get, f"{url_fragment}/users/", headers=auth_header, params=params
         )
         assert response.status_code == 200, (response.reason, response.content)
-        return response.json()
+        return cast(object, response.json())
 
-    def _cursor(page_url):
-        # Followed by its cursor rather than as is: the host in the link is the
-        # one the request reached Kelvin by.
-        return parse_qs(urlsplit(page_url).query)["cursor"][0]
+    def _names(params: dict[str, str | int]) -> list[str]:
+        return [data["name"] for data in cast("list[dict[str, str]]", _get(params))]
+
+    def _page(params: dict[str, str | int]) -> _Page:
+        return cast(_Page, _get(params))
 
     # v2 is replicated asynchronously: retry until the cache caught up.
-    async def _check():
-        everyone = [data["name"] for data in _get({"school": ou_name})]
+    async def _check() -> None:
+        everyone = _names({"school": ou_name})
         assert {user.name for user in users} <= set(everyone)
 
-        pages = [_get({"school": ou_name, "limit": 2})]
+        pages = [_page({"school": ou_name, "limit": 2})]
         assert pages[0]["previous_page_url"] is None
         while pages[-1]["next_page_url"]:
-            cursor = _cursor(pages[-1]["next_page_url"])
-            pages.append(_get({"school": ou_name, "limit": 2, "cursor": cursor}))
-        paged = [data["name"] for page in pages for data in page["results"]]
+            cursor = _cursor_of(pages[-1]["next_page_url"])
+            pages.append(_page({"school": ou_name, "limit": 2, "cursor": cursor}))
+        paged = [str(data["name"]) for page in pages for data in page["results"]]
         assert sorted(paged) == sorted(everyone)
         assert len(paged) == len(set(paged))
         assert all(len(page["results"]) == 2 for page in pages[:-1])
 
-        back = _get({"school": ou_name, "limit": 2, "cursor": _cursor(pages[-1]["previous_page_url"])})
+        cursor = _cursor_of(pages[-1]["previous_page_url"])
+        back = _page({"school": ou_name, "limit": 2, "cursor": cursor})
         assert back["results"] == pages[-2]["results"]
 
     await retry_until_replicated(_check)
 
 
 @pytest.mark.asyncio
-async def test_search_without_limit_rejects_a_cursor(auth_header, url_fragment, api_version):
+async def test_search_without_limit_rejects_a_cursor(
+    auth_header: dict[str, str], url_fragment: str, api_version: str
+) -> None:
     if api_version != "v2":
         pytest.skip("Pagination is a v2 feature.")
     response = requests.get(f"{url_fragment}/users/", headers=auth_header, params={"cursor": "anything"})
@@ -2658,7 +2675,7 @@ async def test_set_password_hashes(
 @pytest.mark.parametrize("model", (UserCreateModel, UserPatchModel))
 async def test_not_password_and_password_hashes(
     role: Role,
-    model: Union[Type[UserCreateModel], Type[UserPatchModel]],
+    model: type[UserCreateModel] | type[UserPatchModel],
     create_ou_using_python,
     random_user_create_model,
     password_hash,
