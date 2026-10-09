@@ -43,6 +43,7 @@ from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
 from ucsschool_objects.core.domain.validators import GroupValidator
 from ucsschool_objects.database_models import (
     Group as GroupModel,
+    GroupRoleAssociation,
     Role as RoleModel,
     School as SchoolModel,
     SchoolMembership as SchoolMembershipModel,
@@ -156,6 +157,15 @@ class SQLAlchemyGroupManager(Manager[Group]):
             join_path=(SchoolModel,),
             join_type=JoinType.LEFT_OUTER,
             exposed_fields=get_exposed_fields(SchoolModel),
+        ),
+        # Lets a search tell school classes from workgroups in the query, so a
+        # limited search returns full pages instead of being filtered afterwards.
+        "roles": JoinSpec(
+            relation_name="roles",
+            target_model=RoleModel,
+            join_path=(GroupRoleAssociation, RoleModel),
+            join_type=JoinType.INNER,
+            exposed_fields=get_exposed_fields(RoleModel),
         ),
     }
     _BASE_FIELD_MAP: dict[str, FieldColumn] = {
