@@ -21,10 +21,12 @@ v4.2.0 (TBD)
    so clients have to request a new token after the update.
 
 * Changed: The Kelvin REST API uses Pydantic 2 and a current FastAPI instead of Pydantic 1 and FastAPI 0.97.
-* Changed: Python hooks run with Pydantic 2, FastAPI 0.142, ``httpx`` 0.28, and ``uldap3`` 2.0.
+* Changed: Python hooks run with Pydantic 2, FastAPI 0.142, ``httpx2`` 2.13, and ``uldap3`` 2.0.
   Hooks that use Pydantic 1 directly, the Kelvin REST API's models, ``uldap3.LdapConfig``,
   or ``httpx`` have to be adapted.
   Pydantic 1 code keeps working with ``import pydantic.v1 as pydantic``.
+  ``httpx2`` replaces the unmaintained ``httpx`` with the same API,
+  so ``httpx`` code keeps working with ``import httpx2 as httpx``.
 * Changed: The OpenAPI documents follow OpenAPI 3.1 instead of 3.0.
   A property that accepts ``null`` is documented as ``anyOf`` with ``{"type": "null"}`` instead of with ``nullable: true``.
 * Changed: A response with status code ``422`` still reports each validation error with the keys ``type``, ``loc``, and ``msg``,

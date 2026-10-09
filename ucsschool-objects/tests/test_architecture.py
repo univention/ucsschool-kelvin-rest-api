@@ -54,6 +54,7 @@ _FORBIDDEN_EXTERNALS = [
     "asyncpg",
     "fastapi",
     "httpx",
+    "httpx2",
     "psycopg",
     "psycopg2",
     "pydantic",
@@ -69,6 +70,7 @@ _FORBIDDEN_EXTERNALS = [
 _FORBIDDEN_OUTER_FRAMEWORKS = [
     "fastapi",
     "httpx",
+    "httpx2",
     "pydantic",
     "starlette",
     "testcontainers",
