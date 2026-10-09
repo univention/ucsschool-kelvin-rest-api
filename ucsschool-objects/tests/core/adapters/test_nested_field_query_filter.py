@@ -167,7 +167,7 @@ def test_matches_builder_renders_variants_with_escape_clause(
 
     expected_literal = expected_sql_pattern
     if dialect_name == "postgresql":
-        expected_literal = expected_sql_pattern.replace("\\", "\\\\").replace("%", "%%")
+        expected_literal = expected_sql_pattern.replace("%", "%%")
 
     if operator is Operator.MATCHES_CI:
         if dialect_name == "postgresql":

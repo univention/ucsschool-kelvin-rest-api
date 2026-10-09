@@ -29,9 +29,7 @@ def get_ini_urls(base_url: str) -> Iterable[str]:
     result = set()
     r = requests.get(base_url)
     assert r.status_code == 200
-    text = r.content
-    if isinstance(text, bytes):
-        text = text.decode()
+    text = r.content.decode()
     for line in text.split("\n"):
         m = URL_PATTERN.match(line)
         if m:

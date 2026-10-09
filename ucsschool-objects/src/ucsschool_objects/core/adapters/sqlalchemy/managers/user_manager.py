@@ -231,9 +231,7 @@ def _user_scalar_columns() -> tuple[InstrumentedAttribute[object], ...]:
     )
 
 
-def _with_user_related_load_options(
-    stmt: Select[tuple[UserModel]], load: LoadSpec
-) -> Select[tuple[UserModel]]:
+def _with_user_related_load_options(stmt: Select[UserModel], load: LoadSpec) -> Select[UserModel]:
     if _includes_user_memberships(load):
         membership_loader = selectinload(UserModel.school_memberships)
         stmt = stmt.options(membership_loader.load_only(SchoolMembership.is_primary))
@@ -270,10 +268,10 @@ def _with_user_related_load_options(
 
 
 def _with_user_load_options(
-    stmt: Select[tuple[UserModel]],
+    stmt: Select[UserModel],
     load: LoadSpec,
     attribute_map: dict[str, FieldColumn],
-) -> Select[tuple[UserModel]]:
+) -> Select[UserModel]:
     stmt = load_requested_scalar_attributes(
         stmt,
         UserModel.public_id,
@@ -408,7 +406,7 @@ class SQLAlchemyUserManager(Manager[User]):
         modifies_memberships: bool,
         modifies_guardians: bool,
         modifies_wards: bool,
-    ) -> Select[tuple[UserModel]]:
+    ) -> Select[UserModel]:
         stmt = select(UserModel).where(UserModel.public_id == public_id)
         if modifies_memberships:
             stmt = stmt.options(

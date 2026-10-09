@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'emscripten'",
@@ -1096,7 +1096,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12" },
     { name = "python-ldap", specifier = ">=3.4.4" },
     { name = "requests", specifier = ">=2.32.4" },
-    { name = "sqlalchemy", specifier = ">=2.0.48" },
+    { name = "sqlalchemy", specifier = ">=2.1" },
     { name = "ucsschool-objects", editable = "ucsschool-objects" },
 ]
 
@@ -2675,7 +2675,7 @@ dev = [
 requires-dist = [
     { name = "jsonpatch", specifier = ">=1.33" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.3" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2,<=3" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.1,<3" },
 ]
 
 [package.metadata.requires-dev]

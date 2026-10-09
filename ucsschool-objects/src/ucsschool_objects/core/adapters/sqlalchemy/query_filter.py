@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import replace
-from typing import TYPE_CHECKING, Callable, TypeAlias, TypeVar, cast
+from typing import TYPE_CHECKING, Callable, TypeAlias, TypeVarTuple, cast
 from uuid import UUID
 
 from sqlalchemy import (
@@ -61,7 +61,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 RANGE_CAPABLE_TYPES = (Date, DateTime, Float, Integer, Numeric)
 RANGE_OPERATORS = frozenset({Operator.GT, Operator.GTE, Operator.LT, Operator.LTE})
-SelectT = TypeVar("SelectT", bound=tuple[object, ...])
+SelectTs = TypeVarTuple("SelectTs")
 FieldColumn: TypeAlias = InstrumentedAttribute[object] | ColumnElement[object]
 FilterExpression: TypeAlias = ColumnElement[bool]
 FilterExpressionBuilder: TypeAlias = Callable[[FieldColumn, FilterValue], FilterExpression]
@@ -125,10 +125,10 @@ def _get_required_joins(
 
 
 def apply_nested_joins(
-    stmt: Select[SelectT],
+    stmt: Select[*SelectTs],
     required_joins: set[str],
     registry: dict[str, JoinSpec] | None = None,
-) -> Select[SelectT]:
+) -> Select[*SelectTs]:
     """Apply necessary joins for nested relationships and return DISTINCT-wrapped statement.
 
     Args:
@@ -481,12 +481,12 @@ def build_expression(
 
 
 def apply_search_query(
-    stmt: Select[SelectT],
+    stmt: Select[*SelectTs],
     query: SearchQuery | None,
     field_map: Mapping[str, FieldColumn],
     registry: dict[str, JoinSpec] | None = None,
     json_field_map: Mapping[str, FieldColumn] | None = None,
-) -> Select[SelectT]:
+) -> Select[*SelectTs]:
     if query is None or query.where is None:
         return stmt
 
@@ -499,13 +499,13 @@ def apply_search_query(
 
 
 def apply_sort(
-    stmt: Select[SelectT],
+    stmt: Select[*SelectTs],
     sort_by: Sequence[SortSpec],
     field_map: Mapping[str, FieldColumn],
     *,
     default_field: str = "public_id",
     registry: dict[str, JoinSpec] | None = None,
-) -> Select[SelectT]:
+) -> Select[*SelectTs]:
     specs = tuple(sort_by) or (SortSpec(default_field),)
 
     # Apply nested joins if needed

@@ -196,7 +196,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
             if max_depth is not None and len(parts) > max_depth:
                 raise UnsupportedOperation(f"Modifying {top!r} via deep patch is not supported.")
 
-    def _modify_query(self, public_id: UUID) -> Select[tuple[GroupModel]]:
+    def _modify_query(self, public_id: UUID) -> Select[GroupModel]:
         return (
             select(GroupModel)
             .where(GroupModel.public_id == public_id)
@@ -210,7 +210,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
             )
         )
 
-    def _base_stmt(self, load: LoadSpec | None) -> Select[tuple[GroupModel]]:
+    def _base_stmt(self, load: LoadSpec | None) -> Select[GroupModel]:
         stmt = select(GroupModel)
         stmt = load_requested_scalar_attributes(
             stmt,

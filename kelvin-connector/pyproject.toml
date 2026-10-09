@@ -16,7 +16,7 @@ dependencies = [
     "pydantic>=2.12",
     "python-ldap>=3.4.4",
     "requests>=2.32.4",
-    "sqlalchemy>=2.0.48",
+    "sqlalchemy>=2.1",
     "ucsschool-objects",
 ]
 

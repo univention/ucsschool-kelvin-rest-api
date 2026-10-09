@@ -33,7 +33,7 @@ def test_app() -> FastAPI:
 
     @object_router.get("/_test/url_to_name/{obj_type}")
     async def test_url_to_name(request: Request, obj_type: str, url: str | None = None):
-        return {"url_to_name": url_to_name(request, obj_type, url)}
+        return {"url_to_name": url_to_name(request, obj_type, url)}  # pyright: ignore[reportArgumentType]
 
     @object_router.get("/_test/no_match")
     async def test_no_match(request: Request):

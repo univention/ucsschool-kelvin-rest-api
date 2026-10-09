@@ -6,7 +6,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from ucsschool.kelvin.schema import HttpUrl
 
-http_url_adapter: TypeAdapter[str] = TypeAdapter(HttpUrl)
+http_url_adapter = TypeAdapter[str](HttpUrl)  # pyright: ignore[reportArgumentType]
 
 
 def test_http_url_keeps_the_string_as_sent() -> None:

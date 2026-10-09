@@ -25,10 +25,10 @@ import copy
 import logging
 import sys
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
+from urllib.parse import quote_plus, urljoin
 
 import requests
 from ldap.dn import explode_dn
-from requests.compat import quote_plus, urljoin
 
 if sys.version_info.major > 2:
     import http.client
