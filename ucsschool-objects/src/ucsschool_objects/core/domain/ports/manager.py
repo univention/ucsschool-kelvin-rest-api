@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from ucsschool_objects.core.domain.load_spec import LoadSpec
-    from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
+    from ucsschool_objects.core.domain.query import FilterScalarValue, SearchQuery, SortSpec
 
 ManagerT = TypeVar("ManagerT")
 
@@ -62,6 +62,7 @@ class Manager(Protocol[ManagerT]):
         query: SearchQuery | None = None,
         *,
         sort_by: Sequence[SortSpec] = (),
+        search_after: Sequence[FilterScalarValue] | None = None,
         limit: int | None = None,
         offset: int = 0,
         load: LoadSpec | None = None,
@@ -75,6 +76,10 @@ class Manager(Protocol[ManagerT]):
         Args:
             query: Optional structured filter expression.
             sort_by: Sort fields and direction.
+            search_after: Keyset position: one value per ``sort_by`` field. Only
+                records sorting strictly after it, in the ``sort_by`` order, are
+                returned. The sort fields must identify a record uniquely, or
+                records sharing the last page's key are skipped.
             limit: Maximum number of records to return; ``None`` (default) returns all.
             offset: Number of matching records to skip.
             load: Optional attribute/loading specification for eager loading.

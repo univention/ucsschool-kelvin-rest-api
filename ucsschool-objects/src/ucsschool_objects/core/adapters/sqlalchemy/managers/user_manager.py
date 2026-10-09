@@ -40,7 +40,7 @@ from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import User
 from ucsschool_objects.core.domain.ports.manager import JSONPathOperation, Manager
-from ucsschool_objects.core.domain.query import SearchQuery, SortSpec
+from ucsschool_objects.core.domain.query import FilterScalarValue, SearchQuery, SortSpec
 from ucsschool_objects.core.domain.validators import UserValidator
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -436,6 +436,7 @@ class SQLAlchemyUserManager(Manager[User]):
         query: SearchQuery | None = None,
         *,
         sort_by: Sequence[SortSpec] = (),
+        search_after: Sequence[FilterScalarValue] | None = None,
         limit: int | None = None,
         offset: int = 0,
         load: LoadSpec | None = None,
@@ -456,6 +457,7 @@ class SQLAlchemyUserManager(Manager[User]):
             self._FIELD_MAP,
             default_field="public_id",
             registry=self._NESTED_FIELD_REGISTRY,
+            search_after=search_after,
         )
         if limit is not None:
             stmt = stmt.limit(limit)

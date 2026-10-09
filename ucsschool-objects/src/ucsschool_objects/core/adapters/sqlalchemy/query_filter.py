@@ -38,6 +38,7 @@ from ucsschool_objects.core.domain.errors import (
     InvalidJsonFilter,
     InvalidPatternFilter,
     InvalidRangeFilter,
+    InvalidSearchAfter,
     InvalidUuidFilter,
     UnsupportedFilterField,
     UnsupportedFilterOperator,
@@ -48,6 +49,7 @@ from ucsschool_objects.core.domain.query import (
     And,
     Filter,
     FilterInValue,
+    FilterScalarValue,
     FilterValue,
     Not,
     Operator,
@@ -498,6 +500,32 @@ def apply_search_query(
     return stmt.where(build_expression(query.where, field_map, registry, json_field_map))
 
 
+def _search_after_condition(
+    specs: tuple[SortSpec, ...],
+    search_after: tuple[FilterScalarValue, ...],
+    field_map: Mapping[str, FieldColumn],
+) -> ColumnElement[bool]:
+    """Rows sorting strictly after ``search_after`` in the order of ``specs``.
+
+    Spelled out per position instead of as a row-value comparison, so that
+    every sort field can have its own direction:
+    ``a > x OR (a = x AND b > y) OR ...``.
+    """
+    if len(search_after) != len(specs) or any(value is None for value in search_after):
+        raise InvalidSearchAfter(search_after, tuple(spec.field for spec in specs))
+    alternatives: list[ColumnElement[bool]] = []
+    for position, spec in enumerate(specs):
+        column = field_map[spec.field]
+        value = search_after[position]
+        equal_before = [
+            field_map[earlier.field] == search_after[index]
+            for index, earlier in enumerate(specs[:position])
+        ]
+        beyond = column > value if spec.ascending else column < value
+        alternatives.append(and_(*equal_before, beyond))
+    return or_(*alternatives)
+
+
 def apply_sort(
     stmt: Select[SelectT],
     sort_by: Sequence[SortSpec],
@@ -505,6 +533,7 @@ def apply_sort(
     *,
     default_field: str = "public_id",
     registry: dict[str, JoinSpec] | None = None,
+    search_after: Sequence[FilterScalarValue] | None = None,
 ) -> Select[SelectT]:
     specs = tuple(sort_by) or (SortSpec(default_field),)
 
@@ -512,12 +541,17 @@ def apply_sort(
     required_joins = _get_required_joins(specs, registry)
     stmt = apply_nested_joins(stmt, required_joins, registry)
 
+    ordering = specs
     if default_field in field_map and all(spec.field != default_field for spec in specs):
-        specs = (*specs, SortSpec(default_field))
+        ordering = (*specs, SortSpec(default_field))
 
-    for spec in specs:
+    for spec in ordering:
         if spec.field not in field_map:
             raise UnsupportedSortField(spec.field)
         column = field_map[spec.field]
         stmt = stmt.order_by(asc(column) if spec.ascending else desc(column))
+    if search_after is not None:
+        # Keyed on the requested fields only: the appended default field breaks
+        # ties in the order, but is not part of the position the caller gave.
+        stmt = stmt.where(_search_after_condition(specs, tuple(search_after), field_map))
     return stmt
