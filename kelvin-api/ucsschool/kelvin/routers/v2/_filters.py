@@ -41,16 +41,23 @@ def name_filter(field: str, values: Sequence[str]) -> QueryExpr:
     return Or(clauses=tuple(clauses))
 
 
-def group_search_query(school: str, names: Sequence[str] | None) -> SearchQuery:
+def group_search_query(
+    school: str, names: Sequence[str] | None, *, role: str | None = None
+) -> SearchQuery:
     """The query behind a group collection: one school, optionally narrowed by name.
 
     Stored group names carry the school as a prefix, so it is applied per value
     before they are folded into one lookup. Both group collections build the
     same query. Asking for all the names at once is what keeps resolving the
     groups of a user list to one request instead of one per group.
+
+    ``role`` keeps school classes and workgroups apart in the query itself. A
+    page cut by ``limit`` must not lose groups to a filter applied afterwards.
     """
     clauses: list[QueryExpr] = [Filter(field="school.name", op=Operator.EQ, value=school)]
     wanted = [name for name in names or () if name]
     if wanted:
         clauses.append(name_filter("name", [f"{school}-{name}" for name in wanted]))
+    if role:
+        clauses.append(Filter(field="roles.name", op=Operator.EQ, value=role))
     return SearchQuery(where=And(clauses=tuple(clauses)) if len(clauses) > 1 else clauses[0])

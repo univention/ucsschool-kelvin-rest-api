@@ -4,6 +4,7 @@
 import random
 from collections.abc import Awaitable, Callable
 from typing import List
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 import requests
@@ -728,6 +729,49 @@ async def test_search_leaves_the_members_out_when_excluded(
         assert {k: v for k, v in lean_item.items() if k != "users"} == {
             k: v for k, v in full_item.items() if k != "users"
         }
+
+    await retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
+async def test_search_pages(
+    auth_header,
+    retry_http_502,
+    retry_until_replicated,
+    url_fragment,
+    new_school_class_using_lib,
+    create_ou_using_python,
+    api_version,
+):
+    """With ``limit``, every class is returned exactly once, page by page."""
+    if api_version != "v2":
+        pytest.skip("Pagination is a v2 feature.")
+    ou = await create_ou_using_python()
+    names = set()
+    for _ in range(3):
+        _dn, attr = await new_school_class_using_lib(ou)
+        names.add(attr["name"])
+
+    def _get(params):
+        response = retry_http_502(
+            requests.get, f"{url_fragment}/classes/", headers=auth_header, params=params
+        )
+        assert response.status_code == 200, (response.reason, response.content)
+        return response.json()
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        everyone = [data["name"] for data in _get({"school": ou})]
+        assert names <= set(everyone)
+
+        pages = [_get({"school": ou, "limit": 1})]
+        while pages[-1]["next_page_url"]:
+            cursor = parse_qs(urlsplit(pages[-1]["next_page_url"]).query)["cursor"][0]
+            pages.append(_get({"school": ou, "limit": 1, "cursor": cursor}))
+        assert all(len(page["results"]) == 1 for page in pages)
+        paged = [data["name"] for page in pages for data in page["results"]]
+        assert sorted(paged) == sorted(everyone)
+        assert len(paged) == len(set(paged))
 
     await retry_until_replicated(_check)
 

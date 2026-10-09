@@ -35,6 +35,7 @@ from ucsschool.kelvin.routers.v1.school import SchoolModel
 from ucsschool.kelvin.routers.v1.school_class import SchoolClassModel
 from ucsschool.kelvin.routers.v1.user import UserModel
 from ucsschool.kelvin.routers.v1.workgroup import WorkGroupModel
+from ucsschool.kelvin.routers.v2._pagination import ModelPageResponse, Page
 from ucsschool.kelvin.routers.v2._responses import ModelListResponse
 
 BASE = "https://kelvin.example.com/ucsschool/kelvin/v2"
@@ -140,6 +141,18 @@ def test_model_list_response_of_nothing_is_an_empty_list() -> None:
     assert ModelListResponse([]).body == b"[]"
 
 
+@pytest.mark.parametrize("build", [_user, _school, _school_class, _workgroup, _role])
+def test_model_page_response_matches_the_generic_encoder(build: Callable[[], BaseModel]) -> None:
+    model = build()
+    page = Page[type(model)](
+        results=[model], next_page_url=f"{BASE}/?limit=1&cursor=abc", previous_page_url=None
+    )
+
+    response = ModelPageResponse([model], page.next_page_url, page.previous_page_url)
+
+    assert response.body == orjson.dumps(jsonable_encoder(page))
+
+
 SEARCH_ROUTES = {
     v2.role: RoleModel,
     v2.school: SchoolModel,
@@ -158,9 +171,13 @@ def test_search_route_declares_its_model_in_annotation_and_schema(
         for r in module.router.routes
         if isinstance(r, APIRoute) and r.path == "/" and "GET" in r.methods
     ]
-    annotation = get_type_hints(route.endpoint)["return"]
+    list_response, page_response = get_args(get_type_hints(route.endpoint)["return"])
+    list_model, page_model = get_args(route.response_model)
 
-    assert get_origin(annotation) is ModelListResponse
-    assert get_args(annotation) == (model,)
-    assert get_origin(route.response_model) is list
-    assert get_args(route.response_model) == (model,)
+    assert get_origin(list_response) is ModelListResponse
+    assert get_args(list_response) == (model,)
+    assert get_origin(page_response) is ModelPageResponse
+    assert get_args(page_response) == (model,)
+    assert get_origin(list_model) is list
+    assert get_args(list_model) == (model,)
+    assert page_model is Page[model]

@@ -59,3 +59,16 @@ def test_wildcards_and_plain_values_are_combined() -> None:
             )
         )
     )
+
+
+def test_a_role_is_matched_in_the_query() -> None:
+    """A page cut by ``limit`` must not lose groups to a role check afterwards."""
+    assert group_search_query("DEMOSCHOOL", ["1a"], role="school_class") == SearchQuery(
+        where=And(
+            clauses=(
+                _SCHOOL,
+                Filter(field="name", op=Operator.IN_CI, value=("DEMOSCHOOL-1a",)),
+                Filter(field="roles.name", op=Operator.EQ, value="school_class"),
+            )
+        )
+    )

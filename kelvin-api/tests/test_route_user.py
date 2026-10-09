@@ -8,7 +8,7 @@ import json
 import logging
 import random
 from typing import Any, Dict, List, NamedTuple, Set, Tuple, Type, Union
-from urllib.parse import SplitResult, urlsplit
+from urllib.parse import SplitResult, parse_qs, urlsplit
 
 import pytest
 import requests
@@ -339,6 +339,63 @@ async def test_search_multiple_names(
         }
 
     await retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
+async def test_search_pages(
+    auth_header,
+    retry_http_502,
+    retry_until_replicated,
+    url_fragment,
+    new_school_users,
+    create_ou_using_python,
+    api_version,
+):
+    """With ``limit``, every user is returned exactly once, page by page, in both directions."""
+    if api_version != "v2":
+        pytest.skip("Pagination is a v2 feature.")
+    ou_name = await create_ou_using_python()
+    users: list[User] = await new_school_users(ou_name, {"student": 5}, disabled=False)
+
+    def _get(params):
+        response = retry_http_502(
+            requests.get, f"{url_fragment}/users/", headers=auth_header, params=params
+        )
+        assert response.status_code == 200, (response.reason, response.content)
+        return response.json()
+
+    def _cursor(page_url):
+        # Followed by its cursor rather than as is: the host in the link is the
+        # one the request reached Kelvin by.
+        return parse_qs(urlsplit(page_url).query)["cursor"][0]
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check():
+        everyone = [data["name"] for data in _get({"school": ou_name})]
+        assert {user.name for user in users} <= set(everyone)
+
+        pages = [_get({"school": ou_name, "limit": 2})]
+        assert pages[0]["previous_page_url"] is None
+        while pages[-1]["next_page_url"]:
+            cursor = _cursor(pages[-1]["next_page_url"])
+            pages.append(_get({"school": ou_name, "limit": 2, "cursor": cursor}))
+        paged = [data["name"] for page in pages for data in page["results"]]
+        assert sorted(paged) == sorted(everyone)
+        assert len(paged) == len(set(paged))
+        assert all(len(page["results"]) == 2 for page in pages[:-1])
+
+        back = _get({"school": ou_name, "limit": 2, "cursor": _cursor(pages[-1]["previous_page_url"])})
+        assert back["results"] == pages[-2]["results"]
+
+    await retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
+async def test_search_without_limit_rejects_a_cursor(auth_header, url_fragment, api_version):
+    if api_version != "v2":
+        pytest.skip("Pagination is a v2 feature.")
+    response = requests.get(f"{url_fragment}/users/", headers=auth_header, params={"cursor": "anything"})
+    assert response.status_code == 400
 
 
 @pytest.mark.asyncio  # noqa: C901

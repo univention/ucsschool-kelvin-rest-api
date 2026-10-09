@@ -35,6 +35,7 @@ from ..v1.workgroup import (
     search as v1_search,
 )
 from ._filters import group_search_query as _group_search_query
+from ._pagination import ModelPageResponse, Page, PageRequest, page_request, page_response, search_page
 from ._responses import ModelListResponse
 from .udm_properties import mapped_udm_properties
 
@@ -158,7 +159,27 @@ async def _group_to_workgroup_model(
     )
 
 
-@router.get("/", response_model=list[WorkGroupModel])
+async def _groups_to_models(
+    groups: list[Group], request: Request, session: KelvinStorageSession, with_users: bool
+) -> list[WorkGroupModel]:
+    # Two lookups for the whole page, as the user search already does: resolving
+    # them per group is two round trips per group.
+    mapper = sqlalchemy_mapper_factory(session)
+    subjects = [_workgroup_dn_subjects(g) for g in groups]
+    dn_map = await mapper.public_ids_to_dns(
+        ObjectType.GROUP, [pid for group_ids, _user_ids in subjects for pid in group_ids]
+    )
+    user_ids = [pid for _group_ids, user_ids in subjects for pid in user_ids]
+    user_dn_map = await mapper.public_ids_to_dns(ObjectType.USER, user_ids) if user_ids else {}
+    return [
+        await _group_to_workgroup_model(
+            g, request, session, dn_map=dn_map, user_dn_map=user_dn_map, with_users=with_users
+        )
+        for g in groups
+    ]
+
+
+@router.get("/", response_model=list[WorkGroupModel] | Page[WorkGroupModel])
 async def search(
     request: Request,
     school: Annotated[
@@ -175,6 +196,7 @@ async def search(
     logger: Annotated[logging.Logger, Depends(get_logger)],
     session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
     _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+    page: Annotated[PageRequest | None, Depends(page_request)],
     workgroup_name: Annotated[
         list[str] | None,
         Query(
@@ -201,34 +223,18 @@ async def search(
             ),
         ),
     ] = None,
-) -> ModelListResponse[WorkGroupModel]:
+) -> ModelListResponse[WorkGroupModel] | ModelPageResponse[WorkGroupModel]:
     with_users = "users" not in (exclude or [])
-    query = _group_search_query(school, workgroup_name)
+    load = WORKGROUP_LOAD_SPEC_V2 if with_users else WORKGROUP_LOAD_SPEC_V2_NO_MEMBERS
+    query = _group_search_query(school, workgroup_name, role=_WORKGROUP_ROLE)
     logger.debug("v2 workgroup search query: %r", query)
-    groups = [
-        g
-        for g in await session.groups.search(
-            query, load=WORKGROUP_LOAD_SPEC_V2 if with_users else WORKGROUP_LOAD_SPEC_V2_NO_MEMBERS
-        )
-        if _is_workgroup(g)
-    ]
-    groups.sort(key=lambda g: g.name)
-    # Two lookups for the whole page, as the user search already does: resolving
-    # them per group is two round trips per group.
-    mapper = sqlalchemy_mapper_factory(session)
-    subjects = [_workgroup_dn_subjects(g) for g in groups]
-    dn_map = await mapper.public_ids_to_dns(
-        ObjectType.GROUP, [pid for group_ids, _user_ids in subjects for pid in group_ids]
-    )
-    user_ids = [pid for _group_ids, user_ids in subjects for pid in user_ids]
-    user_dn_map = await mapper.public_ids_to_dns(ObjectType.USER, user_ids) if user_ids else {}
-    return ModelListResponse(
-        [
-            await _group_to_workgroup_model(
-                g, request, session, dn_map=dn_map, user_dn_map=user_dn_map, with_users=with_users
-            )
-            for g in groups
-        ]
+    if page is None:
+        groups = list(await session.groups.search(query, load=load))
+        groups.sort(key=lambda g: g.name)
+        return ModelListResponse(await _groups_to_models(groups, request, session, with_users))
+    found = await search_page(session.groups, query, page, lambda g: g.name, load=load)
+    return page_response(
+        request, found, await _groups_to_models(found.items, request, session, with_users)
     )
 
 

@@ -3,7 +3,7 @@
 
 import logging
 from functools import lru_cache
-from typing import List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
 from ucsschool_objects import (
@@ -11,6 +11,7 @@ from ucsschool_objects import (
     KelvinStorageSession,
     LoadSpec,
     Operator,
+    Role,
     SearchQuery,
 )
 
@@ -18,6 +19,7 @@ from ...ldap import LdapUser
 from ...service.dependency import get_storage_session
 from ...token_auth import get_kelvin_reader
 from ..v1.role import RoleModel, SchoolUserRole, get as v1_get, search as v1_search
+from ._pagination import ModelPageResponse, Page, PageRequest, page_request, page_response, search_page
 from ._responses import ModelListResponse
 
 router = APIRouter()
@@ -33,32 +35,41 @@ ROLE_LOAD_SPEC_V2 = LoadSpec.from_attributes("name", "display_name")
 _KNOWN_ROLE_NAMES = frozenset(role.value for role in SchoolUserRole)
 
 
-@router.get("/", response_model=List[RoleModel])
+# Roles of other kinds share the table; leaving them out in the query keeps
+# the pages of a limited search full.
+_KNOWN_ROLES_QUERY = SearchQuery(
+    where=Filter(field="name", op=Operator.IN, value=tuple(sorted(_KNOWN_ROLE_NAMES)))
+)
+
+
+def _role_to_model(role: Role, request: Request) -> RoleModel:
+    return RoleModel(
+        name=role.name,
+        display_name=role.name,
+        url=SchoolUserRole(role.name).to_url(request),
+    )
+
+
+@router.get("/", response_model=list[RoleModel] | Page[RoleModel])
 async def search(
     request: Request,
-    logger: logging.Logger = Depends(get_logger),
-    session: KelvinStorageSession = Depends(get_storage_session),
-    kelvin_reader: LdapUser = Depends(get_kelvin_reader),
-) -> ModelListResponse[RoleModel]:
-    roles = sorted(
-        [
-            role
-            for role in await session.roles.search(load=ROLE_LOAD_SPEC_V2)
-            if role.name in _KNOWN_ROLE_NAMES
-        ],
-        key=lambda r: r.name,
+    page: Annotated[PageRequest | None, Depends(page_request)],
+    logger: Annotated[logging.Logger, Depends(get_logger)],
+    session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
+    kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+) -> ModelListResponse[RoleModel] | ModelPageResponse[RoleModel]:
+    if page is None:
+        roles = sorted(
+            await session.roles.search(_KNOWN_ROLES_QUERY, load=ROLE_LOAD_SPEC_V2),
+            key=lambda r: r.name,
+        )
+        logger.debug("v2 role search: found %d known roles", len(roles))
+        return ModelListResponse([_role_to_model(role, request) for role in roles])
+    found = await search_page(
+        session.roles, _KNOWN_ROLES_QUERY, page, lambda r: r.name, load=ROLE_LOAD_SPEC_V2
     )
-    logger.debug("v2 role search: found %d known roles", len(roles))
-    return ModelListResponse(
-        [
-            RoleModel(
-                name=role.name,
-                display_name=role.name,
-                url=SchoolUserRole(role.name).to_url(request),
-            )
-            for role in roles
-        ]
-    )
+    logger.debug("v2 role search: found %d known roles on the page", len(found.items))
+    return page_response(request, found, [_role_to_model(role, request) for role in found.items])
 
 
 @router.get("/{role_name}", response_model=RoleModel)

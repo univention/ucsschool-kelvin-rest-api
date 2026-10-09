@@ -34,6 +34,7 @@ from ..v1.school_class import (
     search as v1_search,
 )
 from ._filters import group_search_query as _group_search_query
+from ._pagination import ModelPageResponse, Page, PageRequest, page_request, page_response, search_page
 from ._responses import ModelListResponse
 from .udm_properties import mapped_udm_properties
 
@@ -127,7 +128,20 @@ async def _group_to_school_class_model(
     )
 
 
-@router.get("/", response_model=list[SchoolClassModel])
+async def _groups_to_models(
+    groups: list[Group], request: Request, session: KelvinStorageSession, with_users: bool
+) -> list[SchoolClassModel]:
+    # One lookup for the whole page, as the user search already does: resolving
+    # a DN per group is one round trip per group.
+    mapper = sqlalchemy_mapper_factory(session)
+    dn_map = await mapper.public_ids_to_dns(ObjectType.GROUP, [_public_id(g) for g in groups])
+    return [
+        await _group_to_school_class_model(g, request, session, dn_map=dn_map, with_users=with_users)
+        for g in groups
+    ]
+
+
+@router.get("/", response_model=list[SchoolClassModel] | Page[SchoolClassModel])
 async def search(
     request: Request,
     school: Annotated[
@@ -144,6 +158,7 @@ async def search(
     logger: Annotated[logging.Logger, Depends(get_logger)],
     session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
     _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+    page: Annotated[PageRequest | None, Depends(page_request)],
     class_name: Annotated[
         list[str] | None,
         Query(
@@ -170,28 +185,18 @@ async def search(
             ),
         ),
     ] = None,
-) -> ModelListResponse[SchoolClassModel]:
+) -> ModelListResponse[SchoolClassModel] | ModelPageResponse[SchoolClassModel]:
     with_users = "users" not in (exclude or [])
-    query = _group_search_query(school, class_name)
+    load = SCHOOL_CLASS_LOAD_SPEC_V2 if with_users else SCHOOL_CLASS_LOAD_SPEC_V2_NO_MEMBERS
+    query = _group_search_query(school, class_name, role=_SCHOOL_CLASS_ROLE)
     logger.debug("v2 school_class search query: %r", query)
-    groups = [
-        g
-        for g in await session.groups.search(
-            query,
-            load=SCHOOL_CLASS_LOAD_SPEC_V2 if with_users else SCHOOL_CLASS_LOAD_SPEC_V2_NO_MEMBERS,
-        )
-        if _is_school_class(g)
-    ]
-    groups.sort(key=lambda g: g.name)
-    # One lookup for the whole page, as the user search already does: resolving
-    # a DN per group is one round trip per group.
-    mapper = sqlalchemy_mapper_factory(session)
-    dn_map = await mapper.public_ids_to_dns(ObjectType.GROUP, [_public_id(g) for g in groups])
-    return ModelListResponse(
-        [
-            await _group_to_school_class_model(g, request, session, dn_map=dn_map, with_users=with_users)
-            for g in groups
-        ]
+    if page is None:
+        groups = list(await session.groups.search(query, load=load))
+        groups.sort(key=lambda g: g.name)
+        return ModelListResponse(await _groups_to_models(groups, request, session, with_users))
+    found = await search_page(session.groups, query, page, lambda g: g.name, load=load)
+    return page_response(
+        request, found, await _groups_to_models(found.items, request, session, with_users)
     )
 
 

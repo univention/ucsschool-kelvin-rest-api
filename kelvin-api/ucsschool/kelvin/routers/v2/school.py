@@ -30,6 +30,7 @@ from ..v1.school import (
     school_search as v1_school_search,
 )
 from ._filters import str_filter as _str_filter
+from ._pagination import ModelPageResponse, Page, PageRequest, page_request, page_response, search_page
 from ._responses import ModelListResponse
 from .udm_properties import mapped_udm_properties
 
@@ -66,12 +67,13 @@ async def _school_to_model(
     )
 
 
-@router.get("/", response_model=list[SchoolModel])
+@router.get("/", response_model=list[SchoolModel] | Page[SchoolModel])
 async def search(
     request: Request,
     logger: Annotated[logging.Logger, Depends(get_logger)],
     session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
     _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
+    page: Annotated[PageRequest | None, Depends(page_request)],
     name_filter: Annotated[
         str | None,
         Query(
@@ -83,16 +85,21 @@ async def search(
             title="name",
         ),
     ] = None,
-) -> ModelListResponse[SchoolModel]:
+) -> ModelListResponse[SchoolModel] | ModelPageResponse[SchoolModel]:
     query = (
         SearchQuery(where=_str_filter("name", name_filter, case_insensitive=True))
         if name_filter
         else None
     )
     logger.debug("v2 school search query: %r", query)
-    schools = list(await session.schools.search(query))
-    schools.sort(key=lambda s: s.name)
-    return ModelListResponse([await _school_to_model(s, request, session) for s in schools])
+    if page is None:
+        schools = list(await session.schools.search(query))
+        schools.sort(key=lambda s: s.name)
+        return ModelListResponse([await _school_to_model(s, request, session) for s in schools])
+    found = await search_page(session.schools, query, page, lambda s: s.name)
+    return page_response(
+        request, found, [await _school_to_model(s, request, session) for s in found.items]
+    )
 
 
 @router.get("/{school_name}", response_model=SchoolModel)
