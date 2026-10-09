@@ -66,9 +66,14 @@ Every page request is independent of the others.
 Any Kelvin REST API instance can answer it,
 so a setup with several instances or a load balancer needs no sticky sessions.
 Objects that someone creates or deletes while you read the pages
-don't shift the remaining pages.
-Every object that exists for the whole time appears exactly once,
+don't shift the following pages.
+Reading in one direction, every object that exists for the whole time appears exactly once,
 unless someone renames it between two page requests.
+When you go back to earlier pages after objects were created, deleted, or renamed,
+their boundaries can differ from the ones you saw before.
+When you reach the start this way, you get the regular first page,
+the same one a search without ``cursor`` returns,
+so some objects can appear on two pages.
 
 .. versionadded:: 4.2.0
 

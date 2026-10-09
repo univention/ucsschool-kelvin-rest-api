@@ -179,7 +179,13 @@ async def search_page(
     *,
     load: LoadSpec | None = None,
 ) -> PageItems[TItem]:
-    """Search ``manager`` for the objects of ``page``."""
+    """Search ``manager`` for the objects of ``page``.
+
+    Paging back fills a page from its cursor backwards, so objects created or
+    deleted before the cursor in the meantime leave the first page short, or
+    even empty. Reaching the start that way answers with the actual first page
+    instead.
+    """
     fetched = await manager.search(
         query,
         sort_by=page.sort_by,
@@ -187,7 +193,11 @@ async def search_page(
         limit=page.fetch_limit,
         load=load,
     )
-    return cut_page(page, list(fetched), name)
+    found = cut_page(page, list(fetched), name)
+    if not page.forward and found.previous_cursor is None and len(found.items) < page.size:
+        first_page = PageRequest(size=page.size, cursor=None)
+        return await search_page(manager, query, first_page, name, load=load)
+    return found
 
 
 def page_url(request: Request, cursor: Cursor | None) -> str | None:

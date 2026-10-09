@@ -239,23 +239,26 @@ def test_page_response_serialises_the_page() -> None:
 
 @dataclass
 class _RecordingManager:
-    found: list[Named]
+    """Answers the n-th search with the n-th entry of ``found``."""
+
+    found: list[list[Named]]
     calls: list[tuple[SearchQuery | None, dict[str, object]]] = field(default_factory=list)
 
     async def search(self, query: SearchQuery | None = None, **kwargs: object) -> list[Named]:
         self.calls.append((query, kwargs))
-        return self.found
+        return self.found[len(self.calls) - 1]
+
+    def as_manager(self) -> Manager[Named]:
+        return cast("Manager[Named]", cast(object, self))
 
 
 async def test_search_page_asks_the_manager_for_one_beyond_the_page() -> None:
-    manager = _RecordingManager(found=_fetched("b", "c", "d"))
+    manager = _RecordingManager(found=[_fetched("b", "c", "d")])
     page = PageRequest(size=2, cursor=Cursor(name="a", forward=True))
     query = SearchQuery(where=Filter(field="name", op=Operator.MATCHES, value="*"))
     load = LoadSpec.from_attributes("name")
 
-    found = await search_page(
-        cast("Manager[Named]", cast(object, manager)), query, page, _name, load=load
-    )
+    found = await search_page(manager.as_manager(), query, page, _name, load=load)
 
     assert manager.calls == [
         (
@@ -269,6 +272,70 @@ async def test_search_page_asks_the_manager_for_one_beyond_the_page() -> None:
         )
     ]
     assert _names(found.items) == ["b", "c"]
+
+
+async def test_paging_back_to_a_short_start_answers_with_the_first_page() -> None:
+    """``bb`` was created after the client left ``[a, b]``: going back from ``[b, bb]``
+    finds only ``[a]`` before it, and answers with ``[a, b]`` instead."""
+    manager = _RecordingManager(found=[_fetched("a"), _fetched("a", "b", "bb")])
+    page = PageRequest(size=2, cursor=Cursor(name="b", forward=False))
+    query = SearchQuery(where=Filter(field="name", op=Operator.MATCHES, value="*"))
+    load = LoadSpec.from_attributes("name")
+
+    found = await search_page(manager.as_manager(), query, page, _name, load=load)
+
+    assert [call[1]["search_after"] for call in manager.calls] == [("b",), None]
+    assert manager.calls[1] == (
+        query,
+        {
+            "sort_by": (SortSpec(field="name", ascending=True),),
+            "search_after": None,
+            "limit": 3,
+            "load": load,
+        },
+    )
+    assert found == PageItems(
+        items=_fetched("a", "b"),
+        next_cursor=Cursor(name="b", forward=True),
+        previous_cursor=None,
+    )
+
+
+async def test_paging_back_to_an_emptied_start_answers_with_the_first_page() -> None:
+    manager = _RecordingManager(found=[[], _fetched("c", "d")])
+    page = PageRequest(size=2, cursor=Cursor(name="c", forward=False))
+
+    found = await search_page(manager.as_manager(), None, page, _name)
+
+    assert _names(found.items) == ["c", "d"]
+    assert found.previous_cursor is None
+
+
+@pytest.mark.parametrize(
+    "fetched",
+    [
+        pytest.param(_fetched("b", "a"), id="full-page-at-the-start"),
+        pytest.param(_fetched("c", "b", "a"), id="more-before"),
+    ],
+)
+async def test_paging_back_to_a_full_page_searches_once(fetched: list[Named]) -> None:
+    manager = _RecordingManager(found=[fetched])
+    page = PageRequest(size=2, cursor=Cursor(name="d", forward=False))
+
+    found = await search_page(manager.as_manager(), None, page, _name)
+
+    assert len(manager.calls) == 1
+    assert len(found.items) == 2
+
+
+async def test_a_short_last_page_going_forward_searches_once() -> None:
+    manager = _RecordingManager(found=[_fetched("c")])
+    page = PageRequest(size=2, cursor=Cursor(name="b", forward=True))
+
+    found = await search_page(manager.as_manager(), None, page, _name)
+
+    assert len(manager.calls) == 1
+    assert _names(found.items) == ["c"]
 
 
 def _endpoint(page: Annotated[PageRequest | None, Depends(page_request)]) -> dict[str, int | None]:
