@@ -15,7 +15,7 @@
 name: kelvin-dev
 services:
   postgres:
-    image: postgres:15-bookworm # UCS 5.2 version
+    image: postgres:18-bookworm # UCS 5.2 version
     ports:
       - 5432:5432
     environment:
