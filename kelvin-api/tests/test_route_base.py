@@ -4,6 +4,7 @@
 from pathlib import Path
 
 import pytest
+from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
 from ucsschool.kelvin.constants import URL_API_V1_PREFIX, URL_KELVIN_BASE
@@ -45,3 +46,19 @@ def test_doc_static_page_is_served(
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert response.text == static_file.read_text()
+
+
+def test_a_json_body_without_content_type_is_accepted(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def echo(body: dict[str, str]) -> dict[str, str]:
+        return body
+
+    monkeypatch.setattr(app.router, "routes", list(app.router.routes))
+    resource_router = APIRouter()
+    resource_router.add_api_route("/echo", echo, methods=["POST"])
+    version_router = APIRouter()
+    version_router.include_router(resource_router)
+    app.include_router(version_router)
+
+    response = TestClient(app).post("/echo", content=b'{"name": "demo"}')
+
+    assert response.json() == {"name": "demo"}

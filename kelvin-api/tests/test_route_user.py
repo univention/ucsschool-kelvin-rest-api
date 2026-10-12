@@ -1449,10 +1449,11 @@ async def test_put(
     modified_user = UserCreateModel(**{**old_user_data, **new_user_data})
     modified_user.password = modified_user.password.get_secret_value()
     logger.debug("PUT modified_user=%r.", modified_user.model_dump())
+    # No Content-Type on purpose: clients that omit it must keep working (strict_content_type=False).
     response = retry_http_502(
         requests.put,
         f"{url_fragment}/users/{user.name}",
-        headers={"Content-Type": "application/json", **auth_header},
+        headers=auth_header,
         data=model_json(modified_user),
     )
     assert response.status_code == 200, response.reason
