@@ -225,7 +225,7 @@ Runtime and dev dependencies are declared in the root `pyproject.toml` (`[projec
 GitLab CI (`.gitlab-ci.yml`, includes from `.gitlab-ci/`) runs:
 1. Pre-commit / lint checks
 2. Unit tests for the workspace packages with coverage reports
-3. Docker image build via `docker/Dockerfile` (multi-stage: `kelvin-prod` and `connector-prod` targets, both built on the UCS base image `ucs-base-python-524`)
+3. Docker image build via `docker/Dockerfile` (multi-stage: `kelvin-prod` and `connector-prod` targets, both built on the UCS base image `ucs-base-python-527`)
 4. Sphinx documentation build
 5. App Center release pipeline
 
