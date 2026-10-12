@@ -42,6 +42,8 @@ v4.2.0 (TBD)
   Clients that only send the token, like the Kelvin REST API client, don't need any change.
   Scripts that decode the token and read ``sub`` have to read these claims instead.
 * Changed: Updated PyJWT to 2.15 and ruamel.yaml to 0.19.
+* Changed: A request with a body must have the header ``Content-Type: application/json``.
+  A body without a ``Content-Type`` header is no longer read as JSON, and the request is answered with status code ``422``.
 
 v4.1.0 (2026-10-01)
 -------------------

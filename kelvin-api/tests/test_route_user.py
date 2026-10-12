@@ -1020,14 +1020,14 @@ async def test_user_modify_password_policies(
         response = retry_http_502(
             requests.patch,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=json.dumps({"password": modified_user.password}),
         )
     elif method == "put":
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
 
@@ -1452,7 +1452,7 @@ async def test_put(
     response = retry_http_502(
         requests.put,
         f"{url_fragment}/users/{user.name}",
-        headers=auth_header,
+        headers={"Content-Type": "application/json", **auth_header},
         data=model_json(modified_user),
     )
     assert response.status_code == 200, response.reason
@@ -1514,7 +1514,7 @@ async def test_put_with_password_hashes(
     response = retry_http_502(
         requests.put,
         f"{url_fragment}/users/{user.name}",
-        headers=auth_header,
+        headers={"Content-Type": "application/json", **auth_header},
         data=model_json(modified_user),
     )
     assert response.status_code == 200, response.reason
@@ -1924,7 +1924,7 @@ async def test_role_change(
         response = retry_http_502(
             requests.put,
             user_url,
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     else:
@@ -1991,7 +1991,7 @@ async def test_failing_role_change_school_admin_to_student(
         response = retry_http_502(
             requests.put,
             user_url,
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     else:
@@ -2032,7 +2032,7 @@ async def test_role_change_fails_for_student_without_school_class(
         response = retry_http_502(
             requests.put,
             user_url,
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     else:
@@ -2085,7 +2085,7 @@ async def test_role_change_fails_for_student_missing_school_class_for_second_sch
         response = retry_http_502(
             requests.put,
             user_url,
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     else:
@@ -2140,7 +2140,7 @@ async def test_modify_username_checks(
         response = retry_http_502(
             requests.put,
             user_url,
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     else:
@@ -2235,7 +2235,7 @@ async def test_rename(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     else:
@@ -2297,7 +2297,7 @@ async def test_school_change(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     json_response = response.json()
@@ -2400,7 +2400,7 @@ async def test_school_change_verify_groups(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     else:
@@ -2484,7 +2484,7 @@ async def test_change_disable(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(user),
         )
     assert response.status_code == 200, response.reason
@@ -2508,7 +2508,7 @@ async def test_change_disable(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(user),
         )
     assert response.status_code == 200, response.reason
@@ -2557,7 +2557,7 @@ async def test_change_password(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(create_model),
         )
     assert response.status_code == 200, response.reason
@@ -2810,7 +2810,7 @@ async def test_school_move_primary_follows_dn(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     assert response.status_code == 200, response.reason
@@ -2916,7 +2916,7 @@ async def test_add_additional_schools(
             response = retry_http_502(
                 requests.put,
                 f"{url_fragment}/users/{user.name}",
-                headers=auth_header,
+                headers={"Content-Type": "application/json", **auth_header},
                 data=model_json(modified_user, exclude={"school"}),
             )
         json_response = response.json()
@@ -3036,7 +3036,7 @@ async def test_set_school_with_multiple_schools(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     json_response = response.json()
@@ -3157,7 +3157,7 @@ async def test_change_school_with_multiple_schools(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     else:
@@ -3291,7 +3291,7 @@ async def test_change_school_and_schools(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user, exclude={"school"}),
         )
     else:
@@ -3420,7 +3420,7 @@ async def test_change_schools_and_classes(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user, exclude={"school"}),
         )
     json_response = response.json()
@@ -3551,14 +3551,14 @@ async def test_modify_with_non_existing_workgroup(
         response = retry_http_502(
             requests.patch,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=json.dumps({"workgroups": modified_user.workgroups}),
         )
     elif method == "put":
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     assert response.status_code == 400, response.reason
@@ -3649,9 +3649,9 @@ async def test_create_with_windows_reserved_name_raises(
 
     if windows_check == "true":
         assert response.status_code == 422, f"{response.__dict__!r}"
-        assert response.json()["detail"][0]["msg"] == "May not be a Windows reserved name", (
-            response.json()["detail"]
-        )
+        assert (
+            response.json()["detail"][0]["msg"] == "Value error, May not be a Windows reserved name"
+        ), response.json()["detail"]
         async with UDM(**udm_kwargs) as udm:
             lib_users = await User.get_all(udm, school, f"username={r_user.name}")
         assert len(lib_users) == 0
@@ -3694,7 +3694,7 @@ async def test_complete_update_does_not_change_workgroups_if_not_passed(
     response = retry_http_502(
         requests.put,
         f"{url_fragment}/users/{user.name}",
-        headers=auth_header,
+        headers={"Content-Type": "application/json", **auth_header},
         data=model_json(modified_user),
     )
     assert response.status_code == 200, response.reason
@@ -3814,7 +3814,7 @@ async def test_modify_custom_ucsschool_roles(
         response = retry_http_502(
             requests.put,
             f"{url_fragment_https}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     else:
@@ -3847,7 +3847,7 @@ async def test_modify_custom_ucsschool_roles(
         response = retry_http_502(
             requests.put,
             f"{url_fragment_https}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=json.dumps(response_json),
         )
     else:
@@ -3910,7 +3910,7 @@ async def test_modify_custom_ucsschool_roles_with_role_change(
         response = retry_http_502(
             requests.put,
             f"{url_fragment_https}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(modified_user),
         )
     else:
@@ -3966,7 +3966,7 @@ async def test_udm_error_forwarding_on_modify(
         response = retry_http_502(
             requests.put,
             f"{url_fragment}/users/{user.name}",
-            headers=auth_header,
+            headers={"Content-Type": "application/json", **auth_header},
             data=model_json(create_model),
         )
 
