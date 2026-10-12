@@ -12,21 +12,80 @@ v4.2.0 (TBD)
 ------------
 .. important::
 
+   This release updates the dependencies of the Kelvin REST API to fix security issues.
+   Future releases will update dependencies regularly.
+   Python hooks that use Pydantic or ``httpx`` directly might have to be adapted.
+   Check that your Python hooks for the version 1 API still work.
+
    This release changes the OpenAPI documents and the body of responses with status code ``422``.
    Clients generated from the OpenAPI documents or evaluating validation errors may have to be adapted.
-   Python hooks that use Pydantic, ``uldap3``, or ``httpx`` directly may have to be adapted, too.
 
    This release changes the content of the access token.
    Tokens issued before the update are rejected with status code ``401``,
    so clients have to request a new token after the update.
 
-* Changed: The Kelvin REST API uses Pydantic 2 and a current FastAPI instead of Pydantic 1 and FastAPI 0.97.
-* Changed: Python hooks run with Pydantic 2, FastAPI 0.142, ``httpx2`` 2.13, and ``uldap3`` 2.0.
-  Hooks that use Pydantic 1 directly, the Kelvin REST API's models, ``uldap3.LdapConfig``,
+* Changed: Security updates: The Kelvin REST API and its Python hooks run with Pydantic 2 and FastAPI 0.143
+  instead of Pydantic 1 and FastAPI 0.97.
+  Hooks that use Pydantic 1 directly, the Kelvin REST API's models,
   or ``httpx`` have to be adapted.
   Pydantic 1 code keeps working with ``import pydantic.v1 as pydantic``.
   ``httpx2`` replaces the unmaintained ``httpx`` with the same API,
   so ``httpx`` code keeps working with ``import httpx2 as httpx``.
+  The following table lists the updated dependencies:
+
+  .. list-table:: Updated dependencies
+     :header-rows: 1
+
+     * - Package
+       - Version
+     * - alembic
+       - 1.18.4 -> 1.20.0
+     * - asgi-correlation-id
+       - 4.3.4 -> 5.0.1
+     * - cachetools
+       - 7.1.1 -> 7.2.1
+     * - colorlog
+       - 6.10.1 -> 6.12.0
+     * - FastAPI
+       - 0.97.0 -> 0.143.0
+     * - gunicorn
+       - 26.0.0 -> 26.2.0
+     * - httpx2
+       - added, 2.13.1
+     * - jsonpatch
+       - 1.33 -> 1.34
+     * - orjson
+       - 3.11.8 -> 3.13.0
+     * - pip
+       - 26.1.1 -> 26.2.1
+     * - psycopg
+       - 3.3.4 -> 3.3.6
+     * - pyasn1
+       - 0.6.3 -> 0.6.4
+     * - Pydantic
+       - 1.10.26 -> 2.14.0
+     * - pydantic-settings
+       - added, 2.15.0
+     * - PyJWT
+       - 2.9.0 -> 2.15.1
+     * - python-ldap
+       - 3.4.5 -> 3.4.8
+     * - python-multipart
+       - 0.0.27 -> 0.0.32
+     * - requests
+       - 2.33.1 -> 2.34.2
+     * - ruamel.yaml
+       - 0.17.40 -> 0.19.1
+     * - SQLAlchemy
+       - 2.0.49 -> 2.1.4
+     * - Starlette
+       - 0.27.0 -> 1.7.0
+     * - tenacity
+       - 9.1.4 -> 9.2.1
+     * - udm-rest-client
+       - 1.3.2 -> 1.4.0
+     * - uvicorn
+       - 0.46.0 -> 0.54.0
 * Changed: The OpenAPI documents follow OpenAPI 3.1 instead of 3.0.
   A property that accepts ``null`` is documented as ``anyOf`` with ``{"type": "null"}`` instead of with ``nullable: true``.
 * Changed: A response with status code ``422`` still reports each validation error with the keys ``type``, ``loc``, and ``msg``,
@@ -41,9 +100,6 @@ v4.2.0 (TBD)
   The other user information, ``kelvin_admin``, ``kelvin_reader``, ``schools``, and ``roles``, moved from ``sub`` to claims of their own.
   Clients that only send the token, like the Kelvin REST API client, don't need any change.
   Scripts that decode the token and read ``sub`` have to read these claims instead.
-* Changed: Updated PyJWT to 2.15 and ruamel.yaml to 0.19.
-* Changed: A request with a body must have the header ``Content-Type: application/json``.
-  A body without a ``Content-Type`` header is no longer read as JSON, and the request is answered with status code ``422``.
 
 v4.1.0 (2026-10-01)
 -------------------

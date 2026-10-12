@@ -54,6 +54,7 @@ app = FastAPI(
     openapi_url=None,
     default_response_class=ORJSONResponse,
     generate_unique_id_function=unique_operation_id,
+    strict_content_type=False,
 )
 add_middlewares(app, logger)
 add_exception_handlers(app, logger)

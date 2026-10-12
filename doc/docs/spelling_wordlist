@@ -3,4 +3,15 @@ firstname
 lastname
 ucsschool
 url
-Pydantic
+asgi
+cachetools
+colorlog
+gunicorn
+httpx
+jsonpatch
+ldap
+orjson
+psycopg
+pyasn
+pydantic
+starlette
