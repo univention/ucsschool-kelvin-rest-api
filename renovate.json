@@ -4,6 +4,29 @@
     "local>univention/dev/tooling/ci-components//templates/renovate/default.json"
   ],
   "commitBody": "Issue univention/dev/education/ucsschool-kelvin-rest-api#96",
+  "customDatasources": {
+    "ucs-base-image": {
+      "defaultRegistryUrlTemplate": "https://updates.software-univention.de/ucs-releases.json",
+      "transformTemplates": [
+        "{\"releases\": releases.($v_major := major; minors.($v_minor := minor; patchlevels.{\"version\": $v_major & $v_minor & patchlevel}))}"
+      ]
+    }
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The UCS patch level of the ucs-base-python image that the replacement rule below moves the Dockerfiles to",
+      "managerFilePatterns": [
+        "renovate.json"
+      ],
+      "matchStrings": [
+        "\"replacementNameTemplate\": \".*?/ucs-base-python-(?<currentValue>\\d+)\""
+      ],
+      "depNameTemplate": "ucs-base-python UCS patch level",
+      "datasourceTemplate": "custom.ucs-base-image",
+      "versioningTemplate": "regex:^(?<major>\\d)(?<minor>\\d)(?<patch>\\d+)$"
+    }
+  ],
   "packageRules": [
     {
       "description": "Generated from uv.lock by the uv-export pre-commit hook",
@@ -11,6 +34,27 @@
         "ucs-test-ucsschool-kelvin/94_ucsschool-kelvin-performance/requirements.txt"
       ],
       "enabled": false
+    },
+    {
+      "description": "Every UCS release has its own ucs-base-python image, the image must never move to another release",
+      "matchDatasources": [
+        "custom.ucs-base-image"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Every UCS patch level has its own ucs-base-python image, so the docker manager cannot find the next one. Renovate keeps the tag and looks the digest up in the new image, and skips the replacement until the new image has that tag.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "/^gitregistry\\.knut\\.univention\\.de/univention/dev/projects/ucs-base-image/ucs-base-python-\\d+$/"
+      ],
+      "replacementNameTemplate": "gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527"
     }
   ]
 }
