@@ -3,7 +3,7 @@
 
 """Response class for the v2 collection endpoints."""
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel
@@ -30,5 +30,5 @@ class ModelListResponse(Generic[TModel], ORJSONResponse):
     given, so both must name the same model.
     """
 
-    def __init__(self, models: Sequence[TModel]) -> None:
-        super().__init__([model.model_dump(by_alias=True) for model in models])
+    def __init__(self, models: Sequence[TModel], headers: Mapping[str, str] | None = None) -> None:
+        super().__init__([model.model_dump(by_alias=True) for model in models], headers=headers)
