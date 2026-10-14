@@ -20,7 +20,16 @@ from tests.core.contracts.contract_test_support import (
     UserQueryFactories,
     UserQuerySetup,
 )
-from ucsschool_objects import And, Filter, Not, Operator, Or, SearchQuery, SortSpec
+from ucsschool_objects import (
+    And,
+    Filter,
+    InvalidSearchAfter,
+    Not,
+    Operator,
+    Or,
+    SearchQuery,
+    SortSpec,
+)
 from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyGroupManager,
     SQLAlchemyRoleManager,
@@ -737,3 +746,118 @@ async def test_role_query_sort_and_pagination_deterministic(
         await manager.search(sort_by=(SortSpec(field="name", ascending=True),), limit=2, offset=1)
     )
     assert [item.name for item in page] == ["r2", "r3"]
+
+
+_BY_NAME = (SortSpec(field="name"),)
+_BY_NAME_DESC = (SortSpec(field="name", ascending=False),)
+
+
+@pytest.mark.asyncio
+async def test_user_search_after_continues_behind_the_key(
+    db_session: AsyncSession, user_factory: UserFactory
+) -> None:
+    for name in ("u3", "u1", "u4", "u2"):
+        _ = await user_factory(name=name)
+    manager = SQLAlchemyUserManager(db_session)
+
+    page = list(await manager.search(sort_by=_BY_NAME, search_after=("u1",), limit=2))
+    assert [item.name for item in page] == ["u2", "u3"]
+
+
+@pytest.mark.asyncio
+async def test_user_search_after_honors_a_descending_sort(
+    db_session: AsyncSession, user_factory: UserFactory
+) -> None:
+    for name in ("u3", "u1", "u4", "u2"):
+        _ = await user_factory(name=name)
+    manager = SQLAlchemyUserManager(db_session)
+
+    page = list(await manager.search(sort_by=_BY_NAME_DESC, search_after=("u4",), limit=2))
+    assert [item.name for item in page] == ["u3", "u2"]
+
+
+@pytest.mark.asyncio
+async def test_user_search_after_combines_with_the_query(
+    db_session: AsyncSession, user_factory: UserFactory
+) -> None:
+    _ = await user_factory(name="u1", active=True)
+    _ = await user_factory(name="u2", active=False)
+    _ = await user_factory(name="u3", active=True)
+    manager = SQLAlchemyUserManager(db_session)
+    active = SearchQuery(where=Filter(field="active", op=Operator.EQ, value=True))
+
+    page = list(await manager.search(active, sort_by=_BY_NAME, search_after=("u1",)))
+    assert [item.name for item in page] == ["u3"]
+
+
+@pytest.mark.asyncio
+async def test_group_search_after_continues_behind_the_key(
+    db_session: AsyncSession, group_factory: GroupFactory
+) -> None:
+    for name in ("g2", "g1", "g3"):
+        _ = await group_factory(name=name)
+    manager = SQLAlchemyGroupManager(db_session)
+
+    page = list(await manager.search(sort_by=_BY_NAME, search_after=("g1",)))
+    assert [item.name for item in page] == ["g2", "g3"]
+
+
+@pytest.mark.asyncio
+async def test_role_search_after_continues_behind_the_key(
+    db_session: AsyncSession, role_factory: RoleFactory
+) -> None:
+    for name in ("r2", "r1", "r3"):
+        _ = await role_factory(name=name)
+    manager = SQLAlchemyRoleManager(db_session)
+
+    page = list(await manager.search(sort_by=_BY_NAME_DESC, search_after=("r3",)))
+    assert [item.name for item in page] == ["r2", "r1"]
+
+
+@pytest.mark.asyncio
+async def test_school_search_after_mixes_directions_per_field(
+    db_session: AsyncSession, school_factory: SchoolFactory
+) -> None:
+    """Each sort field keeps its own direction; equal leading keys fall through to the next."""
+    await school_factory(name="s1", class_share_file_server="a")
+    await school_factory(name="s2", class_share_file_server="a")
+    await school_factory(name="s3", class_share_file_server="a")
+    await school_factory(name="s4", class_share_file_server="b")
+    manager = SQLAlchemySchoolManager(db_session)
+    sort_by = (SortSpec(field="class_share_file_server"), SortSpec(field="name", ascending=False))
+
+    page = list(await manager.search(sort_by=sort_by, search_after=("a", "s2")))
+    assert [item.name for item in page] == ["s1", "s4"]
+
+
+@pytest.mark.asyncio
+async def test_search_after_without_sort_keys_on_the_default_field(
+    db_session: AsyncSession, school_factory: SchoolFactory
+) -> None:
+    await school_factory(name="s1", public_id=UUID("00000000-0000-0000-0000-00000000000a"))
+    await school_factory(name="s2", public_id=UUID("00000000-0000-0000-0000-00000000000b"))
+    manager = SQLAlchemySchoolManager(db_session)
+
+    page = list(await manager.search(search_after=(UUID("00000000-0000-0000-0000-00000000000a"),)))
+    assert [item.name for item in page] == ["s2"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "search_after",
+    [
+        pytest.param((), id="too-few"),
+        pytest.param(("s1", "s2"), id="too-many"),
+        pytest.param((None,), id="null"),
+    ],
+)
+async def test_search_after_must_give_one_value_per_sort_field(
+    db_session: AsyncSession, search_after: tuple[str | None, ...]
+) -> None:
+    manager = SQLAlchemySchoolManager(db_session)
+
+    with pytest.raises(InvalidSearchAfter) as exc_info:
+        await manager.search(sort_by=_BY_NAME, search_after=search_after)
+
+    assert exc_info.value.sort_fields == ("name",)
+    assert exc_info.value.search_after == search_after
