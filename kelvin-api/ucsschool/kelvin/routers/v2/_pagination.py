@@ -19,7 +19,7 @@ import base64
 import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Annotated, Generic, TypeVar, cast
+from typing import Annotated, Generic, TypeGuard, TypeVar, cast
 
 from fastapi import HTTPException, Query, Request, status
 from pydantic import BaseModel
@@ -69,20 +69,27 @@ class Cursor:
     def decode(cls, token: str) -> "Cursor":
         try:
             data = cast(object, json.loads(base64.urlsafe_b64decode(token + "=" * (-len(token) % 4))))
-        except ValueError:  # covers binascii.Error, UnicodeDecodeError and JSONDecodeError
+        # ValueError covers binascii.Error, UnicodeDecodeError and JSONDecodeError,
+        # RecursionError deeply nested JSON.
+        except (ValueError, RecursionError):
             data = None
         if isinstance(data, dict):
             fields = cast("dict[str, object]", data)
             after, before = fields.get("after"), fields.get("before")
             if fields.get("v") == _CURSOR_VERSION and len(fields) == 2:
-                if isinstance(after, str):
+                if _is_name(after):
                     return cls(name=after, forward=True)
-                if "before" in fields and (before is None or isinstance(before, str)):
+                if "before" in fields and (before is None or _is_name(before)):
                     return cls(name=before, forward=False)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid 'cursor'. Use the URLs of the 'Link' header of a previous page unchanged.",
         )
+
+
+def _is_name(value: object) -> TypeGuard[str]:
+    # No name holds a NUL character, and PostgreSQL rejects it in a query.
+    return isinstance(value, str) and "\x00" not in value
 
 
 LAST_PAGE = Cursor(name=None, forward=False)

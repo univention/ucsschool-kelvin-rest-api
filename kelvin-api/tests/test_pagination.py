@@ -117,6 +117,9 @@ def test_cursor_token_needs_no_quoting_in_a_url() -> None:
         pytest.param(_token({"v": 1, "after": "a", "before": "b"}), id="both-directions"),
         pytest.param(_token({"v": 1}), id="no-position"),
         pytest.param(_token({"v": 1, "after": None}), id="forward-without-a-name"),
+        pytest.param(_token({"v": 1, "after": "a\x00"}), id="nul-in-name-forward"),
+        pytest.param(_token({"v": 1, "before": "a\x00"}), id="nul-in-name-back"),
+        pytest.param(base64.urlsafe_b64encode(b"[" * 100_000).decode(), id="nested-too-deep"),
     ],
 )
 def test_a_cursor_kelvin_did_not_make_is_rejected(token: str) -> None:
