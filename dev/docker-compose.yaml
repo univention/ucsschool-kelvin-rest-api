@@ -32,7 +32,6 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-      network: host
       target: connector-prod
     volumes:
       # Secrets and certificates
@@ -72,7 +71,6 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-      network: host
       target: kelvin-prod
     stdin_open: true
     tty: true
