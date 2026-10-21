@@ -3,7 +3,8 @@
 
 import random
 from collections.abc import Awaitable, Callable
-from typing import List
+from typing import Any, cast
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 import requests
@@ -87,7 +88,7 @@ async def test_search(
     sc1_dn, sc1_attr = await new_school_class_using_lib(ou)
     sc2_dn, sc2_attr = await new_school_class_using_lib(ou)
     async with UDM(**udm_kwargs) as udm:
-        lib_classes: List[SchoolClass] = await SchoolClass.get_all(udm, ou)
+        lib_classes: list[SchoolClass] = await SchoolClass.get_all(udm, ou)
     assert sc1_dn in [c.dn for c in lib_classes]
     assert sc2_dn in [c.dn for c in lib_classes]
 
@@ -339,7 +340,7 @@ async def change_operation(
     school: str,
 ):
     assert operation in ("patch", "put")
-    users: List[User] = await new_school_users(
+    users: list[User] = await new_school_users(
         school, {"student": 2, "teacher": 1, "teacher_and_staff": 1}
     )
     students = [user for user in users if isinstance(user, Student)]
@@ -497,7 +498,7 @@ async def test_patch_clear_members(
     new_school_users,
 ):
     school = await create_ou_using_python()
-    users: List[User] = await new_school_users(
+    users: list[User] = await new_school_users(
         school, {"student": 2, "teacher": 1, "teacher_and_staff": 1}
     )
     sc1_dn, sc1_attr = await new_school_class_using_lib(school, users=[user.dn for user in users])
@@ -728,6 +729,66 @@ async def test_search_leaves_the_members_out_when_excluded(
         assert {k: v for k, v in lean_item.items() if k != "users"} == {
             k: v for k, v in full_item.items() if k != "users"
         }
+
+    await retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
+async def test_search_pages(
+    auth_header: dict[str, str],
+    retry_http_502: Callable[..., requests.Response],
+    retry_until_replicated: Callable[[Callable[[], object]], Awaitable[None]],
+    url_fragment: str,
+    new_school_class_using_lib: Callable[..., Awaitable[tuple[str, dict[str, Any]]]],
+    create_ou_using_python: Callable[..., Awaitable[str]],
+    api_version: str,
+) -> None:
+    """With ``limit``, every class is returned exactly once, page by page, in both directions."""
+    if api_version != "v2":
+        pytest.skip("Pagination is a v2 feature.")
+    ou = await create_ou_using_python(cache=False)
+    names: list[str] = []
+    for _ in range(5):
+        _dn, attr = await new_school_class_using_lib(ou)
+        names.append(str(attr["name"]))
+    names.sort()
+
+    def _get(params: dict[str, str | int]) -> requests.Response:
+        response = retry_http_502(
+            requests.get, f"{url_fragment}/classes/", headers=auth_header, params=params
+        )
+        assert response.status_code == 200, (response.reason, response.content)
+        return response
+
+    def _names(response: requests.Response) -> list[str]:
+        return [data["name"] for data in cast("list[dict[str, str]]", response.json())]
+
+    def _walk(limit: int, start: requests.Response, rel: str) -> list[requests.Response]:
+        pages = [start]
+        while rel in pages[-1].links:
+            cursor = parse_qs(urlsplit(pages[-1].links[rel]["url"]).query)["cursor"][0]
+            pages.append(_get({"school": ou, "limit": limit, "cursor": cursor}))
+        return pages
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check() -> None:
+        assert sorted(_names(_get({"school": ou}))) == names
+
+        # Neither limit divides the 5 classes: the pages at the end and at the start are short.
+        for limit in (2, 3):
+            first = _get({"school": ou, "limit": limit})
+            pages = _walk(limit, first, "next")
+            paged = [name for page in pages for name in _names(page)]
+            assert sorted(paged) == names
+            assert all(len(_names(page)) == limit for page in pages[:-1])
+
+            last_url = first.links["last"]["url"]
+            last_cursor = parse_qs(urlsplit(last_url).query)["cursor"][0]
+            last = _get({"school": ou, "limit": limit, "cursor": last_cursor})
+            assert _names(last) == paged[-limit:]
+            pages_back = _walk(limit, last, "prev")
+            assert [name for page in reversed(pages_back) for name in _names(page)] == paged
+            assert all(len(_names(page)) == limit for page in pages_back[:-1])
 
     await retry_until_replicated(_check)
 

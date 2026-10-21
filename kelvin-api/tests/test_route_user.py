@@ -7,7 +7,9 @@ import itertools
 import json
 import logging
 import random
-from typing import Any, Dict, List, NamedTuple, Set, Tuple, Type, Union
+from collections.abc import Awaitable, Callable
+from typing import Any, Dict, List, NamedTuple, Set, Tuple, Type, cast
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 import requests
@@ -51,7 +53,7 @@ pytestmark = pytest.mark.in_container
 
 fake = Faker()
 random.shuffle(MAPPED_UDM_PROPERTIES)
-UserType = Type[Union[Staff, Student, Teacher, TeachersAndStaff, User]]
+UserType = Type[Staff | Student | Teacher | TeachersAndStaff | User]
 Role = NamedTuple("Role", [("name", str), ("klass", UserType)])
 USER_ROLES: List[Role] = [
     Role("staff", Staff),
@@ -346,6 +348,86 @@ async def test_search_multiple_names(
         }
 
     await retry_until_replicated(_check)
+
+
+class _Page(NamedTuple):
+    names: list[str]
+    links: dict[str, str]  # the URL of each relation type in the ``Link`` header
+
+
+def _cursor_of(page_url: str) -> str:
+    """The cursor of a page URL, to follow it with the test's own host."""
+    return parse_qs(urlsplit(page_url).query)["cursor"][0]
+
+
+@pytest.mark.asyncio
+async def test_search_pages(
+    auth_header: dict[str, str],
+    retry_http_502: Callable[..., requests.Response],
+    retry_until_replicated: Callable[[Callable[[], object]], Awaitable[None]],
+    url_fragment: str,
+    new_school_users: Callable[..., Awaitable[list[User]]],
+    create_ou_using_python: Callable[..., Awaitable[str]],
+    api_version: str,
+) -> None:
+    """With ``limit``, every user is returned exactly once, page by page, in both directions."""
+    if api_version != "v2":
+        pytest.skip("Pagination is a v2 feature.")
+    ou_name = await create_ou_using_python(cache=False)
+    users = await new_school_users(ou_name, {"student": 5}, disabled=False)
+    names = sorted(user.name for user in users)
+
+    def _page(params: dict[str, str | int]) -> _Page:
+        response = retry_http_502(
+            requests.get, f"{url_fragment}/users/", headers=auth_header, params=params
+        )
+        assert response.status_code == 200, (response.reason, response.content)
+        page_names = [data["name"] for data in cast("list[dict[str, str]]", response.json())]
+        return _Page(page_names, {rel: link["url"] for rel, link in response.links.items()})
+
+    def _walk(limit: int, start: _Page, rel: str) -> list[_Page]:
+        pages = [start]
+        while rel in pages[-1].links:
+            cursor = _cursor_of(pages[-1].links[rel])
+            pages.append(_page({"school": ou_name, "limit": limit, "cursor": cursor}))
+        return pages
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check() -> None:
+        everyone = _page({"school": ou_name})
+        assert sorted(everyone.names) == names
+        assert everyone.links == {}
+
+        # Neither limit divides the 5 users: the pages at the end and at the start are short.
+        for limit in (2, 3):
+            first = _page({"school": ou_name, "limit": limit})
+            assert set(first.links) == {"first", "next", "last"}
+            pages = _walk(limit, first, "next")
+            paged = [name for page in pages for name in page.names]
+            assert sorted(paged) == names
+            assert all(len(page.names) == limit for page in pages[:-1])
+            assert set(pages[-1].links) == {"first", "prev", "last"}
+
+            last_cursor = _cursor_of(first.links["last"])
+            last = _page({"school": ou_name, "limit": limit, "cursor": last_cursor})
+            assert last.names == paged[-limit:]
+            assert set(last.links) == {"first", "prev", "last"}
+            pages_back = _walk(limit, last, "prev")
+            assert [name for page in reversed(pages_back) for name in page.names] == paged
+            assert all(len(page.names) == limit for page in pages_back[:-1])
+            assert set(pages_back[-1].links) == {"first", "next", "last"}
+
+    await retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
+async def test_search_without_limit_rejects_a_cursor(
+    auth_header: dict[str, str], url_fragment: str, api_version: str
+) -> None:
+    if api_version != "v2":
+        pytest.skip("Pagination is a v2 feature.")
+    response = requests.get(f"{url_fragment}/users/", headers=auth_header, params={"cursor": "anything"})
+    assert response.status_code == 400
 
 
 @pytest.mark.asyncio  # noqa: C901
@@ -2609,7 +2691,7 @@ async def test_set_password_hashes(
 @pytest.mark.parametrize("model", (UserCreateModel, UserPatchModel))
 async def test_not_password_and_password_hashes(
     role: Role,
-    model: Union[Type[UserCreateModel], Type[UserPatchModel]],
+    model: type[UserCreateModel] | type[UserPatchModel],
     create_ou_using_python,
     random_user_create_model,
     password_hash,

@@ -5,7 +5,7 @@ import datetime
 import logging
 from collections.abc import Sequence
 from functools import lru_cache
-from typing import Annotated, List, Optional
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
@@ -42,6 +42,13 @@ from ..v1.user import (
     search as v1_search,
 )
 from ._filters import name_filter as _name_filter, str_filter as _str_filter
+from ._pagination import (
+    LINK_HEADER_RESPONSES,
+    PageRequest,
+    page_request,
+    page_response,
+    search_page,
+)
 from ._responses import ModelListResponse
 from .udm_properties import mapped_udm_properties
 
@@ -85,6 +92,8 @@ _KNOWN_SEARCH_PARAMS = frozenset(
         "birthday",
         "expiration_date",
         "disabled",
+        "limit",
+        "cursor",
     }
 )
 
@@ -124,18 +133,18 @@ def _udm_property_filters(request: Request) -> list[QueryExpr]:
 
 
 def _build_query(
-    school: Optional[str],
-    name: Optional[Sequence[str]],
-    firstname: Optional[str],
-    lastname: Optional[str],
-    email: Optional[str],
-    record_uid: Optional[str],
-    source_uid: Optional[str],
-    birthday: Optional[datetime.date],
-    expiration_date: Optional[datetime.date],
-    disabled: Optional[bool],
-    extra_clauses: Optional[list[QueryExpr]] = None,
-) -> Optional[SearchQuery]:
+    school: str | None,
+    name: Sequence[str] | None,
+    firstname: str | None,
+    lastname: str | None,
+    email: str | None,
+    record_uid: str | None,
+    source_uid: str | None,
+    birthday: datetime.date | None,
+    expiration_date: datetime.date | None,
+    disabled: bool | None,
+    extra_clauses: list[QueryExpr] | None = None,
+) -> SearchQuery | None:
     clauses: list[QueryExpr] = list(extra_clauses or [])
     names = [value for value in name or () if value]
     if names:
@@ -257,9 +266,20 @@ async def _user_to_model(
     )
 
 
-@router.get("/", response_model=List[UserModel])
+async def _users_to_models(
+    users: list[User], request: Request, session: KelvinStorageSession
+) -> list[UserModel]:
+    mapper = sqlalchemy_mapper_factory(session)
+    dn_map = await mapper.public_ids_to_dns(
+        ObjectType.USER, [cast(UUID, user.public_id) for user in users]
+    )
+    return [await _user_to_model(u, request, session, dn_map=dn_map) for u in users]
+
+
+@router.get("/", response_model=list[UserModel], responses=LINK_HEADER_RESPONSES)
 async def search(
     request: Request,
+    page: Annotated[PageRequest | None, Depends(page_request)],
     school: str = Query(
         None,
         description="List only users that are members of matching school(s) (OUs).",
@@ -303,11 +323,12 @@ async def search(
         extra_clauses=_udm_property_filters(request),
     )
     logger.debug("v2 user search query: %r", query)
-    users = list(await session.users.search(query, load=USER_LOAD_SPEC_V2))
-    users.sort(key=lambda u: u.name)
-    mapper = sqlalchemy_mapper_factory(session)
-    dn_map = await mapper.public_ids_to_dns(ObjectType.USER, [user.public_id for user in users])
-    return ModelListResponse([await _user_to_model(u, request, session, dn_map=dn_map) for u in users])
+    if page is None:
+        users = list(await session.users.search(query, load=USER_LOAD_SPEC_V2))
+        users.sort(key=lambda u: u.name)
+        return ModelListResponse(await _users_to_models(users, request, session))
+    found = await search_page(session.users, query, page, lambda u: u.name, load=USER_LOAD_SPEC_V2)
+    return page_response(request, found, await _users_to_models(found.items, request, session))
 
 
 @router.get("/{username}", response_model=UserModel)
