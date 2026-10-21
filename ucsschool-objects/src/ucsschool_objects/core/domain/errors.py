@@ -167,6 +167,21 @@ class EmptyOrClause(InvalidFilter):
         super().__init__("OR query requires at least one clause")
 
 
+class InvalidSearchAfter(InvalidFilter):
+    """Raised when ``search_after`` does not give one non-null value per sort field."""
+
+    search_after: tuple[object, ...]
+    sort_fields: tuple[str, ...]
+
+    def __init__(self, search_after: tuple[object, ...], sort_fields: tuple[str, ...]) -> None:
+        self.search_after = search_after
+        self.sort_fields = sort_fields
+        super().__init__(
+            f"search_after requires one non-null value per sort field {list(sort_fields)!r};"
+            f" got {list(search_after)!r}"
+        )
+
+
 class UnsupportedOperation(CorelibError):
     """Raised when a caller requests unsupported read/search behavior."""
 
