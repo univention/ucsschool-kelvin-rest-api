@@ -100,6 +100,11 @@ v4.2.0 (TBD)
   The other user information, ``kelvin_admin``, ``kelvin_reader``, ``schools``, and ``roles``, moved from ``sub`` to claims of their own.
   Clients that only send the token, like the Kelvin REST API client, don't need any change.
   Scripts that decode the token and read ``sub`` have to read these claims instead.
+* Added (version 2 API only): The searches of users, schools, school classes, work groups, and roles return their results page by page when the ``limit`` parameter is given.
+  The response body is then the list of the objects of one page,
+  and the ``Link`` response header holds the URLs of the ``first``, ``prev``, ``next``, and ``last`` page.
+  The pages are addressed by an opaque cursor in those URLs.
+  Without ``limit``, the searches return all results as a plain list, as before.
 
 v4.1.0 (2026-10-01)
 -------------------
