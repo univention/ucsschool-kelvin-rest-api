@@ -194,6 +194,19 @@ async def _setup_group_not_case(factories: GroupQueryFactories) -> QueryExpectat
     )
 
 
+async def _setup_group_role_case(factories: GroupQueryFactories) -> QueryExpectation:
+    school_class = await factories.roles_factory(name="school_class")
+    workgroup = await factories.roles_factory(name="workgroup")
+    school = await factories.school_factory(name="main-school")
+    await factories.group_factory(name="group-a", school=school, roles=school_class)
+    await factories.group_factory(name="group-b", school=school, roles=workgroup)
+    await factories.group_factory(name="group-c", school=school, roles=[school_class, workgroup])
+    return QueryExpectation(
+        query=SearchQuery(where=Filter(field="roles.name", op=Operator.EQ, value="school_class")),
+        expected_names=("group-a", "group-c"),
+    )
+
+
 async def _setup_role_eq_case(factories: RoleQueryFactories) -> QueryExpectation:
     await factories.role_factory(name="school:admin")
     await factories.role_factory(name="school:teacher")
@@ -512,6 +525,7 @@ async def test_school_query_operators(
         pytest.param(_setup_group_and_case, id="group-and"),
         pytest.param(_setup_group_or_case, id="group-or"),
         pytest.param(_setup_group_not_case, id="group-not"),
+        pytest.param(_setup_group_role_case, id="group-role"),
     ],
 )
 async def test_group_query_operators(
