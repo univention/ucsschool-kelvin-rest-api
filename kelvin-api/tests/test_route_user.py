@@ -7,6 +7,7 @@ import itertools
 import json
 import logging
 import random
+import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any, Dict, List, NamedTuple, Set, Tuple, Type, cast
 from urllib.parse import parse_qs, urlsplit
@@ -348,6 +349,31 @@ async def test_search_multiple_names(
         }
 
     await retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
+async def test_get_user_with_uuid1_identifier(
+    auth_header: dict[str, str],
+    retry_until_synced: Callable[..., Awaitable[requests.Response]],
+    url_fragment: str,
+    new_udm_user: Callable[..., Awaitable[tuple[str, dict[str, Any]]]],
+    create_ou_using_python: Callable[..., Awaitable[str]],
+    api_version: str,
+):
+    """UCS 5.2-2 copied the entryUUID, a version 1 UUID, into the identifier of existing objects."""
+    if api_version != "v2":
+        pytest.skip("Only v2 reads the Kelvin DB that the Kelvin connector fills.")
+    ou_name = await create_ou_using_python()
+    _, user_props = await new_udm_user(
+        ou_name, "student", {"univentionObjectIdentifier": str(uuid.uuid1())}
+    )
+
+    response = await retry_until_synced(
+        requests.get, f"{url_fragment}/users/{user_props['username']}", headers=auth_header
+    )
+
+    assert response.status_code == 200, (response.reason, response.content)
+    assert response.json()["name"] == user_props["username"]
 
 
 class _Page(NamedTuple):
