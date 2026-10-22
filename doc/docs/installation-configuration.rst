@@ -338,6 +338,31 @@ file :file:`provisioning/provisioning_config.json` in the app's configuration di
 (:file:`/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/`). Under normal
 operation there is nothing to configure here manually.
 
+.. _configuration-provisioning-resync:
+
+Synchronize all objects again
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If objects are missing from the version 2 API, synchronize all existing schools, groups,
+and users into the version 2 database again. To do this, re-create the subscription.
+Run the following commands on the Primary Directory Node:
+
+.. code-block:: console
+
+    $ cd /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/
+    $ mv provisioning_config.json provisioning_config.json.bak
+    $ univention-run-join-scripts --force --run-scripts 50ucsschool-kelvin-rest-api.inst
+    $ univention-app restart ucsschool-kelvin-rest-api
+
+The join script deletes the subscription, creates it again, and requests a new initial
+synchronization. The Kelvin connector updates the objects that already exist in the
+database. The restart makes the Kelvin connector use the new subscription.
+The file :file:`provisioning_config.json.bak` holds the credentials of the deleted
+subscription and is no longer needed. You can delete it.
+
+The synchronization runs in the background, as the initial synchronization does.
+To check whether it has finished, see :doc:`known-issues`.
+
 File locations
 --------------
 

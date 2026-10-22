@@ -37,6 +37,7 @@ from kelvin_connector.sync import (
     _school_ou_from_dn,
     _udm_properties,
 )
+from pydantic import ValidationError
 from ucsschool_objects import ObjectType
 from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.models import (
@@ -313,6 +314,33 @@ def _host_group_delete_event(uid, name="OUdemoschool-DC-Edukativnetz"):
             properties=props,
         ),
     )
+
+
+def test_events_accept_uuid1():
+    uid = uuid.uuid1()
+    _user_create_event(uid)
+    _user_delete_event(uid)
+    _group_create_event(uid)
+    _school_create_event(uid)
+    _host_group_create_event(uid)
+
+
+@pytest.mark.parametrize(
+    "uid",
+    [uuid.uuid5(uuid.NAMESPACE_DNS, "example.com"), uuid.UUID("01890a5d-ac96-774b-bcce-b302099a8057")],
+    ids=["v5", "v7"],
+)
+def test_events_reject_uuid_versions_udm_rejects(uid: uuid.UUID):
+    with pytest.raises(ValidationError):
+        _user_create_event(uid)
+    with pytest.raises(ValidationError):
+        _user_delete_event(uid)
+    with pytest.raises(ValidationError):
+        _group_create_event(uid)
+    with pytest.raises(ValidationError):
+        _school_create_event(uid)
+    with pytest.raises(ValidationError):
+        _host_group_create_event(uid)
 
 
 # ── Helper method unit tests ──────────────────────────────────────────────────

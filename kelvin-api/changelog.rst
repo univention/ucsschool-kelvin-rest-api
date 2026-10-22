@@ -105,6 +105,11 @@ v4.2.0 (TBD)
   and the ``Link`` response header holds the URLs of the ``first``, ``prev``, ``next``, and ``last`` page.
   The pages are addressed by an opaque cursor in those URLs.
   Without ``limit``, the searches return all results as a plain list, as before.
+* Fixed (version 2 API only): Users, schools, school classes, and work groups whose ``univentionObjectIdentifier`` is a ``UUID v1`` were missing from the version 2 API.
+  The Kelvin connector only accepted ``UUID v4`` and discarded the changes of these objects.
+  It now accepts ``UUID v1 and v4``, as UDM does.
+  A missing object appears with its next change.
+  To add all missing objects at once, synchronize all objects again as described in :ref:`configuration-provisioning-resync`.
 
 v4.1.0 (2026-10-01)
 -------------------

@@ -5,9 +5,12 @@ from datetime import date
 from typing import Annotated, Iterable
 
 from loguru import logger
-from pydantic import UUID4, BaseModel, BeforeValidator, ConfigDict, Field, field_validator
+from pydantic import UUID1, UUID4, BaseModel, BeforeValidator, ConfigDict, Field, field_validator
 
 # ── Per-type properties models ────────────────────────────────────────────────
+
+# univention object identifier type
+UOID = UUID1 | UUID4
 
 
 class UcsschoolRole(BaseModel):
@@ -54,7 +57,7 @@ def _parse_guardian_role_item(v):
 
 
 class UserProperties(BaseModel):
-    univentionObjectIdentifier: UUID4
+    univentionObjectIdentifier: UOID
     ucsschoolRole: list[UcsschoolRole] = Field(..., min_length=1)
     username: str
     school: list[str]
@@ -79,7 +82,7 @@ class UserProperties(BaseModel):
 
 
 class GroupProperties(BaseModel):
-    univentionObjectIdentifier: UUID4
+    univentionObjectIdentifier: UOID
     ucsschoolRole: list[UcsschoolRole] = Field(..., min_length=1)
     name: str
     allowedEmailUsers: list[str]
@@ -98,7 +101,7 @@ class GroupProperties(BaseModel):
 
 
 class SchoolProperties(BaseModel):
-    univentionObjectIdentifier: UUID4
+    univentionObjectIdentifier: UOID
     name: str
     displayName: str
     ucsschoolClassShareFileServer: str | None = None
@@ -138,7 +141,7 @@ class DeletedObjectProperties(BaseModel):
     repair.
     """
 
-    univentionObjectIdentifier: UUID4
+    univentionObjectIdentifier: UOID
     username: str = ""
     name: str = ""
     model_config = ConfigDict(extra="allow")
@@ -193,7 +196,7 @@ class SchoolDeleteEvent(EventBase):
 
 
 class HostGroupProperties(BaseModel):
-    univentionObjectIdentifier: UUID4
+    univentionObjectIdentifier: UOID
     description: str | None = None
     name: str
     hosts: list[str]
