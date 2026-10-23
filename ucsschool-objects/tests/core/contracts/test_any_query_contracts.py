@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import pytest
 from ucsschool_objects import (
@@ -16,7 +16,7 @@ from ucsschool_objects import (
     Or,
     SearchQuery,
     SortSpec,
-    UnsupportedQueryExpression,
+    UnsupportedFilterField,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyGroupManager,
@@ -37,15 +37,27 @@ if TYPE_CHECKING:
     from ucsschool_objects.database_models import Role as RoleModel, School as SchoolModel
 
 
-_UNKNOWN = cast("QueryExpr", object())
-
-
 def _role(name: str) -> Filter:
     return Filter(field="roles.name", op=Operator.EQ, value=name)
 
 
 def _school(name: str) -> Filter:
     return Filter(field="schools.name", op=Operator.EQ, value=name)
+
+
+def _school_role(pattern: str) -> AnyRelated:
+    return AnyRelated(Filter(field="school_roles", op=Operator.MATCHES_CI, value=pattern))
+
+
+def _role_at_school(role: str, school: str) -> AnyRelated:
+    return AnyRelated(
+        And(
+            (
+                Filter(field="roles.name", op=Operator.MATCHES_CI, value=role),
+                Filter(field="schools.name", op=Operator.MATCHES_CI, value=school),
+            )
+        )
+    )
 
 
 @pytest.fixture
@@ -64,7 +76,7 @@ async def roles(role_factory: RoleFactory) -> dict[str, RoleModel]:
 
 
 @pytest.fixture
-async def users(
+async def seeded_users(
     user_factory: UserFactory,
     school_membership_factory: SchoolMembershipFactory,
     school_x: SchoolModel,
@@ -89,7 +101,7 @@ async def users(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("users")
+@pytest.mark.usefixtures("seeded_users")
 @pytest.mark.parametrize(
     ("where", "expected_names"),
     [
@@ -129,6 +141,53 @@ async def users(
             ["student-x-teacher-y", "teacher-staff"],
             id="next-to-scalar-filter",
         ),
+        pytest.param(
+            _school_role("teacher:school:school-x"),
+            ["teacher", "teacher-staff"],
+            id="exact",
+        ),
+        pytest.param(
+            And((_school_role("teacher:school:school-x"), _school_role("staff:school:school-x"))),
+            ["teacher-staff"],
+            id="and",
+        ),
+        pytest.param(
+            And((_school_role("student:school:school-x"), _school_role("teacher:school:school-y"))),
+            ["student-x-teacher-y"],
+            id="across-schools",
+        ),
+        pytest.param(
+            _school_role("teacher:school:school-y"), ["student-x-teacher-y"], id="school-scope"
+        ),
+        pytest.param(
+            _school_role("teacher:school:*"),
+            ["student-x-teacher-y", "teacher", "teacher-staff"],
+            id="wildcard-school",
+        ),
+        pytest.param(
+            _school_role("*:school:school-y"),
+            ["student-x-teacher-y"],
+            id="wildcard-role",
+        ),
+        pytest.param(
+            _school_role("*"),
+            ["student-x-teacher-y", "teacher", "teacher-staff"],
+            id="wildcard-only",
+        ),
+        pytest.param(
+            _school_role("TEACHER:School:SCHOOL-X"),
+            ["teacher", "teacher-staff"],
+            id="case-insensitive",
+        ),
+        pytest.param(_school_role("teacher:school:school_x"), [], id="literal-underscore"),
+        pytest.param(_school_role("teacher:school:school%"), [], id="literal-percent"),
+        pytest.param(_school_role("teacher:exam:school-x"), [], id="other-context"),
+        pytest.param(_school_role(""), [], id="empty"),
+        pytest.param(
+            And((_school("school-x"), _school_role("teacher:school:school-y"))),
+            ["student-x-teacher-y"],
+            id="school-roles-next-to-outer-school-filter",
+        ),
     ],
 )
 async def test_user_any_query(
@@ -142,7 +201,17 @@ async def test_user_any_query(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("users")
+async def test_user_school_roles_are_rejected_outside_any(db_session: AsyncSession) -> None:
+    manager = SQLAlchemyUserManager(db_session)
+
+    with pytest.raises(UnsupportedFilterField):
+        await manager.search(
+            SearchQuery(where=Filter(field="school_roles", op=Operator.EQ, value="teacher:school:x"))
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("seeded_users")
 async def test_user_any_query_pages_without_duplicates(db_session: AsyncSession) -> None:
     manager = SQLAlchemyUserManager(db_session)
     query = SearchQuery(where=AnyRelated(Or((_role("teacher"), _role("staff")))))
@@ -205,15 +274,59 @@ async def test_any_query_is_rejected_by_other_managers(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "where",
+    ("school_pattern", "expected_names"),
     [
-        pytest.param(_UNKNOWN, id="top-level"),
-        pytest.param(And((_role("teacher"), _UNKNOWN)), id="nested"),
-        pytest.param(AnyRelated(Not(_UNKNOWN)), id="inside-any"),
+        pytest.param(r"a\b_c%d", ["literal"], id="exact"),
+        pytest.param(r"a\b_c*", ["literal"], id="wildcard"),
+        pytest.param(r"a\bxc%d", [], id="underscore-is-literal"),
+        pytest.param(r"a\b_cxd", [], id="percent-is-literal"),
+        pytest.param(r"ab_c%d", [], id="backslash-is-literal"),
     ],
 )
-async def test_query_rejects_unknown_expressions(db_session: AsyncSession, where: QueryExpr) -> None:
+async def test_user_any_query_matches_like_metacharacters_literally(
+    db_session: AsyncSession,
+    user_factory: UserFactory,
+    school_factory: SchoolFactory,
+    role_factory: RoleFactory,
+    school_membership_factory: SchoolMembershipFactory,
+    school_pattern: str,
+    expected_names: list[str],
+) -> None:
+    school = await school_factory(name=r"a\b_c%d")
+    teacher = await role_factory(name="teacher")
+    user = await user_factory(name="literal")
+    await school_membership_factory(user=user, school=school, is_primary=True, roles=[teacher])
     manager = SQLAlchemyUserManager(db_session)
 
-    with pytest.raises(UnsupportedQueryExpression):
-        await manager.search(SearchQuery(where=where))
+    results = await manager.search(SearchQuery(where=_role_at_school("teacher", school_pattern)))
+
+    assert [found.name for found in results] == expected_names
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "where",
+    [
+        pytest.param(_role_at_school("*", "*"), id="split"),
+        pytest.param(_school_role("*"), id="school-roles"),
+    ],
+)
+async def test_user_any_query_needs_a_role_on_the_membership(
+    db_session: AsyncSession,
+    user_factory: UserFactory,
+    school_factory: SchoolFactory,
+    role_factory: RoleFactory,
+    school_membership_factory: SchoolMembershipFactory,
+    where: QueryExpr,
+) -> None:
+    school = await school_factory(name="school-x")
+    teacher = await role_factory(name="teacher")
+    with_role = await user_factory(name="with-role")
+    without_role = await user_factory(name="without-role")
+    await school_membership_factory(user=with_role, school=school, is_primary=True, roles=[teacher])
+    await school_membership_factory(user=without_role, school=school, is_primary=True, roles=[])
+    manager = SQLAlchemyUserManager(db_session)
+
+    results = await manager.search(SearchQuery(where=where))
+
+    assert [found.name for found in results] == ["with-role"]

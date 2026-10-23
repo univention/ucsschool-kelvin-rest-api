@@ -8,17 +8,22 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 from ucsschool_objects import (
+    And,
+    AnyRelated,
     Filter,
     InvalidInFilter,
     InvalidJsonFilter,
     InvalidPatternFilter,
     InvalidRangeFilter,
     InvalidUuidFilter,
+    Not,
     Operator,
+    QueryExpr,
     SearchQuery,
     SortSpec,
     UnsupportedFilterField,
     UnsupportedFilterOperator,
+    UnsupportedQueryExpression,
     UnsupportedSortField,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
@@ -259,3 +264,25 @@ async def test_in_ci_filter_on_non_string_field_raises_domain_error(
     with pytest.raises(InvalidInFilter, match="requires a string field") as exc_info:
         await manager.search(query)
     assert exc_info.value.field == "public_id"
+
+
+_UNKNOWN_EXPRESSION = cast("QueryExpr", object())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "where",
+    [
+        pytest.param(_UNKNOWN_EXPRESSION, id="top-level"),
+        pytest.param(
+            And((Filter(field="roles.name", op=Operator.EQ, value="teacher"), _UNKNOWN_EXPRESSION)),
+            id="nested",
+        ),
+        pytest.param(AnyRelated(Not(_UNKNOWN_EXPRESSION)), id="inside-any"),
+    ],
+)
+async def test_query_rejects_unknown_expressions(db_session: AsyncSession, where: QueryExpr) -> None:
+    manager = SQLAlchemyUserManager(db_session)
+
+    with pytest.raises(UnsupportedQueryExpression):
+        await manager.search(SearchQuery(where=where))
