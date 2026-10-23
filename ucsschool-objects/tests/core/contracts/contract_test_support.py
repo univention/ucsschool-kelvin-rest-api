@@ -68,6 +68,7 @@ class UserQueryFactories:
     school_factory: AsyncSchoolFactory
     school_membership_factory: AsyncSchoolMembershipFactory
     role_factory: AsyncRoleFactory
+    group_factory: AsyncGroupFactory
 
 
 class NamedRecord(Protocol):
