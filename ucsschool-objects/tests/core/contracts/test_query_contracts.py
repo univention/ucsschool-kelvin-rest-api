@@ -393,6 +393,27 @@ async def _setup_user_like_schools_case(factories: UserQueryFactories) -> QueryE
     )
 
 
+async def _setup_user_roles_case(factories: UserQueryFactories) -> QueryExpectation:
+    school = await factories.school_factory(name="school-a")
+    teacher_role = await factories.role_factory(name="teacher")
+    student_role = await factories.role_factory(name="student")
+
+    teacher = await factories.user_factory(name="teacher")
+    student = await factories.user_factory(name="student")
+
+    await factories.school_membership_factory(
+        user=teacher, school=school, is_primary=True, roles=[teacher_role]
+    )
+    await factories.school_membership_factory(
+        user=student, school=school, is_primary=True, roles=[student_role]
+    )
+
+    return QueryExpectation(
+        query=SearchQuery(where=Filter(field="roles.name", op=Operator.EQ, value="teacher")),
+        expected_names=("teacher",),
+    )
+
+
 async def _setup_user_udm_string_case(factories: UserQueryFactories) -> QueryExpectation:
     await factories.user_factory(name="prof", udm_properties={"title": "Prof"})
     await factories.user_factory(name="doc", udm_properties={"title": "Dr"})
@@ -597,6 +618,7 @@ async def test_role_query_operators(
         pytest.param(_setup_user_like_schools_case, id="user-like-schools"),
         pytest.param(_setup_user_ids_in_school_case, id="user-ids-in-school"),
         pytest.param(_setup_user_udm_string_case, id="user-udm-string"),
+        pytest.param(_setup_user_roles_case, id="user-roles"),
         pytest.param(_setup_user_udm_int_case, id="user-udm-int"),
         pytest.param(_setup_user_udm_bool_case, id="user-udm-bool"),
         pytest.param(_setup_user_udm_float_case, id="user-udm-float"),
@@ -610,12 +632,14 @@ async def test_user_query_operators(
     user_factory: UserFactory,
     school_factory: SchoolFactory,
     school_membership_factory: SchoolMembershipFactory,
+    role_factory: RoleFactory,
     setup_case: UserQuerySetup,
 ) -> None:
     factories = UserQueryFactories(
         user_factory=user_factory,
         school_factory=school_factory,
         school_membership_factory=school_membership_factory,
+        role_factory=role_factory,
     )
     expectation = await setup_case(factories)
     manager = cast("Manager[SearchNamedRecord]", SQLAlchemyUserManager(db_session))

@@ -47,6 +47,7 @@ from ucsschool_objects.database_models import (
     Role as RoleModel,
     School as SchoolModel,
     SchoolMembership,
+    SchoolMembershipRoleAssociation,
     User as UserModel,
 )
 
@@ -369,7 +370,7 @@ class SQLAlchemyUserManager(Manager[User]):
         "roles": JoinSpec(
             relation_name="roles",
             target_model=RoleModel,
-            join_path=(SchoolMembership, RoleModel),
+            join_path=(SchoolMembership, SchoolMembershipRoleAssociation, RoleModel),
             join_type=JoinType.LEFT_OUTER,
             exposed_fields=get_exposed_fields(RoleModel),
         ),
