@@ -34,7 +34,7 @@ from ucsschool_objects.database_models import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable, Mapping, Sequence
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -88,6 +88,12 @@ class JoinSpec:
     join_type: JoinType = JoinType.LEFT_OUTER
     exposed_fields: frozenset[str] = frozenset()
     to_many: bool = True
+
+
+@dataclass(frozen=True)
+class ComputedField:
+    roots: tuple[str, ...]
+    build: Callable[[Mapping[str, ModelClass]], FieldColumn]
 
 
 def generate_public_id() -> UUID:

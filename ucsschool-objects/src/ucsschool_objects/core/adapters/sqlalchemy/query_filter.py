@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Callable, TypeAlias, TypeVarTuple, cast
 from uuid import UUID
 
@@ -66,7 +66,11 @@ from ucsschool_objects.core.domain.query import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import JoinSpec, ModelClass
+    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+        ComputedField,
+        JoinSpec,
+        ModelClass,
+    )
 
 RANGE_CAPABLE_TYPES = (Date, DateTime, Float, Integer, Numeric)
 RANGE_OPERATORS = frozenset({Operator.GT, Operator.GTE, Operator.LT, Operator.LTE})
@@ -504,30 +508,45 @@ def _build_filter_expression(
     return builder(column, _coerce_filter_value(filter_expr, column))
 
 
+@dataclass(frozen=True)
+class AnyContext:
+    model: ModelClass
+    computed_fields: Mapping[str, ComputedField]
+
+
 def _build_any_expression(
     any_expr: Any,
     field_map: Mapping[str, FieldColumn],
     registry: dict[str, JoinSpec] | None,
     json_field_map: Mapping[str, FieldColumn] | None,
-    any_model: ModelClass | None,
+    any_context: AnyContext | None,
 ) -> FilterExpression:
-    """An EXISTS over the related rows of ``any_model``, correlated on it only.
+    """An EXISTS over the related rows of ``any_context.model``, correlated on it only.
 
     Join paths share their common prefix, so all fields of the clause are
     checked on one combined related row.
     """
-    if any_model is None:
+    if any_context is None:
         raise InvalidAnyClause("not supported for this object type")
+    any_model = any_context.model
     registry = registry or {}
     fields = _collect_any_fields(any_expr.clause)
+    computed = {
+        field: any_context.computed_fields[field]
+        for field in fields & any_context.computed_fields.keys()
+    }
     roots = _extract_registered_nested_roots(fields, registry)
-    unnested = sorted(field for field in fields if field.partition(".")[0] not in roots)
+    roots.update(root for computed_field in computed.values() for root in computed_field.roots)
+    unnested = sorted(
+        field for field in fields - computed.keys() if field.partition(".")[0] not in roots
+    )
     if unnested:
         raise InvalidAnyClause(f"fields must be nested in one of {sorted(registry)}; got {unnested}")
 
     subquery = select(literal(1))
     aliases: dict[tuple[ModelClass, ...], ModelClass] = {}
     nested_columns: dict[str, FieldColumn] = {}
+    targets: dict[str, ModelClass] = {}
     for root in sorted(roots):
         left = any_model
         path: tuple[ModelClass, ...] = ()
@@ -543,6 +562,10 @@ def _build_any_expression(
                     subquery = subquery.join_from(left, right)
             left = right
         nested_columns.update(_resolve_nested_fields(field_map, root, left))
+        targets[root] = left
+    nested_columns.update(
+        {field: computed_field.build(targets) for field, computed_field in computed.items()}
+    )
 
     condition = build_expression(
         any_expr.clause, {**field_map, **nested_columns}, registry, json_field_map
@@ -556,7 +579,7 @@ def build_expression(
     registry: dict[str, JoinSpec] | None = None,
     json_field_map: Mapping[str, FieldColumn] | None = None,
     *,
-    any_model: ModelClass | None = None,
+    any_context: AnyContext | None = None,
 ) -> FilterExpression:
     if isinstance(query_expr, Filter):
         return _build_filter_expression(query_expr, field_map, registry, json_field_map)
@@ -566,7 +589,7 @@ def build_expression(
             raise EmptyAndClause()
         return and_(
             *(
-                build_expression(clause, field_map, registry, json_field_map, any_model=any_model)
+                build_expression(clause, field_map, registry, json_field_map, any_context=any_context)
                 for clause in query_expr.clauses
             )
         )
@@ -576,18 +599,20 @@ def build_expression(
             raise EmptyOrClause()
         return or_(
             *(
-                build_expression(clause, field_map, registry, json_field_map, any_model=any_model)
+                build_expression(clause, field_map, registry, json_field_map, any_context=any_context)
                 for clause in query_expr.clauses
             )
         )
 
     if isinstance(query_expr, Not):
         return not_(
-            build_expression(query_expr.clause, field_map, registry, json_field_map, any_model=any_model)
+            build_expression(
+                query_expr.clause, field_map, registry, json_field_map, any_context=any_context
+            )
         )
 
     if isinstance(query_expr, Any):  # pyright: ignore[reportUnnecessaryIsInstance]
-        return _build_any_expression(query_expr, field_map, registry, json_field_map, any_model)
+        return _build_any_expression(query_expr, field_map, registry, json_field_map, any_context)
 
     raise UnsupportedQueryExpression(query_expr)  # pyright: ignore[reportUnreachable]
 
@@ -601,6 +626,7 @@ def apply_search_query(
     *,
     model: ModelClass,
     allow_any: bool = False,
+    computed_fields: Mapping[str, ComputedField] | None = None,
 ) -> Select[*SelectTs]:
     if query is None or query.where is None:
         return stmt
@@ -614,7 +640,7 @@ def apply_search_query(
             {**field_map, **nested_columns},
             registry,
             json_field_map,
-            any_model=model if allow_any else None,
+            any_context=AnyContext(model, computed_fields or {}) if allow_any else None,
         )
     )
 
