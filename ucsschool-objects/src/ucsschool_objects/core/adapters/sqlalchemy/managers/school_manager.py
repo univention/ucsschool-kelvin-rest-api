@@ -115,11 +115,13 @@ class SQLAlchemySchoolManager(Manager[School]):
             self._FIELD_MAP,
             self._NESTED_FIELD_REGISTRY,
             json_field_map=self._JSON_FIELD_MAP,
+            model=SchoolModel,
         )
         stmt = apply_sort(
             stmt,
             sort_by,
             self._FIELD_MAP,
+            model=SchoolModel,
             default_field="public_id",
             registry=self._NESTED_FIELD_REGISTRY,
             search_after=search_after,

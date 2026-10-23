@@ -82,11 +82,14 @@ class SQLAlchemyRoleManager(Manager[Role]):
             load,
             self._LOAD_ATTRIBUTE_MAP,
         )
-        stmt = apply_search_query(stmt, query, self._FIELD_MAP, self._NESTED_FIELD_REGISTRY)
+        stmt = apply_search_query(
+            stmt, query, self._FIELD_MAP, self._NESTED_FIELD_REGISTRY, model=RoleModel
+        )
         stmt = apply_sort(
             stmt,
             sort_by,
             self._FIELD_MAP,
+            model=RoleModel,
             default_field="public_id",
             registry=self._NESTED_FIELD_REGISTRY,
             search_after=search_after,

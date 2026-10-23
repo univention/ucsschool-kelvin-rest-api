@@ -157,6 +157,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
             join_path=(SchoolModel,),
             join_type=JoinType.LEFT_OUTER,
             exposed_fields=get_exposed_fields(SchoolModel),
+            to_many=False,
         ),
         # Lets a search filter groups by role in the query.
         "roles": JoinSpec(
@@ -296,11 +297,13 @@ class SQLAlchemyGroupManager(Manager[Group]):
             self._FIELD_MAP,
             self._NESTED_FIELD_REGISTRY,
             json_field_map=self._JSON_FIELD_MAP,
+            model=GroupModel,
         )
         stmt = apply_sort(
             stmt,
             sort_by,
             self._FIELD_MAP,
+            model=GroupModel,
             default_field="public_id",
             registry=self._NESTED_FIELD_REGISTRY,
             search_after=search_after,

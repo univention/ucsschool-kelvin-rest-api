@@ -79,6 +79,8 @@ class JoinSpec:
         join_path: Tuple of models to join in order (e.g., (SchoolMembership, GroupModel)).
         join_type: Either "left_outer" (default) for optional relationships or "inner" for required.
         exposed_fields: Frozenset of field names on target_model that are queryable.
+        to_many: Whether one root row can relate to many target rows. Such relations
+            cannot be sorted on.
     """
 
     relation_name: str
@@ -86,6 +88,7 @@ class JoinSpec:
     join_path: tuple[ModelClass, ...]
     join_type: JoinType = JoinType.LEFT_OUTER
     exposed_fields: frozenset[str] = frozenset()
+    to_many: bool = True
 
 
 def generate_public_id() -> UUID:
