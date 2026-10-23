@@ -182,6 +182,26 @@ class InvalidSearchAfter(InvalidFilter):
         )
 
 
+class InvalidAnyRelatedClause(InvalidFilter):
+    """Raised when an ``AnyRelated`` clause cannot be applied."""
+
+    reason: str
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"Invalid AnyRelated clause: {reason}")
+
+
+class UnsupportedQueryExpression(InvalidFilter):
+    """Raised when a query contains a node that is not part of the query DSL."""
+
+    expression: object
+
+    def __init__(self, expression: object) -> None:
+        self.expression = expression
+        super().__init__(f"Unsupported query expression: {expression!r}")
+
+
 class UnsupportedOperation(CorelibError):
     """Raised when a caller requests unsupported read/search behavior."""
 

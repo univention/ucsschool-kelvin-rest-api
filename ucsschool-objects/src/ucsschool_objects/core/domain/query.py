@@ -74,7 +74,12 @@ class Not:
     clause: QueryExpr
 
 
-QueryExpr: TypeAlias = Filter | And | Or | Not
+@dataclass(frozen=True)
+class AnyRelated:
+    clause: QueryExpr
+
+
+QueryExpr: TypeAlias = Filter | And | Or | Not | AnyRelated
 
 
 @dataclass(frozen=True)

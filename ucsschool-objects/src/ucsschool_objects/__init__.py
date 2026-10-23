@@ -17,6 +17,7 @@ from ucsschool_objects.core.domain.errors import (
     CorelibError,
     EmptyAndClause,
     EmptyOrClause,
+    InvalidAnyRelatedClause,
     InvalidFilter,
     InvalidInFilter,
     InvalidJsonFilter,
@@ -28,6 +29,7 @@ from ucsschool_objects.core.domain.errors import (
     UnsupportedFilterField,
     UnsupportedFilterOperator,
     UnsupportedOperation,
+    UnsupportedQueryExpression,
     UnsupportedSortField,
 )
 from ucsschool_objects.core.domain.load_spec import LoadSpec
@@ -51,6 +53,7 @@ from ucsschool_objects.core.domain.ports.unit_of_work import (
 )
 from ucsschool_objects.core.domain.query import (
     And,
+    AnyRelated,
     Filter,
     FilterInValue,
     FilterScalarValue,
@@ -78,6 +81,7 @@ __all__ = [
     "User",
     # Query DSL
     "And",
+    "AnyRelated",
     "Filter",
     "FilterInValue",
     "FilterScalarValue",
@@ -94,6 +98,7 @@ __all__ = [
     "CorelibError",
     "EmptyAndClause",
     "EmptyOrClause",
+    "InvalidAnyRelatedClause",
     "InvalidFilter",
     "InvalidInFilter",
     "InvalidJsonFilter",
@@ -105,6 +110,7 @@ __all__ = [
     "UnsupportedFilterField",
     "UnsupportedFilterOperator",
     "UnsupportedOperation",
+    "UnsupportedQueryExpression",
     "UnsupportedSortField",
     # Ports
     "KelvinStorageSession",
