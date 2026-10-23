@@ -221,8 +221,10 @@ async def test_school_manager_create_failure(
     school_data: dict[str, Any],
     expected_exception: type[Exception],
 ) -> None:
+    manager = SQLAlchemySchoolManager(db_session)
+    school = School(**school_data)
     with pytest.raises(expected_exception):
-        await SQLAlchemySchoolManager(db_session).create(School(**school_data))
+        await manager.create(school)
 
 
 # ---------------------------------------------------------------------------
@@ -301,8 +303,9 @@ async def test_role_manager_create_failure(
     if setup_existing:
         await manager.create(Role(name="school:dup", display_name={"en": "Existing"}))
 
+    role = Role(**role_data)
     with pytest.raises(expected_exception):
-        await manager.create(Role(**role_data))
+        await manager.create(role)
 
 
 # ---------------------------------------------------------------------------
@@ -861,8 +864,9 @@ async def test_group_manager_create_failure(
         school_membership_factory,
     )
 
+    manager = SQLAlchemyGroupManager(db_session)
     with pytest.raises(expectation.expected_exception):
-        await SQLAlchemyGroupManager(db_session).create(expectation.group)
+        await manager.create(expectation.group)
 
 
 # ---------------------------------------------------------------------------
@@ -1360,5 +1364,6 @@ async def test_user_manager_create_failure(
 ) -> None:
     expectation = await setup_case(school_factory, role_factory, group_factory)
 
+    manager = SQLAlchemyUserManager(db_session)
     with pytest.raises(expectation.expected_exception):
-        await SQLAlchemyUserManager(db_session).create(expectation.user)
+        await manager.create(expectation.user)

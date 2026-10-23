@@ -13,6 +13,7 @@ from sqlalchemy import func, make_url, select
 from ucsschool_objects.core.adapters.sqlalchemy import session
 from ucsschool_objects.core.adapters.sqlalchemy.session import (
     DatabaseSettings,
+    KelvinSqlAlchemySession,
     KelvinSqlAlchemySessionFactory,
     _read_env_or_file,
     build_engine,
@@ -91,16 +92,21 @@ async def test_transaction_scope_commits_on_success(
     assert count == 1
 
 
+async def _add_school_then_fail(scope: KelvinSqlAlchemySession, school_name: str) -> None:
+    async with scope as storage:
+        storage.session.add(_make_school(school_name))
+        raise RuntimeError("boom")
+
+
 @pytest.mark.asyncio
 async def test_transaction_scope_rolls_back_on_exception(
     sqlite_engine: AsyncEngine, wired_storage_factory: KelvinSqlAlchemySessionFactory
 ) -> None:
     school_name = "rolled-back-school"
 
+    scope = wired_storage_factory.transaction_scope()
     with pytest.raises(RuntimeError, match="boom"):
-        async with wired_storage_factory.transaction_scope() as storage:
-            storage.session.add(_make_school(school_name))
-            raise RuntimeError("boom")
+        await _add_school_then_fail(scope, school_name)
 
     session_factory = build_session_factory(sqlite_engine)
     async with session_factory() as session:
@@ -154,10 +160,9 @@ async def test_session_scope_rolls_back_on_exception(
 ) -> None:
     school_name = "uow-session-rollback"
 
+    scope = wired_storage_factory.session_scope()
     with pytest.raises(RuntimeError, match="boom"):
-        async with wired_storage_factory.session_scope() as storage:
-            storage.session.add(_make_school(school_name))
-            raise RuntimeError("boom")
+        await _add_school_then_fail(scope, school_name)
 
     session_factory = build_session_factory(sqlite_engine)
     async with session_factory() as session:

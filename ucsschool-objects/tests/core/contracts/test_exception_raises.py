@@ -160,8 +160,9 @@ async def test_empty_logical_clause_raises_invalid_filter(
     """Tests whether empty And/Or query clauses raise the corresponding dedicated error type."""
     manager = SQLAlchemySchoolManager(db_session)
 
+    query = SearchQuery(where=where_expr)
     with pytest.raises(expected_exc_type, match=expected_reason):
-        await manager.search(SearchQuery(where=where_expr))
+        await manager.search(query)
 
 
 @pytest.mark.asyncio

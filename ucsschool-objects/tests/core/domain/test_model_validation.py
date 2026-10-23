@@ -94,8 +94,9 @@ class TestSchoolValidation:
         SchoolValidator.validate(_school())
 
     def test_empty_name_raises(self) -> None:
+        school = _school(name="")
         with pytest.raises(ValueError, match="School.name"):
-            SchoolValidator.validate(_school(name=""))
+            SchoolValidator.validate(school)
 
     @pytest.mark.parametrize(
         "name",
@@ -109,20 +110,23 @@ class TestSchoolValidation:
         ],
     )
     def test_invalid_name_format_raises(self, name: str) -> None:
+        school = _school(name=name)
         with pytest.raises(ValueError, match="Invalid school name"):
-            SchoolValidator.validate(_school(name=name))
+            SchoolValidator.validate(school)
 
     @pytest.mark.parametrize("name", ["A", "School1", "My-School", "school_2", "S1-A2_B3"])
     def test_valid_name_formats_are_accepted(self, name: str) -> None:
         SchoolValidator.validate(_school(name=name))
 
     def test_empty_record_uid_raises(self) -> None:
+        school = _school(record_uid="")
         with pytest.raises(ValueError, match="School.record_uid"):
-            SchoolValidator.validate(_school(record_uid=""))
+            SchoolValidator.validate(school)
 
     def test_empty_source_uid_raises(self) -> None:
+        school = _school(source_uid="")
         with pytest.raises(ValueError, match="School.source_uid"):
-            SchoolValidator.validate(_school(source_uid=""))
+            SchoolValidator.validate(school)
 
 
 # ---------------------------------------------------------------------------
@@ -135,8 +139,9 @@ class TestRoleValidation:
         RoleValidator.validate(_role())
 
     def test_empty_name_raises(self) -> None:
+        role = _role(name="")
         with pytest.raises(ValueError, match="Role.name"):
-            RoleValidator.validate(_role(name=""))
+            RoleValidator.validate(role)
 
 
 # ---------------------------------------------------------------------------
@@ -149,20 +154,24 @@ class TestGroupValidation:
         GroupValidator.validate(_group())
 
     def test_empty_name_raises(self) -> None:
+        group = _group(name="")
         with pytest.raises(ValueError, match="Group.name"):
-            GroupValidator.validate(_group(name=""))
+            GroupValidator.validate(group)
 
     def test_empty_record_uid_raises(self) -> None:
+        group = _group(record_uid="")
         with pytest.raises(ValueError, match="Group.record_uid"):
-            GroupValidator.validate(_group(record_uid=""))
+            GroupValidator.validate(group)
 
     def test_empty_source_uid_raises(self) -> None:
+        group = _group(source_uid="")
         with pytest.raises(ValueError, match="Group.source_uid"):
-            GroupValidator.validate(_group(source_uid=""))
+            GroupValidator.validate(group)
 
     def test_empty_roles_raises(self) -> None:
+        group = _group(roles="")
         with pytest.raises(ValueError, match="Group.roles"):
-            GroupValidator.validate(_group(roles=""))
+            GroupValidator.validate(group)
 
 
 # ---------------------------------------------------------------------------
@@ -175,8 +184,9 @@ class TestUserValidation:
         UserValidator.validate(_user())
 
     def test_empty_name_raises(self) -> None:
+        user = _user(name="")
         with pytest.raises(ValueError, match="User.name"):
-            UserValidator.validate(_user(name=""))
+            UserValidator.validate(user)
 
     @pytest.mark.parametrize(
         "name",
@@ -194,42 +204,50 @@ class TestUserValidation:
         ],
     )
     def test_invalid_characters_in_name_raises(self, name: str) -> None:
+        user = _user(name=name)
         with pytest.raises(ValueError, match="invalid characters"):
-            UserValidator.validate(_user(name=name))
+            UserValidator.validate(user)
 
     @pytest.mark.parametrize("name", ["ends_with_space ", "ends_with_period."])
     def test_name_ending_with_space_or_period_raises(self, name: str) -> None:
+        user = _user(name=name)
         with pytest.raises(ValueError, match="must not end with"):
-            UserValidator.validate(_user(name=name))
+            UserValidator.validate(user)
 
     def test_name_exceeding_255_chars_raises(self) -> None:
+        user = _user(name="a" * 256)
         with pytest.raises(ValueError, match="255"):
-            UserValidator.validate(_user(name="a" * 256))
+            UserValidator.validate(user)
 
     @pytest.mark.parametrize(
         "name",
         ["CON", "PRN", "AUX", "NUL", "COM1", "COM9", "LPT1", "LPT9", "con", "Con", "nul.txt"],
     )
     def test_windows_reserved_names_raise(self, name: str) -> None:
+        user = _user(name=name)
         with pytest.raises(ValueError, match="reserved Windows name"):
-            UserValidator.validate(_user(name=name))
+            UserValidator.validate(user)
 
     @pytest.mark.parametrize("name", ["alice", "bob.smith", "COM10", "LPT10", "CONSOLE"])
     def test_non_reserved_names_are_accepted(self, name: str) -> None:
         UserValidator.validate(_user(name=name))
 
     def test_empty_firstname_raises(self) -> None:
+        user = _user(firstname="")
         with pytest.raises(ValueError, match="User.firstname"):
-            UserValidator.validate(_user(firstname=""))
+            UserValidator.validate(user)
 
     def test_empty_lastname_raises(self) -> None:
+        user = _user(lastname="")
         with pytest.raises(ValueError, match="User.lastname"):
-            UserValidator.validate(_user(lastname=""))
+            UserValidator.validate(user)
 
     def test_empty_record_uid_raises(self) -> None:
+        user = _user(record_uid="")
         with pytest.raises(ValueError, match="User.record_uid"):
-            UserValidator.validate(_user(record_uid=""))
+            UserValidator.validate(user)
 
     def test_empty_source_uid_raises(self) -> None:
+        user = _user(source_uid="")
         with pytest.raises(ValueError, match="User.source_uid"):
-            UserValidator.validate(_user(source_uid=""))
+            UserValidator.validate(user)

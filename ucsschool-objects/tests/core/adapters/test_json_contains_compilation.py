@@ -27,5 +27,6 @@ def test_json_array_contains_compiles_on_postgresql() -> None:
 
 
 def test_json_array_contains_rejects_unsupported_dialects() -> None:
+    dialect = mysql.dialect()
     with pytest.raises(NotImplementedError, match="not implemented for dialect 'mysql'"):
-        _compile(mysql.dialect())
+        _compile(dialect)

@@ -115,12 +115,9 @@ async def test_unsupported_nested_field_raises_error(db_session: AsyncSession) -
     """Test that querying unsupported nested field raises UnsupportedNestedField."""
     manager = SQLAlchemyUserManager(db_session)
 
+    query = SearchQuery(where=Filter("unknown_relation.public_id", Operator.EQ, "test"))
     with pytest.raises(UnsupportedNestedField) as exc_info:
-        list(
-            await manager.search(
-                query=SearchQuery(where=Filter("unknown_relation.public_id", Operator.EQ, "test"))
-            )
-        )
+        await manager.search(query=query)
 
     assert "unknown_relation" in str(exc_info.value)
 
@@ -132,12 +129,9 @@ async def test_unsupported_nested_field_on_relation_raises_error(
     """Test that querying unsupported field on a relation raises UnsupportedNestedField."""
     manager = SQLAlchemyUserManager(db_session)
 
+    query = SearchQuery(where=Filter("groups.nonexistent_field", Operator.EQ, "test"))
     with pytest.raises(UnsupportedNestedField) as exc_info:
-        list(
-            await manager.search(
-                query=SearchQuery(where=Filter("groups.nonexistent_field", Operator.EQ, "test"))
-            )
-        )
+        await manager.search(query=query)
 
     assert "groups" in str(exc_info.value)
     assert "nonexistent_field" in str(exc_info.value)

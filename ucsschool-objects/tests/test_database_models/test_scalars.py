@@ -105,8 +105,9 @@ async def test_unique_scalar_raise_error(
     db_session: AsyncSession, model_factory: ModelFactory, attribute_name: str
 ) -> None:
     instance = await model_factory()
+    duplicate = getattr(instance, attribute_name)
     with pytest.raises(IntegrityError, match="UNIQUE constraint failed"):
-        await model_factory(**{attribute_name: getattr(instance, attribute_name)})
+        await model_factory(**{attribute_name: duplicate})
 
 
 @pytest.mark.parametrize(

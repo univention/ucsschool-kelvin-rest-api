@@ -8,6 +8,7 @@ import pytest
 from kelvin_connector.consumer import KelvinConnectorEventHandler, KelvinConsumerModule
 from kelvin_connector.models import UserProperties
 from provisioning_consumer_lib import UDMEventHandler
+from provisioning_consumer_lib.consumer import QueryEventObject
 from pydantic import ValidationError
 
 _TS = "2024-01-01T00:00:00"
@@ -224,7 +225,7 @@ async def test_is_relevant_group_with_unmatched_role_returns_false(handler):
 # ── handle_event ──────────────────────────────────────────────────────────────
 
 
-def _queue_event(num_delivered: int = 1, body: dict | None = None) -> dict:
+def _queue_event(num_delivered: int = 1, body: dict | None = None) -> QueryEventObject:
     return {
         "publisher_name": "udm-listener",
         "ts": _TS,
@@ -247,14 +248,16 @@ async def test_handle_event_propagates_validation_error(handler):
     event is decided by KelvinConsumerModule."""
     payload = _user_payload()
     payload["properties"]["univentionObjectIdentifier"] = "not-a-uuid"
+    event = _queue_event(body={"old": None, "new": payload})
     with pytest.raises(ValidationError):
-        await handler.handle_event(_queue_event(body={"old": None, "new": payload}))
+        await handler.handle_event(event)
 
 
 async def test_handle_event_propagates_handler_error_without_duplicate_logging(handler, sync_manager):
     sync_manager.handle_user_create.side_effect = RuntimeError("boom")
+    event = _queue_event()
     with pytest.raises(RuntimeError, match="boom"):
-        await handler.handle_event(_queue_event())
+        await handler.handle_event(event)
 
 
 # ── _handle_create ────────────────────────────────────────────────────────────

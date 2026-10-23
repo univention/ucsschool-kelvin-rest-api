@@ -39,8 +39,9 @@ async def test_invalid_filter_field_raises_domain_error(
     manager = SQLAlchemySchoolManager(db_session)
     invalid_filter = Filter(field="unknown", op=Operator.EQ, value="x")
 
+    query = SearchQuery(where=invalid_filter)
     with pytest.raises(UnsupportedFilterField, match="Unsupported field") as exc_info:
-        await manager.search(SearchQuery(where=invalid_filter))
+        await manager.search(query)
     assert exc_info.value.field == "unknown"
 
 
@@ -65,10 +66,11 @@ async def test_range_filter_with_none_raises_domain_error(
     manager = SQLAlchemyUserManager(db_session)
     invalid_filter = Filter(field="birthday", op=Operator.GTE, value=None)
 
+    query = SearchQuery(where=invalid_filter)
     with pytest.raises(
         InvalidRangeFilter, match="requires a numeric or date-like field and non-null value"
     ) as exc_info:
-        await manager.search(SearchQuery(where=invalid_filter))
+        await manager.search(query)
     assert exc_info.value.field == "birthday"
     assert exc_info.value.operator is Operator.GTE
     assert exc_info.value.value is None
@@ -82,10 +84,11 @@ async def test_range_filter_on_non_range_field_raises_domain_error(
     manager = SQLAlchemyUserManager(db_session)
     invalid_filter = Filter(field="name", op=Operator.GTE, value="m")
 
+    query = SearchQuery(where=invalid_filter)
     with pytest.raises(
         InvalidRangeFilter, match="requires a numeric or date-like field and non-null value"
     ) as exc_info:
-        await manager.search(SearchQuery(where=invalid_filter))
+        await manager.search(query)
     assert exc_info.value.field == "name"
     assert exc_info.value.operator is Operator.GTE
     assert exc_info.value.value == "m"
@@ -99,8 +102,9 @@ async def test_in_filter_with_non_iterable_raises_domain_error(
     manager = SQLAlchemySchoolManager(db_session)
     invalid_filter = Filter(field="name", op=Operator.IN, value=123)
 
+    query = SearchQuery(where=invalid_filter)
     with pytest.raises(InvalidInFilter, match="IN operator requires an iterable value") as exc_info:
-        await manager.search(SearchQuery(where=invalid_filter))
+        await manager.search(query)
     assert exc_info.value.field == "name"
     assert exc_info.value.value == 123
 
@@ -116,10 +120,11 @@ async def test_pattern_filter_with_non_string_raises_domain_error(
     manager = SQLAlchemySchoolManager(db_session)
     invalid_filter = Filter(field="name", op=operator, value=123)
 
+    query = SearchQuery(where=invalid_filter)
     with pytest.raises(
         InvalidPatternFilter, match="Pattern operator requires a string value"
     ) as exc_info:
-        await manager.search(SearchQuery(where=invalid_filter))
+        await manager.search(query)
     assert exc_info.value.field == "name"
     assert exc_info.value.value == 123
 
@@ -132,8 +137,9 @@ async def test_json_filter_with_non_scalar_value_raises_domain_error(
     manager = SQLAlchemyUserManager(db_session)
     invalid_filter = Filter(field="udm_properties.title", op=Operator.EQ, value=None)
 
+    query = SearchQuery(where=invalid_filter)
     with pytest.raises(InvalidJsonFilter, match="requires a string, integer, float or boolean") as exc:
-        await manager.search(SearchQuery(where=invalid_filter))
+        await manager.search(query)
     assert exc.value.field == "udm_properties.title"
     assert exc.value.value is None
 
@@ -146,8 +152,9 @@ async def test_contains_filter_with_non_string_value_raises_domain_error(
     manager = SQLAlchemyUserManager(db_session)
     invalid_filter = Filter(field="udm_properties.phone", op=Operator.CONTAINS, value=123)
 
+    query = SearchQuery(where=invalid_filter)
     with pytest.raises(InvalidJsonFilter) as exc:
-        await manager.search(SearchQuery(where=invalid_filter))
+        await manager.search(query)
     assert exc.value.field == "udm_properties.phone"
     assert exc.value.value == 123
 
@@ -160,8 +167,9 @@ async def test_contains_filter_on_non_json_field_raises_domain_error(
     manager = SQLAlchemyUserManager(db_session)
     invalid_filter = Filter(field="name", op=Operator.CONTAINS, value="user-a")
 
+    query = SearchQuery(where=invalid_filter)
     with pytest.raises(UnsupportedFilterOperator) as exc:
-        await manager.search(SearchQuery(where=invalid_filter))
+        await manager.search(query)
     assert exc.value.field == "name"
 
 
@@ -173,8 +181,9 @@ async def test_uuid_filter_with_malformed_string_raises_domain_error(
     manager = SQLAlchemySchoolManager(db_session)
     invalid_filter = Filter(field="public_id", op=Operator.EQ, value="not-a-uuid")
 
+    query = SearchQuery(where=invalid_filter)
     with pytest.raises(InvalidUuidFilter, match="requires a UUID value") as exc_info:
-        await manager.search(SearchQuery(where=invalid_filter))
+        await manager.search(query)
     assert exc_info.value.field == "public_id"
     assert exc_info.value.value == "not-a-uuid"
 
@@ -203,8 +212,9 @@ async def test_unsupported_filter_operator_raises_domain_error(
     manager = SQLAlchemySchoolManager(db_session)
     invalid_filter = Filter(field="name", op=cast("Operator", "NOPE"), value="school-a")
 
+    query = SearchQuery(where=invalid_filter)
     with pytest.raises(UnsupportedFilterOperator, match="Unsupported operator") as exc_info:
-        await manager.search(SearchQuery(where=invalid_filter))
+        await manager.search(query)
     assert exc_info.value.field == "name"
     assert exc_info.value.operator == "NOPE"
 

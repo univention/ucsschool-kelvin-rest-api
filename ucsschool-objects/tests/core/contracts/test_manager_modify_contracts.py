@@ -328,9 +328,11 @@ async def test_school_manager_modify_educational_servers(
 async def test_school_manager_modify_not_found_raises(
     db_session: AsyncSession,
 ) -> None:
+    manager = SQLAlchemySchoolManager(db_session)
+    missing_id = uuid.uuid4()
     with pytest.raises(NotFound):
-        await SQLAlchemySchoolManager(db_session).modify(
-            uuid.uuid4(),
+        await manager.modify(
+            missing_id,
             [{"op": "replace", "path": "/name", "value": "x"}],
         )
 
@@ -554,8 +556,9 @@ async def test_group_manager_modify_school_null_raises(
     # if necessary, but actually we just want to see if the manager handles it.
     ops: list[JSONPathOperation] = [{"op": "replace", "path": "/school", "value": None}]
 
+    manager = SQLAlchemyGroupManager(db_session)
     with pytest.raises(ValueError, match="Group.school must not be null"):
-        await SQLAlchemyGroupManager(db_session).modify(group.public_id, ops)
+        await manager.modify(group.public_id, ops)
 
 
 @pytest.mark.asyncio
@@ -585,8 +588,9 @@ async def test_group_manager_modify_roles_not_found_raises(
 ) -> None:
     group = await group_factory()
     fake_uuid = str(uuid.uuid4())
+    manager = SQLAlchemyGroupManager(db_session)
     with pytest.raises(NotFound):
-        await SQLAlchemyGroupManager(db_session).modify(
+        await manager.modify(
             group.public_id,
             [{"op": "replace", "path": "/roles", "value": [{"public_id": fake_uuid}]}],
         )
@@ -618,9 +622,11 @@ async def test_group_manager_modify_unsupported_path_raises(
 async def test_group_manager_modify_not_found_raises(
     db_session: AsyncSession,
 ) -> None:
+    manager = SQLAlchemyGroupManager(db_session)
+    missing_id = uuid.uuid4()
     with pytest.raises(NotFound):
-        await SQLAlchemyGroupManager(db_session).modify(
-            uuid.uuid4(),
+        await manager.modify(
+            missing_id,
             [{"op": "replace", "path": "/name", "value": "x"}],
         )
 
@@ -690,8 +696,9 @@ async def test_user_manager_modify_unsupported_path_raises(
     user_factory: AsyncUserFactory,
 ) -> None:
     user = await user_factory()
+    manager = SQLAlchemyUserManager(db_session)
     with pytest.raises(UnsupportedOperation):
-        await SQLAlchemyUserManager(db_session).modify(
+        await manager.modify(
             user.public_id,
             [
                 {
@@ -707,9 +714,11 @@ async def test_user_manager_modify_unsupported_path_raises(
 async def test_user_manager_modify_not_found_raises(
     db_session: AsyncSession,
 ) -> None:
+    manager = SQLAlchemyUserManager(db_session)
+    missing_id = uuid.uuid4()
     with pytest.raises(NotFound):
-        await SQLAlchemyUserManager(db_session).modify(
-            uuid.uuid4(),
+        await manager.modify(
+            missing_id,
             [{"op": "replace", "path": "/name", "value": "x"}],
         )
 
@@ -725,8 +734,9 @@ async def test_school_manager_modify_invalid_name_raises_and_does_not_persist(
     school_factory: AsyncSchoolFactory,
 ) -> None:
     school = await school_factory(name="valid-school")
+    manager = SQLAlchemySchoolManager(db_session)
     with pytest.raises(ValueError, match="Invalid school name"):
-        await SQLAlchemySchoolManager(db_session).modify(
+        await manager.modify(
             school.public_id,
             [{"op": "replace", "path": "/name", "value": "invalid name!"}],
         )
@@ -742,8 +752,9 @@ async def test_group_manager_modify_empty_name_raises_and_does_not_persist(
     group_factory: AsyncGroupFactory,
 ) -> None:
     group = await group_factory(name="valid-group")
+    manager = SQLAlchemyGroupManager(db_session)
     with pytest.raises(ValueError, match="Group.name"):
-        await SQLAlchemyGroupManager(db_session).modify(
+        await manager.modify(
             group.public_id,
             [{"op": "replace", "path": "/name", "value": ""}],
         )
@@ -759,8 +770,9 @@ async def test_user_manager_modify_empty_name_raises_and_does_not_persist(
     user_factory: AsyncUserFactory,
 ) -> None:
     user = await user_factory(name="valid-user")
+    manager = SQLAlchemyUserManager(db_session)
     with pytest.raises(ValueError, match="User.name"):
-        await SQLAlchemyUserManager(db_session).modify(
+        await manager.modify(
             user.public_id,
             [{"op": "replace", "path": "/name", "value": ""}],
         )
@@ -1144,17 +1156,16 @@ async def test_user_manager_modify_school_membership_group_deep_attribute_raises
     user_factory: AsyncUserFactory,
 ) -> None:
     user = await user_factory()
+    manager = SQLAlchemyUserManager(db_session)
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": f"/school_memberships/{uuid.uuid4()}/groups/0/name",
+            "value": "x",
+        }
+    ]
     with pytest.raises(UnsupportedOperation):
-        await SQLAlchemyUserManager(db_session).modify(
-            user.public_id,
-            [
-                {
-                    "op": "replace",
-                    "path": f"/school_memberships/{uuid.uuid4()}/groups/0/name",
-                    "value": "x",
-                }
-            ],
-        )
+        await manager.modify(user.public_id, ops)
 
 
 @pytest.mark.asyncio
@@ -1163,17 +1174,16 @@ async def test_user_manager_modify_school_membership_role_deep_attribute_raises(
     user_factory: AsyncUserFactory,
 ) -> None:
     user = await user_factory()
+    manager = SQLAlchemyUserManager(db_session)
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": f"/school_memberships/{uuid.uuid4()}/roles/0/name",
+            "value": "x",
+        }
+    ]
     with pytest.raises(UnsupportedOperation):
-        await SQLAlchemyUserManager(db_session).modify(
-            user.public_id,
-            [
-                {
-                    "op": "replace",
-                    "path": f"/school_memberships/{uuid.uuid4()}/roles/0/name",
-                    "value": "x",
-                }
-            ],
-        )
+        await manager.modify(user.public_id, ops)
 
 
 @pytest.mark.asyncio
@@ -1182,17 +1192,16 @@ async def test_user_manager_modify_school_membership_unsupported_field_path_rais
     user_factory: AsyncUserFactory,
 ) -> None:
     user = await user_factory()
+    manager = SQLAlchemyUserManager(db_session)
+    ops: list[JSONPathOperation] = [
+        {
+            "op": "replace",
+            "path": f"/school_memberships/{uuid.uuid4()}/school/name",
+            "value": "x",
+        }
+    ]
     with pytest.raises(UnsupportedOperation):
-        await SQLAlchemyUserManager(db_session).modify(
-            user.public_id,
-            [
-                {
-                    "op": "replace",
-                    "path": f"/school_memberships/{uuid.uuid4()}/school/name",
-                    "value": "x",
-                }
-            ],
-        )
+        await manager.modify(user.public_id, ops)
 
 
 @pytest.mark.asyncio
@@ -1229,8 +1238,9 @@ async def test_user_manager_modify_legal_guardians_deep_attribute_raises(
     user_factory: AsyncUserFactory,
 ) -> None:
     user = await user_factory()
+    manager = SQLAlchemyUserManager(db_session)
     with pytest.raises(UnsupportedOperation):
-        await SQLAlchemyUserManager(db_session).modify(
+        await manager.modify(
             user.public_id,
             [{"op": "replace", "path": "/legal_guardians/0/name", "value": "x"}],
         )
@@ -1290,8 +1300,9 @@ async def test_user_manager_modify_legal_wards_deep_attribute_raises(
     user_factory: AsyncUserFactory,
 ) -> None:
     user = await user_factory()
+    manager = SQLAlchemyUserManager(db_session)
     with pytest.raises(UnsupportedOperation):
-        await SQLAlchemyUserManager(db_session).modify(
+        await manager.modify(
             user.public_id,
             [{"op": "replace", "path": "/legal_wards/0/name", "value": "x"}],
         )
@@ -1443,8 +1454,10 @@ async def test_school_manager_delete_removes_row(
 async def test_school_manager_delete_not_found_raises(
     db_session: AsyncSession,
 ) -> None:
+    manager = SQLAlchemySchoolManager(db_session)
+    missing_id = uuid.uuid4()
     with pytest.raises(NotFound):
-        await SQLAlchemySchoolManager(db_session).delete(uuid.uuid4())
+        await manager.delete(missing_id)
 
 
 @pytest.mark.asyncio
@@ -1464,8 +1477,10 @@ async def test_group_manager_delete_removes_row(
 async def test_group_manager_delete_not_found_raises(
     db_session: AsyncSession,
 ) -> None:
+    manager = SQLAlchemyGroupManager(db_session)
+    missing_id = uuid.uuid4()
     with pytest.raises(NotFound):
-        await SQLAlchemyGroupManager(db_session).delete(uuid.uuid4())
+        await manager.delete(missing_id)
 
 
 @pytest.mark.asyncio
@@ -1485,5 +1500,7 @@ async def test_user_manager_delete_removes_row(
 async def test_user_manager_delete_not_found_raises(
     db_session: AsyncSession,
 ) -> None:
+    manager = SQLAlchemyUserManager(db_session)
+    missing_id = uuid.uuid4()
     with pytest.raises(NotFound):
-        await SQLAlchemyUserManager(db_session).delete(uuid.uuid4())
+        await manager.delete(missing_id)
