@@ -12,6 +12,7 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import selectinload
 
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
+    ComputedField,
     FieldColumn,
     JoinSpec,
     JoinType,
@@ -53,10 +54,12 @@ from ucsschool_objects.database_models import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable, Mapping, Sequence
 
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm.attributes import InstrumentedAttribute
+
+    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import ModelClass
 
 
 async def _create_membership(
@@ -348,6 +351,12 @@ def _check_modify_operations(
     return flags["school_memberships"], flags["legal_guardians"], flags["legal_wards"]
 
 
+def _school_role(targets: Mapping[str, ModelClass]) -> FieldColumn:
+    role = cast("type[RoleModel]", targets["roles"])
+    school = cast("type[SchoolModel]", targets["schools"])
+    return cast(FieldColumn, role.name + ":school:" + school.name)
+
+
 class SQLAlchemyUserManager(Manager[User]):
     _SCALAR_FIELD_MAP: dict[str, FieldColumn] = {
         "record_uid": UserModel.record_uid,
@@ -382,6 +391,9 @@ class SQLAlchemyUserManager(Manager[User]):
             join_type=JoinType.LEFT_OUTER,
             exposed_fields=get_exposed_fields(SchoolModel),
         ),
+    }
+    _COMPUTED_FIELDS: dict[str, ComputedField] = {
+        "school_roles": ComputedField(roots=("roles", "schools"), build=_school_role),
     }
     _BASE_FIELD_MAP: dict[str, FieldColumn] = {
         "public_id": UserModel.public_id,
@@ -452,6 +464,7 @@ class SQLAlchemyUserManager(Manager[User]):
             json_field_map=self._JSON_FIELD_MAP,
             model=UserModel,
             allow_any=True,
+            computed_fields=self._COMPUTED_FIELDS,
         )
         stmt = apply_sort(
             stmt,
