@@ -25,6 +25,7 @@ from sqlalchemy import (
     or_,
 )
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.compiler import SQLCompiler
 from sqlalchemy.sql.elements import ColumnElement, literal
@@ -59,7 +60,10 @@ from ucsschool_objects.core.domain.query import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import JoinSpec
+    from sqlalchemy.orm.util import AliasedClass
+
+    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import JoinSpec, ModelClass
+    from ucsschool_objects.database_models import Base
 
 RANGE_CAPABLE_TYPES = (Date, DateTime, Float, Integer, Numeric)
 RANGE_OPERATORS = frozenset({Operator.GT, Operator.GTE, Operator.LT, Operator.LTE})
@@ -128,41 +132,44 @@ def _get_required_joins(
 
 def apply_nested_joins(
     stmt: Select[*SelectTs],
+    model: ModelClass,
     required_joins: set[str],
+    field_map: Mapping[str, FieldColumn],
     registry: dict[str, JoinSpec] | None = None,
-) -> Select[*SelectTs]:
-    """Apply necessary joins for nested relationships and return DISTINCT-wrapped statement.
-
-    Args:
-        stmt: The base SELECT statement.
-        required_joins: Set of relationship names that need to be joined (e.g., {'groups', 'roles'}).
-        registry: The JoinSpec registry mapping relationship names to join specifications.
-
-    Returns:
-        Modified statement with joins applied and DISTINCT if N:M relationships are present.
-    """
+) -> tuple[Select[*SelectTs], dict[str, FieldColumn]]:
     if registry is None or not required_joins:
-        return stmt
+        return stmt, {}
 
-    applied_join = False
+    nested_columns: dict[str, FieldColumn] = {}
+    joined_to_many = False
 
-    for join_name in required_joins:
+    for join_name in sorted(required_joins):
         if join_name not in registry:
             continue
 
         spec = registry[join_name]
         isouter = spec.join_type == "left_outer"
 
-        # Apply each model in the join path
+        left: ModelClass | AliasedClass[Base] = model
         for join_model in spec.join_path:
-            stmt = stmt.join(join_model, isouter=isouter)
-            applied_join = True
+            right = aliased(join_model)
+            stmt = stmt.join_from(left, right, isouter=isouter)
+            left = right
 
-    # Apply DISTINCT when at least one nested join was applied.
-    if applied_join:
+        prefix = f"{join_name}."
+        nested_columns.update(
+            {
+                field: cast(FieldColumn, getattr(left, field.removeprefix(prefix)))
+                for field in field_map
+                if field.startswith(prefix)
+            }
+        )
+        joined_to_many = joined_to_many or spec.to_many
+
+    if joined_to_many:
         stmt = stmt.distinct()
 
-    return stmt
+    return stmt, nested_columns
 
 
 def _get_column_type(column: FieldColumn) -> TypeEngine[object]:
@@ -488,16 +495,18 @@ def apply_search_query(
     field_map: Mapping[str, FieldColumn],
     registry: dict[str, JoinSpec] | None = None,
     json_field_map: Mapping[str, FieldColumn] | None = None,
+    *,
+    model: ModelClass,
 ) -> Select[*SelectTs]:
     if query is None or query.where is None:
         return stmt
 
-    # Apply nested joins if needed
     required_joins = _get_required_joins(query.where, registry)
-    stmt = apply_nested_joins(stmt, required_joins, registry)
+    stmt, nested_columns = apply_nested_joins(stmt, model, required_joins, field_map, registry)
 
-    # Build and apply filter expression
-    return stmt.where(build_expression(query.where, field_map, registry, json_field_map))
+    return stmt.where(
+        build_expression(query.where, {**field_map, **nested_columns}, registry, json_field_map)
+    )
 
 
 def _search_after_condition(
@@ -531,15 +540,20 @@ def apply_sort(
     sort_by: Sequence[SortSpec],
     field_map: Mapping[str, FieldColumn],
     *,
+    model: ModelClass,
     default_field: str = "public_id",
     registry: dict[str, JoinSpec] | None = None,
     search_after: Sequence[FilterScalarValue] | None = None,
 ) -> Select[*SelectTs]:
     specs = tuple(sort_by) or (SortSpec(default_field),)
 
-    # Apply nested joins if needed
     required_joins = _get_required_joins(specs, registry)
-    stmt = apply_nested_joins(stmt, required_joins, registry)
+    for spec in specs:
+        root, sep, _ = spec.field.partition(".")
+        if sep and root in required_joins and cast("dict[str, JoinSpec]", registry)[root].to_many:
+            raise UnsupportedSortField(spec.field)
+    stmt, nested_columns = apply_nested_joins(stmt, model, required_joins, field_map, registry)
+    field_map = {**field_map, **nested_columns}
 
     ordering = specs
     if default_field in field_map and all(spec.field != default_field for spec in specs):

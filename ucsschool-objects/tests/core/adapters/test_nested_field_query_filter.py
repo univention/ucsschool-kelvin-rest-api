@@ -29,8 +29,11 @@ from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
 from ucsschool_objects.core.domain.errors import UnsupportedNestedField
 from ucsschool_objects.database_models import (
     Group as GroupModel,
+    GroupMemberAssociation,
     Role as RoleModel,
+    School as SchoolModel,
     SchoolMembership,
+    SchoolMembershipRoleAssociation,
     User as UserModel,
 )
 
@@ -180,64 +183,73 @@ def test_matches_builder_renders_variants_with_escape_clause(
     assert " ESCAPE " in sql
 
 
-@pytest.mark.asyncio
-async def test_apply_nested_joins_applies_left_outer_by_default() -> None:
-    """Test that apply_nested_joins applies left outer joins and DISTINCT."""
-    registry = {
-        "groups": JoinSpec(
-            relation_name="groups",
-            target_model=GroupModel,
-            join_path=(SchoolMembership, GroupModel),
-            join_type=JoinType.LEFT_OUTER,
-            exposed_fields=frozenset(["public_id", "name"]),
-        ),
-    }
+_USER_GROUPS = JoinSpec(
+    relation_name="groups",
+    target_model=GroupModel,
+    join_path=(SchoolMembership, GroupMemberAssociation, GroupModel),
+    join_type=JoinType.LEFT_OUTER,
+    exposed_fields=frozenset(["public_id", "name"]),
+)
+_USER_ROLES = JoinSpec(
+    relation_name="roles",
+    target_model=RoleModel,
+    join_path=(SchoolMembership, SchoolMembershipRoleAssociation, RoleModel),
+    join_type=JoinType.LEFT_OUTER,
+    exposed_fields=frozenset(["name"]),
+)
 
-    stmt = select(UserModel)
-    joined_stmt = apply_nested_joins(stmt, {"groups"}, registry)
+
+def test_apply_nested_joins_applies_left_outer_by_default() -> None:
+    """Test that apply_nested_joins applies left outer joins and DISTINCT."""
+    field_map: dict[str, FieldColumn] = {"name": UserModel.name, "groups.name": GroupModel.name}
+
+    joined_stmt, nested_columns = apply_nested_joins(
+        select(UserModel), UserModel, {"groups"}, field_map, {"groups": _USER_GROUPS}
+    )
 
     # Single nested N:M join paths can duplicate root rows; DISTINCT must be applied.
-    assert joined_stmt._distinct is True
-    assert joined_stmt is not None
+    assert str(joined_stmt).startswith("SELECT DISTINCT")
+    assert "LEFT OUTER JOIN" in str(joined_stmt)
+    assert set(nested_columns) == {"groups.name"}
+    assert nested_columns["groups.name"] is not GroupModel.name
 
 
-@pytest.mark.asyncio
-async def test_apply_nested_joins_applies_distinct_for_multiple_joins() -> None:
-    """Test that DISTINCT is applied when multiple joins are present."""
+def test_apply_nested_joins_aliases_each_relation() -> None:
+    joined_stmt, _ = apply_nested_joins(
+        select(UserModel),
+        UserModel,
+        {"groups", "roles"},
+        {},
+        {"groups": _USER_GROUPS, "roles": _USER_ROLES},
+    )
+
+    assert str(joined_stmt).startswith("SELECT DISTINCT")
+    assert str(joined_stmt).count("JOIN school_membership AS") == 2
+
+
+def test_apply_nested_joins_skips_distinct_for_to_one_relations() -> None:
     registry = {
-        "groups": JoinSpec(
-            relation_name="groups",
-            target_model=GroupModel,
-            join_path=(SchoolMembership, GroupModel),
-            join_type=JoinType.LEFT_OUTER,
-            exposed_fields=frozenset(["public_id"]),
-        ),
-        "roles": JoinSpec(
-            relation_name="roles",
-            target_model=RoleModel,
-            join_path=(SchoolMembership, RoleModel),
-            join_type=JoinType.LEFT_OUTER,
-            exposed_fields=frozenset(["public_id"]),
+        "school": JoinSpec(
+            relation_name="school",
+            target_model=SchoolModel,
+            join_path=(SchoolModel,),
+            exposed_fields=frozenset(["name"]),
+            to_many=False,
         ),
     }
 
-    stmt = select(UserModel)
-    joined_stmt = apply_nested_joins(stmt, {"groups", "roles"}, registry)
+    joined_stmt, _ = apply_nested_joins(select(GroupModel), GroupModel, {"school"}, {}, registry)
 
-    assert joined_stmt._distinct is True
-    assert joined_stmt is not None
+    assert not str(joined_stmt).startswith("SELECT DISTINCT")
+    assert "JOIN school AS" in str(joined_stmt)
 
 
-@pytest.mark.asyncio
-async def test_apply_nested_joins_with_empty_registry_returns_unchanged() -> None:
+def test_apply_nested_joins_with_empty_registry_returns_unchanged() -> None:
     """Test that no joins are applied when registry is None or empty."""
     stmt = select(UserModel)
-    result = apply_nested_joins(stmt, set(), None)
 
-    assert result == stmt
-
-    result2 = apply_nested_joins(stmt, {"groups"}, {})
-    assert result2 == stmt
+    assert apply_nested_joins(stmt, UserModel, set(), {}, None) == (stmt, {})
+    assert apply_nested_joins(stmt, UserModel, {"groups"}, {}, {}) == (stmt, {})
 
 
 def test_unsupported_nested_field_error_message_includes_allowed_relations() -> None:

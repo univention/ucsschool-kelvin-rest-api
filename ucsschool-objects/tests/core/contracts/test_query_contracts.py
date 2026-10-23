@@ -29,6 +29,7 @@ from ucsschool_objects import (
     Or,
     SearchQuery,
     SortSpec,
+    UnsupportedSortField,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyGroupManager,
@@ -435,6 +436,38 @@ async def _setup_user_groups_case(factories: UserQueryFactories) -> QueryExpecta
     )
 
 
+async def _setup_user_schools_and_roles_case(factories: UserQueryFactories) -> QueryExpectation:
+    school_x = await factories.school_factory(name="school-x")
+    school_y = await factories.school_factory(name="school-y")
+    teacher_role = await factories.role_factory(name="teacher")
+    student_role = await factories.role_factory(name="student")
+
+    mixed = await factories.user_factory(name="mixed")
+    student = await factories.user_factory(name="student")
+
+    await factories.school_membership_factory(
+        user=mixed, school=school_x, is_primary=True, roles=[student_role]
+    )
+    await factories.school_membership_factory(
+        user=mixed, school=school_y, is_primary=False, roles=[teacher_role]
+    )
+    await factories.school_membership_factory(
+        user=student, school=school_x, is_primary=True, roles=[student_role]
+    )
+
+    return QueryExpectation(
+        query=SearchQuery(
+            where=And(
+                clauses=(
+                    Filter(field="schools.name", op=Operator.EQ, value="school-x"),
+                    Filter(field="roles.name", op=Operator.EQ, value="teacher"),
+                )
+            )
+        ),
+        expected_names=("mixed",),
+    )
+
+
 async def _setup_user_udm_string_case(factories: UserQueryFactories) -> QueryExpectation:
     await factories.user_factory(name="prof", udm_properties={"title": "Prof"})
     await factories.user_factory(name="doc", udm_properties={"title": "Dr"})
@@ -641,6 +674,7 @@ async def test_role_query_operators(
         pytest.param(_setup_user_udm_string_case, id="user-udm-string"),
         pytest.param(_setup_user_roles_case, id="user-roles"),
         pytest.param(_setup_user_groups_case, id="user-groups"),
+        pytest.param(_setup_user_schools_and_roles_case, id="user-schools-and-roles"),
         pytest.param(_setup_user_udm_int_case, id="user-udm-int"),
         pytest.param(_setup_user_udm_bool_case, id="user-udm-bool"),
         pytest.param(_setup_user_udm_float_case, id="user-udm-float"),
@@ -681,6 +715,25 @@ async def test_query_negation_filters(db_session: AsyncSession, user_factory: Us
     q = SearchQuery(where=Not(clause=Filter(field="active", op=Operator.EQ, value=True)))
     results = await manager.search(q)
     assert [item.name for item in results] == ["inactive"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("field", ["groups.name", "roles.name", "schools.name"])
+async def test_user_query_rejects_sorting_on_a_to_many_relation(
+    db_session: AsyncSession, field: str
+) -> None:
+    manager = SQLAlchemyUserManager(db_session)
+
+    with pytest.raises(UnsupportedSortField):
+        await manager.search(sort_by=(SortSpec(field=field),))
+
+
+@pytest.mark.asyncio
+async def test_group_query_rejects_sorting_on_a_to_many_relation(db_session: AsyncSession) -> None:
+    manager = SQLAlchemyGroupManager(db_session)
+
+    with pytest.raises(UnsupportedSortField):
+        await manager.search(sort_by=(SortSpec(field="roles.name"),))
 
 
 @pytest.mark.asyncio
