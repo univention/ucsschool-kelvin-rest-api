@@ -250,6 +250,27 @@ larger sets have to be split over several requests.
 
    Repeating the ``name`` parameter is supported by the version 2 API only.
 
+To search for users by their ``ucsschool_roles``,
+use the ``ucsschool_roles`` parameter,
+for example ``?ucsschool_roles=teacher:school:DEMOSCHOOL``.
+Each value is matched against whole entries, case-insensitively, with ``*`` as a wildcard:
+``?ucsschool_roles=teacher:school:*`` finds the teachers of all schools.
+Repeat the parameter to find the users that have all of the given entries,
+for example ``?ucsschool_roles=teacher:school:DEMOSCHOOL&ucsschool_roles=staff:school:DEMOSCHOOL``.
+
+.. versionchanged:: 4.2.0
+
+   The version 2 API supports the ``ucsschool_roles`` parameter,
+   with two differences to the version 1 API:
+
+   Only entries with the context type ``school`` match, for example ``teacher:school:DEMOSCHOOL``.
+   The version 2 API doesn't store other entries, for example ``myrole:mycontext:DEMOSCHOOL``,
+   so a search for them finds no users,
+   and ``?ucsschool_roles=*`` only finds the users with at least one entry with the context type ``school``.
+
+   A search accepts at most 20 different values,
+   more are rejected with the status code ``422``.
+
 The Users resource supports searching for all attributes and to combine those.
 To search for users that are both ``staff`` and ``teacher`` with usernames that start with ``demo``, birthday on the 3rd of February, have a lastname that ends with ``sam`` and are enrolled in school ``demoschool``, the URL is: ``https://<fqdn>/ucsschool/kelvin/v1/users/?school=demoschool&name=demo%2A&birthday=2001-02-03&lastname=%2Asam&roles=staff&roles=teacher``
 

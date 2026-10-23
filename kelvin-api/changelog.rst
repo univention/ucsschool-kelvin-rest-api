@@ -105,6 +105,11 @@ v4.2.0 (TBD)
   and the ``Link`` response header holds the URLs of the ``first``, ``prev``, ``next``, and ``last`` page.
   The pages are addressed by an opaque cursor in those URLs.
   Without ``limit``, the searches return all results as a plain list, as before.
+* Fixed (version 2 API only): The user search ignored the ``ucsschool_roles`` parameter and returned all users.
+  As in the version 1 API, the parameter may be repeated, all values must match, ``*`` is a wildcard, and the search is case-insensitive.
+  Only entries with the context type ``school`` match, for example ``teacher:school:DEMOSCHOOL``,
+  because the version 2 API doesn't store other entries.
+  A search accepts at most 20 different values.
 * Fixed (version 2 API only): Users, schools, school classes, and work groups whose ``univentionObjectIdentifier`` is a ``UUID v1`` were missing from the version 2 API.
   The Kelvin connector only accepted ``UUID v4`` and discarded the changes of these objects.
   It now accepts ``UUID v1 and v4``, as UDM does.

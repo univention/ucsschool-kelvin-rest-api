@@ -61,6 +61,13 @@ and the difference is only noticeable in direct ``v1``-versus-``v2`` comparisons
 Unlike the v1 endpoint, the ``/v2/users/`` endpoint does not return any Exam users.
 
 
+``/v2/users/`` searches by ``ucsschool_roles`` only match roles of schools
+--------------------------------------------------------------------------
+Unlike the v1 endpoint, the ``ucsschool_roles`` parameter of the ``/v2/users/`` endpoint
+only matches entries with the context type ``school``, for example ``teacher:school:DEMOSCHOOL``.
+Entries with other context types aren't stored for the version 2 API.
+
+
 Kelvin connector log level cannot be adjusted
 ---------------------------------------------
 The log level of the Kelvin connector, which keeps the version 2 database in sync, cannot
