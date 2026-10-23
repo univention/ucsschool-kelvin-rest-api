@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 import pytest
@@ -15,6 +15,7 @@ from ucsschool_objects import (
     UNLOADED,
     UNSET,
     And,
+    Any as AnyRelated,
     Filter,
     Not,
     Operator,
@@ -22,6 +23,7 @@ from ucsschool_objects import (
     School,
     SchoolMembership,
     SearchQuery,
+    UnsupportedQueryExpression,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
@@ -53,6 +55,7 @@ from ucsschool_objects.database_models import School as SchoolModel
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+    from ucsschool_objects import QueryExpr
 
     from tests.test_types import (
         AsyncGroupFactory,
@@ -324,6 +327,17 @@ def test_iter_filters_handles_filter_and_and_or_and_not() -> None:
     assert filters[0].field == "name"
     assert filters[1].field == "firstname"
     assert filters[2].field == "active"
+
+
+def test_iter_filters_handles_any() -> None:
+    expr = AnyRelated(Filter("roles.name", Operator.EQ, "teacher"))
+
+    assert [item.field for item in iter_filters(expr)] == ["roles.name"]
+
+
+def test_iter_filters_rejects_unknown_expressions() -> None:
+    with pytest.raises(UnsupportedQueryExpression):
+        list(iter_filters(cast("QueryExpr", object())))
 
 
 def test_unloaded_attributes_empty_when_sqlalchemy_state_missing(

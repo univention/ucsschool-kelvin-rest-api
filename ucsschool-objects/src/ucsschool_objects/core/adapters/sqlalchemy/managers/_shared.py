@@ -18,7 +18,7 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.sql.elements import ColumnElement
 
-from ucsschool_objects.core.domain.errors import NotFound
+from ucsschool_objects.core.domain.errors import NotFound, UnsupportedQueryExpression
 from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import (
@@ -26,7 +26,7 @@ from ucsschool_objects.core.domain.models import (
     UnloadedType,
     _require_loaded,  # pyright: ignore[reportPrivateUsage]
 )
-from ucsschool_objects.core.domain.query import And, Filter, Not, Or
+from ucsschool_objects.core.domain.query import And, Any, Filter, Not, Or, QueryExpr
 from ucsschool_objects.database_models import (
     Base,
     Role as RoleModel,
@@ -41,7 +41,6 @@ if TYPE_CHECKING:
     from ucsschool_objects.core.domain.models import UnsetType
     from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 
-QueryExpr: TypeAlias = Filter | And | Or | Not
 ModelClass: TypeAlias = type[Base]
 TRequired = TypeVar("TRequired")
 FieldColumn: TypeAlias = InstrumentedAttribute[object] | ColumnElement[object]
@@ -248,7 +247,10 @@ def iter_filters(expr: QueryExpr) -> Iterable[Filter]:
         for clause in expr.clauses:
             yield from iter_filters(clause)
         return
-    yield from iter_filters(expr.clause)
+    if isinstance(expr, (Not, Any)):  # pyright: ignore[reportUnnecessaryIsInstance]
+        yield from iter_filters(expr.clause)
+        return
+    raise UnsupportedQueryExpression(expr)  # pyright: ignore[reportUnreachable]
 
 
 def compose_field_map(

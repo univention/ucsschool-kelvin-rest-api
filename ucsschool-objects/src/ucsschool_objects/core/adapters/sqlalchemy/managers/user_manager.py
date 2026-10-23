@@ -451,6 +451,7 @@ class SQLAlchemyUserManager(Manager[User]):
             self._NESTED_FIELD_REGISTRY,
             json_field_map=self._JSON_FIELD_MAP,
             model=UserModel,
+            allow_any=True,
         )
         stmt = apply_sort(
             stmt,

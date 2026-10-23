@@ -74,7 +74,19 @@ class Not:
     clause: QueryExpr
 
 
-QueryExpr: TypeAlias = Filter | And | Or | Not
+@dataclass(frozen=True)
+class Any:
+    """At least one related row matches the whole clause.
+
+    Every field in the clause must be nested; the clause is checked per related
+    row, so ``Any(And(roles.name = a, roles.name = b))`` never matches — use
+    ``And(Any(…), Any(…))``.
+    """
+
+    clause: QueryExpr
+
+
+QueryExpr: TypeAlias = Filter | And | Or | Not | Any
 
 
 @dataclass(frozen=True)
