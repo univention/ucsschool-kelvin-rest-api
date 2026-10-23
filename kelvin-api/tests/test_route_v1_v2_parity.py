@@ -5,6 +5,7 @@ import asyncio
 import os
 import random
 import time
+from collections.abc import Awaitable
 from typing import Any, Callable, NamedTuple, Type, Union
 
 import pytest
@@ -147,6 +148,69 @@ async def test_v1_v2_search_users_returns_same_output(
         )
         v2_response = requests.get(f"{v2_url}/users/", headers=auth_header, params={"school": school})
         _assert_search_parity(v1_response, v2_response, "User")
+
+    await _retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
+async def test_v1_v2_search_users_by_ucsschool_roles_returns_same_output(
+    auth_header: dict[str, str],
+    retry_http_502: Callable[..., requests.Response],
+    create_ou_using_python: Callable[..., Awaitable[str]],
+    new_import_user: Callable[..., Awaitable[ImportUser]],
+    create_exam_user: Callable[..., Awaitable[tuple[str, dict[str, Any]]]],
+    import_config: object,
+) -> None:
+    """V1 and V2 GET /users/?ucsschool_roles=… return equivalent data, except for the
+    roles without the context type "school" that only v1 matches."""
+    school_x = await create_ou_using_python(cache=False)
+    school_y = await create_ou_using_python(cache=False)
+    users = [
+        await new_import_user(school_x, "teacher_and_staff"),
+        await new_import_user(
+            school_x,
+            "teacher",
+            schools=[school_x, school_y],
+            ucsschool_roles=[f"school_admin:school:{school_y}"],
+        ),
+        await new_import_user(school_x, "student"),
+    ]
+    custom_role = f"myrole:mycontext:{school_x}"
+    custom = await new_import_user(school_x, "staff", ucsschool_roles=[custom_role])
+    _, exam_user = await create_exam_user(school_x)
+    ours = {user.name for user in users} | {custom.name, exam_user["username"]}
+
+    v1_url, v2_url = _make_base_urls()
+    combinations = [
+        [f"teacher:school:{school_x}"],
+        [f"teacher:school:{school_x}", f"staff:school:{school_x}"],
+        [f"teacher:school:{school_x}", f"school_admin:school:{school_y}"],
+        ["teacher:school:*"],
+        [f"*:school:{school_x}"],
+        [f"TEACHER:School:{school_x.upper()}"],
+    ]
+    cases = [
+        [*(("ucsschool_roles", value) for value in values), *school]
+        for values in combinations
+        for school in ([], [("school", school_x)])
+    ]
+
+    def _ours(base_url: str, params: list[tuple[str, str]]) -> dict[str, dict[str, Any]]:
+        response = retry_http_502(requests.get, f"{base_url}/users/", headers=auth_header, params=params)
+        assert response.status_code == 200, response.reason
+        return {item["name"]: item for item in response.json() if item["name"] in ours}
+
+    def _check() -> None:
+        for params in cases:
+            v1_items = _ours(v1_url, params)
+            v2_items = _ours(v2_url, params)
+            assert set(v1_items) == set(v2_items), params
+            for name in v1_items.keys() - {custom.name}:
+                assert_responses_equal(v1_items[name], v2_items[name])
+            assert exam_user["username"] not in v1_items
+        custom_params = [("ucsschool_roles", custom_role)]
+        assert set(_ours(v1_url, custom_params)) == {custom.name}
+        assert set(_ours(v2_url, custom_params)) == set()
 
     await _retry_until_replicated(_check)
 
