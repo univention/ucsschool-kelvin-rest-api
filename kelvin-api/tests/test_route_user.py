@@ -456,6 +456,100 @@ async def test_search_without_limit_rejects_a_cursor(
     assert response.status_code == 400
 
 
+@pytest.mark.asyncio
+async def test_search_ucsschool_roles(
+    auth_header: dict[str, str],
+    retry_http_502: Callable[..., requests.Response],
+    retry_until_replicated: Callable[[Callable[[], object]], Awaitable[None]],
+    url_fragment: str,
+    new_import_user: Callable[..., Awaitable[ImportUser]],
+    create_ou_using_python: Callable[..., Awaitable[str]],
+    import_config: object,
+    api_version: str,
+) -> None:
+    school_x = await create_ou_using_python(cache=False)
+    school_y = await create_ou_using_python(cache=False)
+    teacher_staff = (await new_import_user(school_x, "teacher_and_staff")).name
+    teacher = (await new_import_user(school_x, "teacher")).name
+    teacher_x_admin_y = (
+        await new_import_user(
+            school_x,
+            "teacher",
+            schools=[school_x, school_y],
+            ucsschool_roles=[f"school_admin:school:{school_y}"],
+        )
+    ).name
+    students = sorted([(await new_import_user(school_x, "student")).name for _ in range(3)])
+    custom_role = f"myrole:mycontext:{school_x}"
+    custom = (await new_import_user(school_x, "staff", ucsschool_roles=[custom_role])).name
+    teachers = {teacher_staff, teacher, teacher_x_admin_y}
+    everyone = {*teachers, *students, custom}
+
+    def _found(params: list[tuple[str, str | int]]) -> list[str]:
+        response = retry_http_502(
+            requests.get, f"{url_fragment}/users/", headers=auth_header, params=params
+        )
+        assert response.status_code == 200, (response.reason, response.content)
+        return [name for data in response.json() if (name := data["name"]) in everyone]
+
+    def _roles(*values: str) -> list[tuple[str, str | int]]:
+        return [("ucsschool_roles", value) for value in values]
+
+    cases: list[tuple[list[tuple[str, str | int]], set[str]]] = [
+        ([("school", school_x), *_roles(f"teacher:school:{school_x}")], teachers),
+        (_roles(f"teacher:school:{school_x}", f"staff:school:{school_x}"), {teacher_staff}),
+        (
+            _roles(f"teacher:school:{school_x}", f"school_admin:school:{school_y}"),
+            {teacher_x_admin_y},
+        ),
+        (_roles(f"school_admin:school:{school_x}"), set()),
+        (_roles("teacher:school:*"), teachers),
+        (_roles(f"*:school:{school_x}"), everyone),
+        (_roles("teacher:school:*", "staff:school:*"), {teacher_staff}),
+        (_roles(f"TEACHER:School:{school_x.upper()}"), teachers),
+        (_roles(f"teacher:exam:{school_x}"), set()),
+        ([("school", school_x), *_roles("*")], everyone),
+        ([("school", school_x), *_roles("")], set()),
+        (_roles(custom_role), {custom} if api_version == "v1" else set()),
+    ]
+    if api_version == "v2":
+        cases += [
+            (
+                [
+                    ("school", school_x),
+                    ("name", students[0]),
+                    ("name", students[1]),
+                    *_roles(f"student:school:{school_x}"),
+                ],
+                set(students[:2]),
+            ),
+        ]
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check() -> None:
+        for params, expected in cases:
+            assert set(_found(params)) == expected, params
+        if api_version == "v2":
+            params = [("school", school_x), *_roles(f"*:school:{school_x}"), ("limit", 2)]
+            paged: list[str] = []
+            cursor: list[tuple[str, str | int]] = []
+            while True:
+                response = retry_http_502(
+                    requests.get,
+                    f"{url_fragment}/users/",
+                    headers=auth_header,
+                    params=[*params, *cursor],
+                )
+                assert response.status_code == 200, (response.reason, response.content)
+                paged += [data["name"] for data in response.json()]
+                if "next" not in response.links:
+                    break
+                cursor = [("cursor", _cursor_of(response.links["next"]["url"]))]
+            assert sorted(paged) == sorted(everyone)
+
+    await retry_until_replicated(_check)
+
+
 @pytest.mark.asyncio  # noqa: C901
 @pytest.mark.parametrize(
     "filter_param",

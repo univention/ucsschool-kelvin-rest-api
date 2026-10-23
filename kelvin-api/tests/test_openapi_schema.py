@@ -136,3 +136,12 @@ def test_both_api_versions_agree_on_nullability(openapi_docs: dict[str, Any]):
     shared_schemas = v1.keys() & v2.keys()
     assert shared_schemas
     assert {name: v1[name] for name in shared_schemas} == {name: v2[name] for name in shared_schemas}
+
+
+def test_v2_user_search_documents_ucsschool_roles(openapi_docs: dict[str, Any]):
+    search = openapi_docs[URL_API_V2_PREFIX]["paths"][f"{URL_API_V2_PREFIX}/users/"]["get"]
+    parameter = next(param for param in search["parameters"] if param["name"] == "ucsschool_roles")
+
+    assert {"type": "array", "items": {"type": "string"}} in parameter["schema"]["anyOf"]
+    assert "`*` is a wildcard" in parameter["description"]
+    assert "context type `school`" in parameter["description"]

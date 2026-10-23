@@ -41,7 +41,11 @@ from ..v1.user import (
     partial_update,
     search as v1_search,
 )
-from ._filters import name_filter as _name_filter, str_filter as _str_filter
+from ._filters import (
+    name_filter as _name_filter,
+    str_filter as _str_filter,
+    ucsschool_role_filter as _ucsschool_role_filter,
+)
 from ._pagination import (
     LINK_HEADER_RESPONSES,
     PageRequest,
@@ -92,6 +96,7 @@ _KNOWN_SEARCH_PARAMS = frozenset(
         "birthday",
         "expiration_date",
         "disabled",
+        "ucsschool_roles",
         "limit",
         "cursor",
     }
@@ -143,12 +148,14 @@ def _build_query(
     birthday: datetime.date | None,
     expiration_date: datetime.date | None,
     disabled: bool | None,
+    ucsschool_roles: Sequence[str] | None = None,
     extra_clauses: list[QueryExpr] | None = None,
 ) -> SearchQuery | None:
     clauses: list[QueryExpr] = list(extra_clauses or [])
     names = [value for value in name or () if value]
     if names:
         clauses.append(_name_filter("name", names))
+    clauses.extend(_ucsschool_role_filter(value) for value in ucsschool_roles or ())
     if school:
         clauses.append(_str_filter("schools.name", school, case_insensitive=True))
     if firstname:
@@ -305,6 +312,17 @@ async def search(
         None, description="Exact match only. Format must be YYYY-MM-DD."
     ),
     disabled: bool = Query(None),
+    ucsschool_roles: Annotated[
+        list[str] | None,
+        Query(
+            description=(
+                "List users that have all of these entries in their list of ucsschool_roles. "
+                "May be repeated. `*` is a wildcard, and matching is case-insensitive. Only "
+                "entries with the context type `school` can match, as only these are stored "
+                "for version 2, so `*` alone lists the users with at least one such entry."
+            ),
+        ),
+    ] = None,
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
     kelvin_reader: LdapUser = Depends(get_kelvin_reader),
@@ -320,6 +338,7 @@ async def search(
         birthday=birthday,
         expiration_date=expiration_date,
         disabled=disabled,
+        ucsschool_roles=ucsschool_roles,
         extra_clauses=_udm_property_filters(request),
     )
     logger.debug("v2 user search query: %r", query)

@@ -9,15 +9,22 @@ over the API is covered by the integration tests in ``test_route_user.py``.
 
 from collections.abc import Sequence
 
-from ucsschool_objects import And, Filter, Operator, Or, SearchQuery
+import pytest
+from ucsschool_objects import And, Any, Filter, Operator, Or, SearchQuery
 
+from ucsschool.kelvin.routers.v2._filters import ucsschool_role_filter
 from ucsschool.kelvin.routers.v2.user import _build_query
 
 
-def _query(names: Sequence[str] | None, school: str | None = None) -> SearchQuery | None:
+def _query(
+    names: Sequence[str] | None,
+    school: str | None = None,
+    ucsschool_roles: Sequence[str] | None = None,
+) -> SearchQuery | None:
     return _build_query(
         school=school,
         name=names,
+        ucsschool_roles=ucsschool_roles,
         firstname=None,
         lastname=None,
         email=None,
@@ -74,3 +81,66 @@ def test_names_combine_with_other_parameters() -> None:
     assert query is not None
     assert isinstance(query.where, And)
     assert Filter(field="name", op=Operator.IN_CI, value=("alice", "bob")) in query.where.clauses
+
+
+def _school_role(value: str) -> Any:
+    return Any(Filter(field="school_roles", op=Operator.MATCHES_CI, value=value))
+
+
+def _role_at_school(role: str, school: str) -> Any:
+    return Any(
+        And(
+            clauses=(
+                Filter(field="roles.name", op=Operator.MATCHES_CI, value=role),
+                Filter(field="schools.name", op=Operator.MATCHES_CI, value=school),
+            )
+        )
+    )
+
+
+def test_single_ucsschool_role_matches_role_and_school_of_one_membership() -> None:
+    assert _query(None, ucsschool_roles=["teacher:school:DEMOSCHOOL"]) == SearchQuery(
+        where=_role_at_school("teacher", "DEMOSCHOOL")
+    )
+
+
+def test_all_ucsschool_roles_must_match() -> None:
+    assert _query(None, ucsschool_roles=["teacher:school:DEMOSCHOOL", "staff:school:*"]) == SearchQuery(
+        where=And(clauses=(_role_at_school("teacher", "DEMOSCHOOL"), _role_at_school("staff", "*")))
+    )
+
+
+@pytest.mark.parametrize(
+    ("value", "role", "school"),
+    [
+        pytest.param("*:school:DEMOSCHOOL", "*", "DEMOSCHOOL", id="wildcard-role"),
+        pytest.param("TEACHER:SCHOOL:demoschool", "TEACHER", "demoschool", id="case"),
+        pytest.param("teacher:sch*:DEMO*", "teacher", "DEMO*", id="wildcard-context-type"),
+        pytest.param("teacher:*:DEMOSCHOOL", "teacher", "DEMOSCHOOL", id="any-context-type"),
+    ],
+)
+def test_ucsschool_role_with_three_parts_is_split(value: str, role: str, school: str) -> None:
+    assert ucsschool_role_filter(value) == _role_at_school(role, school)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param("", id="empty"),
+        pytest.param("teacher*DEMOSCHOOL", id="wildcard-across-parts"),
+        pytest.param("*", id="wildcard-only"),
+        pytest.param("teacher:exam:DEMOSCHOOL", id="other-context-type"),
+        pytest.param("a:b:c:d", id="four-parts"),
+    ],
+)
+def test_other_ucsschool_roles_match_the_whole_entry(value: str) -> None:
+    assert ucsschool_role_filter(value) == _school_role(value)
+
+
+def test_ucsschool_roles_combine_with_other_parameters() -> None:
+    query = _query(["alice"], school="DEMOSCHOOL", ucsschool_roles=["student:school:DEMOSCHOOL"])
+
+    assert query is not None
+    assert isinstance(query.where, And)
+    assert _role_at_school("student", "DEMOSCHOOL") in query.where.clauses
+    assert Filter(field="name", op=Operator.IN_CI, value=("alice",)) in query.where.clauses

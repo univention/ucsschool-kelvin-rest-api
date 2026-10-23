@@ -1,10 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import re
 from collections.abc import Sequence
 
 from ucsschool_objects import (
     And,
+    Any,
     Filter,
     Operator,
     Or,
@@ -39,6 +41,33 @@ def name_filter(field: str, values: Sequence[str]) -> QueryExpr:
     if len(clauses) == 1:
         return clauses[0]
     return Or(clauses=tuple(clauses))
+
+
+def _glob_matches(pattern: str, text: str) -> bool:
+    regex = ".*".join(re.escape(part) for part in pattern.split("*"))
+    return re.fullmatch(regex, text, re.IGNORECASE) is not None
+
+
+def ucsschool_role_filter(value: str) -> Any:
+    """Users with an entry in ``ucsschool_roles`` that matches ``value``.
+
+    Only ``<role>:school:<school>`` entries are stored, and neither part contains a
+    colon, so a value of three colon-separated parts matches part by part. Matching
+    role and school separately lets the database start from the school instead of
+    composing every stored entry.
+    """
+    parts = value.split(":")
+    if len(parts) == 3 and _glob_matches(parts[1], "school"):
+        role, _, school = parts
+        return Any(
+            And(
+                clauses=(
+                    make_wildcard_filter("roles.name", role, case_insensitive=True),
+                    make_wildcard_filter("schools.name", school, case_insensitive=True),
+                )
+            )
+        )
+    return Any(make_wildcard_filter("school_roles", value, case_insensitive=True))
 
 
 def group_search_query(
