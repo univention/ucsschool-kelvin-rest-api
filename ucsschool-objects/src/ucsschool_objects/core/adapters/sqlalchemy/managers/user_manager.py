@@ -44,6 +44,7 @@ from ucsschool_objects.core.domain.query import FilterScalarValue, SearchQuery, 
 from ucsschool_objects.core.domain.validators import UserValidator
 from ucsschool_objects.database_models import (
     Group as GroupModel,
+    GroupMemberAssociation,
     Role as RoleModel,
     School as SchoolModel,
     SchoolMembership,
@@ -363,7 +364,7 @@ class SQLAlchemyUserManager(Manager[User]):
         "groups": JoinSpec(
             relation_name="groups",
             target_model=GroupModel,
-            join_path=(SchoolMembership, GroupModel),
+            join_path=(SchoolMembership, GroupMemberAssociation, GroupModel),
             join_type=JoinType.LEFT_OUTER,
             exposed_fields=get_exposed_fields(GroupModel),
         ),
