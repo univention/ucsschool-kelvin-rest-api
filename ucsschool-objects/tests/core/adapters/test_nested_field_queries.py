@@ -22,7 +22,6 @@ from ucsschool_objects import (
     School,
     SchoolMembership,
     SearchQuery,
-    SortSpec,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
@@ -54,6 +53,13 @@ from ucsschool_objects.database_models import School as SchoolModel
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from tests.test_types import (
+        AsyncGroupFactory,
+        AsyncSchoolFactory,
+        AsyncSchoolMembershipFactory,
+        AsyncUserFactory,
+    )
 
 
 @pytest.mark.asyncio
@@ -144,63 +150,50 @@ async def test_unsupported_nested_field_on_relation_raises_error(
 
 
 @pytest.mark.asyncio
-async def test_nested_field_filter_with_and_composition(db_session: AsyncSession) -> None:
-    """Test combining multiple nested field filters with And()."""
+async def test_nested_field_filter_with_and_composition(
+    db_session: AsyncSession,
+    school_factory: AsyncSchoolFactory,
+    group_factory: AsyncGroupFactory,
+    user_factory: AsyncUserFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
+    school = await school_factory(name="school-a")
+    group = await group_factory(name="class-a", school=school)
+    member = await user_factory(name="member")
+    await user_factory(name="outsider")
+    await school_membership_factory(user=member, school=school, is_primary=True, groups=[group])
     manager = SQLAlchemyUserManager(db_session)
 
-    # This should not raise, just verify the query is built
-    try:
-        list(
-            await manager.search(
-                query=SearchQuery(
-                    where=And(
-                        (
-                            Filter("schools.public_id", Operator.EQ, "school-id"),
-                            Filter("groups.public_id", Operator.EQ, "group-id"),
-                        )
-                    )
+    results = await manager.search(
+        query=SearchQuery(
+            where=And(
+                (
+                    Filter("schools.public_id", Operator.EQ, str(school.public_id)),
+                    Filter("groups.public_id", Operator.EQ, str(group.public_id)),
                 )
             )
         )
-    except Exception as e:
-        # May fail due to no data, but should not fail on field resolution
-        if "Unsupported" in str(type(e).__name__):
-            raise
+    )
+
+    assert [user.name for user in results] == ["member"]
 
 
 @pytest.mark.asyncio
-async def test_nested_field_in_sort_spec(db_session: AsyncSession) -> None:
-    """Test sorting by nested field."""
-    manager = SQLAlchemyUserManager(db_session)
-
-    # Should build query without error
-    try:
-        list(
-            await manager.search(
-                sort_by=[SortSpec("groups.name", ascending=True)],
-            )
-        )
-    except Exception as e:
-        # May fail due to no data or join semantics, but not on field resolution
-        if "Unsupported" in str(type(e).__name__):
-            raise
-
-
-@pytest.mark.asyncio
-async def test_group_manager_by_school_name(db_session: AsyncSession) -> None:
+async def test_group_manager_by_school_name(
+    db_session: AsyncSession,
+    school_factory: AsyncSchoolFactory,
+    group_factory: AsyncGroupFactory,
+) -> None:
     """Test querying groups by school.name."""
+    await group_factory(name="in-test-school", school=await school_factory(name="test-school"))
+    await group_factory(name="elsewhere", school=await school_factory(name="other-school"))
     manager = SQLAlchemyGroupManager(db_session)
 
-    # Should not raise on field resolution
-    try:
-        list(
-            await manager.search(
-                query=SearchQuery(where=Filter("school.name", Operator.MATCHES_CI, "test*"))
-            )
-        )
-    except Exception as e:
-        if "Unsupported" in str(type(e).__name__):
-            raise
+    results = await manager.search(
+        query=SearchQuery(where=Filter("school.name", Operator.MATCHES_CI, "test*"))
+    )
+
+    assert [group.name for group in results] == ["in-test-school"]
 
 
 @pytest.mark.asyncio
@@ -216,19 +209,32 @@ async def test_all_exposed_fields_are_queryable(db_session: AsyncSession) -> Non
 
 
 @pytest.mark.asyncio
-async def test_nested_field_in_not_expression(db_session: AsyncSession) -> None:
+async def test_nested_field_in_not_expression(
+    db_session: AsyncSession,
+    school_factory: AsyncSchoolFactory,
+    group_factory: AsyncGroupFactory,
+    user_factory: AsyncUserFactory,
+    school_membership_factory: AsyncSchoolMembershipFactory,
+) -> None:
     """Test nested field in NOT expression."""
+    school = await school_factory(name="school-a")
+    excluded_group = await group_factory(name="class-a", school=school)
+    other_group = await group_factory(name="class-b", school=school)
+    excluded = await user_factory(name="excluded")
+    kept = await user_factory(name="kept")
+    await school_membership_factory(
+        user=excluded, school=school, is_primary=True, groups=[excluded_group]
+    )
+    await school_membership_factory(user=kept, school=school, is_primary=True, groups=[other_group])
     manager = SQLAlchemyUserManager(db_session)
 
-    try:
-        list(
-            await manager.search(
-                query=SearchQuery(where=Not(Filter("groups.public_id", Operator.EQ, "test-id")))
-            )
+    results = await manager.search(
+        query=SearchQuery(
+            where=Not(Filter("groups.public_id", Operator.EQ, str(excluded_group.public_id)))
         )
-    except Exception as e:
-        if "Unsupported" in str(type(e).__name__):
-            raise
+    )
+
+    assert [user.name for user in results] == ["kept"]
 
 
 @pytest.mark.asyncio
