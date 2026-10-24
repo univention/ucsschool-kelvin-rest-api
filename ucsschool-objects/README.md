@@ -203,6 +203,35 @@ async def users_in_school(school_name: str):
         return list(await storage.users.search(query))
 ```
 
+Filters on different relations match independently:
+``And(schools.name = "A", roles.name = "teacher")`` finds users with some membership at `A`
+and a teacher role at any school.
+To require both on the same membership, wrap them in `AnyRelated`,
+which matches when at least one related row matches the whole clause:
+
+```python
+from ucsschool_objects import And, AnyRelated, Filter, Operator, SearchQuery
+
+
+async def teachers_of_school(school_name: str):
+    async with storage_factory.session_scope() as storage:
+        query = SearchQuery(
+            where=AnyRelated(
+                And(
+                    (
+                        Filter(field="schools.name", op=Operator.EQ, value=school_name),
+                        Filter(field="roles.name", op=Operator.EQ, value="teacher"),
+                    )
+                )
+            )
+        )
+        return list(await storage.users.search(query))
+```
+
+`AnyRelated` is supported for users only.
+Combine several `AnyRelated` with `And` to require several related rows,
+for example a teacher role at one school and a staff role at another.
+
 ### Create a new school object
 
 ```python
@@ -476,11 +505,8 @@ The following tools are enforced by pre-commit:
 
 | Tool | Purpose |
 |---|---|
-| **black** | Code formatting |
-| **isort** | Import ordering |
-| **flake8** | Style and error linting |
-| **mypy --strict** | Static type checking (this package only) |
-| **bandit** | Security scanning |
+| **ruff** | Linting, import ordering and formatting |
+| **basedpyright** | Static type checking against a committed baseline |
 | **conventional-pre-commit** | Commit message format |
 
 Commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) format

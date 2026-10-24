@@ -33,7 +33,7 @@ CORELIB_POSTGRES_TEST_URL=postgresql+psycopg://user:pass@host/db uv run pytest
                                             # also run PostgreSQL contract tests
 ```
 
-Pre-commit (black, isort, flake8, mypy --strict, bandit, conventional-pre-commit) runs from the repository root.
+Pre-commit (ruff, basedpyright, conventional-pre-commit, …) runs from the repository root.
 
 ## Architecture (one-paragraph version)
 

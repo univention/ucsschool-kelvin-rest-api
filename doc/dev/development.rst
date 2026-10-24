@@ -168,34 +168,17 @@ Code style and static checks run through
    * - Tool
      - Config
      - Scope / notes
-   * - ``isort``
-     - ``.isort.cfg``
-     - ``profile=black``, line length 105.
-   * - ``black``
-     - ``.black``
-     - line length 105, target ``py311``.
-   * - ``flake8``
-     - ``.flake8``
-     - line length 105.
-   * - ``mypy --strict``
-     - ``[tool.mypy]`` in ``pyproject.toml``
-     - scoped to ``ucsschool-objects/`` only.
+   * - ``ruff`` (``ruff-check --fix``, ``ruff-format``)
+     - ``[tool.ruff]`` in ``pyproject.toml``
+     - linting, import ordering and formatting; line length 105, target ``py311``.
    * - ``basedpyright``
      - ``pyrightconfig.json`` + ``basedpyright-baseline.json``
-     - runs against a committed baseline (baseline mode ``auto``).
-   * - ``bandit``
-     - ``.bandit``
-     - security scan; test directories excluded.
+     - runs against a committed baseline; at commit time in Docker,
+       ``pre-commit run --hook-stage manual basedpyright-native-baseline`` runs it natively.
    * - ``pre-commit-hooks`` / ``pygrep-hooks``
      - —
      - ``trailing-whitespace``, ``large-files``, JSON/YAML/XML checks,
        ``no-eval``, ``blanket-noqa``, ``rst-backticks``.
-
-.. note::
-
-   There is **no Ruff** in the stack despite what an older documentation scaffold might
-   suggest — formatting/linting is ``isort`` + ``black`` + ``flake8``, typing is
-   ``mypy`` (strict, ``ucsschool-objects`` only) + ``basedpyright``.
 
 Types and models
 ^^^^^^^^^^^^^^^^^
@@ -203,7 +186,7 @@ Types and models
 The HTTP layer uses **Pydantic v2** with ``pydantic-settings`` and a current FastAPI.
 URL fields use ``ucsschool.kelvin.schema.HttpUrl``, which validates like Pydantic's
 ``HttpUrl`` but keeps the value as the ``str`` the client sent. ``ucsschool-objects``
-is fully typed and gated by ``mypy --strict``.
+is fully typed and gated by ``basedpyright``.
 
 Commit messages
 ^^^^^^^^^^^^^^^^

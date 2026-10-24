@@ -165,11 +165,11 @@ Hooks:
 
 | Hook | Purpose | Notes |
 |---|---|---|
-| **black** | Formatting | config: `.black` |
-| **isort** | Import ordering | config: `.isort.cfg` |
-| **flake8** | Linting | config: `.flake8` |
-| **mypy --strict** | Static typing | scoped to `ucsschool-objects/` only |
-| **bandit** | Security scanning | config: `.bandit`; tests excluded |
+| **ruff-check** | Linting and import ordering, with `--fix` | config: `[tool.ruff]` in `pyproject.toml` |
+| **ruff-format** | Formatting | config: `[tool.ruff]` in `pyproject.toml` |
+| **basedpyright** | Static typing against `basedpyright-baseline.json` | runs in Docker at commit time; `pre-commit run --hook-stage manual basedpyright-native-baseline` runs it natively |
+| **uv-export** | Keeps the exported requirements in sync with `uv.lock` | — |
+| **reuse** | SPDX license headers | — |
 | **pre-commit-hooks** | trailing-whitespace, large-files, json/yaml/xml checks | — |
 | **pygrep-hooks** | python-no-eval, blanket-noqa, rst-backticks | — |
 | **conventional-pre-commit** (commit-msg) | Conventional Commits format | `--strict` |
