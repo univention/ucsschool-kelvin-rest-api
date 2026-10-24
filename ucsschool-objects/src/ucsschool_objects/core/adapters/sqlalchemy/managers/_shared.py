@@ -18,7 +18,7 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.base import ExecutableOption
 from sqlalchemy.sql.elements import ColumnElement
 
-from ucsschool_objects.core.domain.errors import NotFound, UnsupportedQueryExpression
+from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import (
@@ -26,7 +26,6 @@ from ucsschool_objects.core.domain.models import (
     UnloadedType,
     _require_loaded,  # pyright: ignore[reportPrivateUsage]
 )
-from ucsschool_objects.core.domain.query import And, AnyRelated, Filter, Not, Or, QueryExpr
 from ucsschool_objects.database_models import (
     Base,
     Role as RoleModel,
@@ -34,7 +33,7 @@ from ucsschool_objects.database_models import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
+    from collections.abc import Mapping, Sequence
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -243,20 +242,6 @@ def get_exposed_fields(model: type) -> frozenset[str]:
     if mapper is None:  # pyright: ignore[reportUnnecessaryComparison]
         return frozenset()  # pyright: ignore[reportUnreachable]
     return frozenset(column.key for column in mapper.column_attrs)
-
-
-def iter_filters(expr: QueryExpr) -> Iterable[Filter]:
-    if isinstance(expr, Filter):
-        yield expr
-        return
-    if isinstance(expr, (And, Or)):
-        for clause in expr.clauses:
-            yield from iter_filters(clause)
-        return
-    if isinstance(expr, (Not, AnyRelated)):  # pyright: ignore[reportUnnecessaryIsInstance]
-        yield from iter_filters(expr.clause)
-        return
-    raise UnsupportedQueryExpression(expr)  # pyright: ignore[reportUnreachable]
 
 
 def compose_field_map(

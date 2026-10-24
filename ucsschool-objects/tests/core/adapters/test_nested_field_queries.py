@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import pytest
@@ -15,22 +15,18 @@ from ucsschool_objects import (
     UNLOADED,
     UNSET,
     And,
-    AnyRelated,
     Filter,
     Not,
     Operator,
-    Or,
     School,
     SchoolMembership,
     SearchQuery,
-    UnsupportedQueryExpression,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
     JoinSpec,
     JoinType,
     compose_field_map,
     get_exposed_fields,
-    iter_filters,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.managers.group_manager import (
     SQLAlchemyGroupManager,
@@ -55,7 +51,6 @@ from ucsschool_objects.database_models import School as SchoolModel
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from ucsschool_objects import QueryExpr
 
     from tests.test_types import (
         AsyncGroupFactory,
@@ -300,38 +295,6 @@ def test_manager_field_map_fully_covers_exposed_nested_fields(manager_cls: type[
                 nested_field = f"{relation_name}.{field_name}"
                 assert nested_field in manager_cls._FIELD_MAP
                 assert manager_cls._FIELD_MAP[nested_field] is target_columns[field_name]
-
-
-def test_iter_filters_handles_filter_and_and_or_and_not() -> None:
-    expr = And(
-        (
-            Filter("name", Operator.EQ, "alice"),
-            Or(
-                (
-                    Filter("firstname", Operator.EQ, "Alice"),
-                    Not(Filter("active", Operator.EQ, False)),
-                )
-            ),
-        )
-    )
-
-    filters = list(iter_filters(expr))
-
-    assert len(filters) == 3
-    assert filters[0].field == "name"
-    assert filters[1].field == "firstname"
-    assert filters[2].field == "active"
-
-
-def test_iter_filters_handles_any() -> None:
-    expr = AnyRelated(Filter("roles.name", Operator.EQ, "teacher"))
-
-    assert [item.field for item in iter_filters(expr)] == ["roles.name"]
-
-
-def test_iter_filters_rejects_unknown_expressions() -> None:
-    with pytest.raises(UnsupportedQueryExpression):
-        list(iter_filters(cast("QueryExpr", object())))
 
 
 def test_unloaded_attributes_empty_when_sqlalchemy_state_missing(
