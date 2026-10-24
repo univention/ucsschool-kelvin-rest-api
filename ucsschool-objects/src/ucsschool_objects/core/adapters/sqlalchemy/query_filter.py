@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Callable, TypeAlias, TypeVarTuple, cast
+from typing import Callable, TypeAlias, TypeVarTuple, cast
 from uuid import UUID
 
 from sqlalchemy import (
@@ -28,12 +28,17 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import aliased, join as orm_join
-from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.compiler import SQLCompiler
 from sqlalchemy.sql.elements import ColumnElement, literal
 from sqlalchemy.sql.sqltypes import Boolean
 from sqlalchemy.sql.type_api import TypeEngine
 
+from ucsschool_objects.core.adapters.sqlalchemy.query_schema import (
+    ComputedField,
+    FieldColumn,
+    JoinSpec,
+    ModelClass,
+)
 from ucsschool_objects.core.domain.errors import (
     EmptyAndClause,
     EmptyOrClause,
@@ -65,17 +70,9 @@ from ucsschool_objects.core.domain.query import (
     SortSpec,
 )
 
-if TYPE_CHECKING:  # pragma: no cover
-    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-        ComputedField,
-        JoinSpec,
-        ModelClass,
-    )
-
 RANGE_CAPABLE_TYPES = (Date, DateTime, Float, Integer, Numeric)
 RANGE_OPERATORS = frozenset({Operator.GT, Operator.GTE, Operator.LT, Operator.LTE})
 SelectTs = TypeVarTuple("SelectTs")
-FieldColumn: TypeAlias = InstrumentedAttribute[object] | ColumnElement[object]
 FilterExpression: TypeAlias = ColumnElement[bool]
 FilterExpressionBuilder: TypeAlias = Callable[[FieldColumn, FilterValue], FilterExpression]
 

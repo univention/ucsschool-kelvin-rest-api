@@ -10,14 +10,9 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import selectinload
 
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    FieldColumn,
-    JoinSpec,
-    JoinType,
     PublicIdInput,
     apply_patch,
-    compose_field_map,
     extract_public_ids,
-    get_exposed_fields,
     load_requested_scalar_attributes,
     role_scalar_columns,
     school_scalar_columns,
@@ -34,6 +29,13 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
     to_group_model,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
+from ucsschool_objects.core.adapters.sqlalchemy.query_schema import (
+    FieldColumn,
+    JoinSpec,
+    JoinType,
+    compose_field_map,
+    get_exposed_fields,
+)
 from ucsschool_objects.core.domain.errors import NotFound, UnsupportedOperation
 from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec

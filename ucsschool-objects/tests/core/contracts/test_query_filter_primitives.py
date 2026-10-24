@@ -7,7 +7,8 @@ from typing import cast
 
 from sqlalchemy import Integer, func
 from ucsschool_objects import Filter, Operator
-from ucsschool_objects.core.adapters.sqlalchemy.query_filter import FieldColumn, build_expression
+from ucsschool_objects.core.adapters.sqlalchemy.query_filter import build_expression
+from ucsschool_objects.core.adapters.sqlalchemy.query_schema import FieldColumn
 from ucsschool_objects.database_models import User as UserModel
 
 
