@@ -22,12 +22,6 @@ from ucsschool_objects import (
     SchoolMembership,
     SearchQuery,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    JoinSpec,
-    JoinType,
-    compose_field_map,
-    get_exposed_fields,
-)
 from ucsschool_objects.core.adapters.sqlalchemy.managers.group_manager import (
     SQLAlchemyGroupManager,
 )
@@ -44,6 +38,12 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
     _convert_unloadable,  # pyright: ignore[reportPrivateUsage]
     _unloaded_attributes,  # pyright: ignore[reportPrivateUsage]
+)
+from ucsschool_objects.core.adapters.sqlalchemy.query_schema import (
+    JoinSpec,
+    JoinType,
+    compose_field_map,
+    get_exposed_fields,
 )
 from ucsschool_objects.core.domain.errors import UnsupportedNestedField
 from ucsschool_objects.core.domain.models import is_loaded

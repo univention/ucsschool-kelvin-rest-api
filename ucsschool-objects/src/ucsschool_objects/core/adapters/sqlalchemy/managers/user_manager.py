@@ -12,15 +12,9 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import selectinload
 
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    ComputedField,
-    FieldColumn,
-    JoinSpec,
-    JoinType,
     PublicIdInput,
     apply_patch,
-    compose_field_map,
     fetch_one_by_public_id,
-    get_exposed_fields,
     load_requested_scalar_attributes,
     role_scalar_columns,
     school_scalar_columns,
@@ -36,6 +30,14 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
     to_user_model,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
+from ucsschool_objects.core.adapters.sqlalchemy.query_schema import (
+    ComputedField,
+    FieldColumn,
+    JoinSpec,
+    JoinType,
+    compose_field_map,
+    get_exposed_fields,
+)
 from ucsschool_objects.core.domain.errors import NotFound, UnsupportedOperation
 from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
@@ -59,7 +61,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import ModelClass
+    from ucsschool_objects.core.adapters.sqlalchemy.query_schema import ModelClass
 
 
 async def _create_membership(
