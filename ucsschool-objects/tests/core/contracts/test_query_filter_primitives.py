@@ -5,8 +5,9 @@ from __future__ import annotations
 
 from typing import cast
 
+import pytest
 from sqlalchemy import Integer, func
-from ucsschool_objects import Filter, Operator
+from ucsschool_objects import Filter, Operator, QueryExpr, UnsupportedQueryExpression
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import build_expression
 from ucsschool_objects.core.adapters.sqlalchemy.query_schema import FieldColumn
 from ucsschool_objects.database_models import User as UserModel
@@ -34,3 +35,8 @@ def test_build_expression_supports_column_element_range_types() -> None:
     assert "length(" in compiled.lower()
     assert "name" in compiled.lower()
     assert ">= 10" in compiled
+
+
+def test_build_expression_rejects_unknown_expressions() -> None:
+    with pytest.raises(UnsupportedQueryExpression):
+        build_expression(cast("QueryExpr", object()), {})
