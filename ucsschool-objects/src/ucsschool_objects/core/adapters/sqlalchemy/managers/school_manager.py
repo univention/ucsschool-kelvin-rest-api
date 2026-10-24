@@ -9,9 +9,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
 
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    JoinSpec,
     apply_patch,
-    compose_field_map,
     load_requested_scalar_attributes,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
@@ -21,6 +19,10 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import to_school_model
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
+from ucsschool_objects.core.adapters.sqlalchemy.query_schema import (
+    JoinSpec,
+    compose_field_map,
+)
 from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import School
@@ -35,7 +37,7 @@ if TYPE_CHECKING:
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import FieldColumn
+    from ucsschool_objects.core.adapters.sqlalchemy.query_schema import FieldColumn
     from ucsschool_objects.core.domain.json import PatchDict
 
 

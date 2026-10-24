@@ -8,13 +8,15 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 
 from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import (
-    JoinSpec,
-    compose_field_map,
     load_requested_scalar_attributes,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import ConversionCache, to_role
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import to_role_model
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
+from ucsschool_objects.core.adapters.sqlalchemy.query_schema import (
+    JoinSpec,
+    compose_field_map,
+)
 from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import Role
@@ -28,7 +30,7 @@ if TYPE_CHECKING:
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import FieldColumn
+    from ucsschool_objects.core.adapters.sqlalchemy.query_schema import FieldColumn
 
 
 class SQLAlchemyRoleManager(Manager[Role]):

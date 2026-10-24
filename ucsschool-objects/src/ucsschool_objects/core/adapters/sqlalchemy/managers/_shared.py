@@ -6,18 +6,16 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import Enum
 from typing import TYPE_CHECKING, Callable, Protocol, Self, TypeAlias, TypeVar, cast
 from uuid import UUID, uuid4
 
 from jsonpatch import JsonPatch  # type: ignore[import-untyped]
 from sqlalchemy import inspect, select
-from sqlalchemy.orm import Mapper, load_only
+from sqlalchemy.orm import load_only
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy.sql.base import ExecutableOption
-from sqlalchemy.sql.elements import ColumnElement
 
+from ucsschool_objects.core.adapters.sqlalchemy.query_schema import FieldColumn
 from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.json import PatchDict, to_json
 from ucsschool_objects.core.domain.load_spec import LoadSpec
@@ -33,16 +31,14 @@ from ucsschool_objects.database_models import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Sequence
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from ucsschool_objects.core.domain.models import UnsetType
     from ucsschool_objects.core.domain.ports.manager import JSONPathOperation
 
-ModelClass: TypeAlias = type[Base]
 TRequired = TypeVar("TRequired")
-FieldColumn: TypeAlias = InstrumentedAttribute[object] | ColumnElement[object]
 
 
 class SupportsLoadOptions(Protocol):
@@ -60,39 +56,6 @@ TSelect = TypeVar("TSelect", bound=SupportsLoadOptions)
 TModel = TypeVar("TModel", bound=Base)
 PublicIdCarrierDict: TypeAlias = dict[str, object]
 PublicIdInput: TypeAlias = PublicIdCarrier | PublicIdCarrierDict
-
-
-class JoinType(str, Enum):
-    LEFT_OUTER = "left_outer"
-    INNER = "inner"
-
-
-@dataclass(frozen=True)
-class JoinSpec:
-    """Specification for how to join a nested relationship.
-
-    Attributes:
-        relation_name: Name of the relationship (e.g., "groups", "school", "roles").
-        target_model: The ORM model to join to.
-        join_path: Tuple of models to join in order (e.g., (SchoolMembership, GroupModel)).
-        join_type: Either "left_outer" (default) for optional relationships or "inner" for required.
-        exposed_fields: Frozenset of field names on target_model that are queryable.
-        to_many: Whether one root row can relate to many target rows. Such relations
-            cannot be sorted on.
-    """
-
-    relation_name: str
-    target_model: ModelClass
-    join_path: tuple[ModelClass, ...]
-    join_type: JoinType = JoinType.LEFT_OUTER
-    exposed_fields: frozenset[str] = frozenset()
-    to_many: bool = True
-
-
-@dataclass(frozen=True)
-class ComputedField:
-    roots: tuple[str, ...]
-    build: Callable[[Mapping[str, ModelClass]], FieldColumn]
 
 
 def generate_public_id() -> UUID:
@@ -231,35 +194,6 @@ async def bulk_fetch_by_public_id(
     if missing:
         raise NotFound(object_type=object_type, public_id=str(next(iter(missing))))
     return by_id
-
-
-def get_exposed_fields(model: type) -> frozenset[str]:
-    """Extract queryable first-level column names from a SQLAlchemy model.
-
-    Only includes actual database columns, skipping relationships and other attributes.
-    """
-    mapper: Mapper[Base] | None = inspect(model, raiseerr=False)
-    if mapper is None:  # pyright: ignore[reportUnnecessaryComparison]
-        return frozenset()  # pyright: ignore[reportUnreachable]
-    return frozenset(column.key for column in mapper.column_attrs)
-
-
-def compose_field_map(
-    base_field_map: dict[str, FieldColumn],
-    nested_field_registry: dict[str, JoinSpec],
-) -> dict[str, FieldColumn]:
-    """Build a field map from base fields and nested registry dot-path fields."""
-    field_map = dict(base_field_map)
-    for relation_name, spec in nested_field_registry.items():
-        mapper = inspect(spec.target_model)
-        target_columns: dict[str, FieldColumn] = {
-            column.key: cast(FieldColumn, column.class_attribute) for column in mapper.column_attrs
-        }
-        for field_name in spec.exposed_fields:
-            nested_field_key = f"{relation_name}.{field_name}"
-            if field_name in target_columns:
-                field_map[nested_field_key] = target_columns[field_name]
-    return field_map
 
 
 def load_requested_scalar_attributes(

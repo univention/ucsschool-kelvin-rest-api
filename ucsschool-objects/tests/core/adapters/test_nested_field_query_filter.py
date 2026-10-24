@@ -18,7 +18,6 @@ from ucsschool_objects import (
     Operator,
     SortSpec,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.managers._shared import JoinSpec, JoinType
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
     FILTER_OPERATOR_BUILDERS,
     _get_filter_column,
@@ -26,6 +25,7 @@ from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
     _glob_to_sql_pattern,
     apply_nested_joins,
 )
+from ucsschool_objects.core.adapters.sqlalchemy.query_schema import JoinSpec, JoinType
 from ucsschool_objects.core.domain.errors import UnsupportedNestedField
 from ucsschool_objects.database_models import (
     Group as GroupModel,
@@ -38,7 +38,7 @@ from ucsschool_objects.database_models import (
 )
 
 if TYPE_CHECKING:
-    from ucsschool_objects.core.adapters.sqlalchemy.query_filter import FieldColumn
+    from ucsschool_objects.core.adapters.sqlalchemy.query_schema import FieldColumn
 
 
 SUPPORTED_DIALECTS: dict[str, Dialect] = {
