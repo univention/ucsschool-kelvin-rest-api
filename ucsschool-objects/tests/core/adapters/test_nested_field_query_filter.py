@@ -14,15 +14,18 @@ from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.engine.interfaces import Dialect
 from ucsschool_objects import (
     And,
+    AnyRelated,
     Filter,
+    Not,
     Operator,
-    SortSpec,
+    Or,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
     FILTER_OPERATOR_BUILDERS,
     _get_filter_column,
-    _get_required_joins,
     _glob_to_sql_pattern,
+    _nested_roots,  # pyright: ignore[reportPrivateUsage]
+    _query_fields,  # pyright: ignore[reportPrivateUsage]
     apply_nested_joins,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.query_schema import JoinSpec, JoinType
@@ -48,81 +51,42 @@ SUPPORTED_DIALECTS: dict[str, Dialect] = {
 
 
 def _r(*names: str) -> dict[str, JoinSpec]:
-    """Create a stub registry dict for testing (values are not used by _get_required_joins)."""
+    """Create a stub registry dict for testing (values are not used by _nested_roots)."""
     return cast("dict[str, JoinSpec]", {name: None for name in names})
 
 
-def test_get_required_joins_detects_single_nested_field() -> None:
-    """Test that single nested field is detected."""
-    filter_expr = Filter("groups.public_id", Operator.EQ, "test-id")
-    joins = _get_required_joins(filter_expr, registry=_r("groups"))
-
-    assert "groups" in joins
-    assert len(joins) == 1
+def test_nested_roots_detects_single_nested_field() -> None:
+    assert _nested_roots(["groups.public_id"], _r("groups")) == {"groups"}
 
 
-def test_get_required_joins_ignores_scalar_fields() -> None:
-    """Test that scalar fields don't trigger joins."""
-    filter_expr = Filter("name", Operator.MATCHES_CI, "test")
-    joins = _get_required_joins(filter_expr, registry=_r("groups"))
-
-    assert len(joins) == 0
+def test_nested_roots_ignores_scalar_fields() -> None:
+    assert _nested_roots(["name"], _r("groups")) == set()
 
 
-def test_get_required_joins_from_sort_specs() -> None:
-    """Test that required joins are detected from sort specs."""
-    sort_by = [
-        SortSpec("groups.name", ascending=True),
-        SortSpec("public_id", ascending=False),
-    ]
-    joins = _get_required_joins(sort_by, registry=_r("groups"))
-
-    assert "groups" in joins
-    assert len(joins) == 1
+def test_nested_roots_ignores_unknown_relations() -> None:
+    """Unknown relations get no join; validation rejects them later."""
+    assert _nested_roots(["unknown_relation.field"], _r("groups")) == set()
 
 
-def test_get_required_joins_with_no_registry() -> None:
-    """Test that no joins are required when registry is None."""
-    filter_expr = Filter("groups.public_id", Operator.EQ, "test-id")
-    joins = _get_required_joins(filter_expr, registry=None)
-
-    assert len(joins) == 0
+def test_nested_roots_deduplicates() -> None:
+    assert _nested_roots(["groups.public_id", "groups.name"], _r("groups")) == {"groups"}
 
 
-def test_get_required_joins_with_empty_registry() -> None:
-    """Test that no joins are required when registry is empty."""
-    filter_expr = Filter("groups.public_id", Operator.EQ, "test-id")
-    joins = _get_required_joins(filter_expr, registry={})
-
-    assert len(joins) == 0
-
-    # Also cover the None-expression fallback path with a non-empty registry.
-    joins_none_expr = _get_required_joins(None, registry=_r("groups"))
-    assert len(joins_none_expr) == 0
-
-
-def test_get_required_joins_ignores_unknown_relations() -> None:
-    """Test that unknown relations in queries are ignored (will error later in validation)."""
-    filter_expr = Filter("unknown_relation.field", Operator.EQ, "test")
-    joins = _get_required_joins(filter_expr, registry=_r("groups"))
-
-    # unknown_relation not in registry, so no join is added
-    # (validation error will occur later)
-    assert len(joins) == 0
-
-
-def test_get_required_joins_deduplicates() -> None:
-    """Test that the same relationship appearing multiple times results in single join."""
-    filter_expr = And(
+def test_query_fields_walks_and_or_not() -> None:
+    expr = And(
         (
             Filter("groups.public_id", Operator.EQ, "group1"),
-            Filter("groups.name", Operator.MATCHES_CI, "test*"),
+            Or((Filter("name", Operator.EQ, "x"), Not(Filter("schools.name", Operator.EQ, "y")))),
         )
     )
-    joins = _get_required_joins(filter_expr, registry=_r("groups"))
 
-    assert "groups" in joins
-    assert len(joins) == 1
+    assert _query_fields(expr) == {"groups.public_id", "name", "schools.name"}
+
+
+def test_query_fields_leaves_any_to_its_own_subquery() -> None:
+    expr = And((Filter("name", Operator.EQ, "x"), AnyRelated(Filter("roles.name", Operator.EQ, "y"))))
+
+    assert _query_fields(expr) == {"name"}
 
 
 def test_glob_to_sql_pattern_escapes_like_metacharacters() -> None:
