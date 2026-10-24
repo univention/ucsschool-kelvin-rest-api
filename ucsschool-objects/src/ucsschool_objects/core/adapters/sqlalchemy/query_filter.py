@@ -77,19 +77,15 @@ FilterExpression: TypeAlias = ColumnElement[bool]
 FilterExpressionBuilder: TypeAlias = Callable[[FieldColumn, FilterValue], FilterExpression]
 
 
-def _collect_sort_fields(expr: Sequence[SortSpec]) -> set[str]:
-    return {spec.field for spec in expr if "." in spec.field}
-
-
 def _children(expr: QueryExpr) -> tuple[QueryExpr, ...]:
     if isinstance(expr, (And, Or)):
         return expr.clauses
-    if isinstance(expr, (Not, AnyRelated)):
+    if isinstance(expr, Not):
         return (expr.clause,)
     raise UnsupportedQueryExpression(expr)
 
 
-def _collect_query_fields(expr: QueryExpr) -> set[str]:
+def _query_fields(expr: QueryExpr, *, inside_any: bool = False) -> set[str]:
     fields: set[str] = set()
     stack: list[QueryExpr] = [expr]
 
@@ -99,61 +95,19 @@ def _collect_query_fields(expr: QueryExpr) -> set[str]:
             fields.add(query_expr.field)
         elif not isinstance(query_expr, AnyRelated):
             stack.extend(_children(query_expr))
-
-    return fields
-
-
-def _collect_any_fields(clause: QueryExpr) -> set[str]:
-    fields: set[str] = set()
-    stack: list[QueryExpr] = [clause]
-
-    while stack:
-        query_expr = stack.pop()
-        if isinstance(query_expr, AnyRelated):
+        elif inside_any:
             raise InvalidAnyRelatedClause("AnyRelated cannot be nested in AnyRelated")
-        if isinstance(query_expr, Filter):
-            fields.add(query_expr.field)
-        else:
-            stack.extend(_children(query_expr))
 
     return fields
 
 
-def _extract_registered_nested_roots(fields: set[str], registry: dict[str, JoinSpec]) -> set[str]:
+def _nested_roots(fields: Iterable[str], registry: Mapping[str, JoinSpec]) -> set[str]:
     roots: set[str] = set()
     for field in fields:
         root, sep, _ = field.partition(".")
         if sep and root in registry:
             roots.add(root)
     return roots
-
-
-def _get_required_joins(
-    expr: QueryExpr | Sequence[SortSpec] | None,
-    registry: dict[str, JoinSpec] | None = None,
-) -> set[str]:
-    """Extract set of required join names (e.g., {'groups', 'schools'}) from a query
-    expression or sort specs.
-
-    A join is required if any nested field (contains '.') references a root relationship
-    in the registry.
-    """
-    if registry is None:
-        return set()
-
-    if isinstance(expr, Sequence) and not isinstance(expr, str):
-        return _extract_registered_nested_roots(
-            _collect_sort_fields(expr),
-            registry,
-        )
-
-    if isinstance(expr, (Filter, And, Or, Not, AnyRelated)):
-        return _extract_registered_nested_roots(
-            _collect_query_fields(expr),
-            registry,
-        )
-
-    return set()
 
 
 def apply_nested_joins(
@@ -506,12 +460,12 @@ def _build_any_expression(
         raise InvalidAnyRelatedClause("not supported for this object type")
     any_model = any_context.model
     registry = registry or {}
-    fields = _collect_any_fields(any_expr.clause)
+    fields = _query_fields(any_expr.clause, inside_any=True)
     computed = {
         field: any_context.computed_fields[field]
         for field in fields & any_context.computed_fields.keys()
     }
-    roots = _extract_registered_nested_roots(fields, registry)
+    roots = _nested_roots(fields, registry)
     roots.update(root for computed_field in computed.values() for root in computed_field.roots)
     unnested = sorted(
         field for field in fields - computed.keys() if field.partition(".")[0] not in roots
@@ -609,7 +563,7 @@ def apply_search_query(
     if query is None or query.where is None:
         return stmt
 
-    required_joins = _get_required_joins(query.where, registry)
+    required_joins = _nested_roots(_query_fields(query.where), registry or {})
     stmt, nested_columns = apply_nested_joins(stmt, model, required_joins, field_map, registry)
 
     return stmt.where(
@@ -661,7 +615,7 @@ def apply_sort(
 ) -> Select[*SelectTs]:
     specs = tuple(sort_by) or (SortSpec(default_field),)
 
-    required_joins = _get_required_joins(specs, registry)
+    required_joins = _nested_roots((spec.field for spec in specs), registry or {})
     for spec in specs:
         root, sep, _ = spec.field.partition(".")
         if sep and root in required_joins and cast("dict[str, JoinSpec]", registry)[root].to_many:
