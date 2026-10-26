@@ -44,6 +44,8 @@ v4.2.0 (TBD)
        - 4.3.4 -> 5.0.1
      * - cachetools
        - 7.1.1 -> 7.2.1
+     * - certifi
+       - 2026.4.22 -> 2026.10.23
      * - colorlog
        - 6.10.1 -> 6.12.0
      * - FastAPI
@@ -57,7 +59,7 @@ v4.2.0 (TBD)
      * - orjson
        - 3.11.8 -> 3.13.0
      * - pip
-       - 26.1.1 -> 26.2.1
+       - 26.1.1 -> 26.2.2
      * - psycopg
        - 3.3.4 -> 3.3.6
      * - pyasn1
@@ -86,6 +88,13 @@ v4.2.0 (TBD)
        - 1.3.2 -> 1.4.0
      * - uvicorn
        - 0.46.0 -> 0.54.0
+
+* Security: The root certificates of emSign are no longer trustworthy,
+  because intermediate certificates of emSign have been revoked due to key compromise,
+  see `GHSA-6q48-6c7w-9gw2 <https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2>`_.
+  In an App Center installation, the Kelvin REST API uses the CA certificates of the UCS host.
+  Install the UCS errata update that removes the emSign root certificates on the UCS host.
+  certifi 2026.10.23 and pip 26.2.2 in the Docker image no longer trust these root certificates either.
 * Changed: The OpenAPI documents follow OpenAPI 3.1 instead of 3.0.
   A property that accepts ``null`` is documented as ``anyOf`` with ``{"type": "null"}`` instead of with ``nullable: true``.
 * Changed: A response with status code ``422`` still reports each validation error with the keys ``type``, ``loc``, and ``msg``,
