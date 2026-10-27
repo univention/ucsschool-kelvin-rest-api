@@ -363,6 +363,34 @@ subscription and is no longer needed. You can delete it.
 The synchronization runs in the background, as the initial synchronization does.
 To check whether it has finished, see :doc:`known-issues`.
 
+.. _configuration-provisioning-empty-database:
+
+Empty the version 2 database
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Synchronizing all objects again adds and updates objects,
+but it doesn't remove objects that the version 2 database still holds after they were deleted.
+To remove them, empty the version 2 database
+and then synchronize all objects again.
+
+Run the following commands as ``root`` on the Primary Directory Node:
+
+.. code-block:: console
+
+    $ cd /etc/ucsschool/kelvin/
+    $ PGPASSWORD="$(cat postgresql-kelvin.secret)" psql "$(cat postgresql-kelvin.uri)" \
+        --username="$(cat postgresql-kelvin.username)" \
+        --command='TRUNCATE school, "group", "user" CASCADE'
+
+The command reads the password from the file,
+so the password doesn't appear on the command line or in the shell history.
+It removes all schools, groups, and users, and the data that belongs to them.
+It keeps the roles and the database schema.
+
+Then synchronize all objects again as described in :ref:`configuration-provisioning-resync`.
+Until the synchronization has finished,
+the version 2 API returns only the objects that it has synchronized so far.
+
 File locations
 --------------
 

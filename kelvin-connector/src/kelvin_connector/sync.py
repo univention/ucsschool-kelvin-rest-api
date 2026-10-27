@@ -420,6 +420,12 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         async with self.storage_factory.transaction_scope() as storage:
             await self._handle_user_delete(event, storage)
 
+    @override
+    async def handle_user_replace(self, delete: UserDeleteEvent, modify: UserModifyEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            await self._handle_user_delete(delete, storage)
+            await self._handle_user_modify(modify, storage, self._mapper_factory(storage))
+
     async def _handle_user_create(
         self, event: UserCreateEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
@@ -441,7 +447,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             schools = []
         if not schools:
             logger.warning(
-                "School(s) {!r} not found for user {!r}, dropping event",
+                "School(s) {!r} not found for user {!r}, not creating the user",
                 user_props.school,
                 user_props.username,
             )
@@ -645,6 +651,12 @@ class SynchronizationManager(SynchronizationManagerProtocol):
     async def handle_group_delete(self, event: GroupDeleteEvent) -> None:
         async with self.storage_factory.transaction_scope() as storage:
             await self._handle_group_delete(event, storage)
+
+    @override
+    async def handle_group_replace(self, delete: GroupDeleteEvent, modify: GroupModifyEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            await self._handle_group_delete(delete, storage)
+            await self._handle_group_modify(modify, storage, self._mapper_factory(storage))
 
     async def _handle_group_create(
         self, event: GroupCreateEvent, storage: KelvinStorageSession, mapper: DNIDMapper
@@ -903,6 +915,12 @@ class SynchronizationManager(SynchronizationManagerProtocol):
     async def handle_school_delete(self, event: SchoolDeleteEvent) -> None:
         async with self.storage_factory.transaction_scope() as storage:
             await self._handle_school_delete(event, storage)
+
+    @override
+    async def handle_school_replace(self, delete: SchoolDeleteEvent, modify: SchoolModifyEvent) -> None:
+        async with self.storage_factory.transaction_scope() as storage:
+            await self._handle_school_delete(delete, storage)
+            await self._handle_school_modify(modify, storage, self._mapper_factory(storage))
 
     async def _handle_school_create(
         self, event: SchoolCreateEvent, storage: KelvinStorageSession, mapper: DNIDMapper

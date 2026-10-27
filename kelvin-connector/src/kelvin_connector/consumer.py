@@ -262,15 +262,35 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         new_properties = cast(AttributeMapping, new.get("properties", {}))
         public_id: str = cast(str, new_properties.get("univentionObjectIdentifier", ""))
         seq_num = metadata["sequence_number"]
+        old_properties = cast(AttributeMapping, old.get("properties", {}))
+        old_public_id: str = cast(str, old_properties.get("univentionObjectIdentifier", ""))
+        deleted: DeletePayload | None = None
+        if old_public_id and public_id and old_public_id != public_id:
+            deleted = DeletePayload.model_validate(old)
+            self.logger.info(
+                "Object was merged into a modify event (delete + re-create),"
+                " replacing the deleted object. "
+                + "object_type={}, dn={}, old_public_id={}, public_id={}, seq_num={}",
+                cast(str, new["objectType"]),
+                dn,
+                old_public_id,
+                public_id,
+                seq_num,
+            )
         match new["objectType"]:
             case ObjectType.USERS:
-                await self.synchronization_manager.handle_user_modify(
-                    UserModifyEvent(
-                        timestamp=metadata["ts"],
-                        sequence_number=seq_num,
-                        new=UserPayload.model_validate(new),
-                    )
+                modify = UserModifyEvent(
+                    timestamp=metadata["ts"],
+                    sequence_number=seq_num,
+                    new=UserPayload.model_validate(new),
                 )
+                if deleted:
+                    await self.synchronization_manager.handle_user_replace(
+                        UserDeleteEvent(timestamp=metadata["ts"], sequence_number=seq_num, old=deleted),
+                        modify,
+                    )
+                else:
+                    await self.synchronization_manager.handle_user_modify(modify)
                 self.logger.info(
                     "Modify user event processed: dn={}, public_id={}, seq_num={}",
                     dn,
@@ -279,6 +299,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                 )
             case ObjectType.GROUPS:
                 if HOST_GROUP_NAME_RE.match(new["properties"].get("name", "")):
+                    # The servers are keyed by group name, so a re-created group needs no delete.
                     await self.synchronization_manager.handle_host_group_modify(
                         HostGroupModifyEvent(
                             timestamp=metadata["ts"],
@@ -293,13 +314,20 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                         seq_num,
                     )
                 else:
-                    await self.synchronization_manager.handle_group_modify(
-                        GroupModifyEvent(
-                            timestamp=metadata["ts"],
-                            sequence_number=seq_num,
-                            new=GroupPayload.model_validate(new),
-                        )
+                    modify = GroupModifyEvent(
+                        timestamp=metadata["ts"],
+                        sequence_number=seq_num,
+                        new=GroupPayload.model_validate(new),
                     )
+                    if deleted:
+                        await self.synchronization_manager.handle_group_replace(
+                            GroupDeleteEvent(
+                                timestamp=metadata["ts"], sequence_number=seq_num, old=deleted
+                            ),
+                            modify,
+                        )
+                    else:
+                        await self.synchronization_manager.handle_group_modify(modify)
                     self.logger.info(
                         "Modify group event processed: dn={}, public_id={}, seq_num={}",
                         dn,
@@ -307,13 +335,20 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                         seq_num,
                     )
             case ObjectType.OUS:
-                await self.synchronization_manager.handle_school_modify(
-                    SchoolModifyEvent(
-                        timestamp=metadata["ts"],
-                        sequence_number=seq_num,
-                        new=SchoolPayload.model_validate(new),
-                    )
+                modify = SchoolModifyEvent(
+                    timestamp=metadata["ts"],
+                    sequence_number=seq_num,
+                    new=SchoolPayload.model_validate(new),
                 )
+                if deleted:
+                    await self.synchronization_manager.handle_school_replace(
+                        SchoolDeleteEvent(
+                            timestamp=metadata["ts"], sequence_number=seq_num, old=deleted
+                        ),
+                        modify,
+                    )
+                else:
+                    await self.synchronization_manager.handle_school_modify(modify)
                 self.logger.info(
                     "Modify school event processed: dn={}, public_id={}, seq_num={}",
                     dn,

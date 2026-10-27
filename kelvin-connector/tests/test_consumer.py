@@ -1,15 +1,26 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import sqlite3
 import uuid
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from kelvin_connector.consumer import KelvinConnectorEventHandler, KelvinConsumerModule
 from kelvin_connector.models import UserProperties
-from provisioning_consumer_lib import UDMEventHandler
+from kelvin_connector.sync import SynchronizationManager
+from provisioning_consumer_lib import AttributeMapping, UDMEventHandler
 from provisioning_consumer_lib.consumer import QueryEventObject
 from pydantic import ValidationError
+from sqlalchemy import event, text
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import StaticPool
+from ucsschool_objects.core.adapters.sqlalchemy import (
+    build_kelvin_storage_session_factory,
+    sqlalchemy_mapper_factory,
+)
+from ucsschool_objects.database_models import Base
 
 _TS = "2024-01-01T00:00:00"
 
@@ -29,7 +40,7 @@ def _meta() -> dict:
     }
 
 
-def _user_payload(uid: str | None = None) -> dict:
+def _user_payload(uid: str | None = None) -> AttributeMapping:
     return {
         "objectType": "users/user",
         "dn": "uid=testuser,cn=users,dc=test",
@@ -53,7 +64,7 @@ def _user_payload(uid: str | None = None) -> dict:
     }
 
 
-def _group_payload(uid: str | None = None) -> dict:
+def _group_payload(uid: str | None = None) -> AttributeMapping:
     return {
         "objectType": "groups/group",
         "dn": "cn=testgroup,cn=klassen,dc=test",
@@ -72,7 +83,7 @@ def _group_payload(uid: str | None = None) -> dict:
     }
 
 
-def _host_group_payload(uid: str | None = None) -> dict:
+def _host_group_payload(uid: str | None = None) -> AttributeMapping:
     return {
         "objectType": "groups/group",
         "dn": "cn=OUdemoschool-DC-Edukativnetz,cn=ucsschool,cn=groups,dc=test",
@@ -88,7 +99,7 @@ def _host_group_payload(uid: str | None = None) -> dict:
     }
 
 
-def _school_payload(uid: str | None = None) -> dict:
+def _school_payload(uid: str | None = None) -> AttributeMapping:
     return {
         "objectType": "container/ou",
         "dn": "ou=testschool,dc=test",
@@ -307,6 +318,56 @@ async def test_handle_modify_school(handler, sync_manager):
     sync_manager.handle_school_modify.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    "payload,kind",
+    [
+        (_user_payload, "user"),
+        (_group_payload, "group"),
+        (_school_payload, "school"),
+    ],
+)
+async def test_handle_modify_with_changed_identifier_replaces(
+    handler: KelvinConnectorEventHandler,
+    sync_manager: AsyncMock,
+    payload: Callable[[str], AttributeMapping],
+    kind: str,
+) -> None:
+    old_id, new_id = _uid(), _uid()
+    assert await handler.handle_event(
+        _queue_event(body={"old": payload(old_id), "new": payload(new_id)})
+    )
+    (replace,) = sync_manager.mock_calls
+    delete, modify = replace.args
+    assert replace[0] == f"handle_{kind}_replace"
+    assert str(delete.old.properties.univentionObjectIdentifier) == old_id
+    assert str(modify.new.properties.univentionObjectIdentifier) == new_id
+
+
+async def test_handle_modify_with_changed_identifier_of_host_group_only_modifies(
+    handler: KelvinConnectorEventHandler, sync_manager: AsyncMock
+) -> None:
+    old = _host_group_payload(_uid())
+    del old["properties"]["hosts"]
+    assert await handler.handle_event(
+        _queue_event(body={"old": old, "new": _host_group_payload(_uid())})
+    )
+    assert [c[0] for c in sync_manager.mock_calls] == ["handle_host_group_modify"]
+
+
+@pytest.mark.parametrize(
+    "drop_old_identifier", [False, True], ids=["same-identifier", "old-without-identifier"]
+)
+async def test_handle_modify_without_identifier_change_does_not_delete(
+    handler: KelvinConnectorEventHandler, sync_manager: AsyncMock, drop_old_identifier: bool
+) -> None:
+    new_id = _uid()
+    old = _school_payload(new_id)
+    if drop_old_identifier:
+        del old["properties"]["univentionObjectIdentifier"]
+    assert await handler.handle_event(_queue_event(body={"old": old, "new": _school_payload(new_id)}))
+    assert [c[0] for c in sync_manager.mock_calls] == ["handle_school_modify"]
+
+
 async def test_handle_modify_unknown_type_logs_error(handler, sync_manager):
     payload = {"objectType": "unknown/type", "dn": "cn=x,dc=test", "properties": {}}
     await handler._handle_modify(_meta(), payload, payload, has_moved=False)
@@ -511,3 +572,66 @@ async def test_consumer_drops_malformed_event_without_crashing(consumer, event_h
     await consumer.process_one_event()
 
     consumer._acknowledge_event.assert_called_once()
+
+
+# ── Merged delete and re-create against real storage ─────────────────────────
+
+SchoolIds = Callable[[], Awaitable[list[uuid.UUID]]]
+
+
+def _enable_foreign_keys(dbapi_connection: sqlite3.Connection, _: object) -> None:
+    _ = dbapi_connection.execute("PRAGMA foreign_keys=ON")
+
+
+@pytest.fixture
+async def storage() -> AsyncGenerator[tuple[KelvinConnectorEventHandler, SchoolIds], None]:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", poolclass=StaticPool)
+    event.listen(engine.sync_engine, "connect", _enable_foreign_keys)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    handler = KelvinConnectorEventHandler(
+        SynchronizationManager(
+            storage_factory=build_kelvin_storage_session_factory(engine),
+            mapper_factory=sqlalchemy_mapper_factory,
+        ),
+        MagicMock(),
+    )
+
+    async def school_ids() -> list[uuid.UUID]:
+        async with engine.connect() as connection:
+            rows = await connection.execute(text("SELECT public_id FROM school"))
+            return [uuid.UUID(str(public_id)) for (public_id,) in rows]
+
+    yield handler, school_ids
+    await engine.dispose()
+
+
+def _school_event(old: AttributeMapping | None, new: AttributeMapping) -> QueryEventObject:
+    queued = _queue_event(body={"old": old, "new": new})
+    queued["topic"] = "container/ou"
+    return queued
+
+
+async def test_merged_event_replaces_school(
+    storage: tuple[KelvinConnectorEventHandler, SchoolIds],
+) -> None:
+    handler, school_ids = storage
+    old_id, new_id = _uid(), _uid()
+    await handler.handle_event(_school_event(None, _school_payload(old_id)))
+    await handler.handle_event(_school_event(_school_payload(old_id), _school_payload(new_id)))
+    assert await school_ids() == [uuid.UUID(new_id)]
+
+
+async def test_merged_event_keeps_old_school_when_create_fails(
+    storage: tuple[KelvinConnectorEventHandler, SchoolIds],
+) -> None:
+    handler, school_ids = storage
+    old_id, new_id = _uid(), _uid()
+    await handler.handle_event(_school_event(None, _school_payload(old_id)))
+    replace = _school_event(_school_payload(old_id), _school_payload(new_id))
+    with (
+        patch.object(SynchronizationManager, "_handle_school_modify", side_effect=RuntimeError),
+        pytest.raises(RuntimeError),
+    ):
+        await handler.handle_event(replace)
+    assert await school_ids() == [uuid.UUID(old_id)]

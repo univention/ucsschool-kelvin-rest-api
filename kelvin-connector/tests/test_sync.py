@@ -9,6 +9,7 @@ from conftest import make_group, make_role, make_school, make_user
 from kelvin_connector.models import (
     DeletedObjectProperties,
     DeletePayload,
+    EventBase,
     GroupCreateEvent,
     GroupDeleteEvent,
     GroupModifyEvent,
@@ -1714,6 +1715,31 @@ async def test_handle_school_create_already_exists_no_changes(manager, mock_stor
 
 
 # ── Delete-not-found paths ────────────────────────────────────────────────────
+
+
+_OLD_ID, _NEW_ID = uuid.uuid4(), uuid.uuid4()
+
+
+@pytest.mark.parametrize(
+    "kind,delete,modify",
+    [
+        ("user", _user_delete_event(_OLD_ID), _user_modify_event(_NEW_ID)),
+        ("group", _group_delete_event(_OLD_ID), _group_modify_event(_NEW_ID)),
+        ("school", _school_delete_event(_OLD_ID), _school_modify_event(_NEW_ID)),
+    ],
+)
+async def test_handle_replace_deletes_old_and_modifies_new(
+    manager: SynchronizationManager,
+    mock_storage: MagicMock,
+    kind: str,
+    delete: EventBase,
+    modify: EventBase,
+) -> None:
+    objects = getattr(mock_storage, f"{kind}s")
+    objects.get.side_effect = NotFound(kind, str(_NEW_ID))
+    await getattr(manager, f"handle_{kind}_replace")(delete, modify)
+    objects.delete.assert_called_once_with(_OLD_ID)
+    assert objects.get.call_args.args == (_NEW_ID,)
 
 
 async def test_handle_user_delete_ignores_not_found(manager, mock_storage, mock_mapper):

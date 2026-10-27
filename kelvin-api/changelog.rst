@@ -124,6 +124,13 @@ v4.2.0 (TBD)
   It now accepts ``UUID v1 and v4``, as UDM does.
   A missing object appears with its next change.
   To add all missing objects at once, synchronize all objects again as described in :ref:`configuration-provisioning-resync`.
+* Fixed (version 2 API only): Deleting an object and right away creating one with the same name,
+  for example a school, made the Kelvin connector restart three times and drop the change,
+  and the version 2 API kept the deleted object.
+  The Kelvin connector now removes the deleted object before it adds the new one.
+  On a system that was affected before the update, the deleted object stays in the version 2 database.
+  To remove it, empty the version 2 database and synchronize all objects again
+  as described in :ref:`configuration-provisioning-empty-database`.
 
 v4.1.0 (2026-10-01)
 -------------------
