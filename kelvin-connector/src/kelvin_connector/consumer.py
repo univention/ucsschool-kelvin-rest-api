@@ -262,6 +262,20 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         new_properties = cast(AttributeMapping, new.get("properties", {}))
         public_id: str = cast(str, new_properties.get("univentionObjectIdentifier", ""))
         seq_num = metadata["sequence_number"]
+        old_properties = cast(AttributeMapping, old.get("properties", {}))
+        old_public_id: str = cast(str, old_properties.get("univentionObjectIdentifier", ""))
+        if old_public_id and public_id and old_public_id != public_id:
+            # Provisioning merges a quick delete and re-create into one modify event.
+            self.logger.info(
+                "Object was deleted and re-created with the same name. "
+                + "object_type={}, dn={}, old_public_id={}, public_id={}, seq_num={}",
+                cast(str, new["objectType"]),
+                dn,
+                old_public_id,
+                public_id,
+                seq_num,
+            )
+            await self._handle_remove(metadata, old)
         match new["objectType"]:
             case ObjectType.USERS:
                 await self.synchronization_manager.handle_user_modify(
@@ -427,7 +441,8 @@ class KelvinConsumerModule(ConsumerModule):
       state, so there is nothing a restart would clean up.
 
     Every event is handled in its own database transaction that rolls back
-    on failure, so a crashed event never leaves partial state behind.
+    on failure, so a crashed event never leaves partial state behind. Only a
+    merged delete and re-create commits its delete first; a retry skips it.
 
     TODO: upstream this policy into provisioning_consumer_lib.
     """

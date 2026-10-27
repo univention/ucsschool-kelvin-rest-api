@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import uuid
+from collections.abc import Callable
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from kelvin_connector.consumer import KelvinConnectorEventHandler, KelvinConsumerModule
 from kelvin_connector.models import UserProperties
-from provisioning_consumer_lib import UDMEventHandler
+from provisioning_consumer_lib import AttributeMapping, UDMEventHandler
 from provisioning_consumer_lib.consumer import QueryEventObject
 from pydantic import ValidationError
 
@@ -29,7 +30,7 @@ def _meta() -> dict:
     }
 
 
-def _user_payload(uid: str | None = None) -> dict:
+def _user_payload(uid: str | None = None) -> AttributeMapping:
     return {
         "objectType": "users/user",
         "dn": "uid=testuser,cn=users,dc=test",
@@ -53,7 +54,7 @@ def _user_payload(uid: str | None = None) -> dict:
     }
 
 
-def _group_payload(uid: str | None = None) -> dict:
+def _group_payload(uid: str | None = None) -> AttributeMapping:
     return {
         "objectType": "groups/group",
         "dn": "cn=testgroup,cn=klassen,dc=test",
@@ -72,7 +73,7 @@ def _group_payload(uid: str | None = None) -> dict:
     }
 
 
-def _host_group_payload(uid: str | None = None) -> dict:
+def _host_group_payload(uid: str | None = None) -> AttributeMapping:
     return {
         "objectType": "groups/group",
         "dn": "cn=OUdemoschool-DC-Edukativnetz,cn=ucsschool,cn=groups,dc=test",
@@ -88,7 +89,7 @@ def _host_group_payload(uid: str | None = None) -> dict:
     }
 
 
-def _school_payload(uid: str | None = None) -> dict:
+def _school_payload(uid: str | None = None) -> AttributeMapping:
     return {
         "objectType": "container/ou",
         "dn": "ou=testschool,dc=test",
@@ -305,6 +306,45 @@ async def test_handle_modify_school(handler, sync_manager):
     p = _school_payload()
     await handler._handle_modify(_meta(), p, p, has_moved=False)
     sync_manager.handle_school_modify.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "payload,kind",
+    [
+        (_user_payload, "user"),
+        (_group_payload, "group"),
+        (_school_payload, "school"),
+        (_host_group_payload, "host_group"),
+    ],
+)
+async def test_handle_modify_with_changed_identifier_deletes_old_before_modify(
+    handler: KelvinConnectorEventHandler,
+    sync_manager: AsyncMock,
+    payload: Callable[[str], AttributeMapping],
+    kind: str,
+) -> None:
+    old_id, new_id = _uid(), _uid()
+    assert await handler.handle_event(
+        _queue_event(body={"old": payload(old_id), "new": payload(new_id)})
+    )
+    delete, modify = sync_manager.mock_calls
+    assert (delete[0], modify[0]) == (f"handle_{kind}_delete", f"handle_{kind}_modify")
+    assert str(delete.args[0].old.properties.univentionObjectIdentifier) == old_id
+    assert str(modify.args[0].new.properties.univentionObjectIdentifier) == new_id
+
+
+@pytest.mark.parametrize(
+    "drop_old_identifier", [False, True], ids=["same-identifier", "old-without-identifier"]
+)
+async def test_handle_modify_without_identifier_change_does_not_delete(
+    handler: KelvinConnectorEventHandler, sync_manager: AsyncMock, drop_old_identifier: bool
+) -> None:
+    new_id = _uid()
+    old = _school_payload(new_id)
+    if drop_old_identifier:
+        del old["properties"]["univentionObjectIdentifier"]
+    assert await handler.handle_event(_queue_event(body={"old": old, "new": _school_payload(new_id)}))
+    assert [c[0] for c in sync_manager.mock_calls] == ["handle_school_modify"]
 
 
 async def test_handle_modify_unknown_type_logs_error(handler, sync_manager):
