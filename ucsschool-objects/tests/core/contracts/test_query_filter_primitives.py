@@ -38,5 +38,7 @@ def test_build_expression_supports_column_element_range_types() -> None:
 
 
 def test_build_expression_rejects_unknown_expressions() -> None:
+    unknown = cast("QueryExpr", object())
+
     with pytest.raises(UnsupportedQueryExpression):
-        build_expression(cast("QueryExpr", object()), {})
+        build_expression(unknown, {})
