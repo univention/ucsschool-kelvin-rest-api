@@ -139,6 +139,16 @@ def _udm_property_filters(request: Request) -> list[QueryExpr]:
     return filters
 
 
+def _ucsschool_role_clauses(values: Sequence[str]) -> list[QueryExpr]:
+    roles = list(dict.fromkeys(values))
+    if len(roles) > _MAX_UCSSCHOOL_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"At most {_MAX_UCSSCHOOL_ROLES} different values of 'ucsschool_roles' are allowed.",
+        )
+    return [_ucsschool_role_filter(value) for value in roles]
+
+
 def _build_query(
     school: str | None,
     name: Sequence[str] | None,
@@ -157,13 +167,7 @@ def _build_query(
     names = [value for value in name or () if value]
     if names:
         clauses.append(_name_filter("name", names))
-    roles = list(dict.fromkeys(ucsschool_roles or ()))
-    if len(roles) > _MAX_UCSSCHOOL_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=f"At most {_MAX_UCSSCHOOL_ROLES} different values of 'ucsschool_roles' are allowed.",
-        )
-    clauses.extend(_ucsschool_role_filter(value) for value in roles)
+    clauses.extend(_ucsschool_role_clauses(ucsschool_roles or ()))
     if school:
         clauses.append(_str_filter("schools.name", school, case_insensitive=True))
     if firstname:
