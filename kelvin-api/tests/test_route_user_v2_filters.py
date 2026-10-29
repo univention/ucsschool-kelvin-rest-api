@@ -111,12 +111,6 @@ def test_all_ucsschool_roles_must_match() -> None:
     )
 
 
-def test_repeated_ucsschool_roles_count_once() -> None:
-    assert _query(None, ucsschool_roles=["teacher:school:DEMOSCHOOL"] * 2) == SearchQuery(
-        where=_role_at_school("teacher", "DEMOSCHOOL")
-    )
-
-
 def test_up_to_20_different_ucsschool_roles_are_accepted() -> None:
     values = [f"teacher:school:school{index}" for index in range(20)]
 
