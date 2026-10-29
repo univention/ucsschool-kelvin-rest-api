@@ -570,8 +570,7 @@ def apply_search_query(
     json_field_map: Mapping[str, FieldColumn] | None = None,
     *,
     model: ModelClass,
-    allow_any: bool = False,
-    computed_fields: Mapping[str, ComputedField] | None = None,
+    any_context: AnyContext | None = None,
 ) -> Select[*SelectTs]:
     if query is None or query.where is None:
         return stmt
@@ -585,7 +584,7 @@ def apply_search_query(
             {**field_map, **nested_columns},
             registry,
             json_field_map,
-            any_context=AnyContext(model, computed_fields or {}) if allow_any else None,
+            any_context=any_context,
         )
     )
 
@@ -627,11 +626,12 @@ def apply_sort(
     search_after: Sequence[FilterScalarValue] | None = None,
 ) -> Select[*SelectTs]:
     specs = tuple(sort_by) or (SortSpec(default_field),)
+    registry = registry or {}
 
-    required_joins = _nested_roots((spec.field for spec in specs), registry or {})
+    required_joins = _nested_roots((spec.field for spec in specs), registry)
     for spec in specs:
         root, sep, _ = spec.field.partition(".")
-        if sep and root in required_joins and cast("dict[str, JoinSpec]", registry)[root].to_many:
+        if sep and root in required_joins and registry[root].to_many:
             raise UnsupportedSortField(spec.field)
     stmt, nested_columns = apply_nested_joins(stmt, model, required_joins, field_map, registry)
     field_map = {**field_map, **nested_columns}

@@ -29,7 +29,11 @@ from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_orm import (
     resolve_user_create_relations,
     to_user_model,
 )
-from ucsschool_objects.core.adapters.sqlalchemy.query_filter import apply_search_query, apply_sort
+from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
+    AnyContext,
+    apply_search_query,
+    apply_sort,
+)
 from ucsschool_objects.core.adapters.sqlalchemy.query_schema import (
     ComputedField,
     FieldColumn,
@@ -465,8 +469,7 @@ class SQLAlchemyUserManager(Manager[User]):
             self._NESTED_FIELD_REGISTRY,
             json_field_map=self._JSON_FIELD_MAP,
             model=UserModel,
-            allow_any=True,
-            computed_fields=self._COMPUTED_FIELDS,
+            any_context=AnyContext(UserModel, self._COMPUTED_FIELDS),
         )
         stmt = apply_sort(
             stmt,
