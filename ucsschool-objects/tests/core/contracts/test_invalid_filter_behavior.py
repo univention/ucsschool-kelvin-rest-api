@@ -283,6 +283,7 @@ _UNKNOWN_EXPRESSION = cast("QueryExpr", object())
 )
 async def test_query_rejects_unknown_expressions(db_session: AsyncSession, where: QueryExpr) -> None:
     manager = SQLAlchemyUserManager(db_session)
+    query = SearchQuery(where=where)
 
     with pytest.raises(UnsupportedQueryExpression):
-        await manager.search(SearchQuery(where=where))
+        await manager.search(query)

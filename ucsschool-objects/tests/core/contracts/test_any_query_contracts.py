@@ -203,11 +203,10 @@ async def test_user_any_query(
 @pytest.mark.asyncio
 async def test_user_school_roles_are_rejected_outside_any(db_session: AsyncSession) -> None:
     manager = SQLAlchemyUserManager(db_session)
+    query = SearchQuery(where=Filter(field="school_roles", op=Operator.EQ, value="teacher:school:x"))
 
     with pytest.raises(UnsupportedFilterField):
-        await manager.search(
-            SearchQuery(where=Filter(field="school_roles", op=Operator.EQ, value="teacher:school:x"))
-        )
+        await manager.search(query)
 
 
 @pytest.mark.asyncio
@@ -245,9 +244,10 @@ async def test_user_any_query_rejects_invalid_clauses(
     db_session: AsyncSession, where: QueryExpr
 ) -> None:
     manager = SQLAlchemyUserManager(db_session)
+    query = SearchQuery(where=where)
 
     with pytest.raises(InvalidAnyRelatedClause):
-        await manager.search(SearchQuery(where=where))
+        await manager.search(query)
 
 
 @pytest.mark.asyncio
@@ -265,11 +265,10 @@ async def test_any_query_is_rejected_by_other_managers(
     field: str,
 ) -> None:
     manager = manager_cls(db_session)
+    query = SearchQuery(where=AnyRelated(Filter(field=field, op=Operator.EQ, value="x")))
 
     with pytest.raises(InvalidAnyRelatedClause):
-        await manager.search(
-            SearchQuery(where=AnyRelated(Filter(field=field, op=Operator.EQ, value="x")))
-        )
+        await manager.search(query)
 
 
 @pytest.mark.asyncio
