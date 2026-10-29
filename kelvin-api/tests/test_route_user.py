@@ -492,7 +492,10 @@ async def test_search_ucsschool_roles(
     ).name
     students = sorted([(await new_import_user(school_x, "student")).name for _ in range(3)])
     custom_role = f"myrole:mycontext:{school_x}"
-    custom = (await new_import_user(school_x, "staff", ucsschool_roles=[custom_role])).name
+    teacher_in_other_context = f"teacher:mycontext:{school_x}"
+    custom = (
+        await new_import_user(school_x, "staff", ucsschool_roles=[custom_role, teacher_in_other_context])
+    ).name
     teachers = {teacher_staff, teacher, teacher_x_admin_y}
     everyone = {*teachers, *students, custom}
 
@@ -522,6 +525,7 @@ async def test_search_ucsschool_roles(
         ([("school", school_x), *_roles("*")], everyone),
         ([("school", school_x), *_roles("")], set()),
         (_roles(custom_role), {custom} if api_version == "v1" else set()),
+        (_roles(teacher_in_other_context), {custom} if api_version == "v1" else set()),
     ]
     if api_version == "v2":
         cases += [

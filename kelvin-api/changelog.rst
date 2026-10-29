@@ -110,6 +110,10 @@ v4.2.0 (TBD)
   Only entries with the context type ``school`` match, for example ``teacher:school:DEMOSCHOOL``,
   because the version 2 API doesn't store other entries.
   A search accepts at most 20 different values.
+* Fixed (version 2 API only): Users showed an entry of their ``ucsschool_roles`` with another context type as a role at that school,
+  for example ``teacher:mycontext:DEMOSCHOOL`` as ``teacher:school:DEMOSCHOOL`` and the role ``teacher``.
+  The Kelvin connector now stores only the entries with the context type ``school``.
+  Users that are already stored are corrected with their next change.
 * Fixed (version 2 API only): Users, schools, school classes, and work groups whose ``univentionObjectIdentifier`` is a ``UUID v1`` were missing from the version 2 API.
   The Kelvin connector only accepted ``UUID v4`` and discarded the changes of these objects.
   It now accepts ``UUID v1 and v4``, as UDM does.

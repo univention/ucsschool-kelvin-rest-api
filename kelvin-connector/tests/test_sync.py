@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 from conftest import make_group, make_role, make_school, make_user
@@ -33,6 +34,7 @@ from kelvin_connector.models import (
 from kelvin_connector.sync import (
     DEFAULT_NUBUS_SOURCE_UID,
     SynchronizationException,
+    SynchronizationManager,
     _is_unsyncable_group_dn,
     _school_ou_from_dn,
     _udm_properties,
@@ -43,6 +45,7 @@ from ucsschool_objects.core.domain.errors import NotFound
 from ucsschool_objects.core.domain.models import (
     UNLOADED,
     Group,
+    Role,
     SchoolMembership,
     get_properties,
     is_loaded,
@@ -587,6 +590,32 @@ async def test_build_school_memberships_matches_roles_to_school(manager, mock_st
     )
 
     assert result[school.public_id].roles == {role}
+
+
+async def test_handle_user_create_ignores_roles_of_other_contexts(
+    manager: SynchronizationManager, mock_storage: MagicMock
+) -> None:
+    uid = uuid.uuid4()
+    teacher, staff = (
+        Role(public_id=uuid.uuid4(), name=n, display_name={"en": n}) for n in ("teacher", "staff")
+    )
+    mock_storage.schools.search.return_value = [make_school("testschool")]
+    mock_storage.roles.search.return_value = [teacher, staff]
+    mock_storage.users.get.side_effect = NotFound("user", str(uid))
+    event = _user_create_event(
+        uid,
+        extra_props={
+            "ucsschoolRole": [
+                UcsschoolRole(role="teacher", context="mycontext", school="testschool"),
+                UcsschoolRole(role="staff", context="school", school="testschool"),
+            ]
+        },
+    )
+
+    await manager.handle_user_create(event)
+
+    (membership,) = mock_storage.users.create.call_args[0][0].school_memberships.values()
+    assert membership.roles == {staff}
 
 
 # ── User events ───────────────────────────────────────────────────────────────
