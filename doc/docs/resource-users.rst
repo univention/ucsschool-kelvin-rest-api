@@ -267,6 +267,10 @@ for example ``?ucsschool_roles=teacher:school:DEMOSCHOOL&ucsschool_roles=staff:s
    The version 2 API doesn't store other entries, for example ``myrole:mycontext:DEMOSCHOOL``,
    so a search for them finds no users,
    and ``?ucsschool_roles=*`` only finds the users with at least one entry with the context type ``school``.
+   A search for ``myrole:school:DEMOSCHOOL`` also finds users stored before version 4.2.0
+   that only have ``myrole:mycontext:DEMOSCHOOL``,
+   until their next change or until all objects are synchronized again,
+   see :ref:`configuration-provisioning-resync`.
 
    A search accepts at most 20 different values,
    more are rejected with the status code ``422``.

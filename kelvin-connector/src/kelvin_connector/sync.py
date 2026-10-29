@@ -365,6 +365,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 schools[0].name,
             )
 
+        roles = [r for r in roles if r.context == "school"]
         all_role_names = {r.role for r in roles}
         roles_by_name: dict[str, Role] = {}
         if all_role_names:
