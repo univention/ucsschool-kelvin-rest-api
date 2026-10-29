@@ -449,18 +449,11 @@ class AnyContext:
     computed_fields: Mapping[str, ComputedField]
 
 
-def _build_any_expression(
-    any_expr: AnyRelated,
-    field_map: Mapping[str, FieldColumn],
-    registry: dict[str, JoinSpec] | None,
-    json_field_map: Mapping[str, FieldColumn] | None,
-    any_context: AnyContext | None,
-) -> FilterExpression:
-    if any_context is None:
-        raise InvalidAnyRelatedClause("not supported for this object type")
-    any_model = any_context.model
-    registry = registry or {}
-    fields = _query_fields(any_expr.clause, inside_any=True)
+def _any_relations(
+    clause: QueryExpr, registry: Mapping[str, JoinSpec], any_context: AnyContext
+) -> tuple[set[str], dict[str, ComputedField]]:
+    """The relations an AnyRelated clause needs and the computed fields it uses."""
+    fields = _query_fields(clause, inside_any=True)
     computed = {
         field: any_context.computed_fields[field]
         for field in fields & any_context.computed_fields.keys()
@@ -474,10 +467,18 @@ def _build_any_expression(
         raise InvalidAnyRelatedClause(
             f"fields must be nested in one of {sorted(registry)}; got {unnested}"
         )
+    return roots, computed
 
+
+def _join_any_relations(
+    any_model: ModelClass, roots: set[str], registry: Mapping[str, JoinSpec]
+) -> tuple[Select[int], dict[str, ModelClass]]:
+    """Join each relation in a subquery correlated on ``any_model``.
+
+    Relations whose join paths share a prefix share its aliases, so they are matched on one related row.
+    """
     subquery = select(literal(1))
     aliases: dict[tuple[ModelClass, ...], ModelClass] = {}
-    nested_columns: dict[str, FieldColumn] = {}
     targets: dict[str, ModelClass] = {}
     for root in sorted(roots):
         left = any_model
@@ -493,16 +494,28 @@ def _build_any_expression(
                 else:
                     subquery = subquery.join_from(left, right)
             left = right
-        nested_columns.update(_resolve_nested_fields(field_map, root, left))
         targets[root] = left
-    nested_columns.update(
-        {field: computed_field.build(targets) for field, computed_field in computed.items()}
-    )
+    return subquery, targets
 
-    condition = build_expression(
-        any_expr.clause, {**field_map, **nested_columns}, registry, json_field_map
-    )
-    return exists(subquery.where(condition).correlate(any_model))
+
+def _build_any_expression(
+    any_expr: AnyRelated,
+    field_map: Mapping[str, FieldColumn],
+    registry: dict[str, JoinSpec] | None,
+    json_field_map: Mapping[str, FieldColumn] | None,
+    any_context: AnyContext | None,
+) -> FilterExpression:
+    if any_context is None:
+        raise InvalidAnyRelatedClause("not supported for this object type")
+    registry = registry or {}
+    roots, computed = _any_relations(any_expr.clause, registry, any_context)
+    subquery, targets = _join_any_relations(any_context.model, roots, registry)
+    columns = dict(field_map)
+    for root, target in targets.items():
+        columns.update(_resolve_nested_fields(field_map, root, target))
+    columns.update({field: computed_field.build(targets) for field, computed_field in computed.items()})
+    condition = build_expression(any_expr.clause, columns, registry, json_field_map)
+    return exists(subquery.where(condition).correlate(any_context.model))
 
 
 def build_expression(
