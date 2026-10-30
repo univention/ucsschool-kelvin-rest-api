@@ -105,6 +105,10 @@ v4.2.0 (TBD)
   and the ``Link`` response header holds the URLs of the ``first``, ``prev``, ``next``, and ``last`` page.
   The pages are addressed by an opaque cursor in those URLs.
   Without ``limit``, the searches return all results as a plain list, as before.
+* Changed: Searches with many results are answered faster.
+  The Kelvin REST API runs the Python garbage collector less often
+  and no longer scans the objects created during startup.
+  Listing 3550 users with the version 2 API takes 40 % less time.
 * Fixed (version 2 API only): Users, schools, school classes, and work groups whose ``univentionObjectIdentifier`` is a ``UUID v1`` were missing from the version 2 API.
   The Kelvin connector only accepted ``UUID v4`` and discarded the changes of these objects.
   It now accepts ``UUID v1 and v4``, as UDM does.

@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import gc
 import logging
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import AsyncIterator, Callable
@@ -42,6 +43,23 @@ def configure_json_decoding() -> None:
     set_json_loads(orjson.loads)
 
 
+GC_THRESHOLDS = (50_000, 20, 100)
+
+
+def tune_garbage_collection() -> None:
+    """Make full garbage collections rare and keep startup objects out of them.
+
+    A collection response allocates hundreds of thousands of objects. With
+    CPython's default thresholds that triggers several full collections per
+    request, each of which scans the whole heap. Everything created during
+    startup lives as long as the worker, so frozen it is never scanned again.
+
+    Call it last during startup: objects created after the freeze are tracked.
+    """
+    gc.set_threshold(*GC_THRESHOLDS)
+    gc.freeze()
+
+
 def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -68,6 +86,7 @@ def build_app_lifespan(logger: logging.Logger) -> Callable[[FastAPI], AbstractAs
             await check_db_compatibility(engine)
         except HTTPException as exc:
             raise RuntimeError(str(exc.detail)) from exc
+        tune_garbage_collection()
         yield
         await engine.dispose()
         await health_check_engine.dispose()

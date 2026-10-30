@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import gc
 import logging
 import sqlite3
 from pathlib import Path
@@ -12,7 +13,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import make_url
 
 from ucsschool.kelvin.service import lifespan as lifespan_module
-from ucsschool.kelvin.service.lifespan import build_app_lifespan
+from ucsschool.kelvin.service.lifespan import GC_THRESHOLDS, build_app_lifespan
 
 HEAD_REVISION = "revision_123"
 
@@ -53,6 +54,18 @@ def test_lifespan_starts_up_when_db_is_compatible(
         assert app.state.db_engine is not None
         assert app.state.health_check_db_engine is not None
         assert app.state.health_check_db_engine is not app.state.db_engine
+
+
+@patch("ucsschool.kelvin.service.dependency._get_alembic_head_revision", return_value=HEAD_REVISION)
+def test_lifespan_tunes_garbage_collection(
+    _mock_get_head: MagicMock, db_path: Path, app: FastAPI
+) -> None:
+    _set_db_revision(db_path, HEAD_REVISION)
+    gc.unfreeze()
+
+    with TestClient(app):
+        assert gc.get_threshold() == GC_THRESHOLDS
+        assert gc.get_freeze_count() > 0
 
 
 @patch("ucsschool.kelvin.service.dependency._get_alembic_head_revision", return_value=HEAD_REVISION)

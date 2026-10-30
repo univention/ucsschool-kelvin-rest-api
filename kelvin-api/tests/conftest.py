@@ -4,6 +4,7 @@
 import asyncio
 import base64
 import datetime
+import gc
 import inspect
 import json
 import logging
@@ -98,6 +99,15 @@ def retry_until_replicated():
                     await result
 
     return _retry
+
+
+@pytest.fixture(autouse=True)
+def restore_garbage_collection():
+    """Undo the process-wide GC tuning of each started lifespan, which would pile up frozen objects."""
+    thresholds = gc.get_threshold()
+    yield
+    gc.unfreeze()
+    gc.set_threshold(*thresholds)
 
 
 @pytest.fixture
