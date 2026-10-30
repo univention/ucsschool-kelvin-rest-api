@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2020-2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS base
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.5@sha256:b2211f931bb03d2c86550b6671b1c43dc5dde8ad075cafc2220f8f55851d54d8 AS base
 
 ARG OPENAPI_CLIENT_GENERATOR_VERSION="5.4.0"
 ARG OPENAPI_CLIENT_GENERATOR_JAR="openapi-generator-cli-$OPENAPI_CLIENT_GENERATOR_VERSION.jar"
@@ -20,7 +20,7 @@ ENV UV_SYSTEM_PYTHON=1
 ENV UV_PROJECT_ENVIRONMENT="/venv"
 ENV UV_VERSION=0.8.0
 ENV PIPX_BIN_DIR="/usr/local/bin"
-RUN apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev
+RUN apt-get update && apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev
 RUN pipx install uv=="$UV_VERSION"
 
 COPY uv.lock .
@@ -53,7 +53,7 @@ RUN python3 build_docs.py
 
 FROM base AS kelvin-prod
 
-RUN apt-get install -y libldap-2.5-0 openjdk-17-jre-headless procps libmagic1
+RUN apt-get update && apt-get install -y libldap-2.5-0 openjdk-17-jre-headless procps libmagic1
 RUN mkdir -pv /etc/univention/kelvin
 RUN mkdir -pv /var/lib/ucs-school-import/kelvin-hooks
 RUN mkdir -pv /var/lib/ucs-school-lib/kelvin-hooks
@@ -99,7 +99,7 @@ LABEL "description"="Image of UCS app 'UCS@school Kelvin REST API' ('$app_id')."
     "APP_NAME"="ucsschool-kelvin-rest-api"
 
 
-FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS connector-builder
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.5@sha256:b2211f931bb03d2c86550b6671b1c43dc5dde8ad075cafc2220f8f55851d54d8 AS connector-builder
 
 WORKDIR /app
 
@@ -108,7 +108,7 @@ ENV UV_PROJECT_ENVIRONMENT="/venv"
 ENV UV_VERSION=0.10.10
 ENV PIPX_BIN_DIR="/usr/local/bin"
 
-RUN apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev
+RUN apt-get update && apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev
 RUN pipx install uv=="$UV_VERSION"
 
 COPY uv.lock .
@@ -125,14 +125,14 @@ COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 RUN uv --directory ./kelvin-connector sync --locked
 
-FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS connector-prod
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.5@sha256:b2211f931bb03d2c86550b6671b1c43dc5dde8ad075cafc2220f8f55851d54d8 AS connector-prod
 ENV PYTHONUNBUFFERED=1
 ENV VIRTUAL_ENV="/venv"
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 WORKDIR /app
 
-RUN apt-get install -y libldap2-dev
+RUN apt-get update && apt-get install -y libldap-2.5-0
 COPY --from=connector-builder $VIRTUAL_ENV $VIRTUAL_ENV
 COPY docker/start-connector.sh .
 COPY alembic ./alembic
