@@ -57,7 +57,7 @@ v4.2.0 (TBD)
      * - orjson
        - 3.11.8 -> 3.13.0
      * - pip
-       - 26.1.1 -> 26.2.1
+       - 26.1.1 -> 26.2.2
      * - psycopg
        - 3.3.4 -> 3.3.6
      * - pyasn1
@@ -86,6 +86,9 @@ v4.2.0 (TBD)
        - 1.3.2 -> 1.4.0
      * - uvicorn
        - 0.46.0 -> 0.54.0
+* Changed: Security updates: The Docker images of the Kelvin REST API and the Kelvin connector contain the current UCS errata updates and ``certifi`` 2026.10.23.
+  This fixes CVE-2026-111497 in ``brotli`` and removes the distrusted eMudhra root certificates (GHSA-6q48-6c7w-9gw2, DLA-4845-1).
+  The containers use the certificates of the UCS system, so install the errata update of ``ca-certificates`` on the UCS system as well.
 * Changed: The OpenAPI documents follow OpenAPI 3.1 instead of 3.0.
   A property that accepts ``null`` is documented as ``anyOf`` with ``{"type": "null"}`` instead of with ``nullable: true``.
 * Changed: A response with status code ``422`` still reports each validation error with the keys ``type``, ``loc``, and ``msg``,
