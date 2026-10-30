@@ -20,7 +20,14 @@ ENV UV_SYSTEM_PYTHON=1
 ENV UV_PROJECT_ENVIRONMENT="/venv"
 ENV UV_VERSION=0.8.0
 ENV PIPX_BIN_DIR="/usr/local/bin"
-RUN apt-get update && apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    libldap2-dev \
+    libsasl2-dev \
+    pipx \
+    python3-dev \
+    xz-utils
 RUN pipx install uv=="$UV_VERSION"
 
 COPY uv.lock .
@@ -53,7 +60,7 @@ RUN python3 build_docs.py
 
 FROM base AS kelvin-prod
 
-RUN apt-get update && apt-get install -y libldap-2.5-0 openjdk-17-jre-headless procps libmagic1
+RUN apt-get update && apt-get install -y --no-install-recommends libldap-2.5-0 libmagic1 openjdk-17-jre-headless procps
 RUN mkdir -pv /etc/univention/kelvin
 RUN mkdir -pv /var/lib/ucs-school-import/kelvin-hooks
 RUN mkdir -pv /var/lib/ucs-school-lib/kelvin-hooks
@@ -108,7 +115,14 @@ ENV UV_PROJECT_ENVIRONMENT="/venv"
 ENV UV_VERSION=0.10.10
 ENV PIPX_BIN_DIR="/usr/local/bin"
 
-RUN apt-get update && apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    libldap2-dev \
+    libsasl2-dev \
+    pipx \
+    python3-dev \
+    xz-utils
 RUN pipx install uv=="$UV_VERSION"
 
 COPY uv.lock .
@@ -132,7 +146,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y libldap-2.5-0
+RUN apt-get update && apt-get install -y --no-install-recommends libldap-2.5-0 && rm -rf /var/lib/apt/lists/*
 COPY --from=connector-builder $VIRTUAL_ENV $VIRTUAL_ENV
 COPY docker/start-connector.sh .
 COPY alembic ./alembic
