@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.5@sha256:b2211f931bb03d2c86550b6671b1c43dc5dde8ad075cafc2220f8f55851d54d8
 
 ENV PYTHONUNBUFFERED=1
 ENV UV_SYSTEM_PYTHON=1

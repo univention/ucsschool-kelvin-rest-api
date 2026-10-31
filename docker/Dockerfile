@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2020-2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS base
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.5@sha256:b2211f931bb03d2c86550b6671b1c43dc5dde8ad075cafc2220f8f55851d54d8 AS base
 
 ARG OPENAPI_CLIENT_GENERATOR_VERSION="5.4.0"
 ARG OPENAPI_CLIENT_GENERATOR_JAR="openapi-generator-cli-$OPENAPI_CLIENT_GENERATOR_VERSION.jar"
@@ -43,7 +43,7 @@ RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
 # Render readme.rst and changelog.rst into the static HTML served by the API.
 # Reuses the documentation image so the Univention Sphinx roles resolve without
 # mirroring the doc toolchain into this project (build_docs.py explains why).
-FROM gitregistry.knut.univention.de/univention/dev/docs/sphinx-docker/base@sha256:5d6aac4c1f8d7af49db226d07984f01c3f6c0e99e78d671942a9ffd32cb60639 AS docs-builder
+FROM gitregistry.knut.univention.de/univention/dev/docs/sphinx-docker/base@sha256:f076b07452bfec0687d95ca9798717f150a53ec9ac933838a9b7c6ea210c0f81 AS docs-builder
 WORKDIR /kelvin
 RUN pip install --no-cache-dir lxml
 COPY build_docs.py .
@@ -99,7 +99,7 @@ LABEL "description"="Image of UCS app 'UCS@school Kelvin REST API' ('$app_id')."
     "APP_NAME"="ucsschool-kelvin-rest-api"
 
 
-FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS connector-builder
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.5@sha256:b2211f931bb03d2c86550b6671b1c43dc5dde8ad075cafc2220f8f55851d54d8 AS connector-builder
 
 WORKDIR /app
 
@@ -125,7 +125,7 @@ COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 RUN uv --directory ./kelvin-connector sync --locked
 
-FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS connector-prod
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.5@sha256:b2211f931bb03d2c86550b6671b1c43dc5dde8ad075cafc2220f8f55851d54d8 AS connector-prod
 ENV PYTHONUNBUFFERED=1
 ENV VIRTUAL_ENV="/venv"
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
