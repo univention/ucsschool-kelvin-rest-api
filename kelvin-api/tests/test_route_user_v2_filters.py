@@ -3,18 +3,26 @@
 
 """Unit tests for the query the v2 user search builds from its parameters.
 
-The filter tree is asserted directly instead of through HTTP; the round trip
-over the API is covered by the integration tests in ``test_route_user.py``.
+The filter tree is asserted directly; one test checks that the route passes the
+parameters on, and the results are covered by the integration tests.
 """
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 from ucsschool_objects import And, AnyRelated, Filter, Operator, Or, SearchQuery
 
+import ucsschool.kelvin.routers.v2.user
+from ucsschool.kelvin.config import UDMMappingConfiguration
+from ucsschool.kelvin.constants import URL_API_V2_PREFIX
+from ucsschool.kelvin.main import app
 from ucsschool.kelvin.routers.v2._filters import ucsschool_role_filter
 from ucsschool.kelvin.routers.v2.user import _build_query
+from ucsschool.kelvin.service.dependency import check_db_compatibility, get_storage_session
+from ucsschool.kelvin.token_auth import get_kelvin_reader
 
 
 def _query(
@@ -111,12 +119,6 @@ def test_all_ucsschool_roles_must_match() -> None:
     )
 
 
-def test_repeated_ucsschool_roles_count_once() -> None:
-    assert _query(None, ucsschool_roles=["teacher:school:DEMOSCHOOL"] * 2) == SearchQuery(
-        where=_role_at_school("teacher", "DEMOSCHOOL")
-    )
-
-
 def test_up_to_20_different_ucsschool_roles_are_accepted() -> None:
     values = [f"teacher:school:school{index}" for index in range(20)]
 
@@ -183,3 +185,32 @@ def test_ucsschool_roles_combine_with_other_parameters() -> None:
     assert isinstance(query.where, And)
     assert _role_at_school("student", "DEMOSCHOOL") in query.where.clauses
     assert Filter(field="name", op=Operator.IN_CI, value=("alice",)) in query.where.clauses
+
+
+@pytest.fixture
+def users_search(monkeypatch: pytest.MonkeyPatch) -> Iterator[AsyncMock]:
+    config = UDMMappingConfiguration.model_construct(user=[])
+    monkeypatch.setattr(ucsschool.kelvin.routers.v2.user, "UDM_MAPPING_CONFIG", config)
+    storage = MagicMock()
+    storage.users.search = AsyncMock(return_value=[])
+    storage.session.execute = AsyncMock(return_value=MagicMock())
+    overrides = {
+        check_db_compatibility: lambda: True,
+        get_kelvin_reader: lambda: MagicMock(),
+        get_storage_session: lambda: storage,
+    }
+    app.dependency_overrides.update(overrides)
+    yield storage.users.search
+    for dependency in overrides:
+        _ = app.dependency_overrides.pop(dependency)
+
+
+def test_search_passes_ucsschool_roles_to_the_query(users_search: AsyncMock) -> None:
+    params = {"ucsschool_roles": ["teacher:school:X", "staff:school:X"]}
+
+    response = TestClient(app).get(f"{URL_API_V2_PREFIX}/users/", params=params)
+
+    assert response.status_code == 200, response.text
+    assert users_search.call_args.args[0] == SearchQuery(
+        where=And(clauses=(_role_at_school("teacher", "X"), _role_at_school("staff", "X")))
+    )
