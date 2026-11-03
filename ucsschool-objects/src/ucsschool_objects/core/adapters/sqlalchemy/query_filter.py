@@ -492,7 +492,9 @@ def _join_any_relations(
                     correlation = cast("ColumnElement[bool]", orm_join(any_model, right).onclause)
                     subquery = subquery.select_from(right).where(correlation)
                 else:
-                    subquery = subquery.join_from(left, right)
+                    subquery = subquery.join_from(
+                        left, right, isouter=registry[root].join_type == "left_outer"
+                    )
             left = right
         targets[root] = left
     return subquery, targets
@@ -506,7 +508,7 @@ def _build_any_expression(
     any_context: AnyContext | None,
 ) -> FilterExpression:
     if any_context is None:
-        raise InvalidAnyRelatedClause("not supported for this object type")
+        raise InvalidAnyRelatedClause("only user searches support it")
     registry = registry or {}
     roots, computed = _any_relations(any_expr.clause, registry, any_context)
     subquery, targets = _join_any_relations(any_context.model, roots, registry)

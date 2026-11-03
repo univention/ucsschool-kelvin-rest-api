@@ -132,6 +132,13 @@ async def seeded_users(
             id="same-membership",
         ),
         pytest.param(
+            AnyRelated(
+                Or((_role("teacher"), Filter(field="groups.name", op=Operator.EQ, value="none")))
+            ),
+            ["student-x-teacher-y", "teacher", "teacher-staff"],
+            id="or-across-a-missing-relation",
+        ),
+        pytest.param(
             And((_school("school-x"), AnyRelated(And((_school("school-y"), _role("teacher")))))),
             ["student-x-teacher-y"],
             id="next-to-outer-school-filter",
@@ -267,7 +274,7 @@ async def test_any_query_is_rejected_by_other_managers(
     manager = manager_cls(db_session)
     query = SearchQuery(where=AnyRelated(Filter(field=field, op=Operator.EQ, value="x")))
 
-    with pytest.raises(InvalidAnyRelatedClause):
+    with pytest.raises(InvalidAnyRelatedClause, match="only user searches support it"):
         await manager.search(query)
 
 
