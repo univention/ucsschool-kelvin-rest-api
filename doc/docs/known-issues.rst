@@ -65,7 +65,9 @@ Unlike the v1 endpoint, the ``/v2/users/`` endpoint does not return any Exam use
 --------------------------------------------------------------------------
 Unlike the v1 endpoint, the ``ucsschool_roles`` parameter of the ``/v2/users/`` endpoint
 only matches entries with the context type ``school``, for example ``teacher:school:DEMOSCHOOL``.
-Entries with other context types aren't stored for the version 2 API.
+Entries with other context types aren't stored for the version 2 API,
+so a search for them, for example ``teacher:exam:DEMOSCHOOL``, is rejected with the status code ``422``.
+Use the v1 endpoint for these searches.
 Users stored before version 4.2.0 keep them as entries with the context type ``school`` until their next change,
 so a search for ``myrole:school:DEMOSCHOOL`` also finds users that only have ``myrole:mycontext:DEMOSCHOOL``.
 To correct all users at once, synchronize all objects again as described in :ref:`configuration-provisioning-resync`.

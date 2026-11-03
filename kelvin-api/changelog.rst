@@ -112,6 +112,7 @@ v4.2.0 (TBD)
   As in the version 1 API, the parameter may be repeated, all values must match, ``*`` is a wildcard, and the search is case-insensitive.
   Only entries with the context type ``school`` match, for example ``teacher:school:DEMOSCHOOL``,
   because the version 2 API doesn't store other entries.
+  A value with another context type, for example ``teacher:exam:DEMOSCHOOL``, is rejected with the status code ``422``.
   A search accepts at most 20 different values.
 * Fixed (version 2 API only): Users showed an entry of their ``ucsschool_roles`` with another context type as a role at that school,
   for example ``teacher:mycontext:DEMOSCHOOL`` as ``teacher:school:DEMOSCHOOL`` and the role ``teacher``.

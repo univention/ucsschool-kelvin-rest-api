@@ -146,7 +146,10 @@ def _ucsschool_role_clauses(values: Sequence[str]) -> list[QueryExpr]:
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"At most {_MAX_UCSSCHOOL_ROLES} different values of 'ucsschool_roles' are allowed.",
         )
-    return [_ucsschool_role_filter(value) for value in roles]
+    try:
+        return [_ucsschool_role_filter(value) for value in roles]
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
 
 def _build_query(
@@ -331,7 +334,8 @@ async def search(
                 "List users that have all of these entries in their list of ucsschool_roles. "
                 "May be repeated. `*` is a wildcard, and matching is case-insensitive. Only "
                 "entries with the context type `school` can match, as only these are stored "
-                "for version 2, so `*` alone lists the users with at least one such entry. "
+                "for version 2, so `*` alone lists the users with at least one such entry, "
+                "and a value with another context type is rejected. "
                 f"At most {_MAX_UCSSCHOOL_ROLES} different values."
             ),
         ),

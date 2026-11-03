@@ -162,7 +162,7 @@ async def test_v1_v2_search_users_by_ucsschool_roles_returns_same_output(
     import_config: object,
 ) -> None:
     """V1 and V2 GET /users/?ucsschool_roles=… return equivalent data, except for the
-    roles without the context type "school" that only v1 matches."""
+    roles without the context type "school" that only v1 searches and v2 rejects."""
     school_x = await create_ou_using_python(cache=False)
     school_y = await create_ou_using_python(cache=False)
     users = [
@@ -210,7 +210,9 @@ async def test_v1_v2_search_users_by_ucsschool_roles_returns_same_output(
             assert exam_user["username"] not in v1_items
         custom_params = [("ucsschool_roles", custom_role)]
         assert set(_ours(v1_url, custom_params)) == {custom.name}
-        assert set(_ours(v2_url, custom_params)) == set()
+        v2_response = requests.get(f"{v2_url}/users/", headers=auth_header, params=custom_params)
+        assert v2_response.status_code == 422, v2_response.text
+        assert repr(custom_role) in v2_response.json()["detail"]
 
     await _retry_until_replicated(_check)
 

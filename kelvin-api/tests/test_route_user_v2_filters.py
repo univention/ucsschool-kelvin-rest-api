@@ -153,13 +153,27 @@ def test_ucsschool_role_with_three_parts_is_split(value: str, role: str, school:
         pytest.param("", id="empty"),
         pytest.param("teacher*DEMOSCHOOL", id="wildcard-across-parts"),
         pytest.param("*", id="wildcard-only"),
-        pytest.param("teacher:exam:DEMOSCHOOL", id="other-context-type"),
         pytest.param("a:b:c:d", id="four-parts"),
-        pytest.param("a:" + "*" * 300 + "z:b", id="many-wildcards-in-context-type"),
     ],
 )
 def test_other_ucsschool_roles_match_the_whole_entry(value: str) -> None:
     assert ucsschool_role_filter(value) == _school_role(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param("teacher:exam:DEMOSCHOOL", id="other-context-type"),
+        pytest.param("teacher:ex*:DEMOSCHOOL", id="wildcard-other-context-type"),
+        pytest.param("a:" + "*" * 300 + "z:b", id="many-wildcards-in-context-type"),
+    ],
+)
+def test_ucsschool_roles_with_another_context_type_are_rejected(value: str) -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        _query(None, ucsschool_roles=["teacher:school:DEMOSCHOOL", value])
+
+    assert exc_info.value.status_code == 422
+    assert repr(value) in exc_info.value.detail
 
 
 def test_ucsschool_roles_combine_with_other_parameters() -> None:

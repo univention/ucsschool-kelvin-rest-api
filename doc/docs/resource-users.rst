@@ -265,7 +265,7 @@ for example ``?ucsschool_roles=teacher:school:DEMOSCHOOL&ucsschool_roles=staff:s
 
    Only entries with the context type ``school`` match, for example ``teacher:school:DEMOSCHOOL``.
    The version 2 API doesn't store other entries, for example ``myrole:mycontext:DEMOSCHOOL``,
-   so a search for them finds no users,
+   so a search for them is rejected with the status code ``422``,
    and ``?ucsschool_roles=*`` only finds the users with at least one entry with the context type ``school``.
    A search for ``myrole:school:DEMOSCHOOL`` also finds users stored before version 4.2.0
    that only have ``myrole:mycontext:DEMOSCHOOL``,

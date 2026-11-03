@@ -50,9 +50,15 @@ def _glob_matches(pattern: str, text: str) -> bool:
 
 
 def ucsschool_role_filter(value: str) -> AnyRelated:
+    """Raises ``ValueError`` for a value whose context type can never be ``school``."""
     parts = value.split(":")
-    if len(parts) == 3 and _glob_matches(parts[1], "school"):
-        role, _, school = parts
+    if len(parts) == 3:
+        role, context_type, school = parts
+        if not _glob_matches(context_type, "school"):
+            raise ValueError(
+                f"{value!r}: version 2 only searches ucsschool_roles with the context type 'school'; "
+                "use version 1 for other context types."
+            )
         return AnyRelated(
             And(
                 clauses=(

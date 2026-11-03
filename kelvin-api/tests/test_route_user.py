@@ -521,13 +521,22 @@ async def test_search_ucsschool_roles(
         (_roles(f"*:school:{school_x}"), everyone),
         (_roles("teacher:school:*", "staff:school:*"), {teacher_staff}),
         (_roles(f"TEACHER:School:{school_x.upper()}"), teachers),
-        (_roles(f"teacher:exam:{school_x}"), set()),
         ([("school", school_x), *_roles("*")], everyone),
         ([("school", school_x), *_roles("")], set()),
-        (_roles(custom_role), {custom} if api_version == "v1" else set()),
-        (_roles(teacher_in_other_context), {custom} if api_version == "v1" else set()),
     ]
-    if api_version == "v2":
+    exam_role = f"teacher:exam:{school_x}"
+    if api_version == "v1":
+        cases += [
+            (_roles(exam_role), set()),
+            (_roles(custom_role), {custom}),
+            (_roles(teacher_in_other_context), {custom}),
+        ]
+    else:
+        for value in (exam_role, custom_role, teacher_in_other_context):
+            response = retry_http_502(
+                requests.get, f"{url_fragment}/users/", headers=auth_header, params=_roles(value)
+            )
+            assert response.status_code == 422, (value, response.content)
         cases += [
             (
                 [
