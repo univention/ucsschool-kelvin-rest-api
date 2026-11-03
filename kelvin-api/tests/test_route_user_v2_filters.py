@@ -155,6 +155,7 @@ def test_ucsschool_role_with_three_parts_is_split(value: str, role: str, school:
         pytest.param("*", id="wildcard-only"),
         pytest.param("teacher:exam:DEMOSCHOOL", id="other-context-type"),
         pytest.param("a:b:c:d", id="four-parts"),
+        pytest.param("a:" + "*" * 300 + "z:b", id="many-wildcards-in-context-type"),
     ],
 )
 def test_other_ucsschool_roles_match_the_whole_entry(value: str) -> None:

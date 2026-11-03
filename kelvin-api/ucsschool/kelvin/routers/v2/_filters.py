@@ -44,7 +44,8 @@ def name_filter(field: str, values: Sequence[str]) -> QueryExpr:
 
 
 def _glob_matches(pattern: str, text: str) -> bool:
-    regex = ".*".join(re.escape(part) for part in pattern.split("*"))
+    # Each extra "*" in a run multiplies the backtracking of ``re``.
+    regex = ".*".join(re.escape(part) for part in re.sub(r"\*+", "*", pattern).split("*"))
     return re.fullmatch(regex, text, re.IGNORECASE) is not None
 
 
