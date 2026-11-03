@@ -372,7 +372,7 @@ No framework or persistence imports; stdlib only.
   Equality and hashing are by `public_id` only.
   Partially-loaded objects are represented with an explicit `UNLOADED` sentinel rather than `None`,
   so "not fetched" is distinguishable from "actually null".
-- **`query.py`** — a small expression tree (`Filter`, `And`, `Or`, `Not`, `SortSpec`, `SearchQuery`)
+- **`query.py`** — a small expression tree (`Filter`, `And`, `Or`, `Not`, `AnyRelated`, `SortSpec`, `SearchQuery`)
   and an `Operator` enum (`eq`, `ne`, `in`, `like`, `gt`/`gte`/`lt`/`lte`).
   Adapters translate this AST into their backend's query language.
 - **`load_spec.py`** — `LoadSpec` controls which fields and relationships

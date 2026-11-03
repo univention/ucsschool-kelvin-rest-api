@@ -4,7 +4,7 @@
 UCS\@school Kelvin REST API
 ===========================
 
-|python| |license| |code style|
+|python| |license|
 
 .. This file can be read on the installed system at https://FQDN/ucsschool/kelvin/v1/readme
 .. The changelog can be read on the installed system at https://FQDN/ucsschool/kelvin/v1/changelog
@@ -20,6 +20,3 @@ The changelog can be read on the installed system at ``https://<fqdn>/ucsschool/
 .. |python| image:: https://img.shields.io/badge/python-3.6+-blue.svg
     :alt: Python 3.6+
     :target: https://www.python.org/downloads/release/python-373/
-.. |code style| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :alt: Code style: black
-    :target: https://github.com/python/black

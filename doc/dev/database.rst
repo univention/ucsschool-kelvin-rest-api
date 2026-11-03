@@ -330,7 +330,7 @@ The whole point of ``v2`` is fast reads served from the Kelvin DB, so the query
 machinery is where the performance-critical paths live.
 The query DSL is defined in
 ``ucsschool-objects/src/ucsschool_objects/core/domain/query.py``
-(``Filter``, ``And`` / ``Or`` / ``Not``, ``SortSpec``, ``SearchQuery`` and the
+(``Filter``, ``And`` / ``Or`` / ``Not``, ``AnyRelated``, ``SortSpec``, ``SearchQuery`` and the
 operator set ``EQ, NE, IN, MATCHES, MATCHES_CI, GT, GTE, LT, LTE, CONTAINS``).
 The SQLAlchemy adapter translates that tree into SQL in
 ``.../core/adapters/sqlalchemy/query_filter.py``.
@@ -347,6 +347,9 @@ Performance-critical query paths:
    through ``school_membership``. Because those relations are M:N, the statement
    is wrapped in ``SELECT DISTINCT`` — which is exactly why the JSON columns
    have to be ``jsonb`` on PostgreSQL.
+#. **AnyRelated as a correlated EXISTS.** An ``AnyRelated`` clause compiles to
+   one ``EXISTS`` sub-query per clause, joined through ``school_membership``,
+   instead of joins on the outer statement, so it needs no ``DISTINCT``.
 #. **Eager-load shaping to avoid N+1 queries.** Read queries use
    ``selectinload(...).load_only(...)`` to pull only the requested columns of
    the related memberships / schools / groups / roles, gated by a ``LoadSpec``.

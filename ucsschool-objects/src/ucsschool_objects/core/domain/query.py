@@ -76,6 +76,12 @@ class Not:
 
 @dataclass(frozen=True)
 class AnyRelated:
+    """At least one related row of a user matches the whole clause, which must use nested fields only.
+
+    ``AnyRelated(And(a, b))`` needs one row matching both; to require ``a`` and ``b`` on any rows, use
+    ``And(AnyRelated(a), AnyRelated(b))``.
+    """
+
     clause: QueryExpr
 
 
