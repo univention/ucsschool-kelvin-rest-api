@@ -725,7 +725,7 @@ async def test_user_query_rejects_sorting_on_a_to_many_relation(
     manager = SQLAlchemyUserManager(db_session)
     sort_by = (SortSpec(field=field),)
 
-    with pytest.raises(UnsupportedSortField):
+    with pytest.raises(UnsupportedSortField, match=f"relation '{field.split('.')[0]}' is to-many"):
         await manager.search(sort_by=sort_by)
 
 
@@ -734,7 +734,7 @@ async def test_group_query_rejects_sorting_on_a_to_many_relation(db_session: Asy
     manager = SQLAlchemyGroupManager(db_session)
     sort_by = (SortSpec(field="roles.name"),)
 
-    with pytest.raises(UnsupportedSortField):
+    with pytest.raises(UnsupportedSortField, match="relation 'roles' is to-many"):
         await manager.search(sort_by=sort_by)
 
 

@@ -465,7 +465,8 @@ def _any_relations(
     )
     if unnested:
         raise InvalidAnyRelatedClause(
-            f"fields must be nested in one of {sorted(registry)}; got {unnested}"
+            f"fields must be nested in one of {sorted(registry)} "
+            f"or be one of {sorted(any_context.computed_fields)}; got {unnested}"
         )
     return roots, computed
 
@@ -577,7 +578,11 @@ def apply_search_query(
     if query is None or query.where is None:
         return stmt
 
-    required_joins = _nested_roots(_query_fields(query.where), registry or {})
+    fields = _query_fields(query.where)
+    misplaced = sorted(fields & any_context.computed_fields.keys()) if any_context else []
+    if misplaced:
+        raise InvalidAnyRelatedClause(f"{misplaced} can only be used inside AnyRelated")
+    required_joins = _nested_roots(fields, registry or {})
     stmt, nested_columns = apply_nested_joins(stmt, model, required_joins, field_map, registry)
 
     return stmt.where(
@@ -634,7 +639,7 @@ def apply_sort(
     for spec in specs:
         root, sep, _ = spec.field.partition(".")
         if sep and root in required_joins and registry[root].to_many:
-            raise UnsupportedSortField(spec.field)
+            raise UnsupportedSortField(spec.field, reason=f"relation {root!r} is to-many")
     stmt, nested_columns = apply_nested_joins(stmt, model, required_joins, field_map, registry)
     field_map = {**field_map, **nested_columns}
 

@@ -16,7 +16,6 @@ from ucsschool_objects import (
     Or,
     SearchQuery,
     SortSpec,
-    UnsupportedFilterField,
 )
 from ucsschool_objects.core.adapters.sqlalchemy import (
     SQLAlchemyGroupManager,
@@ -212,7 +211,7 @@ async def test_user_school_roles_are_rejected_outside_any(db_session: AsyncSessi
     manager = SQLAlchemyUserManager(db_session)
     query = SearchQuery(where=Filter(field="school_roles", op=Operator.EQ, value="teacher:school:x"))
 
-    with pytest.raises(UnsupportedFilterField):
+    with pytest.raises(InvalidAnyRelatedClause, match=r"\['school_roles'\] can only be used inside"):
         await manager.search(query)
 
 
@@ -254,6 +253,15 @@ async def test_user_any_query_rejects_invalid_clauses(
     query = SearchQuery(where=where)
 
     with pytest.raises(InvalidAnyRelatedClause):
+        await manager.search(query)
+
+
+@pytest.mark.asyncio
+async def test_user_any_query_names_the_fields_it_accepts(db_session: AsyncSession) -> None:
+    manager = SQLAlchemyUserManager(db_session)
+    query = SearchQuery(where=AnyRelated(Filter(field="school_role", op=Operator.EQ, value="x")))
+
+    with pytest.raises(InvalidAnyRelatedClause, match=r"or be one of \['school_roles'\]"):
         await manager.search(query)
 
 

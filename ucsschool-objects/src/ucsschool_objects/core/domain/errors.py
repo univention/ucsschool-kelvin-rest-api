@@ -31,10 +31,12 @@ class UnsupportedSortField(InvalidFilter):
     """Raised when sorting is requested on an unsupported field."""
 
     field: str
+    reason: str | None
 
-    def __init__(self, field: str) -> None:
+    def __init__(self, field: str, reason: str | None = None) -> None:
         self.field = field
-        super().__init__(f"Unsupported sort field: {field!r}")
+        self.reason = reason
+        super().__init__(f"Unsupported sort field: {field!r}" + (f"; {reason}" if reason else ""))
 
 
 class InvalidInFilter(InvalidFilter):
