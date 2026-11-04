@@ -501,15 +501,7 @@ def validate(obj: Union[UdmObject, Dict[str, Any]], logger: logging.Logger = Non
                 "{!r}".format(options),
                 ", ".join(errors),
             )
-            # ucrvs get copied from the host. In this process variables that are not
-            # set on the host get set as empty strings in the container (instead of being not set).
-            # Therefore I had to use this workaround of handling empty strings.
-            # TODO fix workaround when 00_sync_to_docker has been improved.
-            varname = "ucsschool/validation/logging/enabled"
-            if ucr.is_true(varname, True) or ucr.get(varname) in (
-                "",
-                None,
-            ):  # tests: 00_validation_log_enabled
+            if ucr.is_true("ucsschool/validation/logging/enabled", True):
                 if logger:
                     logger.warning(errors_str)
                 if private_data_logger:
