@@ -95,6 +95,85 @@ The *UCS\@school Kelvin REST API* can be used out of the box, but there are vari
    configure ucsschool-kelvin-rest-api --set ucsschool/kelvin/log_level=DEBUG &&
    univention-app restart ucsschool-kelvin-rest-api``
 
+.. _configuration-host-ucr:
+
+UCR variables of the host
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 6.0.0
+
+The *UCS\@school Kelvin REST API* uses UCR variables of the UCS host,
+for example ``ucsschool/username/max_length`` or ``ucsschool/ldap/default/groupprefix/pupils``.
+Every time the *UCS\@school Kelvin REST API* container starts,
+it synchronizes these variables from the host into the container.
+The synchronization writes the values of the host into the UCR layer of the container that ``ucr set`` writes to:
+a value set inside the container with ``ucr set`` is overwritten, and a variable that isn't set on the host is unset in the container.
+Only a forced value, as described below, takes precedence.
+
+The synchronization covers the following UCR variables:
+
+* all variables below ``ucsschool/import/``, ``ucsschool/ldap/``, ``ucsschool/validation/``,
+  ``groups/default/``, and ``users/default/``
+* ``dhcpd/ldap/base``, ``ldap/server/name``, ``ldap/server/port``, ``mail/hosteddomains``, ``ucsschool/default/share/nfs``, ``ucsschool/local/oulist``,
+  ``ucsschool/singlemaster``, and ``ucsschool/username/max_length``
+
+The app settings ``ucsschool/kelvin/*`` and the variables the App Center sets for the container,
+like ``ldap/hostdn`` or ``server/role``, aren't synchronized.
+
+A change of such a variable on the host takes effect after a restart of the app:
+
+.. code-block:: console
+
+   $ ucr set ucsschool/username/max_length=25
+   $ univention-app restart ucsschool-kelvin-rest-api
+
+To list the synchronized variables, run:
+
+.. code-block:: console
+
+   $ univention-app shell ucsschool-kelvin-rest-api kelvin-sync-host-ucr --list
+
+Only if the container really needs a value that differs from the host,
+set it inside the container with ``ucr set --force`` and restart the app.
+The forced value takes precedence over the synchronized one
+and persists across restarts, reinitializations, and upgrades of the app.
+The synchronization still writes the host value below it,
+and the container log warns on every start that the value is shadowed.
+To use the host value again, remove the forced value and restart the app:
+
+.. code-block:: console
+
+   $ univention-app shell ucsschool-kelvin-rest-api ucr set --force ucsschool/username/max_length=15
+   $ univention-app restart ucsschool-kelvin-rest-api
+
+   $ univention-app shell ucsschool-kelvin-rest-api ucr unset --force ucsschool/username/max_length
+   $ univention-app restart ucsschool-kelvin-rest-api
+
+On a single server, creating a school with the *UCS\@school Kelvin REST API* doesn't set ``dhcpd/ldap/base``.
+If the host doesn't set it, the DHCP server object of the host isn't moved into the DHCP service of the new school.
+Create the first school of a single server on the host instead.
+
+The synchronization reads the files :file:`/etc/univention/base*.conf` of the host,
+which are mounted read-only into the container below :file:`/host-ucr`.
+The container log shows the synchronized changes:
+
+.. code-block:: console
+
+   $ journalctl CONTAINER_NAME=ucsschool-kelvin-rest-api_api_1
+
+If one of these files is missing on the host when Docker creates the container,
+Docker creates a directory in its place.
+The container then doesn't start, and its log names the file.
+The directory also makes the ``ucr`` command on the host fail.
+To recover, remove the directory, recreate the file, and restart the app,
+for example for :file:`base-forced.conf`:
+
+.. code-block:: console
+
+   $ rmdir /etc/univention/base-forced.conf
+   $ ucr dump > /dev/null
+   $ univention-app restart ucsschool-kelvin-rest-api
+
 
 Number of cores
 ^^^^^^^^^^^^^^^
@@ -123,10 +202,27 @@ Log level
 
 The minimum severity for log messages written to :file:`/var/log/univention/ucsschool-kelvin-rest-api/http.log` can be configured. The default is ``INFO``. The value can be changed through the *app settings* of the *UCS\@school Kelvin REST API* app in the *Univention App Center* UMC module.
 
+Validation logging
+^^^^^^^^^^^^^^^^^^
+
+.. versionchanged:: 6.0.0
+
+   An empty value turns the logging off. The variable is synchronized from the host.
+
+The UCR variable ``ucsschool/validation/logging/enabled`` turns the validation logging on or off.
+The logging is on if the variable isn't set or has a true value, such as ``yes``.
+Any other value, including an empty one, turns it off.
+Set it on the host and restart the app, see :ref:`configuration-host-ucr`.
+
 Backup count of validation logging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The UCR variable ``ucsschool/validation/logging/backupcount`` sets the amount of copies of the log file ``ucs-school-validation.log``, which should be kept in rotation. The default is ``60``. The host's UCR-V is copied into the Docker container during the join script.
-To change it for the *UCS\@school Kelvin REST API*, it has to be modified inside the Docker container.
+
+.. versionchanged:: 6.0.0
+
+   The variable is synchronized from the host and can't be set inside the container any more.
+
+The UCR variable ``ucsschool/validation/logging/backupcount`` sets the amount of copies of the log file ``ucs-school-validation.log``, which should be kept in rotation. The default is ``60``.
+Set it on the host and restart the app, see :ref:`configuration-host-ucr`.
 
 Configuration of user object management (import configuration)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

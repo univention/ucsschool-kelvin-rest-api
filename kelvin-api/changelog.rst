@@ -8,6 +8,53 @@
 Changelog
 =========
 
+v6.0.0 (TBD)
+------------
+This is a major release of the UCS\@school Kelvin REST API application.
+The Docker container takes the UCR variables that the Kelvin REST API uses from the host,
+and values of these variables that are set inside the container with ``ucr set`` no longer take effect.
+
+.. important::
+
+   At the first start after the upgrade,
+   every synchronized UCR variable takes its value from the host, see :ref:`configuration-host-ucr`.
+   A value in the container that differs from the host is overwritten,
+   and a variable that isn't set on the host is unset in the container.
+   Earlier versions of this manual said to set some of these variables inside the container,
+   for example ``ucsschool/validation/logging/backupcount`` or ``ucsschool/username/max_length``.
+
+   Variables that are set on the host, but weren't copied into the container before, take effect as well.
+   The variables below ``ucsschool/ldap/default/container/`` and ``ucsschool/ldap/default/groupprefix/``
+   set the names of the containers and groups that the Kelvin REST API searches and creates.
+   If the host sets them to values other than the defaults,
+   the Kelvin REST API uses these names from then on, also for schools whose objects it created with the default names.
+
+   Before the upgrade, compare the synchronized variables in the container with the host,
+   and set on the host every value of the container that you want to keep:
+
+   .. code-block:: console
+
+      $ PATTERN='^((ucsschool/(import|ldap|validation)|groups/default|users/default)/[^:]*|dhcpd/ldap/base|ldap/server/(name|port)|mail/hosteddomains|ucsschool/(default/share/nfs|local/oulist|singlemaster|username/max_length)): '
+      $ univention-app shell ucsschool-kelvin-rest-api ucr dump | grep -E "$PATTERN" > container.txt
+      $ ucr dump | grep -E "$PATTERN" > host.txt
+      $ diff container.txt host.txt
+
+* Changed: The UCR variables of the host that the Kelvin REST API uses are synchronized into the Docker container every time the container starts,
+  including restarts, reinitializations, and upgrades of the app.
+  Before, the join script copied only some of them once, and an upgrade restored outdated values.
+  Copying the synchronized UCR variables into the container manually, for example with hook scripts, is no longer necessary.
+  A change of such a variable on the host takes effect after a restart of the app.
+  Installing or upgrading the app aborts if one of the files :file:`/etc/univention/base*.conf` is missing on the host.
+  See :ref:`configuration-host-ucr` (:uv:bug:`52934`).
+* Changed: An empty value of the UCR variable ``ucsschool/validation/logging/enabled`` disables the validation logging,
+  as any other value that isn't true does.
+  Before, an empty value enabled it (:uv:bug:`52934`).
+* Changed: On a single server, creating a school no longer sets the UCR variable ``dhcpd/ldap/base`` in the Docker container.
+  If the host doesn't set it, the DHCP server object of the host isn't moved into the DHCP service of the new school,
+  and the Kelvin REST API logs a warning.
+  Create the first school of a single server on the host instead.
+  The parameter ``alter_dhcpd_base`` has no effect any more, see :ref:`configuration-host-ucr` (:uv:bug:`52934`).
+
 v5.0.0 (2026-11-12)
 -------------------
 .. important::

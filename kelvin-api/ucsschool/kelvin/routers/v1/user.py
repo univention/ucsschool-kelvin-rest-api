@@ -1239,8 +1239,8 @@ async def complete_update(  # noqa: C901
         if not passed, the current value is kept
     - **birthday**: birthday of user (optional, format: **YYYY-MM-DD**)
     - **disabled**: whether the user should be created
-    - **alter_dhcpd_base**: whether the UCR variable dhcpd/ldap/base should be modified during school
-        creation on singleserver environments. (optional, **currently non-functional!**)
+    - **alter_dhcpd_base**: has no effect. The UCR variable dhcpd/ldap/base is synchronized from
+        the host and never modified by the API. (optional, **deprecated**)
     - **kelvin_password_hashes**: Password hashes to be stored unchanged in
         OpenLDAP (optional)
     - **ucsschool_roles**: List of ucsschool_roles strings the user has in addition to

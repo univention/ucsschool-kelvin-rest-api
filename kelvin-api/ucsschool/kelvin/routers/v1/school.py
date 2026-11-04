@@ -264,8 +264,8 @@ async def school_create(
 
     **Parameters**
 
-    - **alter_dhcpd_base**: whether the UCR variable dhcpd/ldap/base should be modified during school
-        creation on singleserver environments. (optional, **currently non-functional!**)
+    - **alter_dhcpd_base**: has no effect. The UCR variable dhcpd/ldap/base is synchronized from
+        the host and never modified by the API. (optional, **deprecated**)
 
     **Request Body**
 
