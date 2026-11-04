@@ -85,7 +85,7 @@ fetch-vm-data: .get-target ## Fetches necessary information from a UCS host, to 
 
 
 build-docker-image:  ## Builds the Kelvin docker image
-	@docker build --network host -t ucsschool-kelvin-rest-api:dev -f docker/Dockerfile .
+	@docker build --network host --target kelvin-prod -t ucsschool-kelvin-rest-api:dev -f docker/Dockerfile .
 
 dev-server: .env-configured build-docker-image setup-provisioning-subscription ## Start local Kelvin development server
 	@echo "Starting development server..."
