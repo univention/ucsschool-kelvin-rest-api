@@ -17,7 +17,6 @@ from ldap.filter import filter_format
 from udm_rest_client import UDM, CreateError, NoObject as UdmNoObject, UdmObject
 from univention.admin.filter import conjunction
 from univention.admin.uexceptions import noObject
-from univention.config_registry import handler_set
 
 from ..roles import (
     create_ucsschool_role_string,
@@ -527,12 +526,10 @@ class School(RoleSupportMixin, UCSSchoolHelperAbstractClass):
                     await self.modify_without_hooks(lo)
 
             if self.alter_dhcpd_base and ucr.is_true("ucsschool/singlemaster", False):
-                # TODO: this must be executed on the host!
-                self.logger.error(
-                    "UCRV should be set on the host: 'dhcpd/ldap/base=cn=dhcp,%s'", self.dn
+                self.logger.warning(
+                    "Set the UCR variable on the host and restart the app: 'dhcpd/ldap/base=cn=dhcp,%s'",
+                    self.dn,
                 )
-                handler_set(["dhcpd/ldap/base=cn=dhcp,%s" % (self.dn,)])
-                ucr.load()
 
             await self.create_default_containers(lo)
             await self.create_default_groups(lo)

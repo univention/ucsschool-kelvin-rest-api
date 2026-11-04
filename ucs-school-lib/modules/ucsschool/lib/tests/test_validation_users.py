@@ -802,7 +802,7 @@ def test_validation_log_enabled(caplog, random_logger, random_user_name, logging
         public_logs = filter_log_messages(caplog.record_tuples, random_logger.name)
         secret_logs = filter_log_messages(caplog.record_tuples, VALIDATION_LOGGER)
         for log in (public_logs, secret_logs):
-            if logging_enabled == "no":
+            if logging_enabled in ("no", ""):
                 assert expected_msg not in log
             else:
                 assert expected_msg in log
