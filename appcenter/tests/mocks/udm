@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
+echo "udm $*" >> "${MOCK_CALLS:-/dev/null}"
+echo "  ucsschoolStudent"

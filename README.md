@@ -210,6 +210,9 @@ make fetch-vm-data TARGET="IP OF UCS WHERE KELVIN WOULD BE INSTALLED"
 make dev-server
 ```
 
+The Kelvin container doesn't start without the UCR files of the host in `dev/_vm_config/host-ucr/`.
+If `dev/_vm_config/host-ucr/` lacks them, or holds directories in their place, run `make fetch-vm-data` again.
+
 Changes to the source code are automatically synced to the running container
 and should have an immediate effect.
 

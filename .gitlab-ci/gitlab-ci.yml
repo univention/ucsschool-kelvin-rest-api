@@ -428,8 +428,7 @@ test_appcenter_scripts:
   stage: tests
   rules:
     - changes:
-        - appcenter/tests/**/*
-        - appcenter/preinst
+        - appcenter/**/*
   image:
     name: $UCSLINT_IMAGE
     entrypoint: [""]

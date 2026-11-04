@@ -63,6 +63,10 @@ fetch-vm-data: .get-target ## Fetches necessary information from a UCS host, to 
 	scp $(TARGET):/etc/ldap.secret $(VM_CONF_DIR)/
 	scp $(TARGET):/etc/ssl/certs/ca-certificates.crt $(VM_CONF_DIR)/
 	scp $(TARGET):/etc/univention/base.conf $(VM_CONF_DIR)/
+	# Docker creates directories in place of these files if make dev-server ran without them.
+	rm -rf $(VM_CONF_DIR)/host-ucr
+	mkdir -p $(VM_CONF_DIR)/host-ucr
+	scp $(TARGET):'/etc/univention/base*.conf' $(VM_CONF_DIR)/host-ucr/
 	scp $(TARGET):/usr/share/ucs-school-import/configs/ucs-school-testuser-import.json $(VM_CONF_DIR)/user_import.json
 	echo "{}" > $(VM_CONF_DIR)/mapped_udm_properties.json
 	echo "LDAP_MASTER=$$(ssh $(TARGET) ucr get ldap/master)" > $(VM_CONF_DIR)/env

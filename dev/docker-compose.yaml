@@ -91,6 +91,11 @@ services:
 
       # Configuration files
       - ./_vm_config/base.conf:/etc/univention/base.conf
+      - ./_vm_config/host-ucr/base.conf:/host-ucr/base.conf:ro
+      - ./_vm_config/host-ucr/base-defaults.conf:/host-ucr/base-defaults.conf:ro
+      - ./_vm_config/host-ucr/base-forced.conf:/host-ucr/base-forced.conf:ro
+      - ./_vm_config/host-ucr/base-ldap.conf:/host-ucr/base-ldap.conf:ro
+      - ./_vm_config/host-ucr/base-schedule.conf:/host-ucr/base-schedule.conf:ro
       - ./_vm_config/mapped_udm_properties.json:/etc/ucsschool/kelvin/mapped_udm_properties.json:ro
       - ./_vm_config/user_import.json:/var/lib/ucs-school-import/configs/user_import.json
 
