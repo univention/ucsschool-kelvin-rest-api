@@ -46,6 +46,7 @@ dependencies = [
 [project.scripts]
 ucr = "ucsschool.kelvin.cli:run_ucr"
 univention-config-registry = "ucsschool.kelvin.cli:run_ucr"
+kelvin-sync-host-ucr = "ucsschool.kelvin.host_ucr:main"
 
 [build-system]
 requires = ["hatchling<2"]

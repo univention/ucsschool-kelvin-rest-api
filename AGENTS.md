@@ -154,6 +154,7 @@ uv run pytest path/to/test_foo.py::test_bar            # single test
 Pytest config lives in the root `pyproject.toml` under `[tool.pytest.ini_options]`:
 `addopts = "--verbose --showlocals -p no:warnings --asyncio-mode=auto"`.
 Each workspace package may add its own gates — e.g. `ucsschool-objects/` requires **100 % branch coverage**.
+CI also requires **100 % branch coverage** of `kelvin-api/ucsschool/kelvin/host_ucr.py` (`.gitlab-ci/gitlab-ci.yml`, job `test kelvin-api`).
 
 ### Code quality
 
