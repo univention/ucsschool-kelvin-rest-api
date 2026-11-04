@@ -95,6 +95,44 @@ The *UCS\@school Kelvin REST API* can be used out of the box, but there are vari
    configure ucsschool-kelvin-rest-api --set ucsschool/kelvin/log_level=DEBUG &&
    univention-app restart ucsschool-kelvin-rest-api``
 
+.. _configuration-host-ucr:
+
+UCR variables of the host
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The *UCS\@school Kelvin REST API* uses UCR variables of the UCS host,
+for example ``ucsschool/username/max_length`` or ``ucsschool/ldap/default/groupprefix/pupils``.
+Every time the Docker container starts, it synchronizes these variables from the host into the container.
+The host is the only source for them:
+a value set inside the container is overwritten, and a variable that isn't set on the host is unset in the container.
+
+The synchronization covers the following UCR variables:
+
+* all variables below ``ucsschool/import/``, ``ucsschool/ldap/``, ``ucsschool/validation/``,
+  ``groups/default/``, and ``users/default/``
+* ``dhcpd/ldap/base``, ``mail/hosteddomains``, ``ucsschool/default/share/nfs``, ``ucsschool/local/oulist``,
+  ``ucsschool/singlemaster``, and ``ucsschool/username/max_length``
+
+The app settings ``ucsschool/kelvin/*`` and the variables the App Center sets for the container,
+like ``ldap/hostdn`` or ``server/role``, aren't synchronized.
+
+A change of such a variable on the host takes effect after a restart of the app:
+
+.. code-block:: console
+
+   $ ucr set ucsschool/username/max_length=25
+   $ univention-app restart ucsschool-kelvin-rest-api
+
+To list the synchronized variables, run:
+
+.. code-block:: console
+
+   $ univention-app shell ucsschool-kelvin-rest-api kelvin-sync-host-ucr --list
+
+For this, the files :file:`/etc/univention/base*.conf` of the host are mounted read-only into the container below :file:`/host-ucr`.
+The container log shows the synchronized changes.
+If a file is missing, the container doesn't start, and its log names the missing file.
+
 
 Number of cores
 ^^^^^^^^^^^^^^^
@@ -125,8 +163,8 @@ The minimum severity for log messages written to :file:`/var/log/univention/ucss
 
 Backup count of validation logging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The UCR variable ``ucsschool/validation/logging/backupcount`` sets the amount of copies of the log file ``ucs-school-validation.log``, which should be kept in rotation. The default is ``60``. The host's UCR-V is copied into the Docker container during the join script.
-To change it for the *UCS\@school Kelvin REST API*, it has to be modified inside the Docker container.
+The UCR variable ``ucsschool/validation/logging/backupcount`` sets the amount of copies of the log file ``ucs-school-validation.log``, which should be kept in rotation. The default is ``60``.
+Set it on the host and restart the app, see :ref:`configuration-host-ucr`.
 
 Configuration of user object management (import configuration)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

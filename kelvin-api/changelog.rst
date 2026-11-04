@@ -113,6 +113,17 @@ v4.2.0 (TBD)
   It now accepts ``UUID v1 and v4``, as UDM does.
   A missing object appears with its next change.
   To add all missing objects at once, synchronize all objects again as described in :ref:`configuration-provisioning-resync`.
+* Fixed: The UCR variables of the host that the Kelvin REST API uses are synchronized into the Docker container every time the container starts,
+  including restarts, reinitializations, and upgrades of the app.
+  Before, the join script copied only some of them once, and an upgrade restored outdated values.
+  Copying UCR variables into the container manually, for example with hook scripts, is no longer necessary.
+  A change of such a variable on the host takes effect after a restart of the app.
+  See :ref:`configuration-host-ucr` (:uv:bug:`52934`).
+* Changed: An empty value of the UCR variable ``ucsschool/validation/logging/enabled`` disables the validation logging,
+  as any other value that isn't true does.
+  Before, an empty value enabled it (:uv:bug:`52934`).
+* Changed: Creating a school no longer sets the UCR variable ``dhcpd/ldap/base`` in the Docker container.
+  It's synchronized from the host instead (:uv:bug:`52934`).
 
 v4.1.0 (2026-10-01)
 -------------------
