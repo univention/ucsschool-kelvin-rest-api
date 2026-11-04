@@ -19,6 +19,11 @@ services:
       - /var/lib/ucs-school-lib/kelvin-hooks:/var/lib/ucs-school-lib/kelvin-hooks
       - /etc/ucsschool/kelvin:/etc/ucsschool/kelvin
       - /etc/ldap.secret:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/cn_admin.secret:ro
+      - /etc/univention/base.conf:/host-ucr/base.conf:ro
+      - /etc/univention/base-defaults.conf:/host-ucr/base-defaults.conf:ro
+      - /etc/univention/base-forced.conf:/host-ucr/base-forced.conf:ro
+      - /etc/univention/base-ldap.conf:/host-ucr/base-ldap.conf:ro
+      - /etc/univention/base-schedule.conf:/host-ucr/base-schedule.conf:ro
     hostname: @!@
 from univention.config_registry import ucr
 import ldap

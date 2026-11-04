@@ -9,7 +9,7 @@
 #  Join script that runs on the docker host.
 #
 
-VERSION=12
+VERSION=13
 
 APP_ID="ucsschool-kelvin-rest-api"
 ADMIN_GROUP="$APP_ID-admins"
@@ -26,28 +26,6 @@ UDM_CLIENT_UPDATE_SCRIPT="/var/lib/univention-appcenter/apps/$APP_ID/data/update
 
 
 main () {
-    docker exec "$appcenter_apps_ucsschool_kelvin_rest_api_container" ucr set \
-    ldap/server/name="$(ucr get ldap/server/name)" \
-    ldap/server/port="$(ucr get ldap/server/port)" \
-    dhcpd/ldap/base="$(ucr get dhcpd/ldap/base)" \
-    ucsschool/import/set/netlogon/script/path="$(ucr get ucsschool/import/set/netlogon/script/path)" \
-    ucsschool/import/set/homedrive="$(ucr get ucsschool/import/set/homedrive)" \
-    ucsschool/import/set/sambahome="$(ucr get ucsschool/import/set/sambahome)" \
-    ucsschool/singlemaster="$(ucr get ucsschool/singlemaster)" \
-    ucsschool/import/set/serverprofile/path="$(ucr get ucsschool/import/set/serverprofile/path)" \
-    ucsschool/validation/logging/backupcount="$(ucr get ucsschool/validation/logging/backupcount)" \
-    ucsschool/validation/logging/enabled="$(ucr get ucsschool/validation/logging/enabled)" \
-    ucsschool/validation/username/windows-check="$(ucr get ucsschool/validation/username/windows-check)" \
-    ucsschool/import/generate/share/marktplatz="$(ucr get ucsschool/import/generate/share/marktplatz)" \
-    ucsschool/import/generate/policy/dhcp/searchbase="$(ucr get ucsschool/import/generate/policy/dhcp/searchbase)" \
-    ucsschool/import/generate/policy/dhcp/dns/set_per_ou="$(ucr get ucsschool/import/generate/policy/dhcp/dns/set_per_ou)" \
-    ucsschool/import/generate/import/group="$(ucr get ucsschool/import/generate/import/group)" \
-    ucsschool/ldap/default/container/exam="$(ucr get ucsschool/ldap/default/container/exam)" \
-    groups/default/domainusers="$(ucr get groups/default/domainusers)" \
-    ucsschool/ldap/default/dcs="$(ucr get ucsschool/ldap/default/dcs)" \
-    ucsschool/import/generate/policy/dhcp/dns/clearou="$(ucr get ucsschool/import/generate/policy/dhcp/dns/clearou)" \
-    || die "Failed to copy UCR variables into the Docker container."
-
     if ! [ -e "$TOKEN_SIGN_SECRET_FILE" ]; then
         echo "Storing token key in $TOKEN_SIGN_SECRET_FILE."
         touch "$TOKEN_SIGN_SECRET_FILE"

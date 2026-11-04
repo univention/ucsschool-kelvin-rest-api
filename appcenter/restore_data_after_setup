@@ -10,3 +10,14 @@ do
  filename=$(basename "$bak_files")
  [ ! -f "$bak_files" ] || mv -v "$bak_files" "/etc/univention/$filename"
 done
+
+# The restored files hold the host UCR variables of the old container.
+if ! kelvin-sync-host-ucr; then
+ echo "ERROR: Syncing the host UCR variables into the container failed, see the messages above." >&2
+ exit 1
+fi
+# Workers load UCR on start and gunicorn runs without --preload. If gunicorn
+# isn't running yet, it starts later with the synced values.
+if tr '\0' ' ' < /proc/1/cmdline | grep -q gunicorn; then
+ kill -HUP 1
+fi

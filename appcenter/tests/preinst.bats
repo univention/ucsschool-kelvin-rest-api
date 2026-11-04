@@ -166,3 +166,46 @@ ldap_output_for_versions() {
 @test "check_provisioning_service_version: default minimum is 2.2" {
   [ "$MIN_PROVISIONING_VERSION" = "2.2" ]
 }
+
+create_host_ucr_files() {
+  export HOST_UCR_DIR="$BATS_TEST_TMPDIR/univention"
+  mkdir -p "$HOST_UCR_DIR"
+  local name
+  for name in $HOST_UCR_FILES; do
+    : > "$HOST_UCR_DIR/$name"
+  done
+}
+
+@test "missing_host_ucr_files: prints nothing when all files exist" {
+  create_host_ucr_files
+
+  run missing_host_ucr_files
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "missing_host_ucr_files: prints missing files and directories" {
+  create_host_ucr_files
+  rm "$HOST_UCR_DIR/base-ldap.conf" "$HOST_UCR_DIR/base-schedule.conf"
+  mkdir "$HOST_UCR_DIR/base-schedule.conf"
+
+  run missing_host_ucr_files
+  [ "$status" -eq 0 ]
+  [ "$output" = "$HOST_UCR_DIR/base-ldap.conf"$'\n'"$HOST_UCR_DIR/base-schedule.conf" ]
+}
+
+@test "missing_host_ucr_files: checks the five base*.conf files" {
+  [ "$HOST_UCR_DIR" = "/etc/univention" ]
+  [ "$HOST_UCR_FILES" = "base.conf base-defaults.conf base-forced.conf base-ldap.conf base-schedule.conf" ]
+}
+
+@test "main: aborts when a host UCR file is missing" {
+  create_host_ucr_files
+  rm "$HOST_UCR_DIR/base-forced.conf"
+  local errorfile="$BATS_TEST_TMPDIR/error"
+
+  run main --error-file "$errorfile"
+  [ "$status" -eq 1 ]
+  [ "$(cat "$errorfile")" = "The application 'UCS@school Kelvin REST API' requires these UCR files on the host: $HOST_UCR_DIR/base-forced.conf" ]
+  ! grep -q "univentionAppVersion" "$MOCK_CALLS"
+}

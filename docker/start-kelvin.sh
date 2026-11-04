@@ -19,6 +19,8 @@ while [[ ! -f "/etc/machine.secret" ]]; do
     ((elapsed++))
 done
 
+kelvin-sync-host-ucr || exit 1
+
 if [[ -z "${UCSSCHOOL_KELVIN_DB_URI}" ]]; then
     DB_URI_FILE="${UCSSCHOOL_KELVIN_DB_URI_FILE:-/etc/ucsschool/kelvin/postgresql-kelvin.uri}"
     TIMEOUT="${MIGRATE_WAIT_TIMEOUT:-120}"

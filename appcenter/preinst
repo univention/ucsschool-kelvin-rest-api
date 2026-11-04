@@ -10,6 +10,8 @@
 KELVIN_IMPORTUSER_HOOKS_PATH="/var/lib/ucs-school-import/kelvin-hooks"
 KELVIN_SCHOOL_LIB_HOOKS_PATH="/var/lib/ucs-school-lib/kelvin-hooks"
 KELVIN_CONFIG_PATH="/etc/ucsschool/kelvin"
+HOST_UCR_DIR="/etc/univention"
+HOST_UCR_FILES="base.conf base-defaults.conf base-forced.conf base-ldap.conf base-schedule.conf"
 
 # Minimum version of the Provisioning Service app that must be installed
 # somewhere in the domain for Kelvin's provisioning subscription to work.
@@ -133,6 +135,18 @@ sys.exit(0 if any(version >= required for version in versions) else 1)
     return 2
 }
 
+# missing_host_ucr_files
+#
+# Prints the UCR files of the host that the api container mounts read-only
+# (see compose) but that are missing, one per line. Docker would create a
+# directory in place of a missing file.
+missing_host_ucr_files() {
+    local name
+    for name in $HOST_UCR_FILES; do
+        [ -f "$HOST_UCR_DIR/$name" ] || echo "$HOST_UCR_DIR/$name"
+    done
+}
+
 ################################################################################
 # Main logic wrapped in a function to keep sourcing side-effect free
 ################################################################################
@@ -160,6 +174,13 @@ main() {
     if [ "$?" -ne 0 ]
     then
       message="The application 'UCS@school Kelvin REST API' requires the core 'UCS@school' application to be installed."
+      echo "$message" > "$errorfile"
+      exit 1
+    fi
+
+    missing_files="$(missing_host_ucr_files)"
+    if [ -n "$missing_files" ]; then
+      message="The application 'UCS@school Kelvin REST API' requires these UCR files on the host: $(echo $missing_files)"
       echo "$message" > "$errorfile"
       exit 1
     fi
