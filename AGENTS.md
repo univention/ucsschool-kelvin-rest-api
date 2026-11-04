@@ -88,7 +88,7 @@ Makefile                     Dev workflow targets (fetch-vm-data, dev-server, al
 kelvin-api/                  Main Kelvin REST API (FastAPI app)
   ucsschool/kelvin/          Python package: main.py, routers/, config.py, ldap.py, database.py, …
   tests/                     Pytest test suite
-  changelog.rst              Release changelog (current: v3.3.0 TBD)
+  changelog.rst              Release changelog (current: v6.0.0 TBD)
 
 kelvin-connector/            Provisioning Consumer (Nubus → Kelvin DB sidecar)
   src/                       Python package
@@ -137,6 +137,8 @@ Useful Makefile targets (run `make` for the current list):
 make fetch-vm-data TARGET=<UCS host>   # pull UCS credentials/config for local dev
 make dev-server                        # start local Kelvin via docker compose (dev/docker-compose.yaml)
 make alembic-migration                 # generate a new alembic revision for the Kelvin DB
+make setup-provisioning-subscription   # create the Provisioning subscription for the connector on TARGET
+make update-architecture-docs          # regenerate entity tables and diagrams of the architecture docs
 make build-docker-image                # build the production Kelvin image (docker/Dockerfile)
 ```
 
@@ -196,7 +198,8 @@ Some dependencies are pinned for compatibility — **don't bump these without ch
 
 | Package | Constraint | Notes |
 |---|---|---|
-| `uvicorn` / `gunicorn` | latest | ASGI/WSGI servers |
+| `uvicorn` / `gunicorn` | `>=0.35.0` / `>=23.0.0` | ASGI/WSGI servers |
+| `fastapi` / `pydantic` | `>=0.142.2` / `>=2.12` | Pydantic 2; v1 API Python hooks may use Pydantic/`httpx` directly |
 | `uldap3` | `>=2` | explicit index: the uldap3 project's package registry on `git.knut.univention.de` (project 701) |
 | `openapi-client-udm` | tarball | vendored (`openapi-client-udm-1.0.2.tar.gz`) |
 | `psycopg[binary]` | `>=3.3.3` | PostgreSQL driver for the v2 Kelvin DB |
@@ -208,7 +211,7 @@ Some dependencies are pinned for compatibility — **don't bump these without ch
 ## Architecture notes
 
 - The FastAPI application entry point is `kelvin-api/ucsschool/kelvin/main.py`.
-- Routes are organised under `kelvin-api/ucsschool/kelvin/routers/`.
+- Routes are organized under `kelvin-api/ucsschool/kelvin/routers/`: `v1/` (legacy libraries) and `v2/` (Kelvin DB via `ucsschool-objects`).
 - Authentication is handled in `kelvin-api/ucsschool/kelvin/token_auth.py`.
 - LDAP direct access is in `kelvin-api/ucsschool/kelvin/ldap.py`.
 - Configuration is in `kelvin-api/ucsschool/kelvin/config.py` and `kelvin-api/ucsschool/kelvin/constants.py`.
