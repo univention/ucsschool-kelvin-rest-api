@@ -7640,6 +7640,16 @@
                 }
             }
         ],
+        "./kelvin-api/tests/test_host_ucr.py": [
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 39,
+                    "lineCount": 1
+                }
+            }
+        ],
         "./kelvin-api/tests/test_import_framework_config.py": [
             {
                 "code": "reportMissingTypeStubs",
@@ -66024,6 +66034,32 @@
                 "range": {
                     "startColumn": 5,
                     "endColumn": 31,
+                    "lineCount": 1
+                }
+            }
+        ],
+        "./kelvin-api/ucsschool/kelvin/host_ucr.py": [
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 5,
+                    "endColumn": 39,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportAny",
+                "range": {
+                    "startColumn": 21,
+                    "endColumn": 49,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportAny",
+                "range": {
+                    "startColumn": 21,
+                    "endColumn": 49,
                     "lineCount": 1
                 }
             }
@@ -148946,14 +148982,6 @@
                 }
             },
             {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 5,
-                    "endColumn": 31,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnknownVariableType",
                 "range": {
                     "startColumn": 19,
@@ -150221,7 +150249,7 @@
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 16,
-                    "endColumn": 33,
+                    "endColumn": 35,
                     "lineCount": 1
                 }
             },
