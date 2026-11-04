@@ -9553,6 +9553,14 @@
         "lineCount": 1
       }
     ],
+    "ucs-test-ucsschool-kelvin/94_ucsschool-kelvin/000_ucr_variables_synced_to_container.py": [
+      {
+        "rule": "import-not-found",
+        "startColumn": 5,
+        "endColumn": 44,
+        "lineCount": 1
+      }
+    ],
     "ucs-test-ucsschool-kelvin/94_ucsschool-kelvin/00_api_root.py": [
       {
         "rule": "import-not-found",
@@ -9694,6 +9702,12 @@
         "rule": "import-not-found",
         "startColumn": 5,
         "endColumn": 44,
+        "lineCount": 1
+      },
+      {
+        "rule": "import-not-found",
+        "startColumn": 5,
+        "endColumn": 19,
         "lineCount": 1
       },
       {

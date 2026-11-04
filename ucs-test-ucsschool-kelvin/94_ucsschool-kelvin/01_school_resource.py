@@ -23,7 +23,7 @@ from ldap.filter import filter_format
 import univention.testing.strings as uts
 from ucsschool.lib.models.school import School as LibSchool
 from univention.testing.ucsschool.kelvin_api import RESOURCE_URLS
-from univention.udm import UDM, NoObject as UdmNoObject
+from univention.udm import UDM
 
 _cached_ous = set()  # type: Set[str]
 logger = logging.getLogger("univention.testing.ucsschool")
@@ -40,50 +40,6 @@ EXPECTED_SCHOOL_RESSOURCE_ATTRS = {
     "url",
     "udm_properties",
 }
-
-
-@pytest.fixture(scope="session")
-def delete_ou_cleanup(ucr_ldap_base, ucr):
-    def _func(ou_name):  # type (str) -> None
-        udm = UDM.admin().version(0)
-        group_dns = [
-            "cn=admins-{},cn=ouadmins,cn=groups,{}".format(ou_name.lower(), ucr_ldap_base),
-            "cn=OU{}-Klassenarbeit,cn=ucsschool,cn=groups,{}".format(ou_name, ucr_ldap_base),
-            "cn=OU{}-DC-Edukativnetz,cn=ucsschool,cn=groups,{}".format(ou_name.lower(), ucr_ldap_base),
-            "cn=OU{}-DC-Verwaltungsnetz,cn=ucsschool,cn=groups,{}".format(
-                ou_name.lower(), ucr_ldap_base
-            ),
-            "cn=OU{}-Member-Edukativnetz,cn=ucsschool,cn=groups,{}".format(
-                ou_name.lower(), ucr_ldap_base
-            ),
-            "cn=OU{}-Member-Verwaltungsnetz,cn=ucsschool,cn=groups,{}".format(
-                ou_name.lower(), ucr_ldap_base
-            ),
-        ]
-        mod = udm.get("groups/group")
-        for dn in group_dns:
-            print("Deleting group: {!r}...".format(dn))
-            try:
-                obj = mod.get(dn)
-                obj.delete()
-            except UdmNoObject:
-                print("Error: group does not exist: {!r}".format(dn))
-        if ucr.is_true("ucsschool/singlemaster"):
-            master_hostname = ucr["hostname"]
-            mod = udm.get("computers/domaincontroller_master")
-            for obj in mod.search("cn={}".format(master_hostname)):
-                print(
-                    "Removing 'ucsschoolRole=single_master:school:{}' from {!r}...".format(
-                        ou_name, obj.dn
-                    )
-                )
-                try:
-                    obj.props.ucsschoolRole.remove("single_master:school:{}".format(ou_name))
-                    obj.save()
-                except ValueError:
-                    print("Error: role was no set: ucsschoolRole={!r}".format(obj.props.ucsschoolRole))
-
-    return _func
 
 
 @pytest.fixture(scope="session")
