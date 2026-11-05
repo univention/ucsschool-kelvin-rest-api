@@ -248,6 +248,36 @@ class KelvinConnectorEventHandler(UDMEventHandler):
                     new,
                 )
 
+    def _merged_delete(
+        self, metadata: Metadata, old: AttributeMapping, new: AttributeMapping
+    ) -> DeletePayload | None:
+        """Return the deleted object if a modify event also carries its delete.
+
+        Like the Listener/Notifier, Provisioning sends a delete and a quick re-create
+        of the same DN as a single modify event, with no separate delete event;
+        only the changed ``univentionObjectIdentifier`` reveals it. ``_handle_modify``
+        then splits it into a delete of ``old`` and a modify of ``new``. Once
+        Provisioning sends two events, drop this method, the ``if deleted`` branches
+        and ``handle_*_replace``.
+        """
+        old_properties = cast(AttributeMapping, old.get("properties", {}))
+        old_public_id: str = cast(str, old_properties.get("univentionObjectIdentifier", ""))
+        new_properties = cast(AttributeMapping, new.get("properties", {}))
+        public_id: str = cast(str, new_properties.get("univentionObjectIdentifier", ""))
+        if not (old_public_id and public_id and old_public_id != public_id):
+            return None
+        self.logger.info(
+            "Object was merged into a modify event (delete + re-create),"
+            " replacing the deleted object. "
+            + "object_type={}, dn={}, old_public_id={}, public_id={}, seq_num={}",
+            cast(str, new["objectType"]),
+            cast(str, new.get("dn", "")),
+            old_public_id,
+            public_id,
+            metadata["sequence_number"],
+        )
+        return DeletePayload.model_validate(old)
+
     @override
     async def _handle_modify(
         self,
@@ -262,21 +292,7 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         new_properties = cast(AttributeMapping, new.get("properties", {}))
         public_id: str = cast(str, new_properties.get("univentionObjectIdentifier", ""))
         seq_num = metadata["sequence_number"]
-        old_properties = cast(AttributeMapping, old.get("properties", {}))
-        old_public_id: str = cast(str, old_properties.get("univentionObjectIdentifier", ""))
-        deleted: DeletePayload | None = None
-        if old_public_id and public_id and old_public_id != public_id:
-            deleted = DeletePayload.model_validate(old)
-            self.logger.info(
-                "Object was merged into a modify event (delete + re-create),"
-                " replacing the deleted object. "
-                + "object_type={}, dn={}, old_public_id={}, public_id={}, seq_num={}",
-                cast(str, new["objectType"]),
-                dn,
-                old_public_id,
-                public_id,
-                seq_num,
-            )
+        deleted = self._merged_delete(metadata, old, new)
         match new["objectType"]:
             case ObjectType.USERS:
                 modify = UserModifyEvent(
