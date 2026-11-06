@@ -1038,9 +1038,10 @@ def reset_import_config_base():
         ucsschool.kelvin.import_config._ucs_school_import_framework_initialized = False
         ucsschool.kelvin.import_config._ucs_school_import_framework_error = None
         Configuration._instance = None
-        if "__wrapped__" in ucsschool.kelvin.config.UDM_MAPPING_CONFIG.__dict__:
-            # UDM_MAPPING_CONFIG is a lazy_object_proxy.Proxy
-            # deleting __wrapped__ marks the object as unresolved and the config is reloaded on next use
+        # UDM_MAPPING_CONFIG is a lazy_object_proxy.Proxy. Accessing any attribute of it, even __dict__,
+        # resolves it and with that loads the import config again. Deleting __wrapped__ marks it as
+        # unresolved, so the config is reloaded on next use.
+        if getattr(ucsschool.kelvin.config.UDM_MAPPING_CONFIG, "__resolved__"):
             del ucsschool.kelvin.config.UDM_MAPPING_CONFIG.__wrapped__
 
     return _func
