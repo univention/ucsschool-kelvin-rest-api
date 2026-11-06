@@ -84,6 +84,14 @@ def get_samba_user(host: str, username: str) -> SambaEntry | None:
     return entries[0]["raw_attributes"] if entries else None
 
 
+def get_ldap_user_attr(username: str, attr: str) -> str:
+    results = uldap_admin_read_primary().search(
+        f"(uid={escape_filter_chars(username)})", attributes=[attr]
+    )
+    assert len(results) == 1
+    return str(results[0][attr].value)
+
+
 def samba_disabled(entry: SambaEntry) -> bool:
     return bool(int(entry["userAccountControl"][0]) & UF_ACCOUNTDISABLE)
 
