@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 SHELL := /usr/bin/env bash
-.PHONY: help fetch-vm-data build-docker-image dev-server update-architecture-docs
+.PHONY: help fetch-vm-data build-docker-image dev-server update-architecture-docs test-unit
 .DEFAULT_GOAL := help
 
 VM_CONF_DIR := "dev/_vm_config"
@@ -81,6 +81,9 @@ fetch-vm-data: .get-target ## Fetches necessary information from a UCS host, to 
 	echo "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" >> $(VM_CONF_DIR)/env
 	echo "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $(VM_CONF_DIR)/env
 
+
+test-unit: ## Run the tests that need no UCS system (SUITES="objects connector lib kelvin-api", PYTEST_ARGS=...)
+	@dev/test-unit.sh $(SUITES) -- $(PYTEST_ARGS)
 
 build-docker-image:  ## Builds the Kelvin docker image
 	@docker build --network host -t ucsschool-kelvin-rest-api:dev -f docker/Dockerfile .
