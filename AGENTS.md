@@ -153,6 +153,28 @@ Pytest config lives in the root `pyproject.toml` under `[tool.pytest.ini_options
 `addopts = "--verbose --showlocals -p no:warnings --asyncio-mode=auto"`.
 Each workspace package may add its own gates — e.g. `ucsschool-objects/` requires **100 % branch coverage**.
 
+### Running the `in_container` tests on a UCS VM (for agents)
+
+Most kelvin-api and ucs-school-lib tests are marked `in_container`: they need a joined UCS domain and run
+inside the Kelvin app container. Outside of it they are skipped. To run them, use
+`dev/agent-vm-test.py`, which is mainly meant for coding agents. It needs a UCS test VM with UCS@school
+and the Kelvin app installed (ask the user for one) and SSH access as root.
+
+```bash
+export KELVIN_TEST_VM=<ip>                  # and KELVIN_TEST_VM_PASSWORD=<pw> if no SSH key is set up
+dev/agent-vm-test.py check                  # state of the VM
+dev/agent-vm-test.py prepare --ucs-test     # once per VM: test config, ucs-test packages
+dev/agent-vm-test.py deploy                 # once, and after dependency changes (~3 min)
+dev/agent-vm-test.py test -- tests/test_route_role.py               # syncs the working tree first (seconds)
+dev/agent-vm-test.py test -- --api-version=v1 tests/test_route_user.py::test_change_disable
+dev/agent-vm-test.py test --suite lib -- ucsschool/lib/tests/test_user.py
+dev/agent-vm-test.py host-test 00_api_root.py   # host-side tests from ucs-test-ucsschool-kelvin
+```
+
+`test` copies the package sources and tests into the running containers and reloads Kelvin only if
+code changed. Output and JUnit XML land in `dev/_agent_test_results/<run>/`. The full in-container suite
+takes about two hours, so run the tests related to a change rather than everything.
+
 ### Code quality
 
 Pre-commit hooks are configured in `.pre-commit-config.yaml` and run on `python3.11`:
