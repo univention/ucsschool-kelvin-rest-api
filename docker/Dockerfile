@@ -137,7 +137,11 @@ ENV PATH="$CARGO_HOME/bin:$PATH"
 
 WORKDIR /app/common-connector-framework
 
-RUN apt-get install -y build-essential python3-dev curl pkg-config libssl-dev
+# dash has no pipefail: without it a failed rustup download is piped into
+# `sh` as empty input and the step succeeds.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get install -y build-essential python3-dev ca-certificates curl pkg-config libssl-dev
 RUN curl --proto '=https' --tlsv1.2 --fail --silent --show-error https://sh.rustup.rs \
     | sh -s -- -y --no-modify-path --profile minimal --default-toolchain "$RUST_VERSION"
 
