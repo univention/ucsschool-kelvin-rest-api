@@ -16,7 +16,12 @@
       "reportAny": "hint",
       "reportExplicitAny": "hint",
       "reportUnknownLambdaType": "hint",
-      "reportUnusedParameter": "hint"
+      "reportUnusedParameter": "hint",
+      "reportUnknownArgumentType": "hint",
+      "reportUnknownMemberType": "hint",
+      "reportUnknownVariableType": "hint",
+      "reportUnknownParameterType": "hint",
+      "reportMissingParameterType": "hint"
     },
     {
       "root": "ucsschool-objects/tests",
@@ -24,28 +29,72 @@
       "reportAny": "hint",
       "reportExplicitAny": "hint",
       "reportUnknownLambdaType": "hint",
-      "reportUnusedParameter": "hint"
+      "reportUnusedParameter": "hint",
+      "reportUnknownArgumentType": "hint",
+      "reportUnknownMemberType": "hint",
+      "reportUnknownVariableType": "hint",
+      "reportUnknownParameterType": "hint",
+      "reportMissingParameterType": "hint"
     },
     {
       "root": "kelvin-connector/tests",
       "reportAny": "hint",
       "reportExplicitAny": "hint",
       "reportUnknownLambdaType": "hint",
-      "reportUnusedParameter": "hint"
+      "reportUnusedParameter": "hint",
+      "reportUnknownArgumentType": "hint",
+      "reportUnknownMemberType": "hint",
+      "reportUnknownVariableType": "hint",
+      "reportUnknownParameterType": "hint",
+      "reportMissingParameterType": "hint"
     },
     {
       "root": "ucs-school-import/tests",
       "reportAny": "hint",
       "reportExplicitAny": "hint",
       "reportUnknownLambdaType": "hint",
-      "reportUnusedParameter": "hint"
+      "reportUnusedParameter": "hint",
+      "reportUnknownArgumentType": "hint",
+      "reportUnknownMemberType": "hint",
+      "reportUnknownVariableType": "hint",
+      "reportUnknownParameterType": "hint",
+      "reportMissingParameterType": "hint"
     },
     {
       "root": "appcenter/tests",
       "reportAny": "hint",
       "reportExplicitAny": "hint",
       "reportUnknownLambdaType": "hint",
-      "reportUnusedParameter": "hint"
+      "reportUnusedParameter": "hint",
+      "reportUnknownArgumentType": "hint",
+      "reportUnknownMemberType": "hint",
+      "reportUnknownVariableType": "hint",
+      "reportUnknownParameterType": "hint",
+      "reportMissingParameterType": "hint"
+    },
+    {
+      "root": "ucs-school-lib/modules/ucsschool/lib/tests",
+      "reportAny": "hint",
+      "reportExplicitAny": "hint",
+      "reportUnknownLambdaType": "hint",
+      "reportUnusedParameter": "hint",
+      "reportUnknownArgumentType": "hint",
+      "reportUnknownMemberType": "hint",
+      "reportUnknownVariableType": "hint",
+      "reportUnknownParameterType": "hint",
+      "reportMissingParameterType": "hint"
+    },
+    {
+      "root": "ucs-test-ucsschool-kelvin",
+      "reportAny": "hint",
+      "reportExplicitAny": "hint",
+      "reportUnknownLambdaType": "hint",
+      "reportUnusedParameter": "hint",
+      "reportUnknownArgumentType": "hint",
+      "reportUnknownMemberType": "hint",
+      "reportUnknownVariableType": "hint",
+      "reportUnknownParameterType": "hint",
+      "reportMissingParameterType": "hint"
     },
     {
       "root": "."
