@@ -110,6 +110,11 @@ v4.2.0 (TBD)
   It now accepts ``UUID v1 and v4``, as UDM does.
   A missing object appears with its next change.
   To add all missing objects at once, synchronize all objects again as described in :ref:`configuration-provisioning-resync`.
+* Changed (version 2 API only): The Kelvin connector runs on the Common Connector Framework.
+  It keeps the received changes in the new schema ``ccf`` of the Kelvin database
+  and retries a failed change with a growing delay instead of restarting the container.
+  A change that still fails after three attempts, or whose data is invalid,
+  is kept in the table ``ccf.morgue`` instead of being discarded.
 
 v4.1.0 (2026-10-01)
 -------------------

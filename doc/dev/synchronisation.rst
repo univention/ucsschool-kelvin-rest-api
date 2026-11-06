@@ -65,7 +65,7 @@ Components involved
 The relevant code locations are:
 
 * Connector source: ``kelvin-connector/src/kelvin_connector/``
-  (see ``connector.py``, ``consumer.py``, ``sync.py``).
+  (see ``ccf_launcher.py``, ``connector.py``, ``tasks.py``, ``sync.py``).
 * Storage session and domain models:
   ``ucsschool-objects/src/ucsschool_objects/``
   (see ``core/domain/``, ``core/adapters/sqlalchemy/``,
@@ -83,33 +83,57 @@ or LDAP: the Provisioning events carry the full ``new`` / ``old`` object state,
 and the connector only *writes* to the Kelvin DB through the
 ``ucsschool-objects`` library.
 
-It is structured as three layers (ports-and-adapters), mirroring the rest of the
-project:
+The connector runs on the Common Connector Framework (CCF),
+a Rust binary from the ``common-connector-framework`` submodule.
+The CCF fetches the Provisioning messages, keeps them in its own task queue
+and calls the connector's Python callback once per task.
+The connector code is structured in layers (ports-and-adapters),
+mirroring the rest of the project:
 
-``connector.py``
-   the process entry point (the ``connector`` console script). It reads its
-   configuration from the environment, builds the SQLAlchemy engine and
-   ``KelvinStorageSessionFactory``, wires up the consumer, and runs
-   ``asyncio.run(consumer.consume_loop())``.
+``ccf_launcher.py``
+   the process entry point (``python -m kelvin_connector.ccf_launcher``).
+   It derives the CCF configuration from the connector's one
+   (subscription credentials, Kelvin DB settings)
+   and replaces itself with the ``ccf`` binary.
 
-``consumer.py``
-   event ingestion — ``KelvinConnectorEventHandler`` (relevance filtering and
-   dispatch by object type / operation) and ``KelvinConsumerModule`` (the retry
-   policy, see `Reliability`_).
+``ccf_callback.py`` and ``connector.py``
+   the callback module the CCF imports.
+   On import, ``build_runner()`` checks the configuration,
+   builds the SQLAlchemy engine and the ``SynchronizationManager``,
+   and starts the asyncio loop thread (``loop_thread.py``).
+   A configuration error stops the CCF before it fetches the first message.
+
+``tasks.py``
+   task processing:
+   the relevance filter (``is_relevant``), which runs first on the CCF worker thread,
+   the dispatch by object type and operation on the asyncio loop thread,
+   and the mapping of the result onto the CCF's ``CallbackResult``
+   (see `Reliability`_).
 
 ``sync.py``
-   ``SynchronizationManager`` — the actual Kelvin DB mutations against the
+   ``SynchronizationManager``: the actual Kelvin DB mutations against the
    ``ucsschool-objects`` domain models, each in its own database transaction.
 
 ``models.py``
    Pydantic models validating the UDM event payloads.
 
+The CCF calls the callback synchronously,
+while the Kelvin DB is accessed through async SQLAlchemy.
+Its pooled connections are bound to the event loop that opened them,
+so all tasks run on one long-lived loop in a daemon thread
+(``AsyncioLoopThread``).
+A task that does not finish within ``KELVIN_CONNECTOR_TASK_TIMEOUT``
+(default 300 seconds) is cancelled, which rolls back its transaction.
+
 Nubus interfaces
 ^^^^^^^^^^^^^^^^
 
-* The connector consumes the **Nubus Provisioning API** through the
-  ``provisioning-consumer-lib``. It long-polls the subscription queue for the
-  next message and acknowledges each message after processing.
+* The connector consumes the **Nubus Provisioning API** through the CCF.
+  The CCF long-polls the subscription queue,
+  stores each message as a task in its own tables
+  and acknowledges the message once the task is stored, before it is processed.
+  The tables live in the schema ``ccf`` of the Kelvin DB,
+  created by an Alembic revision; the CCF migrates them itself.
 * It uses **neither** the UDM REST API **nor** LDAP directly.
 
 The subscription itself is created out-of-band (not by the connector process) by
@@ -130,30 +154,30 @@ deliberate order — ``container/ou``, then ``groups/group``, then ``users/user`
 Reliability
 ^^^^^^^^^^^
 
-Each event is processed in its own transaction that rolls back on failure, so no
-partial writes survive an error. Delivery reliability is handled by
-``KelvinConsumerModule``, which overrides the library default (the default
-crashes without acknowledging a failed event, turning any deterministically
-failing event into a *poison pill* that halts sync forever). The policy, keyed
-on the Provisioning ``num_delivered`` counter (default budget: 3 deliveries):
+Each event is processed in its own transaction that rolls back on failure,
+so no partial writes survive an error.
+The CCF keeps one pending task per object:
+a newer message for the same object replaces a pending task.
+The callback reports one result per task:
 
-* **Malformed event** (validation error) → dropped and acknowledged immediately
-  (a retry cannot fix it).
-* **Other error, budget remaining** → logged at ``ERROR`` and re-raised
-  *without* acknowledging; the process exits and is restarted by Docker
-  (``restart: unless-stopped``), and Provisioning redelivers the event. This
-  absorbs transient DB hiccups and event-ordering races.
-* **Other error, budget exhausted** → logged at ``CRITICAL`` with the full
-  event, then acknowledged (dropped) and the process restarted. A later event
-  touching the same object repairs the dropped state (modify-on-missing
-  recreates the object).
+* **Irrelevant object** (see the relevance filter) → ``SuccessSkipped``.
+  The task is removed, the CCF keeps no state for the object.
+* **Processed** → ``SuccessCreated``, ``SuccessModified`` or ``SuccessDeleted``.
+  The CCF also removes earlier morgue entries of the object.
+* **Malformed event** (validation error) → ``PermanentFailure``.
+  The task moves to the CCF's ``morgue`` table at once,
+  with the failing fields and messages but without their values.
+* **Other error or timeout** → ``Failure``.
+  The CCF retries the task with a growing delay
+  and moves it to the morgue after ``MAX_ALLOWED_ERRORS`` failures
+  (default 3, set by ``ccf_launcher.py``).
+  A later event touching the same object replaces the task
+  and repairs the state (modify-on-missing recreates the object).
 
 .. attention::
 
-   There is **no dead-letter queue**. "Dead-letter handling" is effectively
-   "log at ``CRITICAL`` and drop after 3 deliveries, relying on future events to
-   repair the object". This retry policy is a stopgap intended to move into the
-   provisioning-consumer library upstream.
+   The morgue is not visible through the Kelvin API yet;
+   failed events show up in the connector log and in the ``ccf.morgue`` table.
 
 Events
 ------
