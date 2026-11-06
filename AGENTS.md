@@ -128,8 +128,12 @@ appcenter/                   Univention App Center configuration
 ### Setup
 
 ```bash
-uv sync                      # install all workspace packages and dev deps
+uv sync --all-packages --group dev   # all workspace packages, including their dev dependencies
 ```
+
+Plain `uv sync` misses the dev dependencies of the member packages (e.g. `pytestarch` for
+`ucsschool-objects`). Building `python-ldap` needs the LDAP and SASL headers (`libldap2-dev`,
+`libsasl2-dev` on Debian).
 
 Useful Makefile targets (run `make` for the current list):
 
@@ -142,16 +146,28 @@ make build-docker-image                # build the production Kelvin image (dock
 
 ### Running tests
 
+The tests run in three places:
+
+| Where | What | How |
+|---|---|---|
+| locally | `ucsschool-objects`, `kelvin-connector`, and the kelvin-api and ucs-school-lib tests not marked `in_container` | `make test-unit` |
+| UCS VM, in the Kelvin container | tests marked `in_container` (about 80 % of the kelvin-api and ucs-school-lib tests) | `dev/agent-vm-test.py test`, see below |
+| UCS VM, on the host | `ucs-test-ucsschool-kelvin/94_ucsschool-kelvin/` | `dev/agent-vm-test.py host-test`, see below |
+
 ```bash
-uv run pytest                                          # whole workspace (configured in root pyproject.toml)
-uv run pytest ucs-school-lib/modules/ucsschool/lib/tests/   # one package
-uv run pytest kelvin-api/tests/                        # one package
-uv run pytest path/to/test_foo.py::test_bar            # single test
+make test-unit                                      # all four suites, about two minutes
+make test-unit SUITES="kelvin-api lib"              # selected suites: objects connector lib kelvin-api
+make test-unit SUITES=kelvin-api PYTEST_ARGS="-x -k pagination"
 ```
 
-Pytest config lives in the root `pyproject.toml` under `[tool.pytest.ini_options]`:
-`addopts = "--verbose --showlocals -p no:warnings --asyncio-mode=auto"`.
-Each workspace package may add its own gates — e.g. `ucsschool-objects/` requires **100 % branch coverage**.
+Each suite runs from its own directory, as in CI; `uv run pytest` at the repository root doesn't work,
+because the kelvin-api tests load the ucs-school-lib fixtures as a plugin. `dev/test-unit.sh` also copies
+`create_ou.py` into ucs-school-lib for the run (the image and CI do the same), points UCR to a temporary
+file and names the prerequisites it can't set up itself.
+
+The pytest options shared by all suites are in the root `pyproject.toml` (`[tool.pytest.ini_options]`),
+`ucsschool-objects/` and `kelvin-connector/` have their own, including a gate of **100 % branch coverage**.
+kelvin-api tests run against both API versions; `--api-version=v1|v2` restricts them to one.
 
 ### Running the `in_container` tests on a UCS VM (for agents)
 
@@ -189,7 +205,7 @@ Hooks:
 |---|---|---|
 | **ruff-check** | Linting and import ordering, with `--fix` | config: `[tool.ruff]` in `pyproject.toml` |
 | **ruff-format** | Formatting | config: `[tool.ruff]` in `pyproject.toml` |
-| **basedpyright** | Static typing against `basedpyright-baseline.json` | runs in Docker at commit time; `pre-commit run --hook-stage manual basedpyright-native-baseline` runs it natively |
+| **basedpyright** | Static typing against `basedpyright-baseline.json` | runs in Docker at commit time; `pre-commit run --hook-stage manual basedpyright-native-baseline` runs it natively (its plain `uv sync` removes the member dev dependencies again) |
 | **uv-export** | Keeps `requirements.txt` of the performance tests in sync with their `uv.lock` | only `ucs-test-ucsschool-kelvin/94_ucsschool-kelvin-performance/` |
 | **reuse** | SPDX license headers | — |
 | **pre-commit-hooks** | trailing-whitespace, large-files, json/yaml/xml checks | — |
@@ -246,10 +262,13 @@ Runtime and dev dependencies are declared in the root `pyproject.toml` (`[projec
 
 GitLab CI (`.gitlab-ci.yml`, includes from `.gitlab-ci/`) runs:
 1. Pre-commit / lint checks
-2. Unit tests for the workspace packages with coverage reports
-3. Docker image build via `docker/Dockerfile` (multi-stage: `kelvin-prod` and `connector-prod` targets, both built on the UCS base image `ucs-base-python-527`)
-4. Sphinx documentation build
-5. App Center release pipeline
+2. Unit tests for the workspace packages with coverage reports, inside the freshly built image; each job only
+   runs when its own package changed
+3. Integration tests (`integration-tests`) on an OpenStack VM, about three hours: they run the `in_container`
+   and the host-side tests. Nightly; on merge requests only when started manually
+4. Docker image build via `docker/Dockerfile` (multi-stage: `kelvin-prod` and `connector-prod` targets, both built on the UCS base image `ucs-base-python-527`)
+5. Sphinx documentation build
+6. App Center release pipeline
 
 ---
 
