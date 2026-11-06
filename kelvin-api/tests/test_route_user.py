@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2020-2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import asyncio
 import datetime
 import itertools
 import json
@@ -19,6 +18,7 @@ from constants import MAPPED_UDM_PROPERTIES
 from faker import Faker
 from ldap.filter import filter_format
 from pydantic import SecretStr, ValidationError
+from s4_sync import samba_disabled, samba_dn, wait_for_s4_sync
 from uldap3 import BindError
 from uldap3.exceptions import ModifyError as UModifyError, NoObject as UNoObject
 
@@ -184,21 +184,6 @@ def compare_ldap_json_obj(dn: str, json_resp: dict[str, Any], _: str) -> None:  
                     assert ldap_obj[k][0].decode("utf-8") == v
                 if type(v) is int:
                     assert int(ldap_obj[k][0].decode("utf-8")) == v
-
-
-# Some tests need to wait for changes from s4, which runs every 5 seconds and first modifies
-# the samba entry and then afterward again the ldap entry - especially if changes happen to "disabled"
-# and "expiration_date". This waits either `max_time` seconds or until the ldap entry was changed again
-async def wait_for_s4(dn: str, max_time: int = 15) -> None:
-    lo = univention.admin.uldap.getAdminConnection()[0]
-    last_mod = lo.get(dn, attr=["modifyTimestamp"])
-    time = 0
-    while time <= max_time:
-        time += 1
-        await asyncio.sleep(1)
-        cur_mod = lo.get(dn, attr=["modifyTimestamp"])
-        if cur_mod != last_mod:
-            return
 
 
 @pytest.fixture
@@ -1050,7 +1035,9 @@ async def test_create(
     assert response.status_code == 201, f"{response.__dict__!r}"
     response_json = response.json()
     api_user = UserModel(**response_json)
-    await wait_for_s4(api_user.dn)
+    await wait_for_s4_sync(
+        api_user.dn, r_user.name, lambda entry: samba_disabled(entry) == r_user.disabled
+    )
     async with UDM(**udm_kwargs) as udm:
         lib_users = await User.get_all(udm, school, f"username={r_user.name}")
         assert len(lib_users) == 1
@@ -1062,7 +1049,6 @@ async def test_create(
     assert udm_props.title == title
     assert set(udm_props.phone) == set(phone)
     await compare_lib_api_user(lib_users[0], api_user, udm, url_fragment)
-    await asyncio.sleep(5)
     compare_ldap_json_obj(api_user.dn, response_json, url_fragment)
     if r_user.disabled:
         with pytest.raises(BindError):
@@ -1782,7 +1768,7 @@ async def test_patch(
     school = await create_ou_using_python()
     user: ImportUser = await new_import_user(school, role.name, disabled=False)
     await check_password(user.dn, user.password)
-    await wait_for_s4(user.dn)
+    await wait_for_s4_sync(user.dn, user.name)
     logger.debug("OK: can login with old password")
     old_user_data = import_user_to_create_model_kwargs(user)
     user_create_model = await random_user_create_model(
@@ -2715,7 +2701,7 @@ async def test_change_disable(
             data=model_json(user),
         )
     assert response.status_code == 200, response.reason
-    await wait_for_s4(response.json()["dn"])
+    await wait_for_s4_sync(response.json()["dn"], user.name, samba_disabled)
     response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
     assert response.status_code == 200, response.reason
     api_user = UserModel(**response.json())
@@ -2739,7 +2725,7 @@ async def test_change_disable(
             data=model_json(user),
         )
     assert response.status_code == 200, response.reason
-    await wait_for_s4(response.json()["dn"])
+    await wait_for_s4_sync(response.json()["dn"], user.name, lambda entry: not samba_disabled(entry))
     response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
     api_user = UserModel(**response.json())
     assert api_user.disabled == user.disabled
@@ -3042,12 +3028,13 @@ async def test_school_move_primary_follows_dn(
         )
     assert response.status_code == 200, response.reason
     # A school move rewrites the DN and the user's (primary) group memberships,
-    # which the Samba4 connector writes back asynchronously. Wait for that to
-    # settle before reading back -- as the modify/disable tests above do -- so we
-    # never assert against a half-applied move. The additional v2 cache lag is
-    # handled by retry_until_replicated below; for v1 this S4 wait is the only
-    # settle, since retry_until_replicated passes on the first attempt there.
-    await wait_for_s4(response.json()["dn"])
+    # which the Samba4 connector writes back asynchronously. The additional v2
+    # cache lag is handled by retry_until_replicated below.
+    await wait_for_s4_sync(
+        response.json()["dn"],
+        user.name,
+        lambda entry: f"ou={ou2_name.lower()}," in samba_dn(entry).lower(),
+    )
 
     # Ground truth in LDAP: the DN moved under ou=ou2, the school set is kept.
     async with UDM(**udm_kwargs) as udm:
