@@ -1,7 +1,8 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from typing import Callable, Protocol
+from collections.abc import Coroutine
+from typing import Any, Callable, Protocol, TypeVar
 
 from ucsschool_objects import DNIDMapper, KelvinStorageSession, KelvinStorageSessionFactory
 
@@ -49,3 +50,10 @@ class SynchronizationManagerProtocol(Protocol):  # pragma: no cover
     async def handle_host_group_modify(self, event: HostGroupModifyEvent) -> None: ...
 
     async def handle_host_group_delete(self, event: HostGroupDeleteEvent) -> None: ...
+
+
+T = TypeVar("T")
+
+
+class CoroutineRunnerProtocol(Protocol):  # pragma: no cover
+    def run(self, coro: Coroutine[Any, Any, T], timeout: float | None = None) -> T: ...

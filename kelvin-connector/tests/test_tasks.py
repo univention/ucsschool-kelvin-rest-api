@@ -3,6 +3,8 @@
 
 import asyncio
 import uuid
+from collections.abc import Coroutine
+from typing import Any, TypeVar
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -30,13 +32,14 @@ from kelvin_connector.tasks import (
 )
 
 _TS = "2024-01-01T00:00:00"
+T = TypeVar("T")
 
 
 def _uid() -> str:
     return str(uuid.uuid4())
 
 
-def _user_payload(uid: str | None = None) -> dict:
+def _user_payload(uid: str | None = None) -> dict[str, Any]:
     return {
         "objectType": "users/user",
         "dn": "uid=testuser,cn=users,ou=TestSchool,dc=test",
@@ -60,7 +63,7 @@ def _user_payload(uid: str | None = None) -> dict:
     }
 
 
-def _group_payload(uid: str | None = None) -> dict:
+def _group_payload(uid: str | None = None) -> dict[str, Any]:
     return {
         "objectType": "groups/group",
         "dn": "cn=testgroup,cn=klassen,dc=test",
@@ -79,7 +82,7 @@ def _group_payload(uid: str | None = None) -> dict:
     }
 
 
-def _host_group_payload(uid: str | None = None) -> dict:
+def _host_group_payload(uid: str | None = None) -> dict[str, Any]:
     return {
         "objectType": "groups/group",
         "dn": "cn=OUdemoschool-DC-Edukativnetz,cn=ucsschool,cn=groups,dc=test",
@@ -94,7 +97,7 @@ def _host_group_payload(uid: str | None = None) -> dict:
     }
 
 
-def _school_payload(uid: str | None = None) -> dict:
+def _school_payload(uid: str | None = None) -> dict[str, Any]:
     return {
         "objectType": "container/ou",
         "dn": "ou=testschool,dc=test",
@@ -108,7 +111,9 @@ def _school_payload(uid: str | None = None) -> dict:
     }
 
 
-def _task(udm_module: str, old: dict | None = None, new: dict | None = None) -> dict:
+def _task(
+    udm_module: str, old: dict[str, Any] | None = None, new: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """A task dict as the CCF hands it to the Python callback."""
     old = old or {}
     new = new or {}
@@ -129,7 +134,7 @@ def _task(udm_module: str, old: dict | None = None, new: dict | None = None) -> 
     }
 
 
-def _roles_task(udm_module: str, *roles: str, side: str = "new", name: str = "") -> dict:
+def _roles_task(udm_module: str, *roles: str, side: str = "new", name: str = "") -> dict[str, Any]:
     payload = {"properties": {"ucsschoolRole": list(roles), "name": name}}
     return _task(udm_module, **{side: payload})
 
@@ -309,10 +314,10 @@ class _InlineLoopThread:
     """Runs the coroutine right away instead of on a separate loop thread."""
 
     def __init__(self, exc: Exception | None = None) -> None:
-        self.exc = exc
+        self.exc: Exception | None = exc
         self.timeouts: list[float | None] = []
 
-    def run(self, coro, timeout=None):
+    def run(self, coro: Coroutine[Any, Any, T], timeout: float | None = None) -> T:
         self.timeouts.append(timeout)
         if self.exc:
             coro.close()

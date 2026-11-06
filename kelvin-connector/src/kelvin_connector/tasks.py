@@ -13,7 +13,6 @@ from typing import Any
 from loguru import logger
 from pydantic import ValidationError
 
-from kelvin_connector.loop_thread import AsyncioLoopThread
 from kelvin_connector.models import (
     DeletePayload,
     GroupCreateEvent,
@@ -34,7 +33,7 @@ from kelvin_connector.models import (
     UserPayload,
 )
 
-from .ports import SynchronizationManagerProtocol
+from .ports import CoroutineRunnerProtocol, SynchronizationManagerProtocol
 
 HOST_GROUP_NAME_RE = re.compile(r"OU(.*)-DC-(Edukativnetz|Verwaltungsnetz)")
 
@@ -278,8 +277,10 @@ class TaskProcessor:
 class TaskRunner:
     """The synchronous side of the callback, called by the CCF per task."""
 
-    def __init__(self, loop_thread: AsyncioLoopThread, processor: TaskProcessor, timeout: float) -> None:
-        self._loop_thread: AsyncioLoopThread = loop_thread
+    def __init__(
+        self, loop_thread: CoroutineRunnerProtocol, processor: TaskProcessor, timeout: float
+    ) -> None:
+        self._loop_thread: CoroutineRunnerProtocol = loop_thread
         self._processor: TaskProcessor = processor
         self._timeout: float = timeout
 
