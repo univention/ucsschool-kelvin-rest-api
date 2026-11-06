@@ -4,7 +4,7 @@
 import asyncio
 import threading
 from collections.abc import Coroutine
-from typing import Any, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -35,7 +35,7 @@ class AsyncioLoopThread:
     def start(self) -> None:
         self._thread.start()
 
-    def run(self, coro: Coroutine[Any, Any, T], timeout: float | None = None) -> T:
+    def run(self, coro: Coroutine[object, object, T], timeout: float | None = None) -> T:
         """Run `coro` on the loop and block the calling thread until it is done.
 
         On timeout the coroutine is cancelled, so its transaction rolls back,

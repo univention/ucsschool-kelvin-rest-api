@@ -3,46 +3,49 @@
 
 import asyncio
 import threading
+from collections.abc import Iterator
 
 import pytest
 from kelvin_connector.loop_thread import AsyncioLoopThread, LoopThreadNotRunningError
 
 
 @pytest.fixture
-def loop_thread():
+def loop_thread() -> Iterator[AsyncioLoopThread]:
     loop_thread = AsyncioLoopThread()
     loop_thread.start()
     yield loop_thread
     loop_thread.stop()
 
 
-def test_run_returns_the_coroutine_result_computed_on_the_loop_thread(loop_thread):
-    async def which_thread():
+def test_run_returns_the_coroutine_result_computed_on_the_loop_thread(
+    loop_thread: AsyncioLoopThread,
+) -> None:
+    async def which_thread() -> str:
         await asyncio.sleep(0)
         return threading.current_thread().name
 
     assert loop_thread.run(which_thread()) == "kelvin-connector-loop"
 
 
-def test_run_reuses_the_same_loop_across_calls(loop_thread):
-    async def current_loop():
+def test_run_reuses_the_same_loop_across_calls(loop_thread: AsyncioLoopThread) -> None:
+    async def current_loop() -> asyncio.AbstractEventLoop:
         return asyncio.get_running_loop()
 
     assert loop_thread.run(current_loop()) is loop_thread.run(current_loop())
 
 
-def test_run_propagates_exceptions(loop_thread):
-    async def fail():
+def test_run_propagates_exceptions(loop_thread: AsyncioLoopThread) -> None:
+    async def fail() -> None:
         raise ValueError("boom")
 
     with pytest.raises(ValueError, match="boom"):
         loop_thread.run(fail())
 
 
-def test_run_cancels_the_coroutine_on_timeout(loop_thread):
+def test_run_cancels_the_coroutine_on_timeout(loop_thread: AsyncioLoopThread) -> None:
     cancelled = threading.Event()
 
-    async def hang():
+    async def hang() -> None:
         try:
             await asyncio.sleep(60)
         except asyncio.CancelledError:
@@ -54,10 +57,10 @@ def test_run_cancels_the_coroutine_on_timeout(loop_thread):
     assert cancelled.wait(5)
 
 
-def test_run_refuses_when_the_thread_is_not_running():
+def test_run_refuses_when_the_thread_is_not_running() -> None:
     loop_thread = AsyncioLoopThread()
 
-    async def never_awaited():
+    async def never_awaited() -> None:
         raise AssertionError("must not run")
 
     coro = never_awaited()

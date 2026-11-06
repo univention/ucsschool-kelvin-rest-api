@@ -12,6 +12,7 @@ import os
 import sys
 from collections.abc import Mapping
 from pathlib import Path
+from typing import cast
 
 from loguru import logger
 from sqlalchemy.engine import URL
@@ -40,7 +41,7 @@ def ccf_database_url(kelvin_db_url: URL) -> str:
 
 def ccf_environment(
     environ: Mapping[str, str],
-    provisioning_config: Mapping[str, str],
+    provisioning_config: Mapping[str, object],
     database_url: str,
     python_path: list[str],
 ) -> dict[str, str]:
@@ -51,8 +52,8 @@ def ccf_environment(
         # its .pth files (editable installs), so it gets this interpreter's path.
         PYTHON_CALLBACK_PATH=":".join(path for path in python_path if path),
         PROVISIONING_HOSTNAME=environ["PROVISIONING_FQDN"],
-        PROVISIONING_NAME=provisioning_config["subscription_name"],
-        PROVISIONING_PASSWORD=provisioning_config["subscription_password"],
+        PROVISIONING_NAME=str(provisioning_config["subscription_name"]),
+        PROVISIONING_PASSWORD=str(provisioning_config["subscription_password"]),
         DATABASE_URL=database_url,
     )
     return env
@@ -63,7 +64,7 @@ def main() -> None:
         logger.critical("Provisioning API FQDN is missing.")
         sys.exit(1)
     try:
-        provisioning_config = json.loads(PROVISIONING_CONFIG_FILE.read_text())
+        provisioning_config = cast("dict[str, object]", json.loads(PROVISIONING_CONFIG_FILE.read_text()))
         database_url = ccf_database_url(build_settings().url)
         env = ccf_environment(os.environ, provisioning_config, database_url, sys.path)
     except (OSError, ValueError, KeyError, RuntimeError) as exc:

@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import json
+from collections.abc import Iterator
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,7 +13,7 @@ from sqlalchemy.engine import make_url
 _CONFIG = {"subscription_name": "kelvin-connector", "subscription_password": "s3cret"}
 
 
-def test_ccf_database_url_uses_the_kelvin_db_in_the_ccf_schema():
+def test_ccf_database_url_uses_the_kelvin_db_in_the_ccf_schema() -> None:
     kelvin_url = make_url("postgresql+psycopg://kelvin:p%40ss%2Fword@db.example:5432/kelvin")
 
     url = ccf_database_url(kelvin_url)
@@ -19,7 +21,7 @@ def test_ccf_database_url_uses_the_kelvin_db_in_the_ccf_schema():
     assert url == "postgres://kelvin:p%40ss%2Fword@db.example:5432/kelvin?options=-csearch_path%3Dccf"
 
 
-def test_ccf_environment_sets_the_callback_provisioning_and_database():
+def test_ccf_environment_sets_the_callback_provisioning_and_database() -> None:
     env = ccf_environment(
         {"PROVISIONING_FQDN": "primary.example"}, _CONFIG, "postgres://db", ["", "/a", "/b"]
     )
@@ -35,7 +37,7 @@ def test_ccf_environment_sets_the_callback_provisioning_and_database():
     assert env["PROVISIONING_ACCEPT_INVALID_CERTS"] == "false"
 
 
-def test_ccf_environment_lets_the_environment_override_the_defaults():
+def test_ccf_environment_lets_the_environment_override_the_defaults() -> None:
     environ = {"PROVISIONING_FQDN": "primary.example", "MAX_ALLOWED_ERRORS": "7", "OTHER": "kept"}
 
     env = ccf_environment(environ, _CONFIG, "postgres://db", [])
@@ -45,7 +47,7 @@ def test_ccf_environment_lets_the_environment_override_the_defaults():
 
 
 @pytest.fixture
-def provisioning_config_file(tmp_path):
+def provisioning_config_file(tmp_path: Path) -> Iterator[Path]:
     path = tmp_path / "provisioning_config.json"
     path.write_text(json.dumps(_CONFIG))
     with patch("kelvin_connector.ccf_launcher.PROVISIONING_CONFIG_FILE", path):
@@ -53,13 +55,15 @@ def provisioning_config_file(tmp_path):
 
 
 @pytest.fixture
-def kelvin_settings():
+def kelvin_settings() -> Iterator[MagicMock]:
     settings = MagicMock(url=make_url("postgresql+psycopg://kelvin:pw@db/kelvin"))
     with patch("kelvin_connector.ccf_launcher.build_settings", return_value=settings):
         yield settings
 
 
-def test_main_execs_the_ccf_binary(monkeypatch, provisioning_config_file, kelvin_settings):
+def test_main_execs_the_ccf_binary(
+    monkeypatch: pytest.MonkeyPatch, provisioning_config_file: Path, kelvin_settings: MagicMock
+) -> None:
     monkeypatch.setenv("PROVISIONING_FQDN", "primary.example")
 
     with patch("kelvin_connector.ccf_launcher.os.execve") as execve:
@@ -71,7 +75,7 @@ def test_main_execs_the_ccf_binary(monkeypatch, provisioning_config_file, kelvin
     assert env["PROVISIONING_NAME"] == "kelvin-connector"
 
 
-def test_main_exits_when_provisioning_fqdn_is_missing(monkeypatch):
+def test_main_exits_when_provisioning_fqdn_is_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("PROVISIONING_FQDN", raising=False)
 
     with pytest.raises(SystemExit) as exc_info:
@@ -81,8 +85,11 @@ def test_main_exits_when_provisioning_fqdn_is_missing(monkeypatch):
 
 @pytest.mark.parametrize("content", [None, "not json", json.dumps({"subscription_name": "x"})])
 def test_main_exits_when_the_provisioning_config_is_unusable(
-    monkeypatch, provisioning_config_file, kelvin_settings, content
-):
+    monkeypatch: pytest.MonkeyPatch,
+    provisioning_config_file: Path,
+    kelvin_settings: MagicMock,
+    content: str | None,
+) -> None:
     monkeypatch.setenv("PROVISIONING_FQDN", "primary.example")
     if content is None:
         provisioning_config_file.unlink()
@@ -98,7 +105,9 @@ def test_main_exits_when_the_provisioning_config_is_unusable(
     execve.assert_not_called()
 
 
-def test_main_exits_when_the_kelvin_db_settings_are_missing(monkeypatch, provisioning_config_file):
+def test_main_exits_when_the_kelvin_db_settings_are_missing(
+    monkeypatch: pytest.MonkeyPatch, provisioning_config_file: Path
+) -> None:
     monkeypatch.setenv("PROVISIONING_FQDN", "primary.example")
 
     with (

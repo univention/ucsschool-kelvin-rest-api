@@ -3,8 +3,8 @@
 
 import asyncio
 import uuid
-from collections.abc import Coroutine
-from typing import Any, TypeVar
+from collections.abc import Callable, Coroutine
+from typing import Any, ClassVar, TypeVar
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -25,6 +25,7 @@ from kelvin_connector.models import (
 from kelvin_connector.tasks import (
     Outcome,
     OutcomeKind,
+    Task,
     TaskProcessor,
     TaskRunner,
     is_relevant,
@@ -111,22 +112,14 @@ def _school_payload(uid: str | None = None) -> dict[str, Any]:
     }
 
 
-def _task(
-    udm_module: str, old: dict[str, Any] | None = None, new: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """A task dict as the CCF hands it to the Python callback."""
+def _task(udm_module: str, old: dict[str, Any] | None = None, new: dict[str, Any] | None = None) -> Task:
+    """The keys of a CCF task dict the callback reads."""
     old = old or {}
     new = new or {}
     return {
-        "id": 1,
-        "obj_id": (new or old).get("id", "obj"),
         "udm_module": udm_module,
-        "dn": (new or old).get("dn", "").lower(),
-        "attrs": new.get("properties", {}),
-        "status": "new",
-        "num_errors": 0,
+        "dn": str((new or old).get("dn", "")).lower(),
         "request_id": "req-1",
-        "delay": 0,
         "seq_number": 42,
         "ts": _TS,
         "old": old,
@@ -134,7 +127,7 @@ def _task(
     }
 
 
-def _roles_task(udm_module: str, *roles: str, side: str = "new", name: str = "") -> dict[str, Any]:
+def _roles_task(udm_module: str, *roles: str, side: str = "new", name: str = "") -> Task:
     payload = {"properties": {"ucsschoolRole": list(roles), "name": name}}
     return _task(udm_module, **{side: payload})
 
@@ -156,7 +149,7 @@ def _roles_task(udm_module: str, *roles: str, side: str = "new", name: str = "")
         ),
     ],
 )
-def test_is_relevant_accepts_school_objects(task):
+def test_is_relevant_accepts_school_objects(task: Task) -> None:
     assert is_relevant(task) is True
 
 
@@ -173,11 +166,11 @@ def test_is_relevant_accepts_school_objects(task):
         pytest.param(_roles_task("groups/group", "other_role:school:DEMOSCHOOL"), id="other_group"),
     ],
 )
-def test_is_relevant_skips_other_objects(task):
+def test_is_relevant_skips_other_objects(task: Task) -> None:
     assert is_relevant(task) is False
 
 
-def test_is_relevant_uses_the_new_roles_when_both_sides_have_roles():
+def test_is_relevant_uses_the_new_roles_when_both_sides_have_roles() -> None:
     task = _task(
         "groups/group",
         old={"properties": {"ucsschoolRole": ["workgroup:school:DEMOSCHOOL"]}},
@@ -189,13 +182,16 @@ def test_is_relevant_uses_the_new_roles_when_both_sides_have_roles():
 # ── TaskProcessor ─────────────────────────────────────────────────────────────
 
 
+Payload = Callable[..., dict[str, Any]]
+
+
 @pytest.fixture
-def sync_manager():
+def sync_manager() -> AsyncMock:
     return AsyncMock()
 
 
 @pytest.fixture
-def processor(sync_manager):
+def processor(sync_manager: AsyncMock) -> TaskProcessor:
     return TaskProcessor(sync_manager)
 
 
@@ -208,7 +204,14 @@ def processor(sync_manager):
         ("container/ou", _school_payload, "handle_school_create", SchoolCreateEvent),
     ],
 )
-async def test_process_create(processor, sync_manager, udm_module, payload, handler, event_cls):
+async def test_process_create(
+    processor: TaskProcessor,
+    sync_manager: AsyncMock,
+    udm_module: str,
+    payload: Payload,
+    handler: str,
+    event_cls: type,
+) -> None:
     new = payload()
 
     outcome = await processor.process(_task(udm_module, new=new))
@@ -230,7 +233,14 @@ async def test_process_create(processor, sync_manager, udm_module, payload, hand
         ("container/ou", _school_payload, "handle_school_modify", SchoolModifyEvent),
     ],
 )
-async def test_process_modify(processor, sync_manager, udm_module, payload, handler, event_cls):
+async def test_process_modify(
+    processor: TaskProcessor,
+    sync_manager: AsyncMock,
+    udm_module: str,
+    payload: Payload,
+    handler: str,
+    event_cls: type,
+) -> None:
     uid = _uid()
 
     outcome = await processor.process(_task(udm_module, old=payload(uid), new=payload(uid)))
@@ -250,7 +260,14 @@ async def test_process_modify(processor, sync_manager, udm_module, payload, hand
         ("container/ou", _school_payload, "handle_school_delete", SchoolDeleteEvent),
     ],
 )
-async def test_process_delete(processor, sync_manager, udm_module, payload, handler, event_cls):
+async def test_process_delete(
+    processor: TaskProcessor,
+    sync_manager: AsyncMock,
+    udm_module: str,
+    payload: Payload,
+    handler: str,
+    event_cls: type,
+) -> None:
     uid = _uid()
 
     outcome = await processor.process(_task(udm_module, old=payload(uid)))
@@ -261,7 +278,9 @@ async def test_process_delete(processor, sync_manager, udm_module, payload, hand
     assert str(event.old.properties.univentionObjectIdentifier) == uid
 
 
-async def test_process_delete_with_malformed_state_still_dispatches(processor, sync_manager):
+async def test_process_delete_with_malformed_state_still_dispatches(
+    processor: TaskProcessor, sync_manager: AsyncMock
+) -> None:
     uid = _uid()
     old = _user_payload(uid)
     old["properties"] = {"univentionObjectIdentifier": uid, "ucsschoolRole": ["garbage"]}
@@ -281,26 +300,33 @@ async def test_process_delete_with_malformed_state_still_dispatches(processor, s
     ],
     ids=["create", "modify", "delete"],
 )
-async def test_process_skips_unknown_object_types(processor, sync_manager, side):
+async def test_process_skips_unknown_object_types(
+    processor: TaskProcessor, sync_manager: AsyncMock, side: dict[str, Any]
+) -> None:
     outcome = await processor.process(_task("unknown/type", **side))
 
     assert outcome == Outcome(OutcomeKind.SKIPPED)
     assert sync_manager.mock_calls == []
 
 
-async def test_process_reports_invalid_data_as_permanent_failure_without_values(processor, sync_manager):
+async def test_process_reports_invalid_data_as_permanent_failure_without_values(
+    processor: TaskProcessor, sync_manager: AsyncMock
+) -> None:
     new = _user_payload()
     new["properties"]["birthday"] = "secret-not-a-date"
 
     outcome = await processor.process(_task("users/user", new=new))
 
     assert outcome.kind is OutcomeKind.PERMANENT_FAILURE
+    assert outcome.msg is not None
     assert "properties.birthday" in outcome.msg
     assert "secret-not-a-date" not in outcome.msg
     sync_manager.handle_user_create.assert_not_awaited()
 
 
-async def test_process_propagates_handler_errors(processor, sync_manager):
+async def test_process_propagates_handler_errors(
+    processor: TaskProcessor, sync_manager: AsyncMock
+) -> None:
     sync_manager.handle_user_create.side_effect = RuntimeError("db down")
 
     with pytest.raises(RuntimeError, match="db down"):
@@ -317,7 +343,7 @@ class _InlineLoopThread:
         self.exc: Exception | None = exc
         self.timeouts: list[float | None] = []
 
-    def run(self, coro: Coroutine[Any, Any, T], timeout: float | None = None) -> T:
+    def run(self, coro: Coroutine[object, object, T], timeout: float | None = None) -> T:
         self.timeouts.append(timeout)
         if self.exc:
             coro.close()
@@ -325,7 +351,7 @@ class _InlineLoopThread:
         return asyncio.run(coro)
 
 
-def test_runner_skips_irrelevant_tasks_without_using_the_loop():
+def test_runner_skips_irrelevant_tasks_without_using_the_loop() -> None:
     loop_thread = MagicMock()
     runner = TaskRunner(loop_thread, MagicMock(), timeout=10)
 
@@ -333,7 +359,7 @@ def test_runner_skips_irrelevant_tasks_without_using_the_loop():
     loop_thread.run.assert_not_called()
 
 
-def test_runner_processes_relevant_tasks_on_the_loop_with_the_timeout():
+def test_runner_processes_relevant_tasks_on_the_loop_with_the_timeout() -> None:
     loop_thread = _InlineLoopThread()
     runner = TaskRunner(loop_thread, TaskProcessor(AsyncMock()), timeout=10)
 
@@ -341,7 +367,7 @@ def test_runner_processes_relevant_tasks_on_the_loop_with_the_timeout():
     assert loop_thread.timeouts == [10]
 
 
-def test_runner_reports_a_timeout_as_failure():
+def test_runner_reports_a_timeout_as_failure() -> None:
     runner = TaskRunner(_InlineLoopThread(TimeoutError()), TaskProcessor(AsyncMock()), timeout=10)
 
     outcome = runner(_task("users/user", new=_user_payload()))
@@ -349,7 +375,7 @@ def test_runner_reports_a_timeout_as_failure():
     assert outcome == Outcome(OutcomeKind.FAILURE, "processing did not finish within 10s")
 
 
-def test_runner_reports_other_errors_as_failure():
+def test_runner_reports_other_errors_as_failure() -> None:
     runner = TaskRunner(
         _InlineLoopThread(RuntimeError("db down")), TaskProcessor(AsyncMock()), timeout=10
     )
@@ -363,23 +389,25 @@ def test_runner_reports_other_errors_as_failure():
 
 
 class _FakeCallbackResult:
-    SuccessDeleted = "SuccessDeleted"
-    SuccessSkipped = "SuccessSkipped"
+    """Mirrors the CCF's CallbackResult: class attributes and classmethods."""
 
-    @staticmethod
-    def SuccessCreated():
+    SuccessDeleted: ClassVar[str] = "SuccessDeleted"
+    SuccessSkipped: ClassVar[str] = "SuccessSkipped"
+
+    @classmethod
+    def SuccessCreated(cls) -> str:
         return "SuccessCreated"
 
-    @staticmethod
-    def SuccessModified():
+    @classmethod
+    def SuccessModified(cls) -> str:
         return "SuccessModified"
 
-    @staticmethod
-    def Failure(msg):
+    @classmethod
+    def Failure(cls, msg: str | None) -> tuple[str, str | None]:
         return ("Failure", msg)
 
-    @staticmethod
-    def PermanentFailure(msg):
+    @classmethod
+    def PermanentFailure(cls, msg: str | None) -> tuple[str, str | None]:
         return ("PermanentFailure", msg)
 
 
@@ -394,5 +422,5 @@ class _FakeCallbackResult:
         (Outcome(OutcomeKind.PERMANENT_FAILURE, "invalid"), ("PermanentFailure", "invalid")),
     ],
 )
-def test_to_callback_result_maps_every_outcome(outcome, expected):
+def test_to_callback_result_maps_every_outcome(outcome: Outcome, expected: object) -> None:
     assert to_callback_result(_FakeCallbackResult, outcome) == expected

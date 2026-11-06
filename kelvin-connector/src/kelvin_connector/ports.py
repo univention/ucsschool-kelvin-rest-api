@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Coroutine
-from typing import Any, Callable, Protocol, TypeVar
+from typing import Callable, Protocol, TypeVar
 
 from ucsschool_objects import DNIDMapper, KelvinStorageSession, KelvinStorageSessionFactory
 
@@ -56,4 +56,4 @@ T = TypeVar("T")
 
 
 class CoroutineRunnerProtocol(Protocol):  # pragma: no cover
-    def run(self, coro: Coroutine[Any, Any, T], timeout: float | None = None) -> T: ...
+    def run(self, coro: Coroutine[object, object, T], timeout: float | None = None) -> T: ...
