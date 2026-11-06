@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import asyncio
-import os
 import random
 import time
 from collections.abc import Awaitable
@@ -10,6 +9,7 @@ from typing import Any, Callable, NamedTuple, Type, Union
 
 import pytest
 import requests
+from conftest import kelvin_test_host
 
 from ucsschool.importer.models.import_user import ImportUser
 from ucsschool.lib.models.user import (
@@ -38,7 +38,7 @@ ALL_ROLE_NAMES = ["staff", "student", "teacher", "legal_guardian", "school_admin
 
 
 def _make_base_urls() -> tuple[str, str]:
-    host = os.environ["DOCKER_HOST_NAME"]
+    host = kelvin_test_host()
     return (
         f"http://{host}/ucsschool/kelvin/v1",
         f"http://{host}/ucsschool/kelvin/v2",

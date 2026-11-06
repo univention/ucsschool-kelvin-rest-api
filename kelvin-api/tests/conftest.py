@@ -301,32 +301,38 @@ def api_version(request):
     return request.param
 
 
+def kelvin_test_host() -> str:
+    """Host[:port] of the Kelvin API under test, if not on the UCS host (e.g. the dev server)."""
+    return os.environ.get("KELVIN_TEST_HOST") or os.environ["DOCKER_HOST_NAME"]
+
+
 def _url_fragment_for(host: str, api_version: str, scheme: str = "http") -> str:
     return f"{scheme}://{host}/ucsschool/kelvin/{api_version}"
 
 
 @pytest.fixture(scope="session")
 def url_fragment(api_version):
-    return _url_fragment_for(os.environ["DOCKER_HOST_NAME"], api_version)
+    return _url_fragment_for(kelvin_test_host(), api_version)
 
 
 @pytest.fixture(scope="session")
 def url_fragment_ip(api_version):
+    host, _, port = kelvin_test_host().partition(":")
     addrinfo = socket.getaddrinfo(
-        os.environ["DOCKER_HOST_NAME"],
-        80,
+        host,
+        int(port or 80),
         family=socket.AF_INET,
         proto=socket.IPPROTO_TCP,
     )
-    ip = addrinfo[0][4][0]
-    return _url_fragment_for(ip, api_version)
+    ip = str(addrinfo[0][4][0])
+    return _url_fragment_for(f"{ip}:{port}" if port else ip, api_version)
 
 
 @pytest.fixture(scope="session")
 def url_fragment_scrambled_hostname(api_version):
-    hostname = os.environ["DOCKER_HOST_NAME"]
+    hostname, sep, port = kelvin_test_host().partition(":")
     res = "".join(random.choice((str.upper, str.lower))(char) for char in hostname)
-    return _url_fragment_for(res, api_version)
+    return _url_fragment_for(f"{res}{sep}{port}", api_version)
 
 
 @pytest.fixture(scope="session")
@@ -356,7 +362,7 @@ def get_access_token(username: str = "Administrator", password: str = "univentio
         ):
             return access_token
         response = requests.post(
-            url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/token",
+            url=f"http://{kelvin_test_host()}/ucsschool/kelvin/token",
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             data=dict(username=username, password=password),
         )
@@ -797,7 +803,7 @@ def restart_kelvin_api_server() -> None:
             if time.time() > deadline:
                 raise RuntimeError(f"Gunicorn workers {sorted(remaining)} still alive 120s after HUP.")
             continue
-        response = requests.get(url=f"http://{os.environ['DOCKER_HOST_NAME']}/ucsschool/kelvin/docs")
+        response = requests.get(url=f"http://{kelvin_test_host()}/ucsschool/kelvin/docs")
         if response.status_code == 200:
             break
 
