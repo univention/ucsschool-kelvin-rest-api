@@ -98,9 +98,9 @@ dev-server: .env-configured build-docker-image setup-provisioning-subscription #
 alembic-migration: .running-dev-server .get-alembic-message ## Creates a new alembic revison from kelvin-dev
 	uv run --env-file .env.alembic alembic revision --autogenerate -m "$(ALEMBIC_MESSAGE)"
 
-setup-provisioning-subscription: .env-configured ## Create a provisioning subscription on TARGET (SUBSCRIPTION_NAME=kelvin-connector, FORCE=false)
+setup-provisioning-subscription: .env-configured ## Create a provisioning subscription on TARGET (SUBSCRIPTION_NAME=kelvin-connector-dev, FORCE=false)
 	@set -a && source $(VM_CONF_DIR)/env && set +a && \
 	echo "$$TARGET" && \
 	{ cat appcenter/includes/setup-provisioning-subscription.sh; echo 'setup_provisioning_subscriptions'; } | \
-		ssh $$TARGET "SUBSCRIPTION_NAME='$${SUBSCRIPTION_NAME:-kelvin-connector}' FORCE='$${FORCE:-false}' APP_PROVISIONING_CONFIG_FILE='/tmp/provisioning_config.json' bash -s" && \
+		ssh $$TARGET "SUBSCRIPTION_NAME='$${SUBSCRIPTION_NAME:-kelvin-connector-dev}' FORCE='$${FORCE:-false}' APP_PROVISIONING_CONFIG_FILE='/tmp/provisioning_config.json' bash -s" && \
 	scp $$TARGET:/tmp/provisioning_config.json $(VM_CONF_DIR)/provisioning/provisioning_config.json
