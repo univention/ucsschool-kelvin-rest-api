@@ -4,6 +4,7 @@
 import asyncio
 import datetime
 import logging
+import os
 import random
 import tempfile
 import time
@@ -17,6 +18,7 @@ from faker import Faker
 from uldap3 import NoObject
 
 import ucsschool.lib.models.user
+import ucsschool.lib.models.validator
 from ucsschool.lib.create_ou import create_ou
 from ucsschool.lib.models.school import School
 from ucsschool.lib.models.user import User
@@ -80,6 +82,18 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     for item in items:
         if item.get_closest_marker("in_container"):
             item.add_marker(skip)
+
+
+@pytest.fixture(autouse=True)
+def private_data_logger_without_root(monkeypatch):
+    """
+    The validator only sets up its private data logger when running as root, because that logger writes
+    a file only root may read. Without root, tests checking its messages get the logger without the file.
+    """
+    if os.geteuid() != 0:
+        private_logger = logging.getLogger(ucsschool.lib.models.validator.VALIDATION_LOGGER)
+        private_logger.setLevel(logging.DEBUG)
+        monkeypatch.setattr(ucsschool.lib.models.validator, "private_data_logger", private_logger)
 
 
 @pytest.fixture(scope="session")

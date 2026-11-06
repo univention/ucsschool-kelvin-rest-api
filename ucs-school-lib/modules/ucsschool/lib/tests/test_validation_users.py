@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import os
 import re
 
 try:
@@ -321,6 +322,15 @@ def legal_guardian_user() -> Dict[str, Any]:
 def mock_logger_file(mocker):
     with tempfile.NamedTemporaryFile() as f:
         mocker.patch.object(validator, "LOG_FILE", f.name)
+
+
+@pytest.fixture(autouse=True)
+def ucr_handler_cache(monkeypatch, tmp_path):
+    """handler_set() and handler_unset() keep a cache in /var/cache/univention-config (UCS only)."""
+    if not os.access("/var/cache/univention-config", os.W_OK):
+        monkeypatch.setattr(
+            "univention.config_registry.handler.ConfigHandlers.CACHE_FILE", str(tmp_path / "ucr-cache")
+        )
 
 
 all_user_role_objects = [

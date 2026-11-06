@@ -98918,6 +98918,14 @@
                 }
             },
             {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 7,
+                    "endColumn": 37,
+                    "lineCount": 1
+                }
+            },
+            {
                 "code": "reportMissingImports",
                 "range": {
                     "startColumn": 5,
