@@ -33,5 +33,5 @@ else
     done
 
     echo "Starting connector." >&2
-    /venv/bin/connector
+    exec /venv/bin/python -m kelvin_connector.ccf_launcher
 fi

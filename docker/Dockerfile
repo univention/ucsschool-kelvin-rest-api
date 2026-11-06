@@ -125,6 +125,25 @@ COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 RUN uv --directory ./kelvin-connector sync --locked
 
+# The Common Connector Framework (submodule) that runs the connector. Built on
+# the same base image as connector-prod: pyo3 links against the Python that
+# runs the callback there. Debian's rustc is too old for the CCF (edition 2024).
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS ccf-builder
+
+ARG RUST_VERSION=1.99.1
+ENV RUSTUP_HOME=/opt/rustup
+ENV CARGO_HOME=/opt/cargo
+ENV PATH="$CARGO_HOME/bin:$PATH"
+
+WORKDIR /app/common-connector-framework
+
+RUN apt-get install -y build-essential python3-dev curl pkg-config libssl-dev
+RUN curl --proto '=https' --tlsv1.2 --fail --silent --show-error https://sh.rustup.rs \
+    | sh -s -- -y --no-modify-path --profile minimal --default-toolchain "$RUST_VERSION"
+
+COPY common-connector-framework .
+RUN PYO3_PYTHON=python3 cargo build --release --locked --no-default-features --features postgres-python
+
 FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS connector-prod
 ENV PYTHONUNBUFFERED=1
 ENV VIRTUAL_ENV="/venv"
@@ -132,8 +151,11 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 WORKDIR /app
 
-RUN apt-get install -y libldap2-dev
+RUN apt-get install -y libldap2-dev libpython3.11
 COPY --from=connector-builder $VIRTUAL_ENV $VIRTUAL_ENV
+COPY --from=ccf-builder /app/common-connector-framework/target/release/ccf /usr/local/bin/ccf
+# The CCF reads its migrations from db/schema relative to the working directory.
+COPY common-connector-framework/db/schema ./db/schema
 COPY docker/start-connector.sh .
 COPY alembic ./alembic
 COPY kelvin-connector ./kelvin-connector

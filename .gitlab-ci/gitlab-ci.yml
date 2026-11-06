@@ -223,6 +223,15 @@ variables:
       - "false"
     description: "Force appcenter upload"
 
+# The connector image compiles the Common Connector Framework from its
+# submodule. FORCE_HTTPS rewrites the SSH URL in .gitmodules to HTTPS with the
+# job token, so the CCF project must allow this project's job token.
+build_docker_image_connector:
+  variables:
+    GIT_SUBMODULE_STRATEGY: normal
+    GIT_SUBMODULE_PATHS: common-connector-framework
+    GIT_SUBMODULE_FORCE_HTTPS: "true"
+
 build_changelog_html:
   stage: build
   image: gitregistry.knut.univention.de/univention/dev/docs/sphinx-docker/base@sha256:5d6aac4c1f8d7af49db226d07984f01c3f6c0e99e78d671942a9ffd32cb60639

@@ -4,3 +4,4 @@
 **/.venv/
 **/venv/
 .git
+common-connector-framework/target/
