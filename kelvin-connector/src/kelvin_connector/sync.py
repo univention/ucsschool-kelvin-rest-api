@@ -32,7 +32,6 @@ from ucsschool_objects import (
     track_changes,
 )
 
-from kelvin_connector.consumer import HOST_GROUP_NAME_RE
 from kelvin_connector.models import (
     GroupCreateEvent,
     GroupDeleteEvent,
@@ -52,6 +51,7 @@ from kelvin_connector.models import (
     UserProperties,
 )
 from kelvin_connector.ports import DNIDMapperFactory, SynchronizationManagerProtocol
+from kelvin_connector.tasks import HOST_GROUP_NAME_RE
 
 DEFAULT_NUBUS_SOURCE_UID = "nubus"
 

@@ -24,9 +24,6 @@ dependencies = [
 requires = ["uv_build>=0.12.19,<0.13.0"]
 build-backend = "uv_build"
 
-[project.scripts]
-connector = "kelvin_connector.connector:main"
-
 [tool.pytest.ini_options]
 addopts = "--verbose --showlocals -p no:warnings  --cov=kelvin_connector --cov-report=term-missing"
 testpaths = ["tests"]
@@ -35,7 +32,7 @@ asyncio_mode = "auto"
 [tool.coverage.run]
 source = ["src/kelvin_connector"]
 branch = true
-omit = ["*/src/kelvin_connector/__init__.py"]
+omit = ["*/src/kelvin_connector/__init__.py", "*/src/kelvin_connector/ccf_callback.py"]
 
 [tool.coverage.report]
 show_missing = true

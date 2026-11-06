@@ -1,10 +1,8 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import asyncio
 import os
 import sys
-from pathlib import Path
 
 from loguru import logger
 from ucsschool_objects.core.adapters.sqlalchemy import (
@@ -14,37 +12,57 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
 )
 
+from kelvin_connector.loop_thread import AsyncioLoopThread
 from kelvin_connector.sync import SynchronizationManager
+from kelvin_connector.tasks import TaskProcessor, TaskRunner
 
-from .consumer import KelvinConnectorEventHandler, KelvinConsumerModule
+LOG_LEVELS = ("TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL")
+LOG_FORMAT = (
+    "{time:YYYY-MM-DDTHH:mm:ss.SSSSSSZ} {level: <8} [{extra[request_id]: >10}] {message}"
+    "\t| module={name}:{line}"
+)
+DEFAULT_TASK_TIMEOUT = 300.0
 
 
-def main():
-    KELVIN_CONNECTOR_LOG_LEVEL = os.environ.get("KELVIN_CONNECTOR_LOG_LEVEL", "DEBUG")
-    if KELVIN_CONNECTOR_LOG_LEVEL in (
-        "TRACE",
-        "DEBUG",
-        "INFO",
-        "SUCCESS",
-        "WARNING",
-        "ERROR",
-        "CRITICAL",
-    ):
-        logger.remove()
-        logger.add(sys.stderr, level=KELVIN_CONNECTOR_LOG_LEVEL)
-    else:
-        logger.critical("Invalid log level provided: {}", KELVIN_CONNECTOR_LOG_LEVEL)
+def _configure_logging() -> None:
+    level = os.environ.get("KELVIN_CONNECTOR_LOG_LEVEL", "DEBUG")
+    if level not in LOG_LEVELS:
+        logger.critical("Invalid log level provided: {}", level)
+        sys.exit(1)
+    logger.remove()
+    logger.configure(extra={"request_id": "-"})
+    # Bound at import time on purpose: the CCF swaps sys.stderr for its own
+    # log capture during each callback call, and logs from the loop thread
+    # must not end up in an unrelated call's capture.
+    logger.add(sys.stderr, level=level, format=LOG_FORMAT)
+
+
+def _task_timeout() -> float:
+    raw = os.environ.get("KELVIN_CONNECTOR_TASK_TIMEOUT", str(DEFAULT_TASK_TIMEOUT))
+    try:
+        timeout = float(raw)
+    except ValueError:
+        timeout = 0.0
+    if timeout <= 0:
+        logger.critical("Invalid KELVIN_CONNECTOR_TASK_TIMEOUT provided: {}", raw)
+        sys.exit(1)
+    return timeout
+
+
+def build_runner() -> TaskRunner:
+    """Set up everything the CCF callback needs; exit on invalid configuration.
+
+    Runs while the CCF imports the callback module, so a failure here stops
+    the CCF before it fetches the first event.
+    """
+    _configure_logging()
+
+    ldap_server_type = os.environ.get("LDAP_SERVER_TYPE")
+    if ldap_server_type != "master":
+        logger.critical(f"Connector cannot run on {ldap_server_type=}.")
         sys.exit(1)
 
-    LDAP_SERVER_TYPE = os.environ.get("LDAP_SERVER_TYPE", None)
-    if LDAP_SERVER_TYPE is None or LDAP_SERVER_TYPE != "master":
-        logger.critical(f"Connector cannot run on {LDAP_SERVER_TYPE=}.")
-        sys.exit(1)
-
-    PROVISIONING_API_FQDN = os.environ.get("PROVISIONING_FQDN", None)
-    if PROVISIONING_API_FQDN is None:
-        logger.critical("Provisioning API FQDN is missing.")
-        sys.exit(1)
+    timeout = _task_timeout()
 
     try:
         settings = build_settings()
@@ -53,20 +71,10 @@ def main():
         sys.exit(1)
 
     engine = build_engine(settings)
-    storage_factory = build_kelvin_storage_session_factory(engine)
     synchronization_manager = SynchronizationManager(
-        storage_factory=storage_factory,
+        storage_factory=build_kelvin_storage_session_factory(engine),
         mapper_factory=sqlalchemy_mapper_factory,
     )
-
-    CONFIG_DIR = Path("/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/")
-
-    event_handler = KelvinConnectorEventHandler(synchronization_manager, logger=logger)
-    consumer = KelvinConsumerModule(
-        event_handler,
-        name="kelvin-connector",
-        provisioning_url=f"https://{PROVISIONING_API_FQDN}/univention/provisioning",
-        config_dir=CONFIG_DIR,
-    )
-
-    asyncio.run(consumer.consume_loop())
+    loop_thread = AsyncioLoopThread()
+    loop_thread.start()
+    return TaskRunner(loop_thread, TaskProcessor(synchronization_manager), timeout)
