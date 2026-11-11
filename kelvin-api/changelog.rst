@@ -8,8 +8,8 @@
 Changelog
 =========
 
-v4.2.0 (TBD)
-------------
+v4.2.0 (2026-11-12)
+-------------------
 .. important::
 
    This release updates the dependencies of the Kelvin REST API to fix security issues.
