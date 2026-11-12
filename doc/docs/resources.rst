@@ -68,7 +68,7 @@ don't build or change it, take it from a URL in the ``Link`` header.
 A ``cursor`` without ``limit``, or one the Kelvin REST API didn't create,
 leads to the server responding with HTTP status ``400``.
 
-.. versionadded:: 4.2.0
+.. versionadded:: 5.0.0
 
    Pagination is supported by the version 2 API only,
    for the searches of users, schools, school classes, work groups, and roles.
