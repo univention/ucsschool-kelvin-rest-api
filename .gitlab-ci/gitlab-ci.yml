@@ -52,9 +52,7 @@ include:
       # the directory is usually absent -- harmless, because allure only fails
       # when *none* of its patterns match anything.
       results_paths: "allure-results integration-results"
-      # A nightly fills the history faster than the default 20 runs cover:
-      # keep about two months of trend instead of three weeks.
-      history_limit: "60"
+      history_limit: "15"
       report_rules:
         - if: $CI_PIPELINE_SOURCE == "schedule"
           when: always
