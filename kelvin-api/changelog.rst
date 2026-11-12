@@ -24,7 +24,7 @@ v5.0.0 (2026-11-12)
    Tokens issued before the update are rejected with status code ``401``,
    so clients have to request a new token after the update.
 
-* Changed: Security updates: The Kelvin REST API and its Python hooks run with Pydantic 2 and FastAPI 0.143
+* Breaking change: Security updates: The Kelvin REST API and its Python hooks run with Pydantic 2 and FastAPI 0.143
   instead of Pydantic 1 and FastAPI 0.97.
   Hooks that use Pydantic 1 directly, the Kelvin REST API's models,
   or ``httpx`` have to be adapted.
@@ -89,17 +89,17 @@ v5.0.0 (2026-11-12)
 * Changed: Security updates: The Docker images of the Kelvin REST API and the Kelvin connector contain the current UCS errata updates and ``certifi`` 2026.10.23.
   This fixes CVE-2026-111497 in ``brotli`` and removes the distrusted eMudhra root certificates (GHSA-6q48-6c7w-9gw2, DLA-4845-1).
   The containers use the certificates of the UCS system, so install the errata update of ``ca-certificates`` on the UCS system as well.
-* Changed: The OpenAPI documents follow OpenAPI 3.1 instead of 3.0.
+* Breaking change: The OpenAPI documents follow OpenAPI 3.1 instead of 3.0.
   A property that accepts ``null`` is documented as ``anyOf`` with ``{"type": "null"}`` instead of with ``nullable: true``.
-* Changed: A response with status code ``422`` still reports each validation error with the keys ``type``, ``loc``, and ``msg``,
+* Breaking change: A response with status code ``422`` still reports each validation error with the keys ``type``, ``loc``, and ``msg``,
   but their values have changed, for example ``"type": "missing"`` and ``"msg": "Field required"``
   instead of ``"type": "value_error.missing"`` and ``"msg": "field required"``.
   Messages of the Kelvin REST API's checks start with ``Value error,``.
-* Changed: The validation of requests is stricter.
+* Breaking change: The validation of requests is stricter.
   A boolean is no longer accepted for a string property, for example ``"record_uid": true``,
-  and an empty string or list is no longer accepted for ``udm_properties``, ``school_classes``, or ``workgroups``.
+  and ``udm_properties``, ``school_classes``, and ``workgroups`` only accept an object, no longer an empty string or a list.
   These requests are answered with status code ``422``.
-* Changed: The ``sub`` claim of the access token contains the username as a string, as RFC 7519 requires.
+* Breaking change: The ``sub`` claim of the access token contains the username as a string, as RFC 7519 requires.
   The other user information, ``kelvin_admin``, ``kelvin_reader``, ``schools``, and ``roles``, moved from ``sub`` to claims of their own.
   Clients that only send the token, like the Kelvin REST API client, don't need any change.
   Scripts that decode the token and read ``sub`` have to read these claims instead.
