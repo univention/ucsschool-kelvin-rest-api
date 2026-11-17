@@ -94,6 +94,7 @@ repos:
                  |^kelvin-api/usr/share/ucs-school-import/configs/kelvin_defaults[.]json$\
                  |^kelvin-api/static/swagger-ui-.*\
                  |^kelvin-api/static/redoc[.]standalone-.*\
+                 |^kelvin-connector/src/kelvin_connector/ccf_templates/provisioning/.*[.]j2$\
                  |^kelvin-connector/src/kelvin_connector/py[.]typed$\
                  |^ucsschool-objects/src/ucsschool_objects/core/py[.]typed$\
                  |^ucsschool-objects/src/ucsschool_objects/py[.]typed$\

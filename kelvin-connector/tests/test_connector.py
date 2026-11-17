@@ -5,7 +5,12 @@ from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
-from kelvin_connector.connector import DEFAULT_TASK_TIMEOUT, build_runner
+from kelvin_connector.connector import (
+    DEFAULT_KELVIN_HEALTH_URL,
+    DEFAULT_TASK_TIMEOUT,
+    ConnectorSetupError,
+    build_runner,
+)
 from kelvin_connector.tasks import TaskRunner
 
 
@@ -13,10 +18,17 @@ from kelvin_connector.tasks import TaskRunner
 def good_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LDAP_SERVER_TYPE", "master")
     monkeypatch.delenv("KELVIN_CONNECTOR_TASK_TIMEOUT", raising=False)
+    monkeypatch.delenv("KELVIN_HEALTH_URL", raising=False)
 
 
 @pytest.fixture
-def mocked_setup() -> Iterator[MagicMock]:
+def urlopen() -> Iterator[MagicMock]:
+    with patch("kelvin_connector.connector.urllib.request.urlopen") as p_urlopen:
+        yield p_urlopen
+
+
+@pytest.fixture
+def mocked_setup(urlopen: MagicMock) -> Iterator[MagicMock]:
     with (
         patch("kelvin_connector.connector.build_settings") as p_settings,
         patch("kelvin_connector.connector.build_engine") as p_engine,
@@ -25,48 +37,50 @@ def mocked_setup() -> Iterator[MagicMock]:
         patch("kelvin_connector.connector.AsyncioLoopThread") as p_loop,
     ):
         yield MagicMock(
-            settings=p_settings, engine=p_engine, storage=p_storage, sync=p_sync, loop=p_loop
+            settings=p_settings,
+            engine=p_engine,
+            storage=p_storage,
+            sync=p_sync,
+            loop=p_loop,
+            urlopen=urlopen,
         )
 
 
-def test_build_runner_exits_when_ldap_server_type_is_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("LDAP_SERVER_TYPE", raising=False)
-    with pytest.raises(SystemExit) as exc_info:
-        build_runner()
-    assert exc_info.value.code == 1
-
-
-def test_build_runner_exits_when_ldap_server_type_is_not_master(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("LDAP_SERVER_TYPE", "backup")
-    with pytest.raises(SystemExit) as exc_info:
-        build_runner()
-    assert exc_info.value.code == 1
-
-
-def test_build_runner_exits_when_unknown_log_level_is_present(
-    good_env: None, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("server_type", [None, "backup"])
+def test_build_runner_refuses_to_run_outside_the_primary(
+    monkeypatch: pytest.MonkeyPatch, mocked_setup: MagicMock, server_type: str | None
 ) -> None:
-    monkeypatch.setenv("KELVIN_CONNECTOR_LOG_LEVEL", "DOESNOTEXIST")
-    with pytest.raises(SystemExit) as exc_info:
+    if server_type is None:
+        monkeypatch.delenv("LDAP_SERVER_TYPE", raising=False)
+    else:
+        monkeypatch.setenv("LDAP_SERVER_TYPE", server_type)
+
+    with pytest.raises(ConnectorSetupError, match="only runs on the Primary"):
         build_runner()
-    assert exc_info.value.code == 1
+    mocked_setup.loop.return_value.start.assert_not_called()
 
 
 @pytest.mark.parametrize("timeout", ["abc", "0", "-5"])
-def test_build_runner_exits_when_task_timeout_is_invalid(
+def test_build_runner_rejects_an_invalid_task_timeout(
     good_env: None, monkeypatch: pytest.MonkeyPatch, timeout: str
 ) -> None:
     monkeypatch.setenv("KELVIN_CONNECTOR_TASK_TIMEOUT", timeout)
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(ConnectorSetupError, match="KELVIN_CONNECTOR_TASK_TIMEOUT"):
         build_runner()
-    assert exc_info.value.code == 1
 
 
-def test_build_runner_exits_when_build_settings_raises(good_env: None) -> None:
+def test_build_runner_propagates_invalid_db_settings(good_env: None) -> None:
     with patch("kelvin_connector.connector.build_settings", side_effect=RuntimeError("bad config")):
-        with pytest.raises(SystemExit) as exc_info:
+        with pytest.raises(RuntimeError, match="bad config"):
             build_runner()
-    assert exc_info.value.code == 1
+
+
+def test_build_runner_waits_for_kelvin(good_env: None, mocked_setup: MagicMock) -> None:
+    mocked_setup.urlopen.side_effect = OSError("connection refused")
+
+    with pytest.raises(ConnectorSetupError, match="Kelvin is not ready yet"):
+        build_runner()
+    mocked_setup.loop.return_value.start.assert_not_called()
 
 
 def test_build_runner_wires_the_sync_manager_and_starts_the_loop_thread(
@@ -75,6 +89,7 @@ def test_build_runner_wires_the_sync_manager_and_starts_the_loop_thread(
     runner = build_runner()
 
     assert isinstance(runner, TaskRunner)
+    assert mocked_setup.urlopen.call_args.args == (DEFAULT_KELVIN_HEALTH_URL,)
     mocked_setup.engine.assert_called_once_with(mocked_setup.settings.return_value)
     mocked_setup.storage.assert_called_once_with(mocked_setup.engine.return_value)
     mocked_setup.loop.return_value.start.assert_called_once_with()
@@ -83,9 +98,11 @@ def test_build_runner_wires_the_sync_manager_and_starts_the_loop_thread(
     assert runner.timeout == DEFAULT_TASK_TIMEOUT
 
 
-def test_build_runner_reads_the_task_timeout(
+def test_build_runner_reads_the_task_timeout_and_health_url(
     good_env: None, mocked_setup: MagicMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("KELVIN_CONNECTOR_TASK_TIMEOUT", "12.5")
+    monkeypatch.setenv("KELVIN_HEALTH_URL", "http://kelvin:8911/health")
 
     assert build_runner().timeout == 12.5
+    assert mocked_setup.urlopen.call_args.args == ("http://kelvin:8911/health",)

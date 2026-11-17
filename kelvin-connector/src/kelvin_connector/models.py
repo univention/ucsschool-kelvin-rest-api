@@ -1,11 +1,13 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import logging
 from datetime import date
 from typing import Annotated, Iterable
 
-from loguru import logger
 from pydantic import UUID1, UUID4, BaseModel, BeforeValidator, ConfigDict, Field, field_validator
+
+logger = logging.getLogger(__name__)
 
 # ── Per-type properties models ────────────────────────────────────────────────
 
@@ -45,7 +47,7 @@ def _parse_ucsschool_roles(values: Iterable[str | UcsschoolRole]) -> list[str]:
         try:
             roles.append(_parse_ucsschool_role_item(item))
         except ValueError:
-            logger.warning("Ignoring malformed ucsschool role string {!r}", item)
+            logger.warning("Ignoring malformed ucsschool role string %r", item)
     return roles
 
 
@@ -114,9 +116,6 @@ class SchoolProperties(BaseModel):
 
 class EventPayload(BaseModel):
     dn: str = Field(..., min_length=1)
-    id: str
-    position: str
-    object_type: str = Field(..., alias="objectType")
     model_config = ConfigDict(extra="allow")
 
 
@@ -133,16 +132,15 @@ class SchoolPayload(EventPayload):
 
 
 class DeletedObjectProperties(BaseModel):
-    """Properties of a deleted object — only the identifier is required.
+    """Properties of a deleted object, built from the CCF delete task.
 
-    The rest of a deleted object's state may be malformed (it may even be the
-    reason it was deleted) and must not prevent removing it from the cache:
-    a dropped delete event leaves a stale row that no future event can ever
-    repair.
+    A delete task carries no properties, only the object ID (the
+    `univentionObjectIdentifier`) and the DN. `name` is set for DC host
+    groups only: they are not stored as objects in the Kelvin DB, their name
+    (the leaf cn of the DN) identifies the school whose servers to clear.
     """
 
     univentionObjectIdentifier: UOID
-    username: str = ""
     name: str = ""
     model_config = ConfigDict(extra="allow")
 
@@ -155,8 +153,7 @@ class DeletePayload(EventPayload):
 
 
 class EventBase(BaseModel):
-    timestamp: str
-    sequence_number: int
+    pass
 
 
 class UserCreateEvent(EventBase):
@@ -216,4 +213,5 @@ class HostGroupModifyEvent(EventBase):
 
 
 class HostGroupDeleteEvent(EventBase):
-    old: HostGroupPayload
+    # The name is the leaf cn of the deleted group's DN (see tasks.py).
+    old: DeletePayload

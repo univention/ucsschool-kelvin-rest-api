@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import os
-import sys
+import urllib.request
 
-from loguru import logger
 from ucsschool_objects.core.adapters.sqlalchemy import (
     build_engine,
     build_kelvin_storage_session_factory,
@@ -12,29 +11,18 @@ from ucsschool_objects.core.adapters.sqlalchemy import (
     sqlalchemy_mapper_factory,
 )
 
+from kelvin_connector.log import install_request_id_record_factory
 from kelvin_connector.loop_thread import AsyncioLoopThread
 from kelvin_connector.sync import SynchronizationManager
 from kelvin_connector.tasks import TaskProcessor, TaskRunner
 
-LOG_LEVELS = ("TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL")
-LOG_FORMAT = (
-    "{time:YYYY-MM-DDTHH:mm:ss.SSSSSSZ} {level: <8} [{extra[request_id]: >10}] {message}"
-    "\t| module={name}:{line}"
-)
 DEFAULT_TASK_TIMEOUT = 300.0
+DEFAULT_KELVIN_HEALTH_URL = "http://api:8911/health"
+KELVIN_HEALTH_TIMEOUT = 5.0
 
 
-def _configure_logging() -> None:
-    level = os.environ.get("KELVIN_CONNECTOR_LOG_LEVEL", "DEBUG")
-    if level not in LOG_LEVELS:
-        logger.critical("Invalid log level provided: {}", level)
-        sys.exit(1)
-    logger.remove()
-    logger.configure(extra={"request_id": "-"})
-    # Bound at import time on purpose: the CCF swaps sys.stderr for its own
-    # log capture during each callback call, and logs from the loop thread
-    # must not end up in an unrelated call's capture.
-    logger.add(sys.stderr, level=level, format=LOG_FORMAT)
+class ConnectorSetupError(RuntimeError):
+    """The connector cannot start (yet); the CCF logs it and retries the setup."""
 
 
 def _task_timeout() -> float:
@@ -44,31 +32,38 @@ def _task_timeout() -> float:
     except ValueError:
         timeout = 0.0
     if timeout <= 0:
-        logger.critical("Invalid KELVIN_CONNECTOR_TASK_TIMEOUT provided: {}", raw)
-        sys.exit(1)
+        raise ConnectorSetupError(f"Invalid KELVIN_CONNECTOR_TASK_TIMEOUT provided: {raw}")
     return timeout
 
 
-def build_runner() -> TaskRunner:
-    """Set up everything the CCF callback needs; exit on invalid configuration.
+def _require_kelvin_ready() -> None:
+    """Kelvin migrates the Kelvin DB on start; it must be done before any write."""
+    url = os.environ.get("KELVIN_HEALTH_URL", DEFAULT_KELVIN_HEALTH_URL)
+    try:
+        with urllib.request.urlopen(url, timeout=KELVIN_HEALTH_TIMEOUT):  # noqa: S310 -- configured URL
+            pass
+    except OSError as exc:
+        raise ConnectorSetupError(f"Kelvin is not ready yet ({url}): {exc}") from exc
 
-    Runs while the CCF imports the callback module, so a failure here stops
-    the CCF before it fetches the first event.
+
+def build_runner() -> TaskRunner:
+    """Set up everything the CCF callback needs.
+
+    Runs while the CCF imports the callback module, before it fetches the
+    first event. A `ConnectorSetupError` (or any other exception) makes the
+    CCF log it and retry the import later, so the container stays up.
     """
-    _configure_logging()
+    # Logging needs no setup: the CCF routes the root logger into its log
+    # (level: the CCF's LOG_LEVEL).
+    install_request_id_record_factory()
 
     ldap_server_type = os.environ.get("LDAP_SERVER_TYPE")
     if ldap_server_type != "master":
-        logger.critical(f"Connector cannot run on {ldap_server_type=}.")
-        sys.exit(1)
+        raise ConnectorSetupError(f"The connector only runs on the Primary, not on {ldap_server_type=}")
 
     timeout = _task_timeout()
-
-    try:
-        settings = build_settings()
-    except RuntimeError as e:
-        logger.critical(str(e))
-        sys.exit(1)
+    settings = build_settings()
+    _require_kelvin_ready()
 
     engine = build_engine(settings)
     synchronization_manager = SynchronizationManager(

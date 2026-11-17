@@ -824,7 +824,7 @@ async def test_get_is_case_insensitive(
 @pytest.mark.asyncio
 async def test_get_empty_udm_properties_are_returned(
     auth_header,
-    retry_http_502,
+    retry_until_synced: Callable[..., Awaitable[requests.Response]],
     url_fragment,
     create_ou_using_python,
     new_import_user,
@@ -833,8 +833,12 @@ async def test_get_empty_udm_properties_are_returned(
 ):
     role: Role = random.choice(USER_ROLES)
     school = await create_ou_using_python()
+    # Created with the import library, not through Kelvin: v2 sees the user
+    # only after the connector has processed its Provisioning event.
     user: ImportUser = await new_import_user(school, role.name)
-    response = retry_http_502(requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header)
+    response = await retry_until_synced(
+        requests.get, f"{url_fragment}/users/{user.name}", headers=auth_header
+    )
     assert response.status_code == 200, response.reason
     api_user = UserModel(**response.json())
     for prop in import_config["mapped_udm_properties"]:

@@ -89,3 +89,51 @@ EOF
 }
 EOF
 }
+
+# The connector container (compose service "provisioning") reads
+# PROVISIONING_PASSWORD and DATABASE_URL from this env file. The App Center
+# starts the containers before configure_host writes the Kelvin DB credentials
+# and before the join script creates the subscription, so the preinst creates
+# the file empty and this fills it and recreates the container.
+write_connector_env() {
+    local env_file="${CONNECTOR_ENV_FILE:-/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/connector.env}"
+    local app_provisioning_config_file="${APP_PROVISIONING_CONFIG_FILE:-/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/provisioning_config.json}"
+    local kelvin_config_dir="${KELVIN_CONFIG_DIR:-/etc/ucsschool/kelvin}"
+    local compose_dir="${COMPOSE_DIR:-/var/lib/univention-appcenter/apps/$APP_ID/compose}"
+
+    if [[ "$(ucr get "server/role")" != "domaincontroller_master" ]]; then
+        echo "Not running on primary, skipping the connector configuration."
+        return 0
+    fi
+
+    local content
+    # The values are written unquoted: the password is hex and the URL is
+    # percent-encoded, so neither contains a quote, '$', '#' or whitespace.
+    content="$(python3 - "$app_provisioning_config_file" "$kelvin_config_dir" <<'PYEOF'
+import json
+import sys
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
+
+config_file, kelvin_config_dir = sys.argv[1:]
+with open(config_file) as config:
+    subscription_password = json.load(config)["subscription_password"]
+
+def read(name):
+    with open(f"{kelvin_config_dir}/postgresql-kelvin.{name}") as kelvin_db_file:
+        return kelvin_db_file.read().strip()
+
+uri = urlsplit(read("uri"))
+# The CCF keeps its tables in the schema "ccf" of the Kelvin DB.
+query = urlencode(parse_qsl(uri.query) + [("options", "-csearch_path=ccf")])
+netloc = f"{quote(read('username'), safe='')}:{quote(read('secret'), safe='')}@{uri.netloc}"
+print(f"PROVISIONING_PASSWORD={subscription_password}")
+print(f"DATABASE_URL={urlunsplit(('postgres', netloc, uri.path, query, ''))}")
+PYEOF
+)" || return 1
+
+    (umask 077 && printf '%s\n' "$content" > "$env_file") || return 1
+
+    # Only the connector: the env file is read when a container is created.
+    (cd "$compose_dir" \
+        && docker-compose -p "$APP_ID" up -d --no-build --no-deps --force-recreate provisioning)
+}

@@ -1,6 +1,10 @@
 # SPDX-FileCopyrightText: 2020-2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
+# The CCF image the Kelvin connector is built on (target connector-prod); a
+# global ARG, as it names a FROM image and fills the base.name label.
+ARG CCF_BASE_IMAGE=gitregistry.knut.univention.de/dwiesent/common-connector-framework/ccf-python-postgres:latest
+
 FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS base
 
 ARG OPENAPI_CLIENT_GENERATOR_VERSION="5.4.0"
@@ -99,77 +103,97 @@ LABEL "description"="Image of UCS app 'UCS@school Kelvin REST API' ('$app_id')."
     "APP_NAME"="ucsschool-kelvin-rest-api"
 
 
-FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS connector-builder
+# The Kelvin connector is a Common Connector Framework (CCF) image plus the
+# Kelvin callback (kelvin-connector and ucsschool-objects). The CCF image runs
+# Debian trixie's Python 3.13 on distroless Debian trixie, so the callback's
+# dependencies are installed for exactly that interpreter, as plain
+# directories on the callback path. The builder is the UCS 5.3 base image:
+# UCS 5.3 is based on trixie (same Python 3.13 and glibc 2.41) and comes from
+# Univention's registry instead of Docker Hub. python-ldap has no wheels: it
+# is compiled here against libldap, which the image then gets (see /app/lib).
+FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-530:0.25.1@sha256:25e5e183b1b4f75c64e0c697d5795a8e9c15b935453c2a64406d7d1ab40b2214 AS connector-builder
 
-WORKDIR /app
+COPY --from=ghcr.io/astral-sh/uv:0.10.10 /uv /usr/local/bin/uv
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-dev ca-certificates \
+        build-essential libldap-dev libsasl2-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-ENV UV_SYSTEM_PYTHON=1
-ENV UV_PROJECT_ENVIRONMENT="/venv"
-ENV UV_VERSION=0.10.10
-ENV PIPX_BIN_DIR="/usr/local/bin"
-
-RUN apt-get install -y build-essential python3-dev xz-utils pipx git libldap2-dev libsasl2-dev
-RUN pipx install uv=="$UV_VERSION"
-
-COPY uv.lock .
-COPY pyproject.toml .
+WORKDIR /src
+# The whole workspace: uv checks the lockfile against all members.
+COPY uv.lock pyproject.toml openapi-client-udm-1.0.2.tar.gz ./
 COPY kelvin-api ./kelvin-api
 COPY ucs-school-import ./ucs-school-import
 COPY ucs-school-lib ./ucs-school-lib
 COPY univention-directory-manager-modules-slim ./univention-directory-manager-modules-slim
 COPY univention-lib-slim ./univention-lib-slim
-COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucsschool-objects ./ucsschool-objects
 COPY kelvin-connector ./kelvin-connector
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
+# Third-party dependencies only: the workspace packages are copied as source
+# (see connector-prod), so a dev setup can sync them into a running container.
+RUN uv export --frozen --package kelvin-connector --no-dev --no-emit-workspace --output-file requirements.txt \
+    && uv pip install --python /usr/bin/python3 --target /app/site-packages --requirement requirements.txt
+# The shared libraries the compiled dependencies link against (libldap,
+# liblber, libsasl2, ...), minus glibc, which the CCF image has, and minus
+# the libraries wheels vendor next to their modules.
+RUN mkdir -p /app/lib \
+    && find /app/site-packages -name "*.so" -exec ldd {} + \
+        | awk '$2 == "=>" && $3 ~ /^\// {print $3}' | sort -u \
+        | grep -v '^/app/' \
+        | grep -vE '/(libc|libm|libpthread|libdl|librt|ld-linux-x86-64)\.so' \
+        | xargs -I{} cp -L {} /app/lib/
+# The CCF binary under the connector's name (it names itself after argv[0]);
+# a symlink, as the distroless CCF image has no shell to rename it.
+RUN mkdir -p /app/bin && ln -s ccf /app/bin/kelvin-connector
 
-RUN uv --directory ./kelvin-connector sync --locked
 
-# The Common Connector Framework (submodule) that runs the connector. Built on
-# the same base image as connector-prod: pyo3 links against the Python that
-# runs the callback there. Debian's rustc is too old for the CCF (edition 2024).
-FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS ccf-builder
+FROM ${CCF_BASE_IMAGE} AS connector-prod
 
-ARG RUST_VERSION=1.99.1
-ENV RUSTUP_HOME=/opt/rustup
-ENV CARGO_HOME=/opt/cargo
-ENV PATH="$CARGO_HOME/bin:$PATH"
+COPY --from=connector-builder /app/site-packages /app/site-packages
+COPY --from=connector-builder /app/lib /usr/lib/x86_64-linux-gnu/
+COPY --from=connector-builder /app/bin/ /usr/local/bin/
+COPY ucsschool-objects/src /app/ucsschool-objects/src
+COPY kelvin-connector/src /app/kelvin-connector/src
 
-WORKDIR /app/common-connector-framework
-
-# dash has no pipefail: without it a failed rustup download is piped into
-# `sh` as empty input and the step succeeds.
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-RUN apt-get install -y build-essential python3-dev ca-certificates curl pkg-config libssl-dev
-RUN curl --proto '=https' --tlsv1.2 --fail --silent --show-error https://sh.rustup.rs \
-    | sh -s -- -y --no-modify-path --profile minimal --default-toolchain "$RUST_VERSION"
-
-COPY common-connector-framework .
-RUN PYO3_PYTHON=python3 cargo build --release --locked --no-default-features --features postgres-python
-
-FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.4@sha256:ce6f7576cd5dd832b3be89ac83e83b9624ca9ea3560f6158bb8c4189c3409660 AS connector-prod
-ENV PYTHONUNBUFFERED=1
-ENV VIRTUAL_ENV="/venv"
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-WORKDIR /app
-
-RUN apt-get install -y libldap2-dev libpython3.11
-COPY --from=connector-builder $VIRTUAL_ENV $VIRTUAL_ENV
-COPY --from=ccf-builder /app/common-connector-framework/target/release/ccf /usr/local/bin/ccf
-# The CCF reads its migrations from db/schema relative to the working directory.
-COPY common-connector-framework/db/schema ./db/schema
-COPY docker/start-connector.sh .
-COPY alembic ./alembic
-COPY kelvin-connector ./kelvin-connector
-COPY ucsschool-objects ./ucsschool-objects
-
-ENTRYPOINT ["/app/start-connector.sh"]
-VOLUME /var/log
-VOLUME /etc/univention
+# The CCF configuration that belongs to the image. The deployment provides
+# the rest: PROVISIONING_HOSTNAME, PROVISIONING_NAME, PROVISIONING_PASSWORD,
+# DATABASE_URL (the Kelvin DB with `options=-csearch_path=ccf`), and for the
+# callback LDAP_SERVER_TYPE and the UCSSCHOOL_KELVIN_DB_* settings.
+ENV PYTHON_CALLBACK=kelvin_connector.ccf_callback \
+    PYTHON_CALLBACK_PATH=/app/kelvin-connector/src:/app/ucsschool-objects/src:/app/site-packages \
+    CCF_TEMPLATES_DIR=/app/kelvin-connector/src/kelvin_connector/ccf_templates \
+    MAX_ALLOWED_ERRORS=3
 
 ARG app_id
 ARG commit
 ARG date
 ARG version
+ARG KELVIN_BUILD_VERSION="999.0.0"
+ARG CCF_BASE_IMAGE
+
+# The first two lines of `ccf --help` and `ccf --version`. The CCF reads them
+# from the environment (a container cannot read its labels); the OCI labels
+# below take them from there.
+ENV CCF_TITLE="UCS@school Kelvin connector" \
+    CCF_DESCRIPTION="Keeps the Kelvin DB in sync with the Nubus Provisioning events and manages its task queue." \
+    CCF_VERSION="$KELVIN_BUILD_VERSION"
+
+# The org.opencontainers.image.* labels inherited from the CCF image describe
+# the CCF build; the ones that differ for this image are overwritten.
+LABEL "description"="Image of the Kelvin connector of UCS app 'UCS@school Kelvin REST API' ('$app_id')." \
+    "version"="$version" \
+    "release date"="$date" \
+    "commit"="$commit" \
+    "APP_NAME"="ucsschool-kelvin-rest-api" \
+    org.opencontainers.image.title="$CCF_TITLE" \
+    org.opencontainers.image.description="$CCF_DESCRIPTION" \
+    org.opencontainers.image.version="$CCF_VERSION" \
+    org.opencontainers.image.created="$date" \
+    org.opencontainers.image.revision="$commit" \
+    org.opencontainers.image.source="https://git.knut.univention.de/univention/dev/education/ucsschool-kelvin-rest-api" \
+    org.opencontainers.image.base.name="$CCF_BASE_IMAGE"
+
+# The CCF image's CMD and HEALTHCHECK use the name `ccf`.
+CMD ["kelvin-connector", "run"]
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s CMD ["kelvin-connector", "healthcheck"]

@@ -166,3 +166,24 @@ ldap_output_for_versions() {
 @test "check_provisioning_service_version: default minimum is 2.2" {
   [ "$MIN_PROVISIONING_VERSION" = "2.2" ]
 }
+
+@test "create_connector_env_file creates an empty private env file" {
+  export CONNECTOR_ENV_FILE="$BATS_TEST_TMPDIR/conf/provisioning/connector.env"
+
+  run create_connector_env_file
+  [ "$status" -eq 0 ]
+
+  [ -f "$CONNECTOR_ENV_FILE" ]
+  [ ! -s "$CONNECTOR_ENV_FILE" ]
+  [ "$(stat -c %a "$CONNECTOR_ENV_FILE")" = "600" ]
+}
+
+@test "create_connector_env_file keeps an existing env file" {
+  export CONNECTOR_ENV_FILE="$BATS_TEST_TMPDIR/connector.env"
+  echo "PROVISIONING_PASSWORD=kept" > "$CONNECTOR_ENV_FILE"
+
+  run create_connector_env_file
+  [ "$status" -eq 0 ]
+
+  [ "$(cat "$CONNECTOR_ENV_FILE")" = "PROVISIONING_PASSWORD=kept" ]
+}

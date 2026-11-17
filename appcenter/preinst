@@ -133,6 +133,21 @@ sys.exit(0 if any(version >= required for version in versions) else 1)
     return 2
 }
 
+# create_connector_env_file
+#
+# Creates the env file of the connector container (compose service
+# "provisioning") empty, if it does not exist: docker-compose refuses to start
+# a service whose env_file is missing, and the join script fills it only after
+# the containers are started (see write_connector_env).
+create_connector_env_file() {
+    local env_file="${CONNECTOR_ENV_FILE:-/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/connector.env}"
+
+    mkdir -p "$(dirname "$env_file")" || return 1
+    if ! [ -e "$env_file" ]; then
+        (umask 077 && : > "$env_file") || return 1
+    fi
+}
+
 ################################################################################
 # Main logic wrapped in a function to keep sourcing side-effect free
 ################################################################################
@@ -193,6 +208,7 @@ main() {
     fi
 
     set_kelvin_docker_env_trusted_proxy_ips
+    create_connector_env_file || return 1
 
     # restart UDM REST API to ensure the OpenAPI schema is up to date
     service univention-directory-manager-rest restart
