@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import logging
 import re
 from typing import cast, final
 from uuid import UUID
 
-from loguru import logger
-from provisioning_consumer_lib.dn import DN
 from pydantic import BaseModel
 from typing_extensions import override
 from ucsschool_objects import (
@@ -32,6 +31,8 @@ from ucsschool_objects import (
     track_changes,
 )
 
+from kelvin_connector.dn import rdns
+from kelvin_connector.log import TRACE
 from kelvin_connector.models import (
     GroupCreateEvent,
     GroupDeleteEvent,
@@ -52,6 +53,8 @@ from kelvin_connector.models import (
 )
 from kelvin_connector.ports import DNIDMapperFactory, SynchronizationManagerProtocol
 from kelvin_connector.tasks import HOST_GROUP_NAME_RE
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_NUBUS_SOURCE_UID = "nubus"
 
@@ -94,7 +97,7 @@ def _server_hostname(value: str | None) -> str | None:
     """
     if not value:
         return None
-    return DN(value).rdn[1] if "=" in value else value
+    return rdns(value)[0][1] if "=" in value else value
 
 
 def _udm_properties(properties: BaseModel) -> dict[str, object]:
@@ -129,9 +132,7 @@ def _is_unsyncable_group_dn(dn: str) -> bool:
     if ",cn=ouadmins," in dn.lower():
         return True
     try:
-        parsed = DN(dn)
-        cn = parsed.rdn[1]
-        parent = parsed.parent
+        parsed = rdns(dn)
     except ValueError:
         return False  # unparseable DN: keep it, let the mapper decide
     # Domain Users and the OU role groups sit directly under the OU's
@@ -139,9 +140,10 @@ def _is_unsyncable_group_dn(dn: str) -> bool:
     # (under "cn=klassen" / "cn=schueler"), so also requiring the container
     # keeps a class/workgroup whose (relatively arbitrary) name happens to
     # start with one of these prefixes from being skipped.
-    if parent is None:
+    if len(parsed) < 2:
         return False
-    parent_attr, parent_value = parent.rdn
+    cn = parsed[0][1]
+    parent_attr, parent_value = parsed[1]
     if (parent_attr.lower(), parent_value.lower()) != ("cn", "groups"):
         return False
     return cn.startswith(_UNSYNCABLE_GROUP_CN_PREFIXES)
@@ -174,14 +176,14 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         missing_dns = [dn for dn in dns if dn not in dn_to_id]
         if missing_dns:
             logger.info(
-                "{} of {} {}(s) not yet in mapper, skipping those references",
+                "%s of %s %s(s) not yet in mapper, skipping those references",
                 len(missing_dns),
                 len(dns),
                 log_label,
             )
             for dn in missing_dns:
                 logger.debug(
-                    "{} DN {!r} not yet in mapper, skipping reference; "
+                    "%s DN %r not yet in mapper, skipping reference; "
                     + "the link is established when its own event arrives",
                     log_label,
                     dn,
@@ -207,8 +209,8 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         missing_ids = sorted(set(known_ids) - found_ids)
         if missing_ids:
             logger.warning(
-                "{} of {} {}(s) mapped but the user object is not in the Kelvin Database; "
-                + "skipping: {}",
+                "%s of %s %s(s) mapped but the user object is not in the Kelvin Database; "
+                + "skipping: %s",
                 len(missing_ids),
                 len(known_ids),
                 label,
@@ -226,7 +228,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         syncable_dns: list[str] = []
         for dn in dns:
             if _is_unsyncable_group_dn(dn):
-                logger.trace("Skipping unsyncable {} reference {!r}", label, dn)
+                logger.log(TRACE, "Skipping unsyncable %s reference %r", label, dn)
             else:
                 syncable_dns.append(dn)
         known_ids = await self._dns_to_known_ids(mapper, ObjectType.GROUP, syncable_dns, label)
@@ -241,8 +243,8 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         missing_ids = sorted(set(known_ids) - found_ids)
         if missing_ids:
             logger.warning(
-                "{} of {} {}(s) mapped but the group object is not in the Kelvin Database; "
-                + "skipping: {}",
+                "%s of %s %s(s) mapped but the group object is not in the Kelvin Database; "
+                + "skipping: %s",
                 len(missing_ids),
                 len(known_ids),
                 label,
@@ -290,14 +292,15 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         missing_ids = sorted(set(known_ids) - found_ids)
         if missing_ids:
             logger.info(
-                "{} of {} member(s) have no membership for school {!r} yet, skipping",
+                "%s of %s member(s) have no membership for school %r yet, skipping",
                 len(missing_ids),
                 len(known_ids),
                 school.name,
             )
         for missing_id in missing_ids:
-            logger.trace(
-                "Member {} has no membership for school {!r} (yet), skipping; "
+            logger.log(
+                TRACE,
+                "Member %s has no membership for school %r (yet), skipping; "
                 + "the link is established when the member's own event arrives",
                 missing_id,
                 school.name,
@@ -323,7 +326,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         missing_names = sorted(role_names - {r.name for r in roles})
         if missing_names:
             logger.debug(
-                "Role(s) {!r} not found in the Kelvin Database, skipping those references", missing_names
+                "Role(s) %r not found in the Kelvin Database, skipping those references", missing_names
             )
         return roles
 
@@ -360,7 +363,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         if primary_id is None and schools:
             primary_id = schools[0].public_id
             logger.debug(
-                "No school matched the DN's primary OU {!r}; using {!r} as primary",
+                "No school matched the DN's primary OU %r; using %r as primary",
                 primary_school,
                 schools[0].name,
             )
@@ -423,7 +426,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         self, event: UserCreateEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
         user_props = event.new.properties
-        logger.debug("User {!r} has school property: {!r}", user_props.username, user_props.school)
+        logger.debug("User %r has school property: %r", user_props.username, user_props.school)
         if user_props.school:
             schools = list(
                 await storage.schools.search(
@@ -440,13 +443,13 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             schools = []
         if not schools:
             logger.warning(
-                "School(s) {!r} not found for user {!r}, dropping event",
+                "School(s) %r not found for user %r, dropping event",
                 user_props.school,
                 user_props.username,
             )
             return
         logger.debug(
-            "Found {} school(s) for user {!r}: {!r}",
+            "Found %s school(s) for user %r: %r",
             len(schools),
             user_props.username,
             [s.name for s in schools],
@@ -488,10 +491,10 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 )
             )
             await mapper.set_mapping(ObjectType.USER, event.new.dn, public_id)
-            logger.info("User {!r} created (public_id={})", user_props.username, public_id)
+            logger.info("User %r created (public_id=%s)", user_props.username, public_id)
         else:
             logger.info(
-                "User {!r} already exists on create event, updating (public_id={})",
+                "User %r already exists on create event, updating (public_id=%s)",
                 user_props.username,
                 public_id,
             )
@@ -507,11 +510,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             if patch:
                 await storage.users.modify(public_id, patch)
                 logger.info(
-                    "User {!r} modified from create event (public_id={})", user_props.username, public_id
+                    "User %r modified from create event (public_id=%s)", user_props.username, public_id
                 )
             else:
                 logger.debug(
-                    "No changes for user {!r} from create event (public_id={})",
+                    "No changes for user %r from create event (public_id=%s)",
                     user_props.username,
                     public_id,
                 )
@@ -522,33 +525,31 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             await storage.users.delete(public_id)
         except NotFound:
             logger.info(
-                "User {!r} not found on delete event, ignoring (public_id={})",
-                event.old.properties.username,
+                "User %r not found on delete event, ignoring (public_id=%s)",
+                event.old.dn,
                 public_id,
             )
             return
-        logger.info("User {!r} deleted (public_id={})", event.old.properties.username, public_id)
+        logger.info("User %r deleted (public_id=%s)", event.old.dn, public_id)
 
     async def _handle_user_modify(
         self, event: UserModifyEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
         user_props = event.new.properties
         public_id = user_props.univentionObjectIdentifier
-        logger.debug("Updating user {!r} (public_id={})", user_props.username, public_id)
+        logger.debug("Updating user %r (public_id=%s)", user_props.username, public_id)
         try:
             current_user = await storage.users.get(public_id, load=LoadSpec.from_model(User))
         except NotFound:
             # The user's create event was lost or dropped — the modify event
             # carries the full desired state, so repair the gap by creating.
             logger.warning(
-                "User {!r} not found on modify event, creating (public_id={})",
+                "User %r not found on modify event, creating (public_id=%s)",
                 user_props.username,
                 public_id,
             )
             await self._handle_user_create(
                 UserCreateEvent(
-                    timestamp=event.timestamp,
-                    sequence_number=event.sequence_number,
                     new=event.new,
                 ),
                 storage,
@@ -596,10 +597,10 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         patch = tracker.patch
         if patch:
             await storage.users.modify(public_id, patch)
-            logger.info("User {!r} modified (public_id={})", user_props.username, public_id)
+            logger.info("User %r modified (public_id=%s)", user_props.username, public_id)
         else:
             logger.debug(
-                "No changes for user {!r} (public_id={}), skipping modify",
+                "No changes for user %r (public_id=%s), skipping modify",
                 user_props.username,
                 public_id,
             )
@@ -655,7 +656,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             if group_props.ucsschoolRole
             else group_name.split("-")[0]
         )
-        logger.debug("Looking up school {!r} for group {!r}", school_name, group_name)
+        logger.debug("Looking up school %r for group %r", school_name, group_name)
 
         found_schools = list(
             await storage.schools.search(
@@ -664,7 +665,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         )
         if not found_schools:
             logger.warning(
-                "School {!r} not found for group {!r}, dropping event",
+                "School %r not found for group %r, dropping event",
                 school_name,
                 group_name,
             )
@@ -687,7 +688,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         try:
             current_group = await storage.groups.get(public_id, load=LoadSpec.from_model(Group))
         except NotFound:
-            logger.debug("Creating group {!r} (public_id={})", group_props.name, public_id)
+            logger.debug("Creating group %r (public_id=%s)", group_props.name, public_id)
             await storage.groups.create(
                 Group(
                     public_id=public_id,
@@ -711,10 +712,10 @@ class SynchronizationManager(SynchronizationManagerProtocol):
                 )
             )
             await mapper.set_mapping(ObjectType.GROUP, event.new.dn, public_id)
-            logger.info("Group {!r} created (public_id={})", group_props.name, public_id)
+            logger.info("Group %r created (public_id=%s)", group_props.name, public_id)
         else:
             logger.info(
-                "Group {!r} already exists on create event, updating (public_id={})",
+                "Group %r already exists on create event, updating (public_id=%s)",
                 group_props.name,
                 public_id,
             )
@@ -745,11 +746,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             if patch:
                 await storage.groups.modify(public_id, patch)
                 logger.info(
-                    "Group {!r} modified from create event (public_id={})", group_props.name, public_id
+                    "Group %r modified from create event (public_id=%s)", group_props.name, public_id
                 )
             else:
                 logger.debug(
-                    "No changes for group {!r} from create event (public_id={})",
+                    "No changes for group %r from create event (public_id=%s)",
                     group_props.name,
                     public_id,
                 )
@@ -760,33 +761,31 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             await storage.groups.delete(public_id)
         except NotFound:
             logger.info(
-                "Group {!r} not found on delete event, ignoring (public_id={})",
-                event.old.properties.name,
+                "Group %r not found on delete event, ignoring (public_id=%s)",
+                event.old.dn,
                 public_id,
             )
             return
-        logger.info("Group {!r} deleted (public_id={})", event.old.properties.name, public_id)
+        logger.info("Group %r deleted (public_id=%s)", event.old.dn, public_id)
 
     async def _handle_group_modify(
         self, event: GroupModifyEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
         group_props = event.new.properties
         public_id = group_props.univentionObjectIdentifier
-        logger.debug("Updating group {!r} (public_id={})", group_props.name, public_id)
+        logger.debug("Updating group %r (public_id=%s)", group_props.name, public_id)
         try:
             current_group = await storage.groups.get(public_id, load=LoadSpec.from_model(Group))
         except NotFound:
             # The group's create event was lost or dropped — the modify event
             # carries the full desired state, so repair the gap by creating.
             logger.warning(
-                "Group {!r} not found on modify event, creating (public_id={})",
+                "Group %r not found on modify event, creating (public_id=%s)",
                 group_props.name,
                 public_id,
             )
             await self._handle_group_create(
                 GroupCreateEvent(
-                    timestamp=event.timestamp,
-                    sequence_number=event.sequence_number,
                     new=event.new,
                 ),
                 storage,
@@ -851,10 +850,10 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         patch = tracker.patch
         if patch:
             await storage.groups.modify(public_id, patch)
-            logger.info("Group {!r} modified (public_id={})", group_props.name, public_id)
+            logger.info("Group %r modified (public_id=%s)", group_props.name, public_id)
         else:
             logger.debug(
-                "No changes for group {!r} (public_id={}), skipping modify", group_props.name, public_id
+                "No changes for group %r (public_id=%s), skipping modify", group_props.name, public_id
             )
 
     def _apply_group_changes(
@@ -927,12 +926,12 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         except NotFound:
             await storage.schools.create(school)
             await mapper.set_mapping(ObjectType.SCHOOL, event.new.dn, public_id)
-            logger.info("School {!r} created (public_id={})", school_props.name, public_id)
+            logger.info("School %r created (public_id=%s)", school_props.name, public_id)
         else:
             school_props = event.new.properties
             public_id = school_props.univentionObjectIdentifier
             logger.info(
-                "School {!r} already exists on create event, updating (public_id={})",
+                "School %r already exists on create event, updating (public_id=%s)",
                 school_props.name,
                 public_id,
             )
@@ -950,11 +949,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             if patch:
                 await storage.schools.modify(public_id, patch)
                 logger.info(
-                    "School {!r} modified from create event (public_id={})", school_props.name, public_id
+                    "School %r modified from create event (public_id=%s)", school_props.name, public_id
                 )
             else:
                 logger.debug(
-                    "No changes for school {!r} from create event (public_id={})",
+                    "No changes for school %r from create event (public_id=%s)",
                     school_props.name,
                     public_id,
                 )
@@ -967,33 +966,31 @@ class SynchronizationManager(SynchronizationManagerProtocol):
             await storage.schools.delete(public_id)
         except NotFound:
             logger.info(
-                "School {!r} not found on delete event, ignoring (public_id={})",
-                event.old.properties.name,
+                "School %r not found on delete event, ignoring (public_id=%s)",
+                event.old.dn,
                 public_id,
             )
             return
-        logger.info("School {!r} deleted (public_id={})", event.old.properties.name, public_id)
+        logger.info("School %r deleted (public_id=%s)", event.old.dn, public_id)
 
     async def _handle_school_modify(
         self, event: SchoolModifyEvent, storage: KelvinStorageSession, mapper: DNIDMapper
     ) -> None:
         school_props = event.new.properties
         public_id = school_props.univentionObjectIdentifier
-        logger.debug("Updating school {!r} (public_id={})", school_props.name, public_id)
+        logger.debug("Updating school %r (public_id=%s)", school_props.name, public_id)
         try:
             current_school = await storage.schools.get(public_id)
         except NotFound:
             # The school's create event was lost or dropped — the modify event
             # carries the full desired state, so repair the gap by creating.
             logger.warning(
-                "School {!r} not found on modify event, creating (public_id={})",
+                "School %r not found on modify event, creating (public_id=%s)",
                 school_props.name,
                 public_id,
             )
             await self._handle_school_create(
                 SchoolCreateEvent(
-                    timestamp=event.timestamp,
-                    sequence_number=event.sequence_number,
                     new=event.new,
                 ),
                 storage,
@@ -1016,10 +1013,10 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         patch = tracker.patch
         if patch:
             await storage.schools.modify(public_id, patch)
-            logger.info("School {!r} modified (public_id={})", school_props.name, public_id)
+            logger.info("School %r modified (public_id=%s)", school_props.name, public_id)
         else:
             logger.debug(
-                "No changes for school {!r} (public_id={}), skipping modify",
+                "No changes for school %r (public_id=%s), skipping modify",
                 school_props.name,
                 public_id,
             )
@@ -1036,14 +1033,14 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         self, event: HostGroupModifyEvent | HostGroupCreateEvent, storage: KelvinStorageSession
     ) -> None:
         logger.debug(
-            "Processing host group {!r} with {} host(s)",
+            "Processing host group %r with %s host(s)",
             event.new.properties.name,
             len(event.new.properties.hosts),
         )
         # The host group lists its members by DN; the cache stores server
         # hostnames (the leaf cn), matching what the v1 API resolves via
         # computer_dn2name. Otherwise schools would expose raw DNs.
-        hosts = {DN(host).rdn[1] for host in event.new.properties.hosts}
+        hosts = {rdns(host)[0][1] for host in event.new.properties.hosts}
         await self._set_school_servers(event.new.properties.name, hosts, storage)
 
     async def _set_school_servers(
@@ -1058,9 +1055,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         if m is None:
             raise SynchronizationException(f"Unexpected host group name {group_name!r}.")
 
-        group_type = m.group(2)
+        # Case-insensitive: on a delete, the name comes from the CCF's
+        # normalized (lower case) DN.
+        group_type = m.group(2).lower()
         school_name = m.group(1)
-        kind = "educational" if group_type == "Edukativnetz" else "administrative"
+        kind = "educational" if group_type == "edukativnetz" else "administrative"
 
         schools = list(
             await storage.schools.search(
@@ -1070,7 +1069,7 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         if not schools:
             if missing_school_ok:
                 logger.debug(
-                    "School {!r} not in the Kelvin Database, nothing to clear for host group",
+                    "School %r not in the Kelvin Database, nothing to clear for host group",
                     school_name,
                 )
                 return
@@ -1079,12 +1078,12 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         if isinstance(school.public_id, UnsetType):
             raise ValueError(f"Unexpected UnsetType in {school}")
 
-        logger.debug("Setting {} servers for school {!r} to {}", kind, school_name, sorted(hosts))
+        logger.debug("Setting %s servers for school %r to %s", kind, school_name, sorted(hosts))
         with track_changes(school) as tracker:
             match group_type:
-                case "Edukativnetz":
+                case "edukativnetz":
                     school.educational_servers = hosts
-                case "Verwaltungsnetz":
+                case "verwaltungsnetz":
                     school.administrative_servers = hosts
                 case _:  # pragma: no cover
                     raise SynchronizationException("Unreachable code reached.")
@@ -1093,11 +1092,11 @@ class SynchronizationManager(SynchronizationManagerProtocol):
         if patch:
             await storage.schools.modify(school.public_id, patch)
             logger.info(
-                "Updated {} servers for school {!r} (public_id={})", kind, school_name, school.public_id
+                "Updated %s servers for school %r (public_id=%s)", kind, school_name, school.public_id
             )
         else:
             logger.debug(
-                "No changes for {} servers of school {!r} (public_id={}), skipping modify",
+                "No changes for %s servers of school %r (public_id=%s), skipping modify",
                 kind,
                 school_name,
                 school.public_id,

@@ -38,8 +38,9 @@ def test_run_propagates_exceptions(loop_thread: AsyncioLoopThread) -> None:
     async def fail() -> None:
         raise ValueError("boom")
 
+    coroutine = fail()
     with pytest.raises(ValueError, match="boom"):
-        loop_thread.run(fail())
+        loop_thread.run(coroutine)
 
 
 def test_run_cancels_the_coroutine_on_timeout(loop_thread: AsyncioLoopThread) -> None:
@@ -52,8 +53,9 @@ def test_run_cancels_the_coroutine_on_timeout(loop_thread: AsyncioLoopThread) ->
             cancelled.set()
             raise
 
+    coroutine = hang()
     with pytest.raises(TimeoutError):
-        loop_thread.run(hang(), timeout=0.05)
+        loop_thread.run(coroutine, timeout=0.05)
     assert cancelled.wait(5)
 
 

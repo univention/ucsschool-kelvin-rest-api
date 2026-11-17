@@ -152,22 +152,34 @@ Debug the sync flow
 ^^^^^^^^^^^^^^^^^^^
 
 * Watch the connector container's logs; raise ``KELVIN_CONNECTOR_LOG_LEVEL`` to
-  ``DEBUG`` or ``TRACE`` for per-event detail. Every event logs its
-  ``sequence_number`` ("Event N has been fetched" / "…processed successfully")
-  and skip reasons.
+  ``DEBUG`` or ``TRACE`` for per-event detail. The CCF logs every message
+  (topic, ``seq=…``, object ID and DN), "Task enqueued" and the result of each
+  task ("Monitoring entry created … SuccessCreated"); the callback logs what it
+  did or why it skipped the object.
 * Remember the connector only runs on the Primary
-  (``LDAP_SERVER_TYPE=master``); elsewhere it sleeps and does nothing.
-* Confirm the subscription is set up: the ``provisioning_config.json`` file must
-  exist in the connector's conf directory, and the ``kelvin-connector``
-  subscription must be registered and prefilled. The queue can be inspected through
+  (``LDAP_SERVER_TYPE=master``); elsewhere its setup fails on purpose and the
+  CCF keeps retrying it without doing anything.
+* Confirm the subscription is set up: the container needs
+  ``PROVISIONING_NAME`` and ``PROVISIONING_PASSWORD``. The join script writes
+  the password and ``DATABASE_URL`` to ``conf/provisioning/connector.env`` in the
+  app's directory (from ``provisioning_config.json`` and the Kelvin DB
+  credentials); if that file is empty, rerun the join script. The
+  ``kelvin-connector`` subscription must be registered and prefilled. The queue can be inspected through
   the Provisioning REST API
   (``/v1/subscriptions/kelvin-connector/messages/next``).
-* Startup gating: ``docker/start-connector.sh`` blocks until
-  ``provisioning_config.json`` and Kelvin's ``/health`` endpoint are available
-  (each with a ~120 s timeout). If the connector never seems to start, check
-  those preconditions first.
+* Startup: the CCF retries its setup, including the connector's setup
+  function, every ``SETUP_RETRY_INTERVAL`` seconds (default 30) until it
+  succeeds, logging "Setup failed; CCF keeps running and retries" with the
+  reason whenever it changes (a missing environment variable, an unreachable
+  DB, Kelvin's ``/health`` not answering yet, ...); ``kelvin-connector
+  healthcheck`` shows ``Stuck in setup: …``. The container stays up, so it can
+  be inspected while the configuration is fixed.
+* "Setup failed, restart needed": the callback module could not be imported
+  (e.g. a broken image). The CCF does not retry an import; fix the image and
+  restart the container.
 * Telltale log signatures: "not found on modify event, creating",
   "… not yet in mapper", "mapped but the … object is not in the Kelvin
-  Database", and "Dropping event N after 3 failed deliveries".
+  Database". A task that failed ``MAX_ALLOWED_ERRORS`` times (3) is moved to
+  the ``ccf.morgue`` table.
 
 See :doc:`synchronisation` for the full event flow and retry policy.

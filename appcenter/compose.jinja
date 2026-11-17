@@ -40,14 +40,28 @@ print(hostname)
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs:ro
       - /usr/share/ca-certificates:/usr/share/ca-certificates:ro
-      - /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/:ro
       - /usr/local/share/ca-certificates:/usr/local/share/ca-certificates:ro
       - /etc/ucsschool/kelvin:/etc/ucsschool/kelvin
     environment:
       REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      # The CCF image points SSL_CERT_DIR at its own, empty CA directory; the
+      # host's certificates (UCS CA and the CAs added there) are mounted above.
+      SSL_CERT_DIR: /etc/ssl/certs/
       UCSSCHOOL_KELVIN_DB_URI_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.uri
       UCSSCHOOL_KELVIN_DB_USERNAME_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.username
       UCSSCHOOL_KELVIN_DB_PASSWORD_FILE: /etc/ucsschool/kelvin/postgresql-kelvin.secret
       LDAP_SERVER_TYPE: @%@ldap/server/type@%@
-      PROVISIONING_FQDN: @%@ldap/server/name@%@
+      # The CCF configuration. PROVISIONING_PASSWORD and DATABASE_URL come from
+      # the env file below: their sources do not exist yet when the App Center
+      # renders this file on a fresh install, so the preinst creates it empty and
+      # the join script fills it and recreates this container. Until then the
+      # CCF waits and retries its setup.
+      PROVISIONING_HOSTNAME: @%@ldap/server/name@%@
+      PROVISIONING_NAME: kelvin-connector
+      # Binds the CCF schema of the Kelvin DB to this host's connector, so a
+      # second connector on the same database refuses to process its tasks.
+      # After a rename of the host: `kelvin-connector enable --force`.
+      UNIQUE_OWNER_ID: @%@hostname@%@
+    env_file:
+      - /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/connector.env

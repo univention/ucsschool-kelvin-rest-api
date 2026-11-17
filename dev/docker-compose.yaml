@@ -35,15 +35,18 @@ services:
       target: connector-prod
     volumes:
       # Secrets and certificates
-      - ./_vm_config/provisioning/:/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/:ro
       - ./_vm_config/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
       - ./_vm_config/postgresql-kelvin.secret:/etc/ucsschool/kelvin/postgresql-kelvin.secret:ro
-    stdin_open: true
-    tty: true
     environment:
       LDAP_SERVER_TYPE: "${LDAP_SERVER_TYPE}"
-      PROVISIONING_FQDN: "${LDAP_SERVER_NAME}"
+      # Instead of the CCF image's empty CA directory (see appcenter/compose.jinja).
+      SSL_CERT_DIR: /etc/ssl/certs/
       KELVIN_HEALTH_URL: "http://kelvin:8911/health"
+      PROVISIONING_HOSTNAME: "${LDAP_SERVER_NAME}"
+      PROVISIONING_NAME: "${PROVISIONING_NAME}"
+      PROVISIONING_PASSWORD: "${PROVISIONING_PASSWORD}"
+      UNIQUE_OWNER_ID: kelvin-connector-dev
+      DATABASE_URL: "postgres://ucsschool-kelvin-rest-api:univention@postgres:5432/ucsschool-kelvin-rest-api?sslmode=disable&options=-csearch_path%3Dccf"
     env_file:
       - _vm_config/env
     extra_hosts:

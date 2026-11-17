@@ -15,7 +15,7 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "The UCS patch level of the ucs-base-python image that the replacement rule below moves the Dockerfiles to",
+      "description": "The UCS patch levels of the ucs-base-python images that the replacement rules below move the Dockerfiles to (one per UCS release)",
       "managerFilePatterns": [
         "renovate.json"
       ],
@@ -47,14 +47,24 @@
       "enabled": false
     },
     {
-      "description": "Every UCS patch level has its own ucs-base-python image, so the docker manager cannot find the next one. Renovate keeps the tag and looks the digest up in the new image, and skips the replacement until the new image has that tag.",
+      "description": "Every UCS patch level has its own ucs-base-python image, so the docker manager cannot find the next one. Renovate keeps the tag and looks the digest up in the new image, and skips the replacement until the new image has that tag. UCS 5.2 (the Kelvin image).",
       "matchDatasources": [
         "docker"
       ],
       "matchPackageNames": [
-        "/^gitregistry\\.knut\\.univention\\.de/univention/dev/projects/ucs-base-image/ucs-base-python-\\d+$/"
+        "/^gitregistry\\.knut\\.univention\\.de/univention/dev/projects/ucs-base-image/ucs-base-python-52\\d+$/"
       ],
       "replacementNameTemplate": "gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527"
+    },
+    {
+      "description": "As above, for UCS 5.3 (the connector builder, which must match the Debian trixie Python of the CCF image).",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "/^gitregistry\\.knut\\.univention\\.de/univention/dev/projects/ucs-base-image/ucs-base-python-53\\d+$/"
+      ],
+      "replacementNameTemplate": "gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-530"
     }
   ]
 }

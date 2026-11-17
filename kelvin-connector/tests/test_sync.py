@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import uuid
+from typing import cast
+from unittest.mock import MagicMock
 
 import pytest
 from conftest import make_group, make_role, make_school, make_user
@@ -33,6 +35,7 @@ from kelvin_connector.models import (
 from kelvin_connector.sync import (
     DEFAULT_NUBUS_SOURCE_UID,
     SynchronizationException,
+    SynchronizationManager,
     _is_unsyncable_group_dn,
     _school_ou_from_dn,
     _udm_properties,
@@ -47,8 +50,6 @@ from ucsschool_objects.core.domain.models import (
     get_properties,
     is_loaded,
 )
-
-_TS = "2024-01-01T00:00:00"
 
 
 def _assert_fully_loaded(created):
@@ -67,8 +68,6 @@ def _assert_fully_loaded(created):
 
 
 def _user_create_event(uid, extra_props=None, dn="uid=testuser,cn=users,dc=test"):
-    id = "testuser"
-    position = "cn=users,dc=test"
     props = UserProperties.model_validate(
         dict(
             univentionObjectIdentifier=uid,
@@ -89,16 +88,11 @@ def _user_create_event(uid, extra_props=None, dn="uid=testuser,cn=users,dc=test"
     if extra_props:
         props = type(props)(**{**props.model_dump(), **extra_props})
     return UserCreateEvent(
-        timestamp=_TS,
-        sequence_number=1,
-        new=UserPayload(dn=dn, id=id, objectType="users/user", position=position, properties=props),
+        new=UserPayload(dn=dn, properties=props),
     )
 
 
 def _user_modify_event(uid, extra_props=None, dn="uid=testuser,cn=users,dc=test"):
-    id = "testuser"
-    position = "cn=users,dc=test"
-    objectType = "users/user"
     props = UserProperties.model_validate(
         dict(
             univentionObjectIdentifier=uid,
@@ -119,31 +113,21 @@ def _user_modify_event(uid, extra_props=None, dn="uid=testuser,cn=users,dc=test"
     if extra_props:
         props = type(props)(**{**props.model_dump(), **extra_props})
     return UserModifyEvent(
-        timestamp=_TS,
-        sequence_number=1,
-        new=UserPayload(dn=dn, id=id, objectType=objectType, position=position, properties=props),
+        new=UserPayload(dn=dn, properties=props),
     )
 
 
 def _user_delete_event(uid):
     return UserDeleteEvent(
-        timestamp=_TS,
-        sequence_number=1,
         old=DeletePayload(
             dn="uid=testuser,cn=users,dc=test",
-            id="testuser",
-            objectType="users/user",
-            position="cn=users,dc=test",
-            properties=DeletedObjectProperties(univentionObjectIdentifier=uid, username="testuser"),
+            properties=DeletedObjectProperties(univentionObjectIdentifier=uid),
         ),
     )
 
 
 def _group_create_event(uid, name="testschool-group", extra_props=None):
     dn = f"cn={name},cn=klassen,dc=test"
-    id = name
-    position = "cn=klassen,dc=test"
-    objectType = "groups/group"
     props = GroupProperties(
         univentionObjectIdentifier=uid,
         name=name,
@@ -157,17 +141,12 @@ def _group_create_event(uid, name="testschool-group", extra_props=None):
     if extra_props:
         props = type(props)(**{**props.model_dump(), **extra_props})
     return GroupCreateEvent(
-        timestamp=_TS,
-        sequence_number=1,
-        new=GroupPayload(dn=dn, id=id, objectType=objectType, position=position, properties=props),
+        new=GroupPayload(dn=dn, properties=props),
     )
 
 
 def _group_modify_event(uid, name="testschool-group", extra_props=None):
     dn = f"cn={name},cn=klassen,dc=test"
-    id = name
-    position = "cn=klassen,dc=test"
-    objectType = "groups/group"
     props = GroupProperties(
         univentionObjectIdentifier=uid,
         name=name,
@@ -181,9 +160,7 @@ def _group_modify_event(uid, name="testschool-group", extra_props=None):
     if extra_props:
         props = type(props)(**{**props.model_dump(), **extra_props})
     return GroupModifyEvent(
-        timestamp=_TS,
-        sequence_number=1,
-        new=GroupPayload(dn=dn, id=id, objectType=objectType, position=position, properties=props),
+        new=GroupPayload(dn=dn, properties=props),
     )
 
 
@@ -194,11 +171,7 @@ def _group_delete_event(uid, name="testschool-group"):
         name=name,
     )
     return GroupDeleteEvent(
-        timestamp=_TS,
-        sequence_number=1,
-        old=DeletePayload(
-            dn=dn, id=name, objectType="groups/group", position="cn=klassen,dc=test", properties=props
-        ),
+        old=DeletePayload(dn=dn, properties=props),
     )
 
 
@@ -212,11 +185,7 @@ def _school_create_event(uid, name="testschool", extra_props=None):
     if extra_props:
         props = type(props)(**{**props.model_dump(), **extra_props})
     return SchoolCreateEvent(
-        timestamp=_TS,
-        sequence_number=1,
-        new=SchoolPayload(
-            dn=dn, id=name, objectType="container/ou", position="dc=test", properties=props
-        ),
+        new=SchoolPayload(dn=dn, properties=props),
     )
 
 
@@ -230,11 +199,7 @@ def _school_modify_event(uid, name="testschool", extra_props=None):
     if extra_props:
         props = type(props)(**{**props.model_dump(), **extra_props})
     return SchoolModifyEvent(
-        timestamp=_TS,
-        sequence_number=1,
-        new=SchoolPayload(
-            dn=dn, id=name, objectType="container/ou", position="dc=test", properties=props
-        ),
+        new=SchoolPayload(dn=dn, properties=props),
     )
 
 
@@ -245,11 +210,7 @@ def _school_delete_event(uid, name="testschool"):
         name=name,
     )
     return SchoolDeleteEvent(
-        timestamp=_TS,
-        sequence_number=1,
-        old=DeletePayload(
-            dn=dn, id=name, objectType="container/ou", position="dc=test", properties=props
-        ),
+        old=DeletePayload(dn=dn, properties=props),
     )
 
 
@@ -262,13 +223,8 @@ def _host_group_create_event(uid, name="OUdemoschool-DC-Edukativnetz", hosts=Non
         hosts=hosts or [],
     )
     return HostGroupCreateEvent(
-        timestamp=_TS,
-        sequence_number=1,
         new=HostGroupPayload(
             dn=dn,
-            id=name,
-            objectType="groups/group",
-            position="cn=ucsschool,cn=groups,dc=test",
             properties=props,
         ),
     )
@@ -283,35 +239,21 @@ def _host_group_modify_event(uid, name="OUdemoschool-DC-Verwaltungsnetz", hosts=
         hosts=hosts or [],
     )
     return HostGroupModifyEvent(
-        timestamp=_TS,
-        sequence_number=1,
         new=HostGroupPayload(
             dn=dn,
-            id=name,
-            objectType="groups/group",
-            position="cn=ucsschool,cn=groups,dc=test",
             properties=props,
         ),
     )
 
 
-def _host_group_delete_event(uid, name="OUdemoschool-DC-Edukativnetz"):
+def _host_group_delete_event(
+    uid: uuid.UUID, name: str = "OUdemoschool-DC-Edukativnetz"
+) -> HostGroupDeleteEvent:
     dn = f"cn={name},cn=ucsschool,cn=groups,dc=test"
-    props = HostGroupProperties(
-        univentionObjectIdentifier=uid,
-        name=name,
-        description="DC host group",
-        hosts=[],
-    )
     return HostGroupDeleteEvent(
-        timestamp=_TS,
-        sequence_number=1,
-        old=HostGroupPayload(
+        old=DeletePayload(
             dn=dn,
-            id=name,
-            objectType="groups/group",
-            position="cn=ucsschool,cn=groups,dc=test",
-            properties=props,
+            properties=DeletedObjectProperties(univentionObjectIdentifier=uid, name=name),
         ),
     )
 
@@ -679,13 +621,8 @@ async def test_handle_user_create_generates_record_uid_and_source_uid(
         userexpiry=None,
     )
     event = UserCreateEvent(
-        timestamp=_TS,
-        sequence_number=1,
         new=UserPayload(
             dn="uid=autouser,cn=users,dc=test",
-            id="autouser",
-            objectType="users/user",
-            position="cn=users,dc=test",
             properties=props,
         ),
     )
@@ -748,13 +685,8 @@ async def test_handle_user_modify_skips_modify_when_patch_is_empty(manager, mock
         userexpiry=None,
     )
     event = UserModifyEvent(
-        timestamp=_TS,
-        sequence_number=1,
         new=UserPayload(
             dn="uid=testuser,dc=test",
-            id="testuser",
-            objectType="users/user",
-            position="cn=users,dc=test",
             properties=props,
         ),
     )
@@ -968,13 +900,8 @@ async def test_handle_user_modify_generates_record_uid_and_source_uid(
         userexpiry=None,
     )
     event = UserModifyEvent(
-        timestamp=_TS,
-        sequence_number=1,
         new=UserPayload(
             dn="uid=testuser,dc=test",
-            id="testuser",
-            objectType="users/user",
-            position="cn=users,dc=test",
             properties=props,
         ),
     )
@@ -1205,13 +1132,8 @@ async def test_handle_group_modify_skips_modify_when_patch_is_empty(manager, moc
         guardianMemberRoles=[],
     )
     event = GroupModifyEvent(
-        timestamp=_TS,
-        sequence_number=1,
         new=GroupPayload(
             dn="cn=testschool-group,dc=test",
-            id="testschool-group",
-            objectType="groups/group",
-            position="cn=klassen,dc=test",
             properties=props,
         ),
     )
@@ -1526,6 +1448,35 @@ async def test_handle_host_group_delete_clears_servers(manager, mock_storage, mo
     # clearing the list is expressed as element removals, never additions
     assert server_ops
     assert all(op["op"] == "remove" for op in server_ops)
+
+
+@pytest.mark.parametrize(
+    "name, field",
+    [
+        ("oudemoschool-dc-edukativnetz", "educational_servers"),
+        ("oudemoschool-dc-verwaltungsnetz", "administrative_servers"),
+    ],
+)
+async def test_handle_host_group_delete_with_a_lower_case_name(
+    manager: SynchronizationManager, mock_storage: MagicMock, name: str, field: str
+) -> None:
+    # On a delete, the name comes from the CCF's normalized (lower case) DN.
+    school = make_school("demoschool")
+    school.educational_servers = {"server1"}
+    school.administrative_servers = {"server2"}
+    schools: MagicMock = mock_storage.schools
+    schools.search.return_value = [school]
+    event = HostGroupDeleteEvent(
+        old=DeletePayload(
+            dn=f"cn={name},cn=ucsschool,cn=groups,dc=test",
+            properties=DeletedObjectProperties(univentionObjectIdentifier=uuid.uuid4(), name=name),
+        ),
+    )
+
+    await manager.handle_host_group_delete(event)
+
+    patch = cast("list[dict[str, str]]", schools.modify.call_args[0][1])
+    assert {op["path"].split("/")[1] for op in patch} == {field}
 
 
 async def test_handle_host_group_delete_ignores_missing_school(manager, mock_storage, mock_mapper):

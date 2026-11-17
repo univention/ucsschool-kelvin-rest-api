@@ -65,7 +65,7 @@ Components involved
 The relevant code locations are:
 
 * Connector source: ``kelvin-connector/src/kelvin_connector/``
-  (see ``ccf_launcher.py``, ``connector.py``, ``tasks.py``, ``sync.py``).
+  (see ``ccf_callback.py``, ``connector.py``, ``tasks.py``, ``sync.py``).
 * Storage session and domain models:
   ``ucsschool-objects/src/ucsschool_objects/``
   (see ``core/domain/``, ``core/adapters/sqlalchemy/``,
@@ -79,29 +79,74 @@ Sync architecture
 -----------------
 
 The connector is a **pure event → SQL projector**. It never reads back from UDM
-or LDAP: the Provisioning events carry the full ``new`` / ``old`` object state,
-and the connector only *writes* to the Kelvin DB through the
+or LDAP: the Provisioning events carry the full ``new`` object state, a delete
+needs only the object ID and DN, and the connector only *writes* to the Kelvin DB through the
 ``ucsschool-objects`` library.
 
-The connector runs on the Common Connector Framework (CCF),
-a Rust binary from the ``common-connector-framework`` submodule.
+The connector runs on the Common Connector Framework (CCF).
 The CCF fetches the Provisioning messages, keeps them in its own task queue
 and calls the connector's Python callback once per task.
+The connector image (Docker target ``connector-prod``) is the CCF's
+``ccf-python-postgres`` image plus the callback:
+the sources of ``kelvin-connector`` and ``ucsschool-objects``
+and their third-party dependencies, installed for the image's Python.
+The Dockerfile sets the CCF variables that belong to the image
+(``PYTHON_CALLBACK``, ``PYTHON_CALLBACK_PATH``, ``CCF_TEMPLATES_DIR``,
+``MAX_ALLOWED_ERRORS``, and ``CCF_TITLE``, ``CCF_DESCRIPTION``, ``CCF_VERSION``
+for ``kelvin-connector --help`` and ``kelvin-connector --version``);
+the deployment provides ``PROVISIONING_HOSTNAME``, ``PROVISIONING_NAME``,
+``PROVISIONING_PASSWORD``, ``DATABASE_URL``
+(the Kelvin DB with ``options=-csearch_path=ccf``)
+and ``UNIQUE_OWNER_ID``,
+plus ``LDAP_SERVER_TYPE`` and the ``UCSSCHOOL_KELVIN_DB_*`` settings for the callback.
+
+``UNIQUE_OWNER_ID`` binds the ``ccf`` schema to one connector:
+the first connector that starts records its ID as the owner,
+and a connector with another ID (or none) refuses to process the tasks
+(its setup fails with ``Disabled: …`` and is retried).
+The App sets it to the UCR variable ``hostname``.
+After the host was renamed, or to hand the schema over to another host's connector,
+stop the old connector and run ``kelvin-connector enable --force`` in the new one.
+
+The CCF verifies the TLS certificates of the Provisioning API and of PostgreSQL
+against the files named by ``SSL_CERT_FILE`` and ``SSL_CERT_DIR``.
+The CCF image sets ``SSL_CERT_DIR`` to its own, empty directory ``/etc/ccf/ca/``.
+The App mounts the host's ``/etc/ssl/certs`` into the container, as for the Kelvin container,
+and sets ``SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt`` and ``SSL_CERT_DIR=/etc/ssl/certs/``,
+so the connector trusts the UCS CA and every CA added on the host.
+
+In the App, ``PROVISIONING_PASSWORD`` and ``DATABASE_URL`` come from the environment file
+``/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/conf/provisioning/connector.env``.
+The App Center starts the containers before ``configure_host`` writes the Kelvin DB credentials
+and before the join script creates the subscription,
+so the preinst creates the file empty
+and the join script (``write_connector_env``) fills it and recreates only the connector container.
+
+The CCF never exits on a setup error:
+it logs the error and retries the whole setup every ``SETUP_RETRY_INTERVAL``
+seconds (default 30), so the container stays up and can be inspected
+while the configuration is fixed.
 The connector code is structured in layers (ports-and-adapters),
 mirroring the rest of the project:
 
-``ccf_launcher.py``
-   the process entry point (``python -m kelvin_connector.ccf_launcher``).
-   It derives the CCF configuration from the connector's one
-   (subscription credentials, Kelvin DB settings)
-   and replaces itself with the ``ccf`` binary.
-
 ``ccf_callback.py`` and ``connector.py``
    the callback module the CCF imports.
-   On import, ``build_runner()`` checks the configuration,
+   Importing it only registers its functions with ``ccf.register``
+   (the CCF does not retry a failed import, so nothing at import time may fail).
+   The setup function, ``build_connector()``, checks the configuration
+   (the connector only runs on the Primary, ``LDAP_SERVER_TYPE=master``),
+   waits for Kelvin (``KELVIN_HEALTH_URL``, default ``http://api:8911/health``:
+   Kelvin migrates the Kelvin DB on start),
    builds the SQLAlchemy engine and the ``SynchronizationManager``,
-   and starts the asyncio loop thread (``loop_thread.py``).
-   A configuration error stops the CCF before it fetches the first message.
+   and starts the asyncio loop thread (``loop_thread.py``) last.
+   If any of these fails, the CCF calls the setup function again after ``SETUP_RETRY_INTERVAL`` seconds
+   and fetches no message before it succeeded;
+   outside the Primary it keeps failing on purpose, so the connector idles.
+   The shutdown function closes the engine's connections and stops the loop thread
+   after the last task committed.
+   ``CallbackResult``, ``CcfDatabaseError``, ``Task`` and ``Consumer``
+   come from the CCF's ``ccf`` package,
+   which the CCF image embeds and the dev dependencies install for the unit tests.
 
 ``tasks.py``
    task processing:
@@ -109,6 +154,35 @@ mirroring the rest of the project:
    the dispatch by object type and operation on the asyncio loop thread,
    and the mapping of the result onto the CCF's ``CallbackResult``
    (see `Reliability`_).
+
+``ccf_templates/provisioning/``
+   CCF provisioning templates that turn each message into the task's ``attrs``:
+   ``{"dn": <DN as sent>, "properties": <new.properties>}``.
+   The CCF's own ``task["dn"]`` is normalized (converted to lower case),
+   but the Kelvin DB's DN mapping needs the DN as sent.
+   A delete arrives with empty ``attrs``.
+
+The callback uses only the CCF's own state, never the raw message:
+
+* Empty ``attrs`` is a delete.
+  Otherwise the CCF's ``old`` table (``consumer.get_old``) tells a create
+  (no ``old`` row) from a modify (an ``old`` row).
+* On success, the callback leaves only a few identifying properties
+  in ``task["attrs"]`` (``univentionObjectIdentifier``, ``name``, ``username``),
+  which the CCF stores as the object's ``old`` row.
+* A delete does not use the ``old`` table.
+  Objects synced before the connector ran on the CCF have no ``old`` row
+  (an upgrade keeps the subscription),
+  and neither do objects whose create task was replaced by the delete
+  or ended in the morgue.
+  The task's ``obj_id`` is the object's ``univentionObjectIdentifier``,
+  so users, groups and schools are deleted by it;
+  deleting an object that is not in the Kelvin DB is a no-op.
+  A DC host group is not an object in the Kelvin DB:
+  it is recognized by the leaf ``cn`` of the task's DN,
+  which is its name and identifies the school whose servers are cleared.
+  The CCF's DN is normalized to lower case,
+  so the host group name is matched case-insensitively.
 
 ``sync.py``
    ``SynchronizationManager``: the actual Kelvin DB mutations against the
@@ -125,6 +199,13 @@ so all tasks run on one long-lived loop in a daemon thread
 A task that does not finish within ``KELVIN_CONNECTOR_TASK_TIMEOUT``
 (default 300 seconds) is cancelled, which rolls back its transaction.
 
+The connector logs through Python's standard ``logging``.
+The CCF routes the root logger into its own log (Nubus format, one line per event)
+and sets the level from its ``LOG_LEVEL`` (default ``info``).
+On its own worker threads the CCF adds the task's request ID itself;
+lines logged on the asyncio loop thread get it from a context variable
+(``log.py``).
+
 Nubus interfaces
 ^^^^^^^^^^^^^^^^
 
@@ -132,8 +213,8 @@ Nubus interfaces
   The CCF long-polls the subscription queue,
   stores each message as a task in its own tables
   and acknowledges the message once the task is stored, before it is processed.
-  The tables live in the schema ``ccf`` of the Kelvin DB,
-  created by an Alembic revision; the CCF migrates them itself.
+  The tables live in the schema ``ccf`` of the Kelvin DB;
+  the CCF creates the schema and migrates its tables itself.
 * It uses **neither** the UDM REST API **nor** LDAP directly.
 
 The subscription itself is created out-of-band (not by the connector process) by
@@ -146,7 +227,8 @@ deliberate order — ``container/ou``, then ``groups/group``, then ``users/user`
 .. note::
 
    The connector only runs on the Primary Directory Node
-   (``LDAP_SERVER_TYPE=master``). On other roles its start script sleeps.
+   (``LDAP_SERVER_TYPE=master``). On other roles the callback setup fails
+   and the CCF keeps retrying it, so the container stays up but idle.
    In production it runs as its own container (compose service ``provisioning``);
    in the local dev stack it is the ``connector`` service (see
    :doc:`development`).
@@ -161,16 +243,19 @@ a newer message for the same object replaces a pending task.
 The callback reports one result per task:
 
 * **Irrelevant object** (see the relevance filter) → ``SuccessSkipped``.
-  The task is removed, the CCF keeps no state for the object.
+  The task is removed; an existing ``old`` row is kept.
 * **Processed** → ``SuccessCreated``, ``SuccessModified`` or ``SuccessDeleted``.
   The CCF also removes earlier morgue entries of the object.
-* **Malformed event** (validation error) → ``PermanentFailure``.
-  The task moves to the CCF's ``morgue`` table at once,
-  with the failing fields and messages but without their values.
+* **Failed read of the CCF's own database** (``consumer.get_old`` raises the
+  ``ccf.CcfDatabaseError``) → the exception escapes the callback.
+  The CCF retries the task right away without counting an error,
+  so an outage of the database never sends a task to the morgue.
 * **Other error or timeout** → ``Failure``.
+  A validation error reports the failing fields and messages
+  but not their values.
   The CCF retries the task with a growing delay
   and moves it to the morgue after ``MAX_ALLOWED_ERRORS`` failures
-  (default 3, set by ``ccf_launcher.py``).
+  (default 3, set in the connector image).
   A later event touching the same object replaces the task
   and repairs the state (modify-on-missing recreates the object).
 
@@ -178,6 +263,14 @@ The callback reports one result per task:
 
    The morgue is not visible through the Kelvin API yet;
    failed events show up in the connector log and in the ``ccf.morgue`` table.
+   The ``kelvin-connector`` command in the connector container
+   (the CCF binary ``ccf`` under the connector's name) inspects and repairs it,
+   e.g. ``docker exec <container> kelvin-connector summarize-morgue``,
+   ``kelvin-connector show-item --obj-id <uuid>``
+   or ``kelvin-connector retry-from-morgue --obj-id <uuid>``
+   (``kelvin-connector --help`` lists all commands).
+   ``kelvin-connector healthcheck`` is the image's Docker health check:
+   it fails when the connector has shown no sign of life for ``HEALTHCHECK_MAX_AGE`` seconds (default 600).
 
 Events
 ------
@@ -223,9 +316,9 @@ The payload models live in ``kelvin-connector/src/kelvin_connector/models.py``
 (``UserProperties``, ``GroupProperties``, ``SchoolProperties``,
 ``HostGroupProperties``). Objects are identified by their
 ``univentionObjectIdentifier`` (a UUID), which becomes the Kelvin DB's ``public_id``.
-Each event carries a timestamp and a ``sequence_number`` plus the ``new`` and
-``old`` object state. Deletes use a permissive payload that only requires the
-identifier, because a deleted object's remaining fields may be malformed.
+A create or modify carries the object's new state (DN as sent and the UDM
+properties); a delete is built from the task's object ID and DN (see
+`Sync architecture`_), in a payload that only requires the identifier.
 
 Two details worth knowing:
 

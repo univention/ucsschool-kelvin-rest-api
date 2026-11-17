@@ -89,6 +89,9 @@ dev-server: .env-configured build-docker-image setup-provisioning-subscription #
 	@echo "Starting development server..."
 	@echo "Access via http://127.0.0.1:8911/ucsschool/kelvin/"
 	@set -a && source $(VM_CONF_DIR)/env && set +a && \
+	export PROVISIONING_NAME PROVISIONING_PASSWORD && \
+	PROVISIONING_NAME=$$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["subscription_name"])' $(VM_CONF_DIR)/provisioning/provisioning_config.json) && \
+	PROVISIONING_PASSWORD=$$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["subscription_password"])' $(VM_CONF_DIR)/provisioning/provisioning_config.json) && \
 	trap 'docker compose -f dev/docker-compose.yaml down' EXIT && \
 		docker compose -f dev/docker-compose.yaml up --watch
 

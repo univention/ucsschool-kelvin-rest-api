@@ -10,6 +10,7 @@ SPDX-PackageDownloadLocation = "https://www.univention.com/products/ucsschool/"
 [[annotations]]
 path = [
     "basedpyright-baseline.json",
+    "ccf-0.1.1.tar.gz",
     "openapi-client-udm-1.0.2.tar.gz",
     "pyrightconfig.json",
     "renovate.json",
@@ -23,6 +24,7 @@ path = [
     "kelvin-api/empty_configs/user_import_http-api.json",
     "kelvin-api/empty_configs/user_import_legacy.json",
     "kelvin-api/usr/share/ucs-school-import/configs/kelvin_defaults.json",
+    "kelvin-connector/src/kelvin_connector/ccf_templates/provisioning/**.j2",
     "kelvin-connector/src/kelvin_connector/py.typed",
     "ucsschool-objects/src/ucsschool_objects/core/py.typed",
     "ucsschool-objects/src/ucsschool_objects/py.typed",

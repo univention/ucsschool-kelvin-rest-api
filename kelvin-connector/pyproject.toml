@@ -11,11 +11,8 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "loguru>=0.7.3",
-    "provisioning-consumer-lib>=0.9.9",
-    "pydantic>=2.12",
     "python-ldap>=3.4.4",
-    "requests>=2.32.4",
+    "pydantic>=2.12",
     "sqlalchemy>=2.1",
     "ucsschool-objects",
 ]
@@ -32,7 +29,7 @@ asyncio_mode = "auto"
 [tool.coverage.run]
 source = ["src/kelvin_connector"]
 branch = true
-omit = ["*/src/kelvin_connector/__init__.py", "*/src/kelvin_connector/ccf_callback.py"]
+omit = ["*/src/kelvin_connector/__init__.py"]
 
 [tool.coverage.report]
 show_missing = true
@@ -47,6 +44,7 @@ exclude_lines = [
 dev = [
     "aiosqlite>=0.22.1",
     "allure-pytest>=2.16.0",
+    "ccf",
     "pytest>=9.0.2",
     "pytest-asyncio>=0.21",
     "pytest-cov>=4.0.0",

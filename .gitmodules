@@ -4,6 +4,3 @@
 [submodule "doc/docs/sphinx-univention"]
 	path = doc/docs/sphinx-univention
 	url = git@git.knut.univention.de:univention/internal/sphinx-univention.git
-[submodule "common-connector-framework"]
-	path = common-connector-framework
-	url = git@git.knut.univention.de:sschwardt/common-connector-framework.git

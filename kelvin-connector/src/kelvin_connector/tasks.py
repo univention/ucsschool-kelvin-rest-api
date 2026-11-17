@@ -1,16 +1,31 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Process CCF tasks: decide relevance, dispatch to the synchronization manager."""
+"""Process CCF tasks: decide relevance, dispatch to the synchronization manager.
+
+The task only uses what CCF offers anyway:
+
+- ``task["attrs"]`` is ``{"dn": …, "properties": …}`` (rendered by the
+  ``ccf_templates/provisioning`` templates from the message's ``new`` side,
+  the DN as sent) on a create or modify, and ``{}`` on a delete.
+- A delete needs only the task's ``obj_id`` (the ``univentionObjectIdentifier``)
+  and ``dn``, never CCF's ``old`` table: objects synced before the CCF had an
+  ``old`` row (an upgrade keeps the subscription), or whose create task was
+  replaced by the delete or ended in the morgue, must still be deleted.
+- Whether the object of a create or modify task is new or known comes from
+  CCF's ``old`` table (``consumer.get_old``). On success the callback trims
+  ``task["attrs"]`` down to a few identifying properties, which is what CCF
+  then stores in ``old``.
+"""
 
 from __future__ import annotations
 
 import enum
+import logging
 import re
-from collections.abc import Mapping
-from dataclasses import dataclass
-from typing import Protocol, TypedDict, cast
+from collections.abc import Coroutine, Mapping
+from typing import cast
 
-from loguru import logger
+from ccf import CallbackResult, CcfDatabaseError, Consumer, Task
 from pydantic import ValidationError
 
 from kelvin_connector.models import (
@@ -33,43 +48,23 @@ from kelvin_connector.models import (
     UserPayload,
 )
 
+from .dn import rdns
+from .log import request_id_context
 from .ports import CoroutineRunnerProtocol, SynchronizationManagerProtocol
 
-HOST_GROUP_NAME_RE = re.compile(r"OU(.*)-DC-(Edukativnetz|Verwaltungsnetz)")
+logger = logging.getLogger(__name__)
 
-# A provisioning message object (`old` or `new`) as parsed JSON. It is only
-# read here; the Pydantic models in models.py validate it.
-MessageObject = Mapping[str, object]
+# Case-insensitive like the cn itself: on a delete, the name is taken from the
+# CCF's normalized (lower case) DN.
+HOST_GROUP_NAME_RE = re.compile(r"OU(.*)-DC-(Edukativnetz|Verwaltungsnetz)", re.IGNORECASE)
 
+# The properties kept in CCF's `old` table. Only the row's existence is used
+# (create or modify); the properties identify the object for an admin.
+OLD_STATE_PROPERTIES = ("univentionObjectIdentifier", "name", "username")
 
-class Task(TypedDict):
-    """The keys of a CCF task dict this module reads (see the CCF README)."""
-
-    udm_module: str
-    dn: str
-    request_id: str
-    seq_number: int
-    ts: str
-    old: MessageObject
-    new: MessageObject
-
-
-class CallbackResultClass(Protocol):  # pragma: no cover
-    """The `CallbackResult` class the CCF adds to the callback module."""
-
-    @property
-    def SuccessDeleted(self) -> object: ...
-
-    @property
-    def SuccessSkipped(self) -> object: ...
-
-    def SuccessCreated(self) -> object: ...
-
-    def SuccessModified(self) -> object: ...
-
-    def Failure(self, msg: str | None) -> object: ...
-
-    def PermanentFailure(self, msg: str | None) -> object: ...
+# `{"dn": …, "properties": …}` as parsed JSON. Only read here; the Pydantic
+# models in models.py validate it.
+Payload = Mapping[str, object]
 
 
 class ObjectType(enum.StrEnum):
@@ -78,33 +73,39 @@ class ObjectType(enum.StrEnum):
     OUS = "container/ou"
 
 
-class OutcomeKind(enum.Enum):
-    CREATED = enum.auto()
-    MODIFIED = enum.auto()
-    DELETED = enum.auto()
-    SKIPPED = enum.auto()
-    FAILURE = enum.auto()
-    PERMANENT_FAILURE = enum.auto()
+OBJECT_TYPES = frozenset(object_type.value for object_type in ObjectType)
 
 
-@dataclass(frozen=True)
-class Outcome:
-    kind: OutcomeKind
-    msg: str | None = None
+def _properties(payload: Payload) -> Mapping[str, object]:
+    properties = payload.get("properties")
+    return cast("dict[str, object]", properties) if isinstance(properties, dict) else {}
 
 
-def _filter(object_type: str, roles: list[str], seq_num: int, name: str = "") -> bool:
-    match object_type:
+def _name(payload: Payload) -> str:
+    return str(_properties(payload).get("name", ""))
+
+
+def _roles(properties: Mapping[str, object]) -> list[str]:
+    roles = properties.get("ucsschoolRole")
+    return [str(role) for role in cast("list[object]", roles)] if isinstance(roles, list) else []
+
+
+def is_relevant(udm_module: str, payload: Payload) -> bool:
+    """Whether the Kelvin DB caches the object `payload` describes."""
+    properties = _properties(payload)
+    name = str(properties.get("name", ""))
+    if "ucsschoolRole" not in properties:
+        logger.info("Skipping: no ucsschoolRole in the UDM properties, udm_module=%s", udm_module)
+        return False
+    roles = _roles(properties)
+    match udm_module:
         case ObjectType.GROUPS:
-            if any(role.startswith("school_class") or role.startswith("workgroup") for role in roles):
+            if any(role.startswith(("school_class", "workgroup")) for role in roles):
                 return True
             if HOST_GROUP_NAME_RE.match(name):
                 return True
             logger.info(
-                "Skipping event {}: Object is not a school class, work group or host group. "
-                + "object_type={}, name={}",
-                seq_num,
-                object_type,
+                "Skipping: not a school class, work group or host group, name=%s",
                 name,
             )
             return False
@@ -113,69 +114,28 @@ def _filter(object_type: str, roles: list[str], seq_num: int, name: str = "") ->
             # for the duration of an exam, then deleted). They are
             # intentionally not cached.
             if any(role.startswith("exam_user:") for role in roles):
-                logger.info(
-                    "Skipping event {}: Object is an exam user. object_type={}, name={}",
-                    seq_num,
-                    object_type,
-                    name,
-                )
+                logger.info("Skipping: exam user, name=%s", name)
                 return False
             return True
-        case ObjectType.OUS:
+        case _:  # ObjectType.OUS; other types are skipped before
             return True
-        case _:
-            logger.info(
-                "Skipping event {}: Object type is not recognized. object_type={}, name={}",
-                seq_num,
-                object_type,
-                name,
-            )
-            return False
 
 
-def _properties(side: MessageObject) -> Mapping[str, object] | None:
-    """The UDM properties of a message object; None if it has none."""
-    properties = side.get("properties")
-    if properties is None:
-        return None
-    # Present but not a mapping counts as present without any property.
-    return cast("dict[str, object]", properties) if isinstance(properties, dict) else {}
+def old_state(payload: Payload) -> dict[str, object]:
+    """The part of `payload` CCF keeps in `old`."""
+    properties = _properties(payload)
+    return {
+        "dn": payload.get("dn", ""),
+        "properties": {key: properties[key] for key in OLD_STATE_PROPERTIES if key in properties},
+    }
 
 
-def _name(side: MessageObject) -> str:
-    return str((_properties(side) or {}).get("name", ""))
-
-
-def _roles(properties: Mapping[str, object]) -> list[str]:
-    roles = properties["ucsschoolRole"]
-    return [str(role) for role in cast("list[object]", roles)] if isinstance(roles, list) else []
-
-
-def is_relevant(task: Task) -> bool:
-    object_type = task["udm_module"]
-    seq_num = task["seq_number"]
-    properties_old = _properties(task["old"])
-    properties_new = _properties(task["new"])
-    old_has_roles = properties_old is not None and "ucsschoolRole" in properties_old
-    new_has_roles = properties_new is not None and "ucsschoolRole" in properties_new
-
-    # Delete: the old roles decide. Create and modify: the new roles decide,
-    # but only if old has no properties or also has roles.
-    if old_has_roles and properties_new is None:
-        properties = properties_old
-    elif new_has_roles and (properties_old is None or old_has_roles):
-        properties = properties_new
-    else:
-        logger.info(
-            "Skipping event {}: no ucsschoolRole in old or new UDM properties, "
-            + "object_type={}, dn={}",
-            seq_num,
-            object_type,
-            (task["new"] or task["old"]).get("dn", ""),
-        )
-        return False
-    assert properties is not None
-    return _filter(object_type, _roles(properties), seq_num, str(properties.get("name", "")))
+def _leaf_value(dn: str) -> str:
+    """The value of the leaf RDN of `dn`, or "" for a malformed DN."""
+    try:
+        return rdns(dn)[0][1]
+    except (ValueError, IndexError):
+        return ""
 
 
 def _validation_summary(exc: ValidationError) -> str:
@@ -193,159 +153,84 @@ class TaskProcessor:
     def __init__(self, synchronization_manager: SynchronizationManagerProtocol) -> None:
         self.synchronization_manager: SynchronizationManagerProtocol = synchronization_manager
 
-    async def process(self, task: Task) -> Outcome:
-        with logger.contextualize(request_id=task["request_id"]):
-            try:
-                if task["old"] and task["new"]:
-                    return await self._modify(task)
-                if task["new"]:
-                    return await self._create(task)
-                return await self._remove(task)
-            except ValidationError as exc:
-                summary = _validation_summary(exc)
-                logger.error("Event {} is malformed: {}", task["seq_number"], summary)
-                return Outcome(OutcomeKind.PERMANENT_FAILURE, summary)
-
     @staticmethod
-    def _log_processed(operation: str, kind: str, payload: MessageObject, seq_num: int) -> None:
+    def _log_processed(operation: str, kind: str, payload: Payload) -> None:
         logger.info(
-            "{} {} event processed: dn={}, public_id={}, seq_num={}",
+            "%s %s event processed: dn=%s, public_id=%s",
             operation,
             kind,
             payload.get("dn", ""),
-            (_properties(payload) or {}).get("univentionObjectIdentifier", ""),
-            seq_num,
+            _properties(payload).get("univentionObjectIdentifier", ""),
         )
 
-    @staticmethod
-    def _skip_unknown_type(operation: str, task: Task) -> Outcome:
-        logger.info(
-            "Skipping {} event {}: unknown object type {}, dn={}",
-            operation,
-            task["seq_number"],
-            task["udm_module"],
-            task["dn"],
-        )
-        return Outcome(OutcomeKind.SKIPPED)
-
-    async def _create(self, task: Task) -> Outcome:
-        new = task["new"]
-        ts, seq = task["ts"], task["seq_number"]
+    async def create(self, udm_module: str, new: Payload) -> CallbackResult:
         sync = self.synchronization_manager
-        match task["udm_module"]:
+        match udm_module:
             case ObjectType.USERS:
-                await sync.handle_user_create(
-                    UserCreateEvent(
-                        timestamp=ts, sequence_number=seq, new=UserPayload.model_validate(new)
-                    )
-                )
+                await sync.handle_user_create(UserCreateEvent(new=UserPayload.model_validate(new)))
                 kind = "user"
             case ObjectType.GROUPS if HOST_GROUP_NAME_RE.match(_name(new)):
                 await sync.handle_host_group_create(
-                    HostGroupCreateEvent(
-                        timestamp=ts, sequence_number=seq, new=HostGroupPayload.model_validate(new)
-                    )
+                    HostGroupCreateEvent(new=HostGroupPayload.model_validate(new))
                 )
                 kind = "host_group"
             case ObjectType.GROUPS:
-                await sync.handle_group_create(
-                    GroupCreateEvent(
-                        timestamp=ts, sequence_number=seq, new=GroupPayload.model_validate(new)
-                    )
-                )
+                await sync.handle_group_create(GroupCreateEvent(new=GroupPayload.model_validate(new)))
                 kind = "group"
-            case ObjectType.OUS:
-                await sync.handle_school_create(
-                    SchoolCreateEvent(
-                        timestamp=ts, sequence_number=seq, new=SchoolPayload.model_validate(new)
-                    )
-                )
+            case _:  # ObjectType.OUS; other types are skipped before
+                await sync.handle_school_create(SchoolCreateEvent(new=SchoolPayload.model_validate(new)))
                 kind = "school"
-            case _:
-                return self._skip_unknown_type("create", task)
-        self._log_processed("Create", kind, new, seq)
-        return Outcome(OutcomeKind.CREATED)
+        self._log_processed("Create", kind, new)
+        return CallbackResult.SuccessCreated()
 
-    async def _modify(self, task: Task) -> Outcome:
+    async def modify(self, udm_module: str, new: Payload) -> CallbackResult:
         # A move or rename needs no special handling: the modify handlers
         # refresh the DN mapping from the event's new dn unconditionally.
-        new = task["new"]
-        ts, seq = task["ts"], task["seq_number"]
         sync = self.synchronization_manager
-        match task["udm_module"]:
+        match udm_module:
             case ObjectType.USERS:
-                await sync.handle_user_modify(
-                    UserModifyEvent(
-                        timestamp=ts, sequence_number=seq, new=UserPayload.model_validate(new)
-                    )
-                )
+                await sync.handle_user_modify(UserModifyEvent(new=UserPayload.model_validate(new)))
                 kind = "user"
             case ObjectType.GROUPS if HOST_GROUP_NAME_RE.match(_name(new)):
                 await sync.handle_host_group_modify(
-                    HostGroupModifyEvent(
-                        timestamp=ts, sequence_number=seq, new=HostGroupPayload.model_validate(new)
-                    )
+                    HostGroupModifyEvent(new=HostGroupPayload.model_validate(new))
                 )
                 kind = "host_group"
             case ObjectType.GROUPS:
-                await sync.handle_group_modify(
-                    GroupModifyEvent(
-                        timestamp=ts, sequence_number=seq, new=GroupPayload.model_validate(new)
-                    )
-                )
+                await sync.handle_group_modify(GroupModifyEvent(new=GroupPayload.model_validate(new)))
                 kind = "group"
-            case ObjectType.OUS:
-                await sync.handle_school_modify(
-                    SchoolModifyEvent(
-                        timestamp=ts, sequence_number=seq, new=SchoolPayload.model_validate(new)
-                    )
-                )
+            case _:  # ObjectType.OUS; other types are skipped before
+                await sync.handle_school_modify(SchoolModifyEvent(new=SchoolPayload.model_validate(new)))
                 kind = "school"
-            case _:
-                return self._skip_unknown_type("modify", task)
-        self._log_processed("Modify", kind, new, seq)
-        return Outcome(OutcomeKind.MODIFIED)
+        self._log_processed("Modify", kind, new)
+        return CallbackResult.SuccessModified()
 
-    async def _remove(self, task: Task) -> Outcome:
-        # Deletion only needs the identifier: the rest of a deleted object's
-        # state may be malformed and must not prevent removing it from the
-        # cache (see DeletePayload).
-        old = task["old"]
-        ts, seq = task["ts"], task["seq_number"]
+    async def delete(self, udm_module: str, obj_id: str, dn: str) -> CallbackResult:
+        # A delete task has no properties: the object ID is the identifier,
+        # and a DC host group (not an object in the Kelvin DB) is recognized
+        # by the leaf cn of its DN. Deleting an object that is not in the
+        # Kelvin DB (never synced or irrelevant) is a no-op.
         sync = self.synchronization_manager
-        match task["udm_module"]:
+        old: dict[str, object] = {"dn": dn, "properties": {"univentionObjectIdentifier": obj_id}}
+        name = _leaf_value(dn)
+        match udm_module:
             case ObjectType.USERS:
-                await sync.handle_user_delete(
-                    UserDeleteEvent(
-                        timestamp=ts, sequence_number=seq, old=DeletePayload.model_validate(old)
-                    )
-                )
+                await sync.handle_user_delete(UserDeleteEvent(old=DeletePayload.model_validate(old)))
                 kind = "user"
-            case ObjectType.GROUPS if HOST_GROUP_NAME_RE.match(_name(old)):
+            case ObjectType.GROUPS if HOST_GROUP_NAME_RE.match(name):
+                old["properties"] = {"univentionObjectIdentifier": obj_id, "name": name}
                 await sync.handle_host_group_delete(
-                    HostGroupDeleteEvent(
-                        timestamp=ts, sequence_number=seq, old=HostGroupPayload.model_validate(old)
-                    )
+                    HostGroupDeleteEvent(old=DeletePayload.model_validate(old))
                 )
                 kind = "host_group"
             case ObjectType.GROUPS:
-                await sync.handle_group_delete(
-                    GroupDeleteEvent(
-                        timestamp=ts, sequence_number=seq, old=DeletePayload.model_validate(old)
-                    )
-                )
+                await sync.handle_group_delete(GroupDeleteEvent(old=DeletePayload.model_validate(old)))
                 kind = "group"
-            case ObjectType.OUS:
-                await sync.handle_school_delete(
-                    SchoolDeleteEvent(
-                        timestamp=ts, sequence_number=seq, old=DeletePayload.model_validate(old)
-                    )
-                )
+            case _:  # ObjectType.OUS; other types are skipped before
+                await sync.handle_school_delete(SchoolDeleteEvent(old=DeletePayload.model_validate(old)))
                 kind = "school"
-            case _:
-                return self._skip_unknown_type("delete", task)
-        self._log_processed("Delete", kind, old, seq)
-        return Outcome(OutcomeKind.DELETED)
+        self._log_processed("Delete", kind, old)
+        return CallbackResult.SuccessDeleted
 
 
 class TaskRunner:
@@ -358,35 +243,55 @@ class TaskRunner:
         self.processor: TaskProcessor = processor
         self.timeout: float = timeout
 
-    def __call__(self, task: Task) -> Outcome:
-        # The loop thread does not inherit this thread's context, so
-        # TaskProcessor.process sets the request_id there again.
-        with logger.contextualize(request_id=task["request_id"]):
-            if not is_relevant(task):
-                return Outcome(OutcomeKind.SKIPPED)
-            try:
-                return self.loop_thread.run(self.processor.process(task), self.timeout)
-            except TimeoutError:
-                msg = f"processing did not finish within {self.timeout}s"
-                logger.error("Event {} failed: {}", task["seq_number"], msg)
-                return Outcome(OutcomeKind.FAILURE, msg)
-            except Exception as exc:
-                logger.opt(exception=exc).error("Event {} failed", task["seq_number"])
-                return Outcome(OutcomeKind.FAILURE, f"{type(exc).__name__}: {exc}")
+    def __call__(self, consumer: Consumer, task: Task) -> CallbackResult:
+        # The CCF logs this thread's lines with the task's request ID itself.
+        try:
+            return self._run(consumer, task)
+        except CcfDatabaseError:
+            # A failed read of the CCF's own database is not the task's fault:
+            # if it escapes, the CCF retries the task without counting an error.
+            raise
+        except ValidationError as exc:
+            # Retrying cannot fix invalid data, but CCF's error limit moves
+            # the task to the morgue after a few attempts anyway.
+            summary = _validation_summary(exc)
+            logger.error("Object %s is malformed: %s", task["obj_id"], summary)
+            return CallbackResult.Failure(summary)
+        except TimeoutError:
+            msg = f"processing did not finish within {self.timeout}s"
+            logger.error("Object %s failed: %s", task["obj_id"], msg)
+            return CallbackResult.Failure(msg)
+        except Exception as exc:
+            logger.exception("Object %s failed", task["obj_id"])
+            return CallbackResult.Failure(f"{type(exc).__name__}: {exc}")
+
+    def _run(self, consumer: Consumer, task: Task) -> CallbackResult:
+        udm_module = task["udm_module"]
+        if udm_module not in OBJECT_TYPES:
+            logger.info("Skipping object %s: unknown udm_module %s", task["obj_id"], udm_module)
+            return CallbackResult.SuccessSkipped
+        new = task["attrs"]
+        if not new:
+            # Independent of CCF's `old` table (see the module docstring).
+            return self._on_loop(task, self.processor.delete(udm_module, task["obj_id"], task["dn"]))
+        if not is_relevant(udm_module, new):
+            return CallbackResult.SuccessSkipped
+        if consumer.get_old(task["obj_id"]) is None:
+            result = self._on_loop(task, self.processor.create(udm_module, new))
+        else:
+            result = self._on_loop(task, self.processor.modify(udm_module, new))
+        # CCF stores the attrs left in the task as the object's `old` row.
+        task["attrs"] = old_state(new)
+        return result
+
+    def _on_loop(self, task: Task, coro: Coroutine[object, object, CallbackResult]) -> CallbackResult:
+        return self.loop_thread.run(_with_request_id(task["request_id"], coro), self.timeout)
 
 
-def to_callback_result(callback_result: CallbackResultClass, outcome: Outcome) -> object:
-    """Map an outcome onto the `CallbackResult` class the CCF injected."""
-    match outcome.kind:
-        case OutcomeKind.CREATED:
-            return callback_result.SuccessCreated()
-        case OutcomeKind.MODIFIED:
-            return callback_result.SuccessModified()
-        case OutcomeKind.DELETED:
-            return callback_result.SuccessDeleted
-        case OutcomeKind.SKIPPED:
-            return callback_result.SuccessSkipped
-        case OutcomeKind.FAILURE:
-            return callback_result.Failure(outcome.msg)
-        case OutcomeKind.PERMANENT_FAILURE:  # pragma: no branch (the match is exhaustive)
-            return callback_result.PermanentFailure(outcome.msg)
+async def _with_request_id(
+    request_id: str, coro: Coroutine[object, object, CallbackResult]
+) -> CallbackResult:
+    # The loop thread does not inherit the calling thread's context, and the
+    # CCF does not know which task a line logged there belongs to.
+    with request_id_context(request_id):
+        return await coro
