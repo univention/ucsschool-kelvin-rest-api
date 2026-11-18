@@ -6,6 +6,7 @@ import os
 import random
 import time
 from collections.abc import Awaitable
+from functools import partial
 from typing import Any, Callable, NamedTuple, Type, Union
 
 import pytest
@@ -96,6 +97,19 @@ def _assert_search_parity(
         assert_responses_equal(v1_items[name], v2_items[name])
 
 
+def _search_own_users(
+    get: Callable[..., requests.Response],
+    headers: dict[str, str],
+    own_users: set[str],
+    base_url: str,
+    params: list[tuple[str, str]],
+) -> dict[str, dict[str, Any]]:
+    """Search users, keeping only the test's own: other tests' users on the system differ by chance."""
+    response = get(requests.get, f"{base_url}/users/", headers=headers, params=params)
+    assert response.status_code == 200, response.reason
+    return {item["name"]: item for item in response.json() if item["name"] in own_users}
+
+
 # ── Users ──────────────────────────────────────────────────────────────────────
 
 
@@ -178,7 +192,7 @@ async def test_v1_v2_search_users_by_ucsschool_roles_returns_same_output(
     custom_role = f"myrole:mycontext:{school_x}"
     custom = await new_import_user(school_x, "staff", ucsschool_roles=[custom_role])
     _, exam_user = await create_exam_user(school_x)
-    ours = {user.name for user in users} | {custom.name, exam_user["username"]}
+    own_users = {user.name for user in users} | {custom.name, exam_user["username"]}
 
     v1_url, v2_url = _make_base_urls()
     combinations = [
@@ -195,24 +209,69 @@ async def test_v1_v2_search_users_by_ucsschool_roles_returns_same_output(
         for school in ([], [("school", school_x)])
     ]
 
-    def _ours(base_url: str, params: list[tuple[str, str]]) -> dict[str, dict[str, Any]]:
-        response = retry_http_502(requests.get, f"{base_url}/users/", headers=auth_header, params=params)
-        assert response.status_code == 200, response.reason
-        return {item["name"]: item for item in response.json() if item["name"] in ours}
+    search = partial(_search_own_users, retry_http_502, auth_header, own_users)
 
     def _check() -> None:
         for params in cases:
-            v1_items = _ours(v1_url, params)
-            v2_items = _ours(v2_url, params)
+            v1_items = search(v1_url, params)
+            v2_items = search(v2_url, params)
             assert set(v1_items) == set(v2_items), params
             for name in v1_items.keys() - {custom.name}:
                 assert_responses_equal(v1_items[name], v2_items[name])
             assert exam_user["username"] not in v1_items
         custom_params = [("ucsschool_roles", custom_role)]
-        assert set(_ours(v1_url, custom_params)) == {custom.name}
+        assert set(search(v1_url, custom_params)) == {custom.name}
         v2_response = requests.get(f"{v2_url}/users/", headers=auth_header, params=custom_params)
         assert v2_response.status_code == 422, v2_response.text
         assert repr(custom_role) in v2_response.json()["detail"]
+
+    await _retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
+async def test_v1_v2_search_users_by_roles_returns_same_output(
+    auth_header: dict[str, str],
+    retry_http_502: Callable[..., requests.Response],
+    create_ou_using_python: Callable[..., Awaitable[str]],
+    new_import_user: Callable[..., Awaitable[ImportUser]],
+    create_exam_user: Callable[..., Awaitable[tuple[str, dict[str, Any]]]],
+    import_config: object,
+) -> None:
+    """V1 and V2 GET /users/?roles=… return the same users for each set v1 accepts."""
+    school_x = await create_ou_using_python(cache=False)
+    school_y = await create_ou_using_python(cache=False)
+    users = [await new_import_user(school_x, role.name) for role in USER_ROLES]
+    users.append(await new_import_user(school_y, "school_admin", schools=[school_x, school_y]))
+    _, exam_user = await create_exam_user(school_x)
+    own_users = {user.name for user in users} | {exam_user["username"]}
+
+    v1_url, v2_url = _make_base_urls()
+    v1_sets = [
+        ["student"],
+        ["teacher"],
+        ["staff"],
+        ["staff", "teacher"],
+        ["legal_guardian"],
+        ["school_admin"],
+    ]
+    cases = [
+        [*(("roles", role) for role in roles), *school]
+        for roles in v1_sets
+        for school in ([], [("school", school_x)])
+    ]
+
+    search = partial(_search_own_users, retry_http_502, auth_header, own_users)
+
+    def _check() -> None:
+        for params in cases:
+            v1_items = search(v1_url, params)
+            v2_items = search(v2_url, params)
+            assert v1_items, params
+            assert set(v1_items) == set(v2_items), params
+            for name in v1_items:
+                assert_responses_equal(v1_items[name], v2_items[name])
+            assert exam_user["username"] not in v1_items
+        assert search(v2_url, [("roles", "student"), ("roles", "teacher")]) == {}
 
     await _retry_until_replicated(_check)
 

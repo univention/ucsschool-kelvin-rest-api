@@ -275,6 +275,37 @@ for example ``?ucsschool_roles=teacher:school:DEMOSCHOOL&ucsschool_roles=staff:s
    A search accepts at most 20 different values,
    more are rejected with the status code ``422``.
 
+To search for users by their role,
+use the ``roles`` parameter,
+for example ``?roles=student``.
+The values are ``staff``, ``student``, ``teacher``, ``legal_guardian`` and ``school_admin``.
+Repeat the parameter to find the users that have all of the given roles,
+for example ``?roles=teacher&roles=school_admin``.
+
+``teacher`` and ``staff`` exclude each other unless both are given:
+``?roles=teacher`` doesn't find users who are also staff,
+and ``?roles=staff&roles=teacher`` finds only the users who are both.
+
+A role matches at any school, independent of the ``school`` parameter:
+``?school=DEMOSCHOOL&roles=school_admin`` also finds a member of ``DEMOSCHOOL``
+who is a school administrator at another school.
+To search for a role at a specific school,
+use the ``ucsschool_roles`` parameter.
+
+.. versionchanged:: 5.1.0
+
+   The version 2 API supports the ``roles`` parameter,
+   with two differences to the version 1 API:
+
+   It accepts every combination of roles,
+   where the version 1 API accepts only a single role or ``staff`` with ``teacher``
+   and rejects the others with the status code ``422``.
+   A combination that no user can have, for example ``student`` with ``teacher``,
+   returns an empty list.
+
+   It reads the roles from the user's school memberships instead of the LDAP object classes,
+   so users whose roles and object classes contradict each other can appear in different results.
+
 The Users resource supports searching for all attributes and to combine those.
 To search for users that are both ``staff`` and ``teacher`` with usernames that start with ``demo``, birthday on the 3rd of February, have a lastname that ends with ``sam`` and are enrolled in school ``demoschool``, the URL is: ``https://<fqdn>/ucsschool/kelvin/v1/users/?school=demoschool&name=demo%2A&birthday=2001-02-03&lastname=%2Asam&roles=staff&roles=teacher``
 

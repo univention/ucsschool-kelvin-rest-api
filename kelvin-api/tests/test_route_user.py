@@ -386,6 +386,24 @@ def _cursor_of(page_url: str) -> str:
     return parse_qs(urlsplit(page_url).query)["cursor"][0]
 
 
+def _names_of_all_pages(
+    get: Callable[..., requests.Response],
+    url: str,
+    headers: dict[str, str],
+    params: list[tuple[str, str | int]],
+) -> list[str]:
+    """Follow the ``next`` links of a paged search and collect the names of every page."""
+    names: list[str] = []
+    cursor: list[tuple[str, str | int]] = []
+    while True:
+        response = get(requests.get, url, headers=headers, params=[*params, *cursor])
+        assert response.status_code == 200, (response.reason, response.content)
+        names += [data["name"] for data in cast("list[dict[str, str]]", response.json())]
+        if "next" not in response.links:
+            return names
+        cursor = [("cursor", _cursor_of(response.links["next"]["url"]))]
+
+
 @pytest.mark.asyncio
 async def test_search_pages(
     auth_header: dict[str, str],
@@ -442,6 +460,63 @@ async def test_search_pages(
             assert [name for page in reversed(pages_back) for name in page.names] == paged
             assert all(len(page.names) == limit for page in pages_back[:-1])
             assert set(pages_back[-1].links) == {"first", "next", "last"}
+
+    await retry_until_replicated(_check)
+
+
+@pytest.mark.asyncio
+async def test_search_roles_at_any_school_combined_and_paged(
+    auth_header: dict[str, str],
+    retry_http_502: Callable[..., requests.Response],
+    retry_until_replicated: Callable[[Callable[[], object]], Awaitable[None]],
+    url_fragment: str,
+    new_import_user: Callable[..., Awaitable[ImportUser]],
+    create_ou_using_python: Callable[..., Awaitable[str]],
+    import_config: object,
+    api_version: str,
+) -> None:
+    """``roles`` matches roles at any school, combines with other filters, and pages."""
+    if api_version != "v2":
+        pytest.skip("v1 rejects these combinations of roles.")
+    school_x = await create_ou_using_python(cache=False)
+    school_y = await create_ou_using_python(cache=False)
+    admin_elsewhere = await new_import_user(
+        school_x,
+        "teacher",
+        schools=[school_x, school_y],
+        ucsschool_roles=[f"school_admin:school:{school_y}"],
+    )
+    teacher = await new_import_user(school_x, "teacher")
+    _ = await new_import_user(school_x, "teacher_and_staff")
+
+    def _names(params: list[tuple[str, str]]) -> set[str]:
+        response = retry_http_502(
+            requests.get, f"{url_fragment}/users/", headers=auth_header, params=params
+        )
+        assert response.status_code == 200, (response.reason, response.content)
+        return {data["name"] for data in cast("list[dict[str, str]]", response.json())}
+
+    at_x = [("school", school_x)]
+
+    # v2 is replicated asynchronously: retry until the cache caught up.
+    async def _check() -> None:
+        assert _names([*at_x, ("roles", "school_admin")]) == {admin_elsewhere.name}
+        assert _names([*at_x, ("roles", "teacher"), ("roles", "school_admin")]) == {admin_elsewhere.name}
+        assert _names(
+            [
+                ("roles", "teacher"),
+                ("ucsschool_roles", f"school_admin:school:{school_y}"),
+                ("name", admin_elsewhere.name),
+                ("name", teacher.name),
+            ]
+        ) == {admin_elsewhere.name}
+        paged = _names_of_all_pages(
+            retry_http_502,
+            f"{url_fragment}/users/",
+            auth_header,
+            [*at_x, ("roles", "teacher"), ("limit", 1)],
+        )
+        assert sorted(paged) == sorted([admin_elsewhere.name, teacher.name])
 
     await retry_until_replicated(_check)
 
@@ -555,20 +630,7 @@ async def test_search_ucsschool_roles(
             assert set(_found(params)) == expected, params
         if api_version == "v2":
             params = [("school", school_x), *_roles(f"*:school:{school_x}"), ("limit", 2)]
-            paged: list[str] = []
-            cursor: list[tuple[str, str | int]] = []
-            while True:
-                response = retry_http_502(
-                    requests.get,
-                    f"{url_fragment}/users/",
-                    headers=auth_header,
-                    params=[*params, *cursor],
-                )
-                assert response.status_code == 200, (response.reason, response.content)
-                paged += [data["name"] for data in response.json()]
-                if "next" not in response.links:
-                    break
-                cursor = [("cursor", _cursor_of(response.links["next"]["url"]))]
+            paged = _names_of_all_pages(retry_http_502, f"{url_fragment}/users/", auth_header, params)
             assert sorted(paged) == sorted(everyone)
 
     await retry_until_replicated(_check)

@@ -13,12 +13,13 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from ucsschool_objects import And, AnyRelated, Filter, Operator, Or, SearchQuery
+from ucsschool_objects import And, AnyRelated, Filter, Not, Operator, Or, SearchQuery
 
 import ucsschool.kelvin.routers.v2.user
 from ucsschool.kelvin.config import UDMMappingConfiguration
 from ucsschool.kelvin.constants import URL_API_V2_PREFIX
 from ucsschool.kelvin.main import app
+from ucsschool.kelvin.routers.v1.role import SchoolUserRole
 from ucsschool.kelvin.routers.v2._filters import ucsschool_role_filter
 from ucsschool.kelvin.routers.v2.user import _build_query
 from ucsschool.kelvin.service.dependency import check_db_compatibility, get_storage_session
@@ -29,11 +30,13 @@ def _query(
     names: Sequence[str] | None,
     school: str | None = None,
     ucsschool_roles: Sequence[str] | None = None,
+    roles: Sequence[SchoolUserRole] | None = None,
 ) -> SearchQuery | None:
     return _build_query(
         school=school,
         name=names,
         ucsschool_roles=ucsschool_roles,
+        roles=roles,
         firstname=None,
         lastname=None,
         email=None,
@@ -187,6 +190,46 @@ def test_ucsschool_roles_combine_with_other_parameters() -> None:
     assert Filter(field="name", op=Operator.IN_CI, value=("alice",)) in query.where.clauses
 
 
+def _role_membership_clause(role: str) -> AnyRelated:
+    return AnyRelated(Filter(field="roles.name", op=Operator.EQ, value=role))
+
+
+@pytest.mark.parametrize(
+    "roles,expected",
+    [
+        (
+            ["teacher"],
+            And(clauses=(_role_membership_clause("teacher"), Not(_role_membership_clause("staff")))),
+        ),
+        (
+            ["staff"],
+            And(clauses=(_role_membership_clause("staff"), Not(_role_membership_clause("teacher")))),
+        ),
+        (
+            ["teacher", "staff"],
+            And(clauses=(_role_membership_clause("staff"), _role_membership_clause("teacher"))),
+        ),
+        (
+            ["school_admin", "teacher"],
+            And(
+                clauses=(
+                    _role_membership_clause("school_admin"),
+                    _role_membership_clause("teacher"),
+                    Not(_role_membership_clause("staff")),
+                )
+            ),
+        ),
+        (["student", "student"], _role_membership_clause("student")),
+    ],
+)
+def test_roles_require_every_role_and_keep_teacher_and_staff_apart(
+    roles: list[str], expected: And | AnyRelated
+) -> None:
+    query = _query(None, roles=[SchoolUserRole(role) for role in roles])
+
+    assert query == SearchQuery(where=expected)
+
+
 @pytest.fixture
 def users_search(monkeypatch: pytest.MonkeyPatch) -> Iterator[AsyncMock]:
     config = UDMMappingConfiguration.model_construct(user=[])
@@ -214,3 +257,19 @@ def test_search_passes_ucsschool_roles_to_the_query(users_search: AsyncMock) -> 
     assert users_search.call_args.args[0] == SearchQuery(
         where=And(clauses=(_role_at_school("teacher", "X"), _role_at_school("staff", "X")))
     )
+
+
+def test_search_passes_roles_to_the_query(users_search: AsyncMock) -> None:
+    response = TestClient(app).get(f"{URL_API_V2_PREFIX}/users/", params={"roles": "teacher"})
+
+    assert response.status_code == 200, response.text
+    assert users_search.call_args.args[0] == SearchQuery(
+        where=And(clauses=(_role_membership_clause("teacher"), Not(_role_membership_clause("staff"))))
+    )
+
+
+def test_search_rejects_unknown_roles(users_search: AsyncMock) -> None:
+    response = TestClient(app).get(f"{URL_API_V2_PREFIX}/users/", params={"roles": "janitor"})
+
+    assert response.status_code == 422, response.text
+    users_search.assert_not_called()
