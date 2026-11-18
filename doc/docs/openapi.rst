@@ -60,4 +60,4 @@ Use a generator version that supports OpenAPI 3.1.
 
 .. _`Swagger`: https://swagger.io/
 .. _`ReDoc`: https://github.com/Redocly/redoc
-.. _`OpenAPI`: https://www.openapis.org/
+.. _`OpenAPI`: https://openapis.org/
