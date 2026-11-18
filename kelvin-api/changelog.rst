@@ -8,6 +8,15 @@
 Changelog
 =========
 
+v5.1.0 (TBD)
+------------
+* Changed (version 2 API only): The user search filters by the ``roles`` parameter, which it ignored before.
+  The parameter may be repeated, and a user matches when they have all given roles at any school.
+  ``teacher`` without ``staff`` excludes the users who are also staff, and ``staff`` without ``teacher`` excludes the users who are also teachers,
+  so the combinations the version 1 API accepts return the same users.
+  The version 2 API also accepts every other combination and answers one that no user can have with an empty list.
+  An unknown role is rejected with the status code ``422``.
+
 v5.0.0 (2026-11-12)
 -------------------
 .. important::

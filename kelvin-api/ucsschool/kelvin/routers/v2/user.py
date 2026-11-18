@@ -11,9 +11,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 from ucsschool_objects import (
     And,
+    AnyRelated,
     Filter,
     KelvinStorageSession,
     LoadSpec,
+    Not,
     ObjectType,
     Operator,
     Or,
@@ -97,6 +99,7 @@ _KNOWN_SEARCH_PARAMS = frozenset(
         "expiration_date",
         "disabled",
         "ucsschool_roles",
+        "roles",
         "limit",
         "cursor",
     }
@@ -152,6 +155,26 @@ def _ucsschool_role_clauses(values: Sequence[str]) -> list[QueryExpr]:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
 
 
+_V1_EXCLUSIVE_ROLES = {
+    SchoolUserRole.teacher: SchoolUserRole.staff,
+    SchoolUserRole.staff: SchoolUserRole.teacher,
+}
+
+
+def _role_membership_clause(role: SchoolUserRole) -> AnyRelated:
+    return AnyRelated(Filter(field="roles.name", op=Operator.EQ, value=role.value))
+
+
+def _role_clauses(roles: Sequence[SchoolUserRole]) -> list[QueryExpr]:
+    wanted = set(roles)
+    clauses: list[QueryExpr] = [_role_membership_clause(role) for role in sorted(wanted)]
+    return clauses + [
+        Not(_role_membership_clause(other))
+        for role, other in _V1_EXCLUSIVE_ROLES.items()
+        if role in wanted and other not in wanted
+    ]
+
+
 def _build_query(
     school: str | None,
     name: Sequence[str] | None,
@@ -164,6 +187,7 @@ def _build_query(
     expiration_date: datetime.date | None,
     disabled: bool | None,
     ucsschool_roles: Sequence[str] | None = None,
+    roles: Sequence[SchoolUserRole] | None = None,
     extra_clauses: list[QueryExpr] | None = None,
 ) -> SearchQuery | None:
     clauses: list[QueryExpr] = list(extra_clauses or [])
@@ -171,6 +195,7 @@ def _build_query(
     if names:
         clauses.append(_name_filter("name", names))
     clauses.extend(_ucsschool_role_clauses(ucsschool_roles or ()))
+    clauses.extend(_role_clauses(roles or ()))
     if school:
         clauses.append(_str_filter("schools.name", school, case_insensitive=True))
     if firstname:
@@ -340,6 +365,16 @@ async def search(
             ),
         ),
     ] = None,
+    roles: Annotated[
+        list[SchoolUserRole] | None,
+        Query(
+            description=(
+                "List users that have all of these roles, at any school. May be repeated. "
+                "`teacher` without `staff` excludes users who are also staff, and `staff` without "
+                "`teacher` excludes users who are also teachers."
+            ),
+        ),
+    ] = None,
     logger: logging.Logger = Depends(get_logger),
     session: KelvinStorageSession = Depends(get_storage_session),
     kelvin_reader: LdapUser = Depends(get_kelvin_reader),
@@ -356,6 +391,7 @@ async def search(
         expiration_date=expiration_date,
         disabled=disabled,
         ucsschool_roles=ucsschool_roles,
+        roles=roles,
         extra_clauses=_udm_property_filters(request),
     )
     logger.debug("v2 user search query: %r", query)
