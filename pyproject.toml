@@ -128,7 +128,8 @@ extend-exclude = [
 [tool.ruff.lint]
 # E, W: pycodestyle; F: pyflakes; I: isort; S: flake8-bandit
 # (replaces the standalone black, isort, flake8 and bandit tools).
-select = ["E", "F", "W", "I", "S"]
+# ANN0, ANN2: annotated parameters and return types, which ty does not require.
+select = ["E", "F", "W", "I", "S", "ANN0", "ANN2"]
 # E203: whitespace before ':' (formatter-compatible)
 # E231: missing whitespace after ',', ';', or ':' (formatter-compatible)
 # E266: too many leading '#' for block comment (ucs-test metadata)
@@ -137,6 +138,8 @@ select = ["E", "F", "W", "I", "S"]
 ignore = ["E203", "E231", "E266", "S101", "S404"]
 
 [tool.ruff.lint.per-file-ignores]
+# Only the typed packages must annotate; the legacy libraries and the tests predate the rule.
+"!{alembic,kelvin-api/ucsschool,kelvin-connector/src,ucsschool-objects/src}/**" = ["ANN"]
 # Test and tooling paths bandit excluded via its exclude_dirs / hook exclude.
 "**/tests/**" = ["S"]
 "ucs-test-ucsschool-kelvin/**" = ["S"]

@@ -3,6 +3,7 @@
 
 import logging
 from functools import lru_cache
+from types import FunctionType
 from typing import Any, Dict, List, Optional
 
 from aiocache import Cache, cached
@@ -46,7 +47,7 @@ def get_logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
-def ou_cache_key(func, *args, **kwargs):
+def ou_cache_key(func: FunctionType, *args: Any, **kwargs: Any) -> str:
     return (
         f"{func.__name__}+"
         f"{'-'.join(repr(a) for a in args)}+"
@@ -116,7 +117,7 @@ def computer_name2dn(name: str) -> Optional[str]:
 
 async def fix_school_attributes(
     school_obj: School, school: SchoolCreateModel, logger: logging.Logger, udm: UDM
-):
+) -> None:
     """
     Fix attributes of `school_obj` according to `school`, as `create_ou()` does not support multiple DCs.
 
@@ -170,7 +171,9 @@ async def fix_school_attributes(
         logger.debug("Nothing to do.")
 
 
-async def validate_create_request_params(school: SchoolCreateModel, logger: logging.Logger, udm: UDM):
+async def validate_create_request_params(
+    school: SchoolCreateModel, logger: logging.Logger, udm: UDM
+) -> None:
     for attr_name in ("administrative_servers", "educational_servers"):
         servers = getattr(school, attr_name)
         if servers and len(servers) > 1:
@@ -342,7 +345,7 @@ async def school_exists(
         title="name",
     ),
     authenticated_user: LdapUser = Depends(get_kelvin_reader),
-):
+) -> Response:
     """
     Check if school (OU) with a provided name exists.
 

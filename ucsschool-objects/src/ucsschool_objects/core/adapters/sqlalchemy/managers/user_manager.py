@@ -417,7 +417,7 @@ class SQLAlchemyUserManager(Manager[User]):
         _NESTED_FIELD_REGISTRY,
     )
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     def _modify_query(

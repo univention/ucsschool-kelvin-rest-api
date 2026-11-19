@@ -68,7 +68,7 @@ class UDMMappingConfiguration(BaseSettings):
             ImportConfigUDMMappingSource(settings_cls),
         )
 
-    def prevent_mapped_attributes_in_udm_properties(self):
+    def prevent_mapped_attributes_in_udm_properties(self) -> None:
         """
         Make sure users do not configure values for ucsschool.lib mapped Attributes
         in udm_properties.
@@ -90,7 +90,7 @@ class UDMMappingConfiguration(BaseSettings):
 UDM_MAPPING_CONFIG: UDMMappingConfiguration = lazy_object_proxy.Proxy(UDMMappingConfiguration)
 
 
-def load_configurations():
+def load_configurations() -> None:
     """
     This function can be called to initialize all settings in this module
     in case an early abort for faulty configuration is desired.

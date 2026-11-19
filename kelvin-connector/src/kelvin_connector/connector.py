@@ -19,7 +19,7 @@ from kelvin_connector.sync import SynchronizationManager
 from .consumer import KelvinConnectorEventHandler, KelvinConsumerModule
 
 
-def main():
+def main() -> None:
     KELVIN_CONNECTOR_LOG_LEVEL = os.environ.get("KELVIN_CONNECTOR_LOG_LEVEL", "DEBUG")
     if KELVIN_CONNECTOR_LOG_LEVEL in (
         "TRACE",

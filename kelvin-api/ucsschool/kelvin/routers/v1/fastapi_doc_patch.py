@@ -10,6 +10,7 @@ https://github.com/fastapi/fastapi/discussions/14340
 """
 
 import json
+from typing import Any
 
 from fastapi.encoders import jsonable_encoder
 from fastapi.openapi.docs import swagger_ui_default_parameters
@@ -25,15 +26,15 @@ FAVICON_URL = "https://fastapi.tiangolo.com/img/favicon.png"
 
 def get_swagger_ui_html(
     *,
-    openapi_urls,
-    title,
-    swagger_js_url=SWAGGER_JS_CDN_URL,
-    swagger_preset_js_url=SWAGGER_PRESET_JS_CDN_URL,
-    swagger_css_url=SWAGGER_CSS_CDN_URL,
-    swagger_favicon_url=FAVICON_URL,
-    oauth2_redirect_url=None,
-    init_oauth=None,
-    swagger_ui_parameters=None,
+    openapi_urls: list[dict[str, str]],
+    title: str,
+    swagger_js_url: str = SWAGGER_JS_CDN_URL,
+    swagger_preset_js_url: str = SWAGGER_PRESET_JS_CDN_URL,
+    swagger_css_url: str = SWAGGER_CSS_CDN_URL,
+    swagger_favicon_url: str = FAVICON_URL,
+    oauth2_redirect_url: str | None = None,
+    init_oauth: dict[str, Any] | None = None,
+    swagger_ui_parameters: dict[str, Any] | None = None,
 ) -> HTMLResponse:
     """
     Workaround for fastapi.docs.get_swagger_ui_html, see:

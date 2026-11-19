@@ -8,5 +8,5 @@ import sys
 from univention.config_registry import main
 
 
-def run_ucr():
+def run_ucr() -> None:
     main(sys.argv[1:])

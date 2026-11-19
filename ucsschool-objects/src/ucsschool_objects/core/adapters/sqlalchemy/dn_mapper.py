@@ -24,7 +24,7 @@ class SQLAlchemyDNIDMapper:
         ObjectType.USER: UserDNMapping,
     }
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def dns_to_public_ids(

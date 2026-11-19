@@ -44,18 +44,18 @@ class FirstAttemptImmediateRestartableStrategy(RestartableStrategy):
     still polled at the default interval and not hammered with a tight retry loop.
     """
 
-    def _open_socket(self, *args, **kwargs):
+    def _open_socket(self, *args: Any, **kwargs: Any) -> None:
         if not self._restarting:  # entering a fresh restart cycle
             self._skip_next_sleep = True
         return super()._open_socket(*args, **kwargs)
 
-    def send(self, *args, **kwargs):
+    def send(self, *args: Any, **kwargs: Any) -> int:
         if not self._restarting:  # entering a fresh restart cycle
             self._skip_next_sleep = True
         return super().send(*args, **kwargs)
 
     @property
-    def restartable_sleep_time(self):
+    def restartable_sleep_time(self) -> float:
         # The parent reads this once per retry-loop iteration. Return 0 for the first
         # read of a cycle so the first reconnect attempt happens immediately.
         if getattr(self, "_skip_next_sleep", False):
@@ -64,7 +64,7 @@ class FirstAttemptImmediateRestartableStrategy(RestartableStrategy):
         return self._restartable_sleep_time
 
     @restartable_sleep_time.setter
-    def restartable_sleep_time(self, value):
+    def restartable_sleep_time(self, value: float) -> None:
         self._restartable_sleep_time = value
 
 
@@ -156,7 +156,7 @@ def get_user(
     bind_dn: Optional[str] = None,
     bind_pw: Optional[str] = None,
     attributes: List[str] = None,
-    school_only=True,
+    school_only: bool = True,
 ) -> Optional[LdapUser]:
     """
     Get data of user `username`.

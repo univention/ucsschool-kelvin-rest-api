@@ -4,10 +4,11 @@
 import hashlib
 import logging
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 
 from alembic.script import ScriptDirectory
-from sqlalchemy import engine_from_config, pool, text
+from sqlalchemy import Connection, engine_from_config, pool, text
 from ucsschool_objects.core.adapters.sqlalchemy.session import build_settings
 from ucsschool_objects.database_models import Base
 
@@ -31,7 +32,7 @@ def _advisory_lock_id() -> int:
 
 
 @contextmanager
-def advisory_lock(connection, timeout_seconds: int = 60):
+def advisory_lock(connection: Connection, timeout_seconds: int = 60) -> Generator[None]:
     dialect = connection.dialect.name
     lock_id = _advisory_lock_id()
     lock_acquired = False

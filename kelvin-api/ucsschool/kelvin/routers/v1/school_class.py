@@ -111,13 +111,15 @@ class SchoolClassPatchDocument(KelvinBaseModel):
 
     @field_validator("udm_properties")
     @classmethod
-    def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
+    def only_known_udm_properties(
+        cls, udm_properties: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
         configured_properties = set(UDM_MAPPING_CONFIG.school_class or [])
         return only_known_udm_properties(
             udm_properties, configured_properties, SchoolClassCreateModel.config_id
         )
 
-    async def to_modify_kwargs(self, school, request: Request) -> Dict[str, Any]:
+    async def to_modify_kwargs(self, school: str, request: Request) -> Dict[str, Any]:
         res = self.model_dump(exclude_unset=True)
         if "name" in res:
             res["name"] = f"{school}-{self.name}"

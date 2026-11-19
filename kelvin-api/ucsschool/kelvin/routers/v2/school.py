@@ -141,7 +141,7 @@ async def school_exists(
     ],
     session: Annotated[KelvinStorageSession, Depends(get_storage_session)],
     _kelvin_reader: Annotated[LdapUser, Depends(get_kelvin_reader)],
-):
+) -> Response:
     results = list(
         await session.schools.search(
             SearchQuery(where=Filter(field="name", op=Operator.EQ, value=school_name)),

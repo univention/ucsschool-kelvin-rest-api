@@ -5,7 +5,7 @@ import datetime
 import logging
 from collections.abc import Sequence
 from functools import lru_cache
-from typing import Annotated, cast
+from typing import Annotated, Any, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
@@ -229,7 +229,7 @@ async def _user_to_model(
     session: KelvinStorageSession,
     dn_map: dict[UUID, str] | None = None,
 ) -> UserModel:
-    def url(name: str, **kwargs) -> str:
+    def url(name: str, **kwargs: Any) -> str:
         return UserModel.scheme_and_quote(str(cached_url_for(request, name, **kwargs)))
 
     if dn_map is None:

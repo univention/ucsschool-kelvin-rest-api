@@ -51,7 +51,7 @@ class SQLAlchemyRoleManager(Manager[Role]):
         _NESTED_FIELD_REGISTRY,
     )
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def get(self, public_id: UUID, *, load: LoadSpec | None = None) -> Role:
