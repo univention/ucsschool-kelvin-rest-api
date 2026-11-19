@@ -260,9 +260,9 @@ def not_both_password_and_hashes(
 
 
 class UserCreateModel(UserBaseModel):
-    name: str | None = None  # pyright: ignore[reportIncompatibleVariableOverride]
+    name: str | None = None  # ty: ignore[incompatible-attribute-override]
     password: SecretStr | None = None
-    school: HttpUrl | None = None  # pyright: ignore[reportIncompatibleVariableOverride]
+    school: HttpUrl | None = None  # ty: ignore[incompatible-attribute-override]
     schools: List[HttpUrl] = []
     kelvin_password_hashes: PasswordsHashes | None = None
     ucsschool_roles: List[str] = []

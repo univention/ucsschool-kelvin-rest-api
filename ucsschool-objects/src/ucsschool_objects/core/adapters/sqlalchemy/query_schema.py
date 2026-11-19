@@ -58,8 +58,8 @@ def get_exposed_fields(model: type) -> frozenset[str]:
     Only includes actual database columns, skipping relationships and other attributes.
     """
     mapper: Mapper[Base] | None = inspect(model, raiseerr=False)
-    if mapper is None:  # pyright: ignore[reportUnnecessaryComparison]
-        return frozenset()  # pyright: ignore[reportUnreachable]
+    if mapper is None:
+        return frozenset()
     return frozenset(column.key for column in mapper.column_attrs)
 
 

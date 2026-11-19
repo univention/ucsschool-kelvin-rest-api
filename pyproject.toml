@@ -108,6 +108,7 @@ dev = [
     "tenacity>=9.1.2",
     "eralchemy[graphviz]>=1.6.0",
     "allure-pytest>=2.16.0",
+    "ty==0.0.107",
 ]
 
 [tool.ruff]

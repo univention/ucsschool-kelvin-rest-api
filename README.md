@@ -239,3 +239,25 @@ To test if everything works fine, just run pre-commit with the `-a` option:
 ```
 pre-commit run -a
 ```
+
+## Type checking with ty
+
+[ty](https://github.com/astral-sh/ty) checks the code against `ty-baseline.json`,
+in the `ty` pre-commit hook and in CI.
+Both fail on diagnostics the baseline does not list,
+and CI also fails on baseline entries that no longer occur.
+Refresh the baseline from the repository root, where its paths start:
+
+```shell
+uv run ty check --update-baseline
+```
+
+ty is a dev dependency in `uv.lock`,
+so the hook and CI run the same version.
+Renovate opens a merge request for each ty release.
+New versions often add rules, so on that merge request:
+
+1. Refresh the baseline with the command above.
+2. Review its diff.
+   An entry the new version adds may be a real bug: fix it rather than accept it.
+3. Commit the baseline to the same merge request.

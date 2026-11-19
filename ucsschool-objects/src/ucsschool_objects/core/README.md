@@ -64,21 +64,17 @@ async with storage_factory.transaction_scope() as storage:
 await engine.dispose()
 ```
 
-## Python Typing and Private API Policy
+## Private API Policy
+
+ty does not flag access to private symbols, so code review enforces this policy.
 
 - Prefer `_` prefixes for private or internal symbols.
-- Keep `reportPrivateUsage` enabled by default.
-- Use file-level `# pyright: reportPrivateUsage=false` only when the whole file intentionally works with private or internal APIs.
-- Good examples for file-level suppression:
+- Use another module's private symbols only where the access is intentional and local to this project:
     - package facade modules such as `__init__.py` that re-export private implementation modules via `__all__`
     - white-box tests for internal helpers
     - legacy compatibility shims
     - composition or wiring modules that assemble internal components
-- Prefer line-level suppression for isolated cases: `# pyright: ignore[reportPrivateUsage]`
-- Avoid suppressing this warning in normal domain or business code.
+- Avoid it in normal domain or business code.
 - Avoid depending on private symbols from external packages.
-- If many files need the suppression, reconsider the package boundaries or expose a proper public API.
-
-Rule of thumb:
-
-Use file-level `reportPrivateUsage=false` only when private access is intentional, local to our project, and part of an API boundary, test, compatibility, or wiring layer.
+- If many files need another module's private symbols,
+  reconsider the package boundaries or expose a proper public API.

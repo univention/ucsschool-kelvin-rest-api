@@ -171,10 +171,10 @@ Code style and static checks run through
    * - ``ruff`` (``ruff-check --fix``, ``ruff-format``)
      - ``[tool.ruff]`` in ``pyproject.toml``
      - linting, import ordering and formatting; line length 105, target ``py311``.
-   * - ``basedpyright``
-     - ``pyrightconfig.json`` + ``basedpyright-baseline.json``
-     - runs against a committed baseline; at commit time in Docker,
-       ``pre-commit run --hook-stage manual basedpyright-native-baseline`` runs it natively.
+   * - ``ty``
+     - ``ty.toml`` + ``ty-baseline.json``
+     - runs against a committed baseline;
+       refresh it with ``uv run ty check --update-baseline`` from the repository root.
    * - ``pre-commit-hooks`` / ``pygrep-hooks``
      - —
      - ``trailing-whitespace``, ``large-files``, JSON/YAML/XML checks,
@@ -186,7 +186,7 @@ Types and models
 The HTTP layer uses **Pydantic v2** with ``pydantic-settings`` and a current FastAPI.
 URL fields use ``ucsschool.kelvin.schema.HttpUrl``, which validates like Pydantic's
 ``HttpUrl`` but keeps the value as the ``str`` the client sent. ``ucsschool-objects``
-is fully typed and gated by ``basedpyright``.
+is fully typed and gated by ``ty``.
 
 Commit messages
 ^^^^^^^^^^^^^^^^

@@ -36,8 +36,8 @@ from ucsschool_objects.core.adapters.sqlalchemy.managers.user_manager import (
 )
 from ucsschool_objects.core.adapters.sqlalchemy.mappers import to_domain
 from ucsschool_objects.core.adapters.sqlalchemy.mappers.to_domain import (
-    _convert_unloadable,  # pyright: ignore[reportPrivateUsage]
-    _unloaded_attributes,  # pyright: ignore[reportPrivateUsage]
+    _convert_unloadable,
+    _unloaded_attributes,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.query_schema import (
     JoinSpec,
@@ -83,12 +83,12 @@ async def test_group_manager_nested_registry_initialized(db_session: AsyncSessio
 
     assert manager._NESTED_FIELD_REGISTRY
     assert "school" in manager._NESTED_FIELD_REGISTRY
-    assert "roles" in manager._NESTED_FIELD_REGISTRY  # pyright: ignore[reportPrivateUsage]
+    assert "roles" in manager._NESTED_FIELD_REGISTRY
 
     # Verify field map includes nested fields
     assert "school.public_id" in manager._FIELD_MAP
     assert "school.name" in manager._FIELD_MAP
-    assert "roles.name" in manager._FIELD_MAP  # pyright: ignore[reportPrivateUsage]
+    assert "roles.name" in manager._FIELD_MAP
 
 
 @pytest.mark.asyncio

@@ -99,9 +99,7 @@ def _patch_ops(
     for field_path in sorted(replace_fields):
         _collect_replace_ops(src_dict, dst_dict, field_path.split("/"), "", operations)
     # NOTE lib jsonpatch is untyped
-    operations.extend(
-        JsonPatch.from_diff(src_dict, dst_dict).patch  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
-    )
+    operations.extend(JsonPatch.from_diff(src_dict, dst_dict).patch)
     return cast(Sequence[JSONPathOperation], JsonPatch(operations).patch)
 
 

@@ -167,7 +167,7 @@ Hooks:
 |---|---|---|
 | **ruff-check** | Linting and import ordering, with `--fix` | config: `[tool.ruff]` in `pyproject.toml` |
 | **ruff-format** | Formatting | config: `[tool.ruff]` in `pyproject.toml` |
-| **basedpyright** | Static typing against `basedpyright-baseline.json` | runs in Docker at commit time; `pre-commit run --hook-stage manual basedpyright-native-baseline` runs it natively |
+| **ty** | Static typing against `ty-baseline.json` | config: `ty.toml`; refresh the baseline: README.md (§ Type checking with ty) |
 | **uv-export** | Keeps `requirements.txt` of the performance tests in sync with their `uv.lock` | only `ucs-test-ucsschool-kelvin/94_ucsschool-kelvin-performance/` |
 | **reuse** | SPDX license headers | — |
 | **pre-commit-hooks** | trailing-whitespace, large-files, json/yaml/xml checks | — |
