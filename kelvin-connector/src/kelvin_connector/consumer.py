@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import enum
 import re
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from loguru import logger
 from provisioning_consumer_lib import (
@@ -68,8 +68,8 @@ class KelvinConnectorEventHandler(UDMEventHandler):
         self,
         synchronization_manager: SynchronizationManagerProtocol,
         logger: Logger,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         self.synchronization_manager = synchronization_manager
         super().__init__(logger, *args, **kwargs)
@@ -484,7 +484,11 @@ class KelvinConsumerModule(ConsumerModule):
     """
 
     def __init__(
-        self, handler: EventHandler, *args, max_deliveries: int = DEFAULT_MAX_DELIVERIES, **kwargs
+        self,
+        handler: EventHandler,
+        *args: Any,
+        max_deliveries: int = DEFAULT_MAX_DELIVERIES,
+        **kwargs: Any,
     ) -> None:
         super().__init__(handler, *args, **kwargs)
         self.max_deliveries: int = max_deliveries

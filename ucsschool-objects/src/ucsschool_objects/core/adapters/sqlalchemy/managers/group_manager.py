@@ -189,7 +189,7 @@ class SQLAlchemyGroupManager(Manager[Group]):
         _NESTED_FIELD_REGISTRY,
     )
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     _MAX_PATCH_DEPTH: dict[str, int] = {

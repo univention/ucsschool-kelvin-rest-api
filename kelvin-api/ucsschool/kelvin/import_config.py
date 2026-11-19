@@ -10,7 +10,7 @@ Diverse helper functions.
 import logging
 import pprint
 import sys
-from typing import List
+from typing import Any, List
 
 from six import reraise as raise_
 
@@ -46,7 +46,7 @@ class KelvinUserImportCommandLine(_UserImportCommandLine):
         return res
 
 
-def init_ucs_school_import_framework(**config_kwargs) -> ReadOnlyDict:
+def init_ucs_school_import_framework(**config_kwargs: Any) -> ReadOnlyDict:
     global _ucs_school_import_framework_initialized, _ucs_school_import_framework_error
 
     if _ucs_school_import_framework_initialized:

@@ -8,6 +8,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.openapi.docs import get_swagger_ui_oauth2_redirect_html
+from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 
@@ -61,7 +62,7 @@ add_exception_handlers(app, logger)
 
 
 @app.get("/health", include_in_schema=False)
-async def health(_: Annotated[None, Depends(check_health_db_compatibility)]):
+async def health(_: Annotated[None, Depends(check_health_db_compatibility)]) -> dict[str, str]:
     return {"status": "ok"}
 
 
@@ -69,7 +70,7 @@ async def health(_: Annotated[None, Depends(check_health_db_compatibility)]):
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     logger: logging.Logger = Depends(get_logger),
-):
+) -> dict[str, str]:
     user = check_auth_and_get_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -85,7 +86,7 @@ async def login_for_access_token(
 
 
 @app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
-async def swagger_ui_redirect():
+async def swagger_ui_redirect() -> HTMLResponse:
     return get_swagger_ui_oauth2_redirect_html()
 
 

@@ -140,7 +140,7 @@ class PasswordsHashes(KelvinBaseModel):
             raise ValueError("Values of 'krb_5_key' must be base64 encoded.")
         return value
 
-    def dict_with_ldap_attr_names(self, *args, **kwargs) -> Dict[str, Any]:
+    def dict_with_ldap_attr_names(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         """
         Wrapper around `model_dump()` that renames the keys to those used in a UCS'
         OpenLDAP.
@@ -436,7 +436,9 @@ class UserPatchModel(KelvinBaseModel):
 
     @field_validator("udm_properties")
     @classmethod
-    def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
+    def only_known_udm_properties(
+        cls, udm_properties: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
         if udm_properties is None:
             raise ValueError("Null value in property.")
         configured_properties = set(UDM_MAPPING_CONFIG.user or [])

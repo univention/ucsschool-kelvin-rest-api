@@ -3,6 +3,7 @@
 
 import logging
 import re
+from collections.abc import AsyncIterator
 from functools import lru_cache
 from typing import Any, ClassVar, Dict, Iterable, List, Optional, Self, Type
 from urllib.parse import ParseResult, quote, unquote, urlparse
@@ -95,7 +96,9 @@ class LibModelHelperMixin(KelvinBaseModel):
 
     @field_validator("udm_properties")
     @classmethod
-    def only_known_udm_properties(cls, udm_properties: Optional[Dict[str, Any]]):
+    def only_known_udm_properties(
+        cls, udm_properties: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
         configured_properties = set(getattr(UDM_MAPPING_CONFIG, cls.config_id) or [])
         return only_known_udm_properties(udm_properties, configured_properties, cls.config_id)
 
@@ -232,7 +235,7 @@ def get_language_from_header(request: Request) -> str:
     return language
 
 
-async def udm_ctx(request: Request):
+async def udm_ctx(request: Request) -> AsyncIterator[UDM]:
     language = get_language_from_header(request)
     async with UDM(**udm_kwargs(), language=language) as udm:
         yield udm

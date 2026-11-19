@@ -25,7 +25,7 @@ class GuardianRole(BaseModel):
     role_name: str
 
 
-def _parse_ucsschool_role_item(v: str | UcsschoolRole):
+def _parse_ucsschool_role_item(v: str | UcsschoolRole) -> dict[str, str] | UcsschoolRole:
     """Split like ucs-school-lib's get_role_info"""
     if isinstance(v, str):
         role, context, school = v.split(":")
@@ -33,7 +33,9 @@ def _parse_ucsschool_role_item(v: str | UcsschoolRole):
     return v
 
 
-def _parse_ucsschool_roles(values: Iterable[str | UcsschoolRole]) -> list[str]:
+def _parse_ucsschool_roles(
+    values: Iterable[str | UcsschoolRole],
+) -> list[dict[str, str] | UcsschoolRole]:
     """Skip malformed role strings instead of rejecting the whole object
 
     one garbage entry must not make an otherwise valid user or group invisible
@@ -49,7 +51,7 @@ def _parse_ucsschool_roles(values: Iterable[str | UcsschoolRole]) -> list[str]:
     return roles
 
 
-def _parse_guardian_role_item(v):
+def _parse_guardian_role_item(v: str | GuardianRole) -> dict[str, str] | GuardianRole:
     if isinstance(v, str):
         app, namespace, role_name = v.split(":")
         return {"app": app, "namespace": namespace, "role_name": role_name}
@@ -75,7 +77,9 @@ class UserProperties(BaseModel):
 
     @field_validator("ucsschoolRole", mode="before")
     @classmethod
-    def parse_ucsschool_roles(cls, v):
+    def parse_ucsschool_roles(
+        cls, v: Iterable[str | UcsschoolRole]
+    ) -> list[dict[str, str] | UcsschoolRole]:
         return _parse_ucsschool_roles(v)
 
     model_config = ConfigDict(extra="allow")
@@ -94,7 +98,9 @@ class GroupProperties(BaseModel):
 
     @field_validator("ucsschoolRole", mode="before")
     @classmethod
-    def parse_ucsschool_roles(cls, v):
+    def parse_ucsschool_roles(
+        cls, v: Iterable[str | UcsschoolRole]
+    ) -> list[dict[str, str] | UcsschoolRole]:
         return _parse_ucsschool_roles(v)
 
     model_config = ConfigDict(extra="allow")

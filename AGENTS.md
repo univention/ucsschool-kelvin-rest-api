@@ -165,7 +165,7 @@ Hooks:
 
 | Hook | Purpose | Notes |
 |---|---|---|
-| **ruff-check** | Linting and import ordering, with `--fix` | config: `[tool.ruff]` in `pyproject.toml` |
+| **ruff-check** | Linting, import ordering and, in the typed packages, type-hint coverage (`ANN`), with `--fix` | config: `[tool.ruff]` in `pyproject.toml` |
 | **ruff-format** | Formatting | config: `[tool.ruff]` in `pyproject.toml` |
 | **ty** | Static typing against `ty-baseline.json` | config: `ty.toml`; refresh the baseline: README.md (§ Type checking with ty) |
 | **uv-export** | Keeps `requirements.txt` of the performance tests in sync with their `uv.lock` | only `ucs-test-ucsschool-kelvin/94_ucsschool-kelvin-performance/` |
