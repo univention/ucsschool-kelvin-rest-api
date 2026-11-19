@@ -7,4 +7,5 @@ baseline = "ty-baseline.json"
 python-version = "3.11"
 
 [src]
-exclude = ["appcenter/tests/stubs", "build_docs.py"]
+# prek clones its hook repositories into .cache/ in CI.
+exclude = [".cache", "appcenter/tests/stubs", "build_docs.py"]
