@@ -506,7 +506,7 @@ The following tools are enforced by pre-commit:
 | Tool | Purpose |
 |---|---|
 | **ruff** | Linting, import ordering and formatting |
-| **basedpyright** | Static type checking against a committed baseline |
+| **ty** | Static type checking against a committed baseline |
 | **conventional-pre-commit** | Commit message format |
 
 Commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) format

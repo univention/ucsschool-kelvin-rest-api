@@ -5,8 +5,6 @@ include:
   - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/pre-commit@2.27.0
     inputs:
       commit_msg_hooks: "conventional-pre-commit issue-reference"
-      skip_hooks: "basedpyright-container-baseline"
-      manual_stage_hooks: "basedpyright-native-baseline"
   - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/app-release@2.27.0
     inputs:
       app_id: "ucsschool-kelvin-rest-api"
@@ -141,32 +139,31 @@ include:
         - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
           variables:
             KELVIN_BUILD_VERSION: "999.0.0"
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-hint-coverage-basedpyright@2.27.0
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/python-type-check-ty@2.29.0
     inputs:
       pipeline_stage: build
-      python_paths: .
-      python_version: "3.11"
-      baseline_file: basedpyright-baseline.json
-      basedpyright_version: "1.39.8"
+      use_project_ty: true
       before_script:
         - "apt-get update -qq && apt-get install -y -qq git gcc python3-dev libldap2-dev libsasl2-dev && uv sync --dev"
       job_rules:
         - if: $CI_MERGE_REQUEST_ID
           changes:
             - "**/*.py"
-            - pyproject.toml
+            - "**/pyproject.toml"
             - uv.lock
-            - basedpyright-baseline.json
+            - ty.toml
+            - ty-baseline.json
         - if: $CI_COMMIT_REF_PROTECTED == "true"
         - if: $CI_COMMIT_TAG
-  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/baseline-buddy@2.27.0
+  - component: $CI_SERVER_FQDN/univention/dev/tooling/ci-components/baseline-buddy@2.29.0
     inputs:
       pipeline_stage: build
-      head_baseline_file: basedpyright-baseline.json
+      linter: ty
+      head_baseline_file: ty-baseline.json
       job_rules:
         - if: $CI_MERGE_REQUEST_ID
           changes:
-            - basedpyright-baseline.json
+            - ty-baseline.json
   # Everything that builds, checks or publishes the documentation, including
   # the sphinx templates it extends and the variables only it uses.
   #

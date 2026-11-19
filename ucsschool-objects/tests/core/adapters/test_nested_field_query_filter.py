@@ -24,8 +24,8 @@ from ucsschool_objects.core.adapters.sqlalchemy.query_filter import (
     FILTER_OPERATOR_BUILDERS,
     _get_filter_column,
     _glob_to_sql_pattern,
-    _nested_roots,  # pyright: ignore[reportPrivateUsage]
-    _query_fields,  # pyright: ignore[reportPrivateUsage]
+    _nested_roots,
+    _query_fields,
     apply_nested_joins,
 )
 from ucsschool_objects.core.adapters.sqlalchemy.query_schema import JoinSpec, JoinType

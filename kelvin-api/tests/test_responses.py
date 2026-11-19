@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
-# pyright: reportMissingTypeStubs=false
 
 """``ModelListResponse`` must put out what FastAPI's encoder would have.
 

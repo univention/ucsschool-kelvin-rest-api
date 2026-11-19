@@ -9,10 +9,9 @@ SPDX-PackageDownloadLocation = "https://www.univention.com/products/ucsschool/"
 # ENSURE this is in sync with the reuse annotate pre-commit hook
 [[annotations]]
 path = [
-    "basedpyright-baseline.json",
     "openapi-client-udm-1.0.2.tar.gz",
-    "pyrightconfig.json",
     "renovate.json",
+    "ty-baseline.json",
     "uv.lock",
     ".python-version",
     "univention-lib-slim/changelog",

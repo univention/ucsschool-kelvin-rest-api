@@ -559,10 +559,10 @@ def build_expression(
             )
         )
 
-    if isinstance(query_expr, AnyRelated):  # pyright: ignore[reportUnnecessaryIsInstance]
+    if isinstance(query_expr, AnyRelated):
         return _build_any_expression(query_expr, field_map, registry, json_field_map, any_context)
 
-    raise UnsupportedQueryExpression(query_expr)  # pyright: ignore[reportUnreachable]
+    raise UnsupportedQueryExpression(query_expr)
 
 
 def apply_search_query(

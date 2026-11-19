@@ -1,8 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
-#
-# pyright: reportUnusedFunction=false
-# Private helpers are imported by sibling modules, so they can look unused here.
 
 from __future__ import annotations
 
@@ -22,7 +19,7 @@ from ucsschool_objects.core.domain.load_spec import LoadSpec
 from ucsschool_objects.core.domain.models import (
     DomainObject,
     UnloadedType,
-    _require_loaded,  # pyright: ignore[reportPrivateUsage]
+    _require_loaded,
 )
 from ucsschool_objects.database_models import (
     Base,
@@ -86,7 +83,7 @@ def apply_patch(
     # NOTE lib jsonpatch is untyped
     return cast(
         PatchDict,
-        JsonPatch(list(operations)).apply(current_dict),  # pyright: ignore[reportUnknownMemberType]
+        JsonPatch(list(operations)).apply(current_dict),
     )
 
 

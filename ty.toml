@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Univention GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
+baseline = "ty-baseline.json"
+
+[environment]
+python-version = "3.11"
+
+[src]
+exclude = ["appcenter/tests/stubs", "build_docs.py"]
