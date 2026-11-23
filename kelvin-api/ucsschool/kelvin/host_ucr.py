@@ -10,6 +10,7 @@ from univention.config_registry.backend import ConfigRegistry, ReadOnlyConfigReg
 
 HOST_UCR_DIR = "/host-ucr"
 HOST_UCR_SOURCE_DIR = "/etc/univention"
+SKIP_SYNC_ENV = "SKIP_UCSSCHOOL_KELVIN_HOST_UCR_SYNC"
 
 SYNCED_PREFIXES = (
     "groups/default/",
@@ -109,7 +110,8 @@ def sync(host: ReadOnlyConfigRegistry, container: ConfigRegistry) -> dict[str, s
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Sync the Kelvin-relevant UCR variables of the Docker host into the container."
+        description="Sync the Kelvin-relevant UCR variables of the Docker host into the container.",
+        epilog=f"Set {SKIP_SYNC_ENV}=true to skip the sync, for example to start Kelvin while it fails.",
     )
     parser.add_argument(
         "--list",
@@ -119,6 +121,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     list_keys = parser.parse_args(argv).list_keys
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    if not list_keys and os.environ.get(SKIP_SYNC_ENV) == "true":
+        logger.warning("Skipped syncing the host UCR variables, because %s is 'true'.", SKIP_SYNC_ENV)
+        return 0
     try:
         host = HostConfigRegistry()
         container = ConfigRegistry()

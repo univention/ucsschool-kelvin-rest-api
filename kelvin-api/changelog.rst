@@ -46,6 +46,8 @@ and values of these variables that are set inside the container with ``ucr set``
   A change of such a variable on the host takes effect after a restart of the app.
   Installing or upgrading the app aborts if one of the files :file:`/etc/univention/base*.conf` is missing on the host.
   See :ref:`configuration-host-ucr` (:uv:bug:`52934`).
+* Added: The environment variable ``SKIP_UCSSCHOOL_KELVIN_HOST_UCR_SYNC=true`` starts the Docker container without synchronizing the UCR variables of the host,
+  for example while the synchronization fails. See :ref:`configuration-host-ucr` (:uv:bug:`52934`).
 * Changed: An empty value of the UCR variable ``ucsschool/validation/logging/enabled`` disables the validation logging,
   as any other value that isn't true does.
   Before, an empty value enabled it (:uv:bug:`52934`).

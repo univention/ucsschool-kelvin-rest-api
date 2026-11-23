@@ -174,6 +174,20 @@ for example for :file:`base-forced.conf`:
    $ ucr dump > /dev/null
    $ univention-app restart ucsschool-kelvin-rest-api
 
+If the synchronization fails for another reason,
+you can start the container without it until the cause is fixed.
+The container then keeps the UCR values it already has.
+Add ``SKIP_UCSSCHOOL_KELVIN_HOST_UCR_SYNC: "true"`` to the ``environment`` of the ``api`` service
+in :file:`/var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/compose/docker-compose.yml`,
+and recreate the container:
+
+.. code-block:: console
+
+   $ cd /var/lib/univention-appcenter/apps/ucsschool-kelvin-rest-api/compose
+   $ docker-compose -p ucsschool-kelvin-rest-api up -d
+
+An upgrade or a reinitialization of the app regenerates this file and removes the setting.
+
 
 Number of cores
 ^^^^^^^^^^^^^^^

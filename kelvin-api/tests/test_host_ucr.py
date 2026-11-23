@@ -305,3 +305,19 @@ def test_main_fails_on_non_utf8_host_file(
     assert caplog.messages[0].startswith(
         f"Syncing the host UCR variables failed: Host UCR files in {host_dir} aren't valid UTF-8: "
     )
+
+
+@pytest.mark.usefixtures("patched_main")
+def test_main_skips_sync_when_requested(
+    host_dir: Path,
+    container_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("SKIP_UCSSCHOOL_KELVIN_HOST_UCR_SYNC", "true")
+    write_host_base(host_dir, {"ucsschool/import/a": "1"})
+    assert host_ucr.main([]) == 0
+    assert container_values() == {}
+    assert caplog.messages == [
+        "Skipped syncing the host UCR variables, because SKIP_UCSSCHOOL_KELVIN_HOST_UCR_SYNC is 'true'."
+    ]
