@@ -122,7 +122,7 @@ class WorkGroupPatchDocument(KelvinBaseModel):
             udm_properties, configured_properties, WorkGroupCreateModel.config_id
         )
 
-    async def to_modify_kwargs(self, school: str, request: Request) -> Dict[str, Any]:
+    def to_modify_kwargs(self, school: str, request: Request) -> Dict[str, Any]:
         res = self.model_dump(exclude_unset=True)
         logger = get_logger()
         if "name" in res:
@@ -305,7 +305,7 @@ async def partial_update(
     """
     sc_current = await get_lib_obj(udm, WorkGroup, f"{school}-{workgroup_name}", school)
     changed = False
-    for attr, new_value in (await workgroup.to_modify_kwargs(school, request)).items():
+    for attr, new_value in workgroup.to_modify_kwargs(school, request).items():
         current_value = getattr(sc_current, attr)
         if new_value != current_value:
             setattr(sc_current, attr, new_value)

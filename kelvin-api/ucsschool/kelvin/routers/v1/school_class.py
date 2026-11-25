@@ -119,7 +119,7 @@ class SchoolClassPatchDocument(KelvinBaseModel):
             udm_properties, configured_properties, SchoolClassCreateModel.config_id
         )
 
-    async def to_modify_kwargs(self, school: str, request: Request) -> Dict[str, Any]:
+    def to_modify_kwargs(self, school: str, request: Request) -> Dict[str, Any]:
         res = self.model_dump(exclude_unset=True)
         if "name" in res:
             res["name"] = f"{school}-{self.name}"
@@ -290,7 +290,7 @@ async def partial_update(
     school = ou_names[0]  # use OU name from LDAP, not from request (Bug #55456)
     sc_current = await get_lib_obj(udm, SchoolClass, f"{school}-{class_name}", school)
     changed = False
-    for attr, new_value in (await school_class.to_modify_kwargs(school, request)).items():
+    for attr, new_value in school_class.to_modify_kwargs(school, request).items():
         current_value = getattr(sc_current, attr)
         if new_value != current_value:
             setattr(sc_current, attr, new_value)
