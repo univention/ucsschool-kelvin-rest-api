@@ -43,6 +43,8 @@ COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 ARG KELVIN_BUILD_VERSION="999.0.0"
+# Installs the dev groups, as the CI unit tests and the in-container integration tests
+# run in this image: univention/dev/education/ucsschool-kelvin-rest-api#298
 RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked --all-packages --group dev
 RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
 
