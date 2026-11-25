@@ -47,7 +47,8 @@ exclude_lines = [
 
 
 [dependency-groups]
-dev = [
+dev = [{ include-group = "test" }]
+test = [
     "aiosqlite>=0.22.1",
     "allure-pytest>=2.16.0",
     "pytest>=9.0.2",

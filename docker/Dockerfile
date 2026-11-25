@@ -43,9 +43,9 @@ COPY openapi-client-udm-1.0.2.tar.gz .
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
 ARG KELVIN_BUILD_VERSION="999.0.0"
-# Installs the dev groups, as the CI unit tests and the in-container integration tests
+# Installs the test groups, as the CI unit tests and the in-container integration tests
 # run in this image: univention/dev/education/ucsschool-kelvin-rest-api#298
-RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked --all-packages --group dev
+RUN KELVIN_BUILD_VERSION=$KELVIN_BUILD_VERSION uv sync --locked --all-packages --no-dev --group test
 RUN cd ucs-test-ucsschool-kelvin && apt-get build-dep -y . && dpkg-buildpackage
 
 
@@ -139,7 +139,8 @@ COPY ucsschool-objects ./ucsschool-objects
 COPY kelvin-connector ./kelvin-connector
 COPY ucs-test-ucsschool-kelvin ./ucs-test-ucsschool-kelvin
 
-RUN uv --directory ./kelvin-connector sync --locked
+# The connector's CI unit tests run in this image: univention/dev/education/ucsschool-kelvin-rest-api#298
+RUN uv --directory ./kelvin-connector sync --locked --no-dev --group test
 
 FROM gitregistry.knut.univention.de/univention/dev/projects/ucs-base-image/ucs-base-python-527:0.24.5@sha256:b2211f931bb03d2c86550b6671b1c43dc5dde8ad075cafc2220f8f55851d54d8 AS connector-prod
 ENV PYTHONUNBUFFERED=1

@@ -188,10 +188,10 @@ or `Bug #123456`.
 ### Key dependencies
 
 Runtime and dev dependencies are declared in the root `pyproject.toml` (`[project].dependencies` and `[dependency-groups]`).
-The `Dockerfile` installs the `dev` groups into the production image
+The production images install only the `test` groups
 (univention/dev/education/ucsschool-kelvin-rest-api#298),
-so a tool nothing in the image runs gets its own group,
-as ty's `typecheck` group does.
+and `dev` includes `test`:
+a package the tests import goes into `test`, any other tool into `dev`.
 Some dependencies are pinned for compatibility — **don't bump these without checking why**:
 
 | Package | Constraint | Notes |

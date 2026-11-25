@@ -174,7 +174,7 @@ Code style and static checks run through
    * - ``ty``
      - ``ty.toml`` + ``ty-baseline.json``
      - runs against a committed baseline;
-       refresh it with ``uv run --group typecheck ty check --update-baseline`` from the repository root.
+       refresh it with ``uv run ty check --update-baseline`` from the repository root.
    * - ``pre-commit-hooks`` / ``pygrep-hooks``
      - —
      - ``trailing-whitespace``, ``large-files``, JSON/YAML/XML checks,

@@ -144,7 +144,7 @@ include:
       pipeline_stage: build
       use_project_ty: true
       before_script:
-        - "apt-get update -qq && apt-get install -y -qq git gcc python3-dev libldap2-dev libsasl2-dev && uv sync --group typecheck"
+        - "apt-get update -qq && apt-get install -y -qq git gcc python3-dev libldap2-dev libsasl2-dev && uv sync --dev"
       job_rules:
         - if: $CI_MERGE_REQUEST_ID
           changes:

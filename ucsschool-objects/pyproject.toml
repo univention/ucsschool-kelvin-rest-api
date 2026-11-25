@@ -21,7 +21,8 @@ requires = ["uv_build>=0.12.19,<0.13.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = [
+dev = [{ include-group = "test" }]
+test = [
     "aiosqlite>=0.20.0",
     "faker>=15.0.0",
     "pytest>=9.0.0",

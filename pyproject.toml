@@ -96,7 +96,9 @@ url = "https://git.knut.univention.de/api/v4/projects/701/packages/pypi/simple"
 explicit = true
 
 [dependency-groups]
-dev = [
+# The production images install this group, as tests run in them:
+# univention/dev/education/ucsschool-kelvin-rest-api#298
+test = [
     "coverage>=7.16.2",
     "factory_boy>=3.1.0",
     "Faker~=40.41.0",
@@ -106,12 +108,11 @@ dev = [
     "pytest-mock",
     "pyfakefs~=6.2.0",
     "tenacity>=9.1.2",
-    "eralchemy[graphviz]>=1.6.0",
     "allure-pytest>=2.16.0",
 ]
-# Not in dev: the production image installs the dev group, and nothing there runs ty.
-# It can join dev once the image leaves dev out: univention/dev/education/ucsschool-kelvin-rest-api#298
-typecheck = [
+dev = [
+    { include-group = "test" },
+    "eralchemy[graphviz]>=1.6.0",
     "ty==0.0.107",
 ]
 
